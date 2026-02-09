@@ -21,7 +21,7 @@ func setupIOEnv() *value.Env {
 func TestPipeUnwrapOk(t *testing.T) {
 	env := setupIOEnv()
 	result := eval.Run(`[@ok 42] |> type()`, env)
-	
+
 	sym, ok := result.(*value.Symbol)
 	if !ok {
 		t.Fatalf("expected Symbol, got %T: %v", result, result)
@@ -49,7 +49,7 @@ let double = (n) { return n * 2 }
 [@error "failed"] |> double() |> double()
 `
 	result := eval.Run(input, env)
-	
+
 	list, ok := result.(*value.List)
 	if !ok {
 		t.Fatalf("expected List, got %T: %v", result, result)
@@ -71,11 +71,11 @@ let double = (n) { return n * 2 }
 
 func TestFileCreateWriteClose(t *testing.T) {
 	env := setupIOEnv()
-	
+
 	// Clean up before and after
 	os.Remove("test_io.txt")
 	defer os.Remove("test_io.txt")
-	
+
 	input := `
 let h = create("test_io.txt")
 fwrite(h "hello")
@@ -85,7 +85,7 @@ fclose(h)
 	if _, ok := result.(*value.Error); ok {
 		t.Fatalf("unexpected error: %v", result)
 	}
-	
+
 	// Verify file exists and has content
 	data, err := os.ReadFile("test_io.txt")
 	if err != nil {
@@ -98,11 +98,11 @@ fclose(h)
 
 func TestFileOpenReadClose(t *testing.T) {
 	env := setupIOEnv()
-	
+
 	// Create test file
 	os.WriteFile("test_io_read.txt", []byte("aiki test"), 0644)
 	defer os.Remove("test_io_read.txt")
-	
+
 	input := `
 let h = open("test_io_read.txt")
 let content = fread(h)
@@ -110,7 +110,7 @@ fclose(h)
 content
 `
 	result := eval.Run(input, env)
-	
+
 	str, ok := result.(*value.String)
 	if !ok {
 		t.Fatalf("expected String, got %T: %v", result, result)
@@ -123,7 +123,7 @@ content
 func TestFileOpenError(t *testing.T) {
 	env := setupIOEnv()
 	result := eval.Run(`open("nonexistent_file_12345.txt")`, env)
-	
+
 	list, ok := result.(*value.List)
 	if !ok {
 		t.Fatalf("expected List (error), got %T: %v", result, result)
@@ -135,11 +135,11 @@ func TestFileOpenError(t *testing.T) {
 
 func TestFileReadEOF(t *testing.T) {
 	env := setupIOEnv()
-	
+
 	// Create empty file
 	os.WriteFile("test_io_empty.txt", []byte{}, 0644)
 	defer os.Remove("test_io_empty.txt")
-	
+
 	input := `
 let h = open("test_io_empty.txt")
 let result = fread(h)
@@ -147,7 +147,7 @@ fclose(h)
 shape(result)
 `
 	result := eval.Run(input, env)
-	
+
 	sym, ok := result.(*value.Symbol)
 	if !ok {
 		t.Fatalf("expected Symbol, got %T: %v", result, result)
@@ -159,10 +159,10 @@ shape(result)
 
 func TestFileRoundTrip(t *testing.T) {
 	env := setupIOEnv()
-	
+
 	os.Remove("test_io_round.txt")
 	defer os.Remove("test_io_round.txt")
-	
+
 	input := `
 let h = create("test_io_round.txt")
 fwrite(h "line one\n")
@@ -175,7 +175,7 @@ fclose(r)
 data
 `
 	result := eval.Run(input, env)
-	
+
 	str, ok := result.(*value.String)
 	if !ok {
 		t.Fatalf("expected String, got %T: %v", result, result)

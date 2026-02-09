@@ -257,6 +257,29 @@ Error short-circuit: if any step returns `[@error reason]`, rest of pipe skips.
 
 No exceptions. Functions return `[@ok value]` or `[@error reason]`. Pipe automates checking. `match` destructures.
 
+## The Way: Success Returns Value
+
+Functions that can fail return either the value (success) or `[@error reason]` (failure). Success is not wrapped.
+```
+find([1 2 3] isEven)   # 2, or [@error "not found"]
+max([5 3 8])           # 8, or [@error "empty list"]
+hash_get(h "key")      # value, or [@error "key not found"]
+```
+
+The pipe operator recognizes this:
+- `[@error ...]` short-circuits the pipeline
+- `[@ok ...]` auto-unwraps (for compatibility)
+- Raw values pass through
+
+This enables clean composition:
+```
+data |> find(pred) |> transform() |> save()
+```
+
+If `find` fails, the error propagates. If it succeeds, the value flows.
+
+The principle: **Success needs no announcement.**
+
 ## Files as Modules
 
 No packages. Files are modules. Filesystem is organization.

@@ -15,9 +15,12 @@
 - [x] File runner
 - [x] Test suite
 - [x] Escape sequences in strings
+- [x] File I/O (open, create, fread, fwrite, fclose)
+- [x] Pipe auto-unwrap [@ok val]
+- [x] "The way": success returns value, failure returns [@error reason]
+- [x] Formatter shows changed files
 
 ## Next
-- [ ] File I/O (open, read, write, close)
 - [ ] Module system (from/use/export)
 - [ ] Canvas primitives
 - [ ] Error handling improvements

@@ -384,7 +384,7 @@ Type help(name) for details.`
 			return value.NewNumber(hashValue(args[0]), 1)
 		},
 	},
-"open": {
+	"open": {
 		Name: "open",
 		Fn: func(args ...value.Value) value.Value {
 			if len(args) != 1 {

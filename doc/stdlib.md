@@ -1,8 +1,24 @@
-# Aiki Standard Library (v0.2.0)
+# Aiki Standard Library (v0.2.2)
 
 The library is split into two layers:
 1. **Primitives:** Implemented in Go. Cannot be written in Aiki.
 2. **Prelude:** Implemented in Aiki. Loaded automatically. User can override.
+
+## The Way
+
+Functions that can fail return either the value (success) or `[@error reason]` (failure). Success is not wrapped.
+```
+find([1 2 3] isEven)   # 2, or [@error "not found"]
+max([5 3 8])           # 8, or [@error "empty list"]
+open("file.txt")       # handle, or [@error reason]
+```
+
+The pipe operator recognizes this:
+- `[@error ...]` short-circuits the pipeline
+- `[@ok ...]` auto-unwraps (for compatibility)
+- Raw values pass through
+
+**Success needs no announcement.**
 
 ---
 
@@ -17,8 +33,9 @@ These are the atomic operations required to build everything else.
 | `first`  | `(list)` | Returns the first element. Error if empty. |
 | `rest`   | `(list)` | Returns list without first element. Empty if single. |
 | `len`    | `(list)` | Returns number of elements. O(1). |
-| `prepend`| `(list val)` | Adds `val` to start. Returns new list. O(1). |
-| `append` | `(list val)` | Adds `val` to end. Returns new list. O(1) amortized. |
+| `prepend`| `(list val)` | Adds `val` to start. Returns new list. |
+| `append` | `(list val)` | Adds `val` to end. Returns new list. |
+| `nth`    | `(list n)` | Returns element at index n. |
 
 Works on raw lists, shaped lists, strings, and bytes.
 
@@ -26,11 +43,9 @@ Works on raw lists, shaped lists, strings, and bytes.
 
 | Function | Signature | Description |
 |----------|-----------|-------------|
-| `type`   | `(val)` | Returns `:number`, `:boolean`, `:string`, `:rune`, `:bytes`, `:symbol`, `:list`, `:function`. |
-| `inspect`| `(val)` | Returns string representation for debugging. Optional depth parameter. |
-| `shape`  | `(val)` | Returns shape symbol (`:point`, `:user`, etc.) or `:list` for raw lists. |
-
-No custom toString. These are deterministic and not overridable.
+| `type`   | `(val)` | Returns `:number`, `:boolean`, `:string`, `:rune`, `:bytes`, `:symbol`, `:list`, `:function`, `:handle`. |
+| `inspect`| `(val)` | Returns string representation for debugging. |
+| `shape`  | `(val)` | Returns shape symbol (`:point`, `:error`, etc.) or `:list` for raw lists. |
 
 ### Compare
 
@@ -43,30 +58,30 @@ No custom toString. These are deterministic and not overridable.
 | Function | Signature | Description |
 |----------|-----------|-------------|
 | `tostr`  | `(val)` | Converts value to string. |
-| `tonum`  | `(val)` | Parses string to number. Returns `[@ok n]` or `[@error msg]`. |
-| `tobytes`| `(val)` | Converts string or rune to UTF-8 bytes. |
-| `torune` | `(bytes)` | Converts UTF-8 bytes to rune. Returns `[@ok r]` or `[@error msg]`. |
+| `tonum`  | `(str)` | Parses string to number. Returns number or `[@error reason]`. |
 | `todecimal` | `(n places)` | Converts number to decimal string with given precision. |
 
 ### I/O
 
 | Function | Signature | Description |
 |----------|-----------|-------------|
-| `print`  | `(val)` | Writes to stdout with newline. Returns `true`. |
-| `read`   | `()` | Reads line from stdin. Returns string. |
-| `open`   | `(path)` | Opens file, returns byte stream function. |
-| `create` | `(path)` | Creates file, returns byte sink function. |
-| `close`  | `(stream)` | Closes a stream. |
+| `print`  | `(val...)` | Writes to stdout with newline. Returns `null`. |
+| `read`   | `()` | Reads line from stdin. Returns string or `[@end]` at EOF. |
+| `open`   | `(path)` | Opens file for reading. Returns handle or `[@error reason]`. |
+| `create` | `(path)` | Creates file for writing. Returns handle or `[@error reason]`. |
+| `fread`  | `(handle)` | Reads chunk from file. Returns string, `[@end]`, or `[@error reason]`. |
+| `fwrite` | `(handle data)` | Writes string or bytes to file. Returns `true` or `[@error reason]`. |
+| `fclose` | `(handle)` | Closes file handle. Returns `true`. |
 
-Streams are functions:
+Example:
 ```
-let f = open("file.txt")
-f()      # [@ok <bytes>] or [@end]
-close(f)
+let h = create("out.txt")
+fwrite(h "hello\n")
+fclose(h)
 
-let out = create("out.txt")
-out(bytes)   # write bytes
-close(out)
+let r = open("out.txt")
+let data = fread(r)
+fclose(r)
 ```
 
 ### Math
@@ -78,71 +93,13 @@ close(out)
 | `sin`    | `(n)` | Sine (radians). |
 | `random` | `(n)` | Random integer from 0 to n-1. |
 
-### Bit Operations
-
-| Function | Signature | Description |
-|----------|-----------|-------------|
-| `bit_and` | `(a b)` | Bitwise AND. Integers only. |
-| `bit_or`  | `(a b)` | Bitwise OR. Integers only. |
-| `bit_xor` | `(a b)` | Bitwise XOR. Integers only. |
-| `bit_not` | `(a)` | Bitwise NOT (two's complement). Integers only. |
-| `bit_shift` | `(a n)` | Left shift if n > 0, right if n < 0. Integers only. |
-
-Non-integer input returns `[@error "requires integer"]`.
-
-### Regex
-
-| Function | Signature | Description |
-|----------|-----------|-------------|
-| `regex` | `(str pattern)` | Match pattern. Returns `[@ok [full groups...]]` or `[@error "no match"]`. |
-| `regex_all` | `(str pattern)` | Find all matches. Returns `[@ok [matches...]]` or `[@error "no match"]`. |
-| `regex_replace` | `(str pattern repl)` | Replace matches. Returns new string. |
-
-RE2 semantics: linear time, no backtracking, no backreferences.
-
-### Concurrency (Experimental)
-
-| Function | Signature | Description |
-|----------|-----------|-------------|
-| `spawn` | `(f)` | Start green thread. Returns immediately. |
-| `channel` | `()` | Create unbuffered channel. |
-| `send` | `(ch val)` | Send value. Blocks until received. |
-| `recv` | `(ch)` | Receive value. Blocks until sent. |
-
-Known limitations:
-- No protection against data races
-- Shared mutable state is dangerous
-- Channel operations are the only yield points
-
-Best practice: Communicate through channels. Don't share mutable state.
-
-### Canvas
-
-| Function | Signature | Description |
-|----------|-----------|-------------|
-| `canvas` | `(w h)` | Create window, return handle. |
-| `draw_line` | `(c x1 y1 x2 y2 color)` | Draw line. |
-| `draw_rect` | `(c x y w h color)` | Draw rectangle. |
-| `draw_circle` | `(c x y r color)` | Draw circle. |
-| `draw_text` | `(c x y text color)` | Draw text. |
-| `clear` | `(c color)` | Clear canvas. |
-| `present` | `(c)` | Flush to screen. |
-| `close` | `(c)` | Close window. |
-
-Colors: `:red`, `:blue`, `:green`, `:white`, `:black`, etc. or `[@rgb 255 128 0]`.
-
 ### System
 
 | Function | Signature | Description |
 |----------|-----------|-------------|
-| `help` | `()` or `(fn)` | Show help or describe function. |
-| `quit` | `()` | Exit. |
-| `universe` | `()` | List all loaded modules. |
-| `symbols` | `()` | List bindings in current scope. |
-| `history` | `()` | Expression history. |
-| `peek` | `(path)` | Inspect file without loading. |
-| `load` | `(path)` | Load and execute file. |
-| `stack_limit` | `(n)` | Set recursion depth limit. |
+| `help`   | `()` | Show help. |
+| `quit`   | `()` | Exit. |
+| `fmt`    | `(path)` | Format file or directory (`./...` for recursive). |
 
 ### Note on Arithmetic
 
@@ -150,8 +107,6 @@ Arithmetic uses operators, not functions:
 - `+`, `-`, `*`, `/`, `%` for math
 - `==`, `!=`, `<`, `>`, `<=`, `>=` for comparison
 - `and`, `or`, `not` for logic
-
-One way to add numbers: `a + b`.
 
 All arithmetic is exact (rational). Division by zero returns `[@error "division by zero"]`.
 
@@ -161,235 +116,127 @@ All arithmetic is exact (rational). Division by zero returns `[@error "division 
 
 Written in Aiki. Proves the language. User can read, modify, replace.
 
+### Shapes
+```
+let @ok [value]      # success wrapper (for compatibility)
+let @error [reason]  # failure
+let @end []          # stream termination
+```
+
 ### each
 
-Side effects over a list.
-
+Side effects over a list. Returns `true`.
 ```
-let each = (list f) {
-    let i = 0
-    while i < len(list) {
-        f(list.i)
-        i = i + 1
-    }
-    return true
-}
+each([1 2 3] print)
 ```
 
 ### map
 
-Transform each element.
-
+Transform each element. Returns new list.
 ```
-let map = (list f) {
-    let result = []
-    let i = 0
-    while i < len(list) {
-        result = append(result f(list.i))
-        i = i + 1
-    }
-    return result
-}
+map([1 2 3] (n) { return n * 2 })   # [2 4 6]
 ```
 
 ### filter
 
-Keep elements that pass a test.
-
+Keep elements that pass a test. Returns new list.
 ```
-let filter = (list f) {
-    let result = []
-    let i = 0
-    while i < len(list) {
-        if f(list.i) {
-            result = append(result list.i)
-        }
-        i = i + 1
-    }
-    return result
-}
+filter([1 2 3 4] (n) { return n > 2 })   # [3 4]
 ```
 
 ### reduce
 
 Accumulate a single value.
-
 ```
-let reduce = (list acc f) {
-    let result = acc
-    let i = 0
-    while i < len(list) {
-        result = f(result list.i)
-        i = i + 1
-    }
-    return result
-}
+reduce([1 2 3] 0 (acc n) { return acc + n })   # 6
 ```
 
 ### range
 
 Generate a list of numbers.
-
 ```
-let range = (start end) {
-    let result = []
-    let i = start
-    while i < end {
-        result = append(result i)
-        i = i + 1
-    }
-    return result
-}
+range(1 5)   # [1 2 3 4]
 ```
 
 ### reverse
 
 Reverse a list.
-
 ```
-let reverse = (list) {
-    let result = []
-    let i = len(list) - 1
-    while i >= 0 {
-        result = append(result list.i)
-        i = i - 1
-    }
-    return result
-}
+reverse([1 2 3])   # [3 2 1]
 ```
 
 ### find
 
 Find first element matching a predicate.
 
+Returns: value, or `[@error "not found"]`
 ```
-let find = (list f) {
-    let i = 0
-    while i < len(list) {
-        if f(list.i) {
-            return [@ok list.i]
-        }
-        i = i + 1
-    }
-    return [@error "not found"]
-}
+find([1 2 3 4] (n) { return n > 2 })   # 3
+find([1 2 3] (n) { return n > 10 })    # [@error "not found"]
 ```
 
 ### any
 
 True if any element passes.
-
 ```
-let any = (list f) {
-    let i = 0
-    while i < len(list) {
-        if f(list.i) {
-            return true
-        }
-        i = i + 1
-    }
-    return false
-}
+any([1 2 3] (n) { return n > 2 })   # true
 ```
 
 ### all
 
 True if all elements pass.
-
 ```
-let all = (list f) {
-    let i = 0
-    while i < len(list) {
-        if not f(list.i) {
-            return false
-        }
-        i = i + 1
-    }
-    return true
-}
+all([1 2 3] (n) { return n > 0 })   # true
 ```
 
-### as_lines
+### sum
 
-Wrap byte stream to yield lines.
-
+Sum of numbers in list.
 ```
-let as_lines = (stream) {
-    let buffer = []
-    return () {
-        while true {
-            match stream() {
-                [@ok chunk] {
-                    # accumulate bytes, split on newline
-                    # return [@ok line] when complete
-                }
-                [@end] {
-                    if len(buffer) > 0 {
-                        let line = tostr(buffer)
-                        buffer = []
-                        return [@ok line]
-                    }
-                    return [@end]
-                }
-            }
-        }
-    }
-}
+sum([1 2 3 4])   # 10
 ```
 
-### as_runes
+### max
 
-Wrap byte stream to yield runes.
+Maximum value in list.
 
+Returns: value, or `[@error "empty list"]`
 ```
-let as_runes = (stream) {
-    let buffer = []
-    return () {
-        # accumulate bytes until valid UTF-8 rune
-        # return [@ok rune] or [@end]
-    }
-}
+max([3 1 4 1 5])   # 5
+max([])            # [@error "empty list"]
 ```
 
-### Turtle Graphics
+### min
 
-Built on canvas primitives.
+Minimum value in list.
 
+Returns: value, or `[@error "empty list"]`
 ```
-let @turtle [canvas x y angle]
-
-let turtle = () {
-    let c = canvas(400 400)
-    clear(c :black)
-    return [@turtle c 200 200 0]
-}
-
-let forward = (t dist) {
-    let rad = t.angle * 3.14159 / 180
-    let nx = t.x + (dist * cos(rad))
-    let ny = t.y + (dist * sin(rad))
-    draw_line(t.canvas t.x t.y nx ny :white)
-    t.x = nx
-    t.y = ny
-    present(t.canvas)
-    return t
-}
-
-let right = (t degrees) {
-    t.angle = t.angle + degrees
-    return t
-}
-
-let left = (t degrees) {
-    t.angle = t.angle - degrees
-    return t
-}
+min([3 1 4 1 5])   # 1
+min([])            # [@error "empty list"]
 ```
 
-Usage:
+### Hash Map
+
+A hash map implemented in pure Aiki. O(1) average lookup.
+
+| Function | Signature | Description |
+|----------|-----------|-------------|
+| `hash_new` | `()` | Create empty hash. |
+| `hash_get` | `(h key)` | Get value. Returns value or `[@error "key not found"]`. |
+| `hash_put` | `(h key val)` | Set value. Returns new hash. |
+| `hash_has` | `(h key)` | Check if key exists. Returns boolean. |
+| `hash_del` | `(h key)` | Remove key. Returns new hash. |
+| `hash_keys` | `(h)` | List all keys. |
+| `hash_values` | `(h)` | List all values. |
+
+Example:
 ```
-let t = turtle()
-t |> forward(100) |> right(90) |> forward(100)
+let h = hash_new()
+let h = hash_put(h "name" "Mochi")
+let h = hash_put(h "age" 3)
+hash_get(h "name")   # "Mochi"
+hash_has(h "color")  # false
 ```
 
 ---
@@ -397,36 +244,17 @@ t |> forward(100) |> right(90) |> forward(100)
 ## Why This Split
 
 **Primitives** touch runtime internals:
-- `first`, `rest`, `prepend`, `append` manipulate list memory
+- `first`, `rest`, `append` manipulate list memory
 - `type`, `inspect`, `shape` query runtime type information
-- `print`, `read`, `open`, `create` perform I/O
+- `print`, `read`, `open`, `fread` perform I/O
 - `sqrt`, `cos`, `sin`, `random` call system libraries
-- `spawn`, `channel`, `send`, `recv` manage green threads
-- `canvas`, `draw_*` interface with graphics system
-- `regex*` use Go's regexp engine
 
 You cannot write `first` in Aiki without `first`.
 
 **Prelude** is pure Aiki:
 - `map` is just `while` + `append`
 - `filter` is just `while` + `if` + `append`
-- `as_lines` wraps a stream function
-- `turtle` wraps canvas primitives
+- `hash_*` is lists of lists with a hash function
 - Every function is readable, understandable, replaceable
 
 The split follows from necessity, not convention.
-
----
-
-## Usage
-
-Prelude loads automatically. Override by defining your own:
-
-```
-# my faster map using some trick
-let map = (list f) {
-    # your implementation
-}
-```
-
-Your `map` shadows the prelude. The prelude version still exists but is unreachable in your scope.

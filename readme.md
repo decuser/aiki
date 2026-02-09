@@ -47,6 +47,8 @@ match result {
 - **Go-lite concurrency**: `spawn`, `channel`, `send`, `recv`
 - **Canvas primitives**: turtle graphics, Logo in 50 lines
 - **Live environment**: REPL, inspection, hot reload, build to executable
+- **The way**: success returns value, failure returns `[@error reason]`
+- **File I/O**: `open`, `create`, `fread`, `fwrite`, `fclose`
 
 ## Documentation
 
@@ -57,4 +59,4 @@ match result {
 
 ## Status
 
-v0.2.0 design complete. Implementation not started.
+v0.2.2 - File I/O, pipe auto-unwrap, "the way" convention.

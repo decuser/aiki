@@ -50,10 +50,10 @@ reduce(range(1 6) 0 add)`,
 			expected: "15",
 		},
 		{
-		    name: "find in range",
-		    input: `let gt5 = (n) { return n > 5 }
+			name: "find in range",
+			input: `let gt5 = (n) { return n > 5 }
 		find(range(1 10) gt5)`,
-		    expected: "6",
+			expected: "6",
 		},
 		{
 			name: "any on range",

@@ -98,6 +98,7 @@ func formatFile(path string) error {
 
 	// Write back only if changed
 	if formatted != string(data) {
+		fmt.Println(path)
 		if err := os.WriteFile(path, []byte(formatted), 0644); err != nil {
 			return err
 		}
