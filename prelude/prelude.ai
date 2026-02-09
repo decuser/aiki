@@ -134,9 +134,9 @@ let min = (list) {
 	}
 	return m
 }
+
 # Hash map implementation
 # A hash is a list of 64 buckets, each bucket is a list of [key value] pairs
-
 let _HASH_SIZE = 64
 
 let hash_new = () {

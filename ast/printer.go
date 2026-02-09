@@ -59,22 +59,22 @@ func (p *Printer) newline() {
 }
 
 func (p *Printer) printProgram(program *Program) {
-	prevWasFunc := false
+	prevLine := 0
 	for i, stmt := range program.Statements {
-		// Get the line number of this statement
 		line := p.getStatementLine(stmt)
+
+		// Blank line if source had one (gap of 2+ lines)
+		// Must come before comments
+		if i > 0 && line > prevLine+1 {
+			p.newline()
+		}
 
 		// Emit any standalone comments that come before this statement
 		p.emitCommentsBefore(line)
 
-		// Blank line before function definitions (except first)
-		isFunc := isFunctionDef(stmt)
-		if i > 0 && (isFunc || prevWasFunc) {
-			p.newline()
-		}
 		p.printStatementWithEOL(stmt, line)
 		p.lastLine = line
-		prevWasFunc = isFunc
+		prevLine = line
 	}
 
 	// Emit any trailing comments
@@ -155,13 +155,27 @@ func (p *Printer) getStatementLine(stmt Statement) int {
 }
 
 func (p *Printer) emitCommentsBefore(line int) {
-	for commentLine, text := range p.comments {
+	// Collect comments that belong before this line
+	var lines []int
+	for commentLine := range p.comments {
 		if commentLine < line && commentLine > p.lastLine {
-			p.writeIndent()
-			p.write(text)
-			p.newline()
-			delete(p.comments, commentLine)
+			lines = append(lines, commentLine)
 		}
+	}
+	// Sort by line number
+	for i := 0; i < len(lines); i++ {
+		for j := i + 1; j < len(lines); j++ {
+			if lines[j] < lines[i] {
+				lines[i], lines[j] = lines[j], lines[i]
+			}
+		}
+	}
+	// Emit in order
+	for _, commentLine := range lines {
+		p.writeIndent()
+		p.write(p.comments[commentLine])
+		p.newline()
+		delete(p.comments, commentLine)
 	}
 }
 
