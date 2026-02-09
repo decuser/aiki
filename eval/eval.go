@@ -158,14 +158,14 @@ func evalLetStatement(stmt *ast.LetStatement, env *value.Env) value.Value {
 	if isError(val) {
 		return val
 	}
-	
+
 	name := stmt.Name.Value
-	
+
 	// Block builtin shadowing
 	if BuiltinNames[name] {
 		return value.NewError("cannot shadow builtin: %s", name)
 	}
-	
+
 	// Check for prelude shadowing (warning only)
 	snapshot := env.GetSnapshot()
 	if snapshot != nil {
@@ -173,7 +173,7 @@ func evalLetStatement(stmt *ast.LetStatement, env *value.Env) value.Value {
 			fmt.Printf("warning: %s shadows prelude (use restore(\"%s\") to undo)\n", name, name)
 		}
 	}
-	
+
 	env.Set(name, val)
 	return value.NULL
 }
@@ -353,7 +353,7 @@ func evalCallExpression(node *ast.CallExpression, env *value.Env) value.Value {
 	if ident, ok := node.Function.(*ast.Identifier); ok && ident.Value == "restore" {
 		return evalRestore(node, env)
 	}
-	
+
 	fn := Eval(node.Function, env)
 	if isError(fn) {
 		return fn
@@ -371,23 +371,23 @@ func evalRestore(node *ast.CallExpression, env *value.Env) value.Value {
 	if len(node.Arguments) != 1 {
 		return value.NewError("restore: want 1 argument, got %d", len(node.Arguments))
 	}
-	
+
 	arg := Eval(node.Arguments[0], env)
 	if isError(arg) {
 		return arg
 	}
-	
+
 	str, ok := arg.(*value.String)
 	if !ok {
 		return value.NewError("restore: expected string argument")
 	}
-	
+
 	name := str.Value
-	
+
 	if env.Restore(name) {
 		return value.NULL
 	}
-	
+
 	return value.NewError("restore: %s not found in prelude", name)
 }
 

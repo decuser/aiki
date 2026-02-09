@@ -7,12 +7,12 @@ const (
 	EOF
 
 	// Literals
-	Number  // 42, 3.14, 1/3
-	String  // "hello"
-	Rune    // 'a'
-	Symbol  // :active
-	Shape   // @point
-	Name    // x, square
+	Number // 42, 3.14, 1/3
+	String // "hello"
+	Rune   // 'a'
+	Symbol // :active
+	Shape  // @point
+	Name   // x, square
 
 	// Keywords
 	Let
@@ -31,20 +31,20 @@ const (
 	Not
 
 	// Operators
-	Plus     // +
-	Minus    // -
-	Star     // *
-	Slash    // /
-	Percent  // %
-	Eq       // ==
-	NotEq    // !=
-	Lt       // <
-	Gt       // >
-	LtEq     // <=
-	GtEq     // >=
-	Assign   // =
-	Pipe     // |>
-	Dot      // .
+	Plus    // +
+	Minus   // -
+	Star    // *
+	Slash   // /
+	Percent // %
+	Eq      // ==
+	NotEq   // !=
+	Lt      // <
+	Gt      // >
+	LtEq    // <=
+	GtEq    // >=
+	Assign  // =
+	Pipe    // |>
+	Dot     // .
 
 	// Delimiters
 	LParen   // (

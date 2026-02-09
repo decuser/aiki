@@ -63,10 +63,10 @@ func (p *Printer) printProgram(program *Program) {
 	for i, stmt := range program.Statements {
 		// Get the line number of this statement
 		line := p.getStatementLine(stmt)
-		
+
 		// Emit any standalone comments that come before this statement
 		p.emitCommentsBefore(line)
-		
+
 		// Blank line before function definitions (except first)
 		isFunc := isFunctionDef(stmt)
 		if i > 0 && (isFunc || prevWasFunc) {
@@ -76,7 +76,7 @@ func (p *Printer) printProgram(program *Program) {
 		p.lastLine = line
 		prevWasFunc = isFunc
 	}
-	
+
 	// Emit any trailing comments
 	p.emitTrailingComments()
 }

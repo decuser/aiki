@@ -137,7 +137,7 @@ type WildcardPattern struct {
 	Token token.Token
 }
 
-func (p *WildcardPattern) patternNode()        {}
+func (p *WildcardPattern) patternNode()         {}
 func (p *WildcardPattern) TokenLiteral() string { return p.Token.Lexeme }
 
 // NamePattern: binds to a name
@@ -146,7 +146,7 @@ type NamePattern struct {
 	Name  string
 }
 
-func (p *NamePattern) patternNode()        {}
+func (p *NamePattern) patternNode()         {}
 func (p *NamePattern) TokenLiteral() string { return p.Token.Lexeme }
 
 // LiteralPattern: matches a literal value
@@ -155,7 +155,7 @@ type LiteralPattern struct {
 	Value Expression
 }
 
-func (p *LiteralPattern) patternNode()        {}
+func (p *LiteralPattern) patternNode()         {}
 func (p *LiteralPattern) TokenLiteral() string { return p.Token.Lexeme }
 
 // ListPattern: [p1 p2 p3]
@@ -164,7 +164,7 @@ type ListPattern struct {
 	Elements []Pattern
 }
 
-func (p *ListPattern) patternNode()        {}
+func (p *ListPattern) patternNode()         {}
 func (p *ListPattern) TokenLiteral() string { return p.Token.Lexeme }
 
 // ShapedListPattern: [@name p1 p2]
@@ -174,7 +174,7 @@ type ShapedListPattern struct {
 	Elements []Pattern
 }
 
-func (p *ShapedListPattern) patternNode()        {}
+func (p *ShapedListPattern) patternNode()         {}
 func (p *ShapedListPattern) TokenLiteral() string { return p.Token.Lexeme }
 
 // ExportStatement: export [name1 name2]

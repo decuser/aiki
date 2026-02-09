@@ -17,9 +17,9 @@ func loadPrelude(env *value.Env) error {
 	if e, ok := result.(*value.Error); ok {
 		return fmt.Errorf("%s", e.Message)
 	}
-	
+
 	// Snapshot current bindings for restore
 	env.SnapshotPrelude()
-	
+
 	return nil
 }

@@ -31,16 +31,16 @@ type Comment struct {
 }
 
 type Lexer struct {
-	input        string
-	start        int
-	pos          int
-	width        int
-	line         int
-	col          int
-	state        state
-	tokens       []token.Token
-	Comments     []Comment // collected comments
-	lastTokLine  int       // line of last emitted token
+	input       string
+	start       int
+	pos         int
+	width       int
+	line        int
+	col         int
+	state       state
+	tokens      []token.Token
+	Comments    []Comment // collected comments
+	lastTokLine int       // line of last emitted token
 }
 
 func New(input string) *Lexer {

@@ -56,13 +56,13 @@ func TestEvalArithmetic(t *testing.T) {
 		{"2 * 3", "6"},
 		{"8 / 2", "4"},
 		{"5 % 3", "2"},
-		{"1 + 2 * 3", "9"},       // left to right: (1+2)*3
-		{"2 * 3 + 1", "7"},       // left to right: (2*3)+1
-		{"(1 + 2) * 3", "9"},     // explicit grouping
-		{"1 + (2 * 3)", "7"},     // explicit grouping
-		{"10 - 5 - 2", "3"},      // left to right: (10-5)-2
-		{"1 / 3 * 3", "1"},               // exact rational arithmetic
-		{"(1/3) + (1/3) + (1/3)", "1"},   // parens required for intended grouping
+		{"1 + 2 * 3", "9"},             // left to right: (1+2)*3
+		{"2 * 3 + 1", "7"},             // left to right: (2*3)+1
+		{"(1 + 2) * 3", "9"},           // explicit grouping
+		{"1 + (2 * 3)", "7"},           // explicit grouping
+		{"10 - 5 - 2", "3"},            // left to right: (10-5)-2
+		{"1 / 3 * 3", "1"},             // exact rational arithmetic
+		{"(1/3) + (1/3) + (1/3)", "1"}, // parens required for intended grouping
 	}
 
 	for _, tt := range tests {

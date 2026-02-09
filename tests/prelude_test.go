@@ -17,8 +17,8 @@ func TestPreludeRawListAccess(t *testing.T) {
 		isBool   bool
 	}{
 		{
-			name: "range basic",
-			input: `len(range(1 4))`,
+			name:     "range basic",
+			input:    `len(range(1 4))`,
 			expected: "3",
 		},
 		{
@@ -62,14 +62,14 @@ shape(result)`,
 			input: `let gt3 = (n) { return n > 3 }
 any(range(1 5) gt3)`,
 			expected: "true",
-			isBool: true,
+			isBool:   true,
 		},
 		{
 			name: "all on range",
 			input: `let lt10 = (n) { return n < 10 }
 all(range(1 5) lt10)`,
 			expected: "true",
-			isBool: true,
+			isBool:   true,
 		},
 		{
 			name: "reverse raw list",
@@ -78,8 +78,8 @@ nth(rev 0)`,
 			expected: "3",
 		},
 		{
-			name: "sum of range",
-			input: `sum(range(1 6))`,
+			name:     "sum of range",
+			input:    `sum(range(1 6))`,
 			expected: "15",
 		},
 	}
@@ -87,7 +87,7 @@ nth(rev 0)`,
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			env := value.NewEnv(nil)
-			
+
 			// Load prelude
 			preludeSource := loadPreludeSourceForTest()
 			result := eval.Run(preludeSource, env)

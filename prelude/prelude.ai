@@ -1,6 +1,5 @@
 # Aiki Prelude
 # Standard library written in Aiki
-
 let @ok [value]
 let @error [reason]
 
@@ -134,9 +133,8 @@ let min = (list) {
 	}
 	return [@ok m]
 }
-
-# Hash map implementation
 # A hash is a list of 64 buckets, each bucket is a list of [key value] pairs
+# Hash map implementation
 
 let _HASH_SIZE = 64
 

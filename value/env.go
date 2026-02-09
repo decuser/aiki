@@ -56,14 +56,14 @@ func (e *Env) Get(name string) (Value, bool) {
 // Returns what was shadowed: "prelude", "builtin", or "" if nothing.
 func (e *Env) Set(name string, val Value) string {
 	shadowed := ""
-	
+
 	// Check if this shadows something in outer scope
 	if e.outer != nil {
 		if _, ok := e.outer.Get(name); ok {
 			shadowed = "prelude"
 		}
 	}
-	
+
 	e.store[name] = val
 	return shadowed
 }
@@ -77,7 +77,7 @@ func (e *Env) SetWithBuiltinCheck(name string, val Value, builtinNames map[strin
 		e.store[name] = val
 		return "builtin"
 	}
-	
+
 	// Check outer scope (prelude)
 	if e.outer != nil {
 		if _, ok := e.outer.Get(name); ok {
@@ -85,7 +85,7 @@ func (e *Env) SetWithBuiltinCheck(name string, val Value, builtinNames map[strin
 			return "prelude"
 		}
 	}
-	
+
 	e.store[name] = val
 	return ""
 }
@@ -162,13 +162,13 @@ func (e *Env) Restore(name string) bool {
 	if snapshot == nil {
 		return false
 	}
-	
+
 	// Get value from snapshot
 	val, ok := snapshot[name]
 	if !ok {
 		return false
 	}
-	
+
 	// Restore the original value
 	e.store[name] = val
 	return true
