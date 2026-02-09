@@ -2,6 +2,7 @@
 # Standard library written in Aiki
 let @ok [value]
 let @error [reason]
+let @end []
 
 let each = (list f) {
 	let i = 0
@@ -68,7 +69,7 @@ let find = (list f) {
 	let i = 0
 	while i < len(list) {
 		if f(nth(list i)) {
-			return [@ok nth(list i)]
+			return nth(list i)
 		}
 		i = i + 1
 	}
@@ -116,7 +117,7 @@ let max = (list) {
 		}
 		i = i + 1
 	}
-	return [@ok m]
+	return m
 }
 
 let min = (list) {
@@ -131,10 +132,11 @@ let min = (list) {
 		}
 		i = i + 1
 	}
-	return [@ok m]
+	return m
 }
-# A hash is a list of 64 buckets, each bucket is a list of [key value] pairs
+
 # Hash map implementation
+# A hash is a list of 64 buckets, each bucket is a list of [key value] pairs
 
 let _HASH_SIZE = 64
 
@@ -159,7 +161,7 @@ let hash_get = (h key) {
 	while i < len(bucket) {
 		let pair = nth(bucket i)
 		if equal(nth(pair 0) key) {
-			return [@ok nth(pair 1)]
+			return nth(pair 1)
 		}
 		i = i + 1
 	}
@@ -201,7 +203,7 @@ let hash_put = (h key val) {
 
 let hash_has = (h key) {
 	let result = hash_get(h key)
-	return shape(result) == :ok
+	return shape(result) != :error
 }
 
 let hash_del = (h key) {

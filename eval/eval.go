@@ -604,10 +604,13 @@ func evalPipeExpression(node *ast.PipeExpression, env *value.Env) value.Value {
 		return left
 	}
 
-	// Check for [@error ...] short-circuit
+	// Check for [@error ...] short-circuit, [@ok ...] unwrap
 	if list, ok := left.(*value.List); ok {
 		if list.Shape == "error" {
 			return left
+		}
+		if list.Shape == "ok" && len(list.Elements) > 0 {
+			left = list.Elements[0]
 		}
 	}
 

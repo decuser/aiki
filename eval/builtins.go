@@ -1,10 +1,13 @@
 package eval
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"math"
 	"math/big"
 	"math/rand"
+	"os"
 	"strings"
 
 	"aiki/value"
@@ -243,8 +246,25 @@ var builtins = map[string]*value.Builtin{
 	"read": {
 		Name: "read",
 		Fn: func(args ...value.Value) value.Value {
-			var line string
-			fmt.Scanln(&line)
+			reader := bufio.NewReader(os.Stdin)
+			line, err := reader.ReadString('\n')
+			if err != nil {
+				if err == io.EOF {
+					if line == "" {
+						return &value.List{
+							Elements: []value.Value{},
+							Shape:    "end",
+						}
+					}
+					// Return partial line at EOF
+					return &value.String{Value: line}
+				}
+				return makeError("read: " + err.Error())
+			}
+			// Strip trailing newline
+			if len(line) > 0 && line[len(line)-1] == '\n' {
+				line = line[:len(line)-1]
+			}
 			return &value.String{Value: line}
 		},
 	},
@@ -362,6 +382,107 @@ Type help(name) for details.`
 				return value.NewError("_hash_code: want 1 argument, got %d", len(args))
 			}
 			return value.NewNumber(hashValue(args[0]), 1)
+		},
+	},
+"open": {
+		Name: "open",
+		Fn: func(args ...value.Value) value.Value {
+			if len(args) != 1 {
+				return makeError("open: want 1 argument")
+			}
+			path, ok := args[0].(*value.String)
+			if !ok {
+				return makeError("open: expected string path")
+			}
+			f, err := os.Open(path.Value)
+			if err != nil {
+				return makeError("open: " + err.Error())
+			}
+			return &value.Handle{File: f, Path: path.Value}
+		},
+	},
+	"create": {
+		Name: "create",
+		Fn: func(args ...value.Value) value.Value {
+			if len(args) != 1 {
+				return makeError("create: want 1 argument")
+			}
+			path, ok := args[0].(*value.String)
+			if !ok {
+				return makeError("create: expected string path")
+			}
+			f, err := os.Create(path.Value)
+			if err != nil {
+				return makeError("create: " + err.Error())
+			}
+			return &value.Handle{File: f, Path: path.Value}
+		},
+	},
+	"fread": {
+		Name: "fread",
+		Fn: func(args ...value.Value) value.Value {
+			if len(args) != 1 {
+				return makeError("fread: want 1 argument")
+			}
+			h, ok := args[0].(*value.Handle)
+			if !ok {
+				return makeError("fread: expected handle")
+			}
+			buf := make([]byte, 4096)
+			n, err := h.File.Read(buf)
+			if err != nil {
+				if err == io.EOF {
+					return &value.List{
+						Elements: []value.Value{},
+						Shape:    "end",
+					}
+				}
+				return makeError("fread: " + err.Error())
+			}
+			return &value.String{Value: string(buf[:n])}
+		},
+	},
+	"fwrite": {
+		Name: "fwrite",
+		Fn: func(args ...value.Value) value.Value {
+			if len(args) != 2 {
+				return makeError("fwrite: want 2 arguments")
+			}
+			h, ok := args[0].(*value.Handle)
+			if !ok {
+				return makeError("fwrite: expected handle")
+			}
+			var data []byte
+			switch v := args[1].(type) {
+			case *value.String:
+				data = []byte(v.Value)
+			case *value.Bytes:
+				data = v.Value
+			default:
+				return makeError("fwrite: expected string or bytes")
+			}
+			_, err := h.File.Write(data)
+			if err != nil {
+				return makeError("fwrite: " + err.Error())
+			}
+			return value.True
+		},
+	},
+	"fclose": {
+		Name: "fclose",
+		Fn: func(args ...value.Value) value.Value {
+			if len(args) != 1 {
+				return makeError("fclose: want 1 argument")
+			}
+			h, ok := args[0].(*value.Handle)
+			if !ok {
+				return makeError("fclose: expected handle")
+			}
+			err := h.File.Close()
+			if err != nil {
+				return makeError("fclose: " + err.Error())
+			}
+			return value.True
 		},
 	},
 }

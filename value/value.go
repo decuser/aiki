@@ -3,6 +3,7 @@ package value
 import (
 	"fmt"
 	"math/big"
+	"os"
 	"strings"
 
 	"aiki/ast"
@@ -22,6 +23,7 @@ const (
 	ErrorType    Type = "error"
 	NullType     Type = "null"
 	ReturnType   Type = "return" // internal, for control flow
+	HandleType   Type = "handle"
 )
 
 type Value interface {
@@ -177,3 +179,12 @@ type Return struct {
 
 func (r *Return) Type() Type      { return ReturnType }
 func (r *Return) Inspect() string { return r.Value.Inspect() }
+
+// Handle wraps a file handle for I/O operations.
+type Handle struct {
+	File *os.File
+	Path string
+}
+
+func (h *Handle) Type() Type      { return HandleType }
+func (h *Handle) Inspect() string { return "<handle: " + h.Path + ">" }
