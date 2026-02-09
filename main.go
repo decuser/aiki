@@ -12,6 +12,15 @@ import (
 )
 
 func main() {
+	// Check for subcommands before flag parsing
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "fmt":
+			runFmt(os.Args[2:])
+			return
+		}
+	}
+
 	opts := parseOptions()
 
 	env := value.NewEnv(nil)
@@ -25,6 +34,22 @@ func main() {
 		startREPL(env, opts)
 	} else {
 		runFile(flag.Arg(0), env, opts)
+	}
+}
+
+func runFmt(args []string) {
+	if len(args) == 0 {
+		fmt.Fprintln(os.Stderr, "usage: aiki fmt <path>")
+		fmt.Fprintln(os.Stderr, "       aiki fmt ./...")
+		os.Exit(1)
+	}
+
+	for _, path := range args {
+		result := eval.Format(path)
+		if err, ok := result.(*value.Error); ok {
+			fmt.Fprintf(os.Stderr, "%s\n", err.Message)
+			os.Exit(1)
+		}
 	}
 }
 

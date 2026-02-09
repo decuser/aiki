@@ -23,15 +23,24 @@ const (
 	stateDone
 )
 
+// Comment represents a source comment with its line number.
+type Comment struct {
+	Line  int
+	Text  string
+	IsEOL bool // true if comment follows code on same line
+}
+
 type Lexer struct {
-	input  string
-	start  int
-	pos    int
-	width  int
-	line   int
-	col    int
-	state  state
-	tokens []token.Token
+	input        string
+	start        int
+	pos          int
+	width        int
+	line         int
+	col          int
+	state        state
+	tokens       []token.Token
+	Comments     []Comment // collected comments
+	lastTokLine  int       // line of last emitted token
 }
 
 func New(input string) *Lexer {
@@ -111,6 +120,7 @@ func (l *Lexer) emit(t token.Type) {
 		Line:   l.line,
 		Col:    l.col,
 	})
+	l.lastTokLine = l.line
 	l.start = l.pos
 }
 
@@ -326,13 +336,26 @@ func (l *Lexer) lexName() state {
 
 func (l *Lexer) lexComment() state {
 	// # already consumed
+	commentLine := l.line
+	isEOL := l.lastTokLine == commentLine // comment on same line as previous token
+	start := l.pos
 	for {
 		r := l.next()
 		if r == eof || r == '\n' {
 			break
 		}
 	}
-	// Discard comment
+	// Save comment (without the newline)
+	text := l.input[start : l.pos-l.width]
+	if l.width == 0 {
+		// EOF case
+		text = l.input[start:l.pos]
+	}
+	l.Comments = append(l.Comments, Comment{
+		Line:  commentLine,
+		Text:  "#" + text,
+		IsEOL: isEOL,
+	})
 	l.start = l.pos
 	return stateStart
 }

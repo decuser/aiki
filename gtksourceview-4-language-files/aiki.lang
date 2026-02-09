@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<language id="aiki" name="Aiki" version="2.0" _section="Source">
+  <metadata>
+    <property name="mimetype">text/x-aiki</property>
+    <property name="globs">*.ai</property>
+    <property name="line-comment-start">#</property>
+  </metadata>
+
+  <styles>
+    <style id="comment"           name="Comment"               map-to="def:comment"/>
+    <style id="string"            name="String"                map-to="def:string"/>
+    <style id="keyword"           name="Keyword"               map-to="def:keyword"/>
+    <style id="type"              name="Type"                  map-to="def:type"/>
+    <style id="constant"          name="Constant"              map-to="def:constant"/>
+    <style id="symbol"            name="Symbol"                map-to="def:builtin"/>
+    <style id="operator"          name="Operator"              map-to="def:operator"/>
+    <style id="builtin"           name="Builtin"               map-to="def:identifier"/>
+  </styles>
+
+  <definitions>
+    <context id="comment" style-ref="comment" end-at-line-end="true" class="comment" class-disabled="no-spell-check">
+      <start>#</start>
+      <include>
+        <context ref="def:in-line-comment"/>
+      </include>
+    </context>
+
+    <context id="string" style-ref="string" class="string" class-disabled="no-spell-check">
+      <start>"</start>
+      <end>"</end>
+      <include>
+        <context ref="def:escape"/>
+      </include>
+    </context>
+
+    <context id="rune" style-ref="constant">
+      <start>'</start>
+      <end>'</end>
+      <include>
+        <context ref="def:escape"/>
+      </include>
+    </context>
+
+    <context id="shape" style-ref="type">
+      <match>@[a-zA-Z_][a-zA-Z0-9_]*</match>
+    </context>
+
+    <context id="symbol" style-ref="symbol">
+      <match>:[a-zA-Z_][a-zA-Z0-9_]*</match>
+    </context>
+
+    <context id="keywords" style-ref="keyword">
+      <keyword>let</keyword>
+      <keyword>if</keyword>
+      <keyword>else</keyword>
+      <keyword>while</keyword>
+      <keyword>match</keyword>
+      <keyword>return</keyword>
+      <keyword>export</keyword>
+      <keyword>from</keyword>
+      <keyword>use</keyword>
+      <keyword>spawn</keyword>
+      <keyword>channel</keyword>
+      <keyword>send</keyword>
+      <keyword>recv</keyword>
+    </context>
+
+    <context id="boolean" style-ref="constant">
+      <keyword>true</keyword>
+      <keyword>false</keyword>
+    </context>
+
+    <context id="logic-ops" style-ref="operator">
+      <keyword>and</keyword>
+      <keyword>or</keyword>
+      <keyword>not</keyword>
+    </context>
+
+    <context id="builtins" style-ref="builtin">
+      <keyword>first</keyword>
+      <keyword>rest</keyword>
+      <keyword>len</keyword>
+      <keyword>prepend</keyword>
+      <keyword>append</keyword>
+      <keyword>type</keyword>
+      <keyword>inspect</keyword>
+      <keyword>shape</keyword>
+      <keyword>equal</keyword>
+      <keyword>tostr</keyword>
+      <keyword>tonum</keyword>
+      <keyword>tobytes</keyword>
+      <keyword>torune</keyword>
+      <keyword>todecimal</keyword>
+      <keyword>print</keyword>
+      <keyword>read</keyword>
+      <keyword>open</keyword>
+      <keyword>create</keyword>
+      <keyword>close</keyword>
+      <keyword>sqrt</keyword>
+      <keyword>cos</keyword>
+      <keyword>sin</keyword>
+      <keyword>random</keyword>
+      <keyword>canvas</keyword>
+      <keyword>draw_line</keyword>
+      <keyword>draw_rect</keyword>
+      <keyword>draw_circle</keyword>
+      <keyword>draw_text</keyword>
+      <keyword>map</keyword>
+      <keyword>filter</keyword>
+      <keyword>reduce</keyword>
+      <keyword>range</keyword>
+    </context>
+
+    <context id="operators" style-ref="operator">
+      <match>[-+*/%=&lt;&gt;!|]+</match>
+    </context>
+
+    <context id="aiki" class="no-spell-check">
+      <include>
+        <context ref="comment"/>
+        <context ref="string"/>
+        <context ref="rune"/>
+        <context ref="shape"/>
+        <context ref="symbol"/>
+        <context ref="keywords"/>
+        <context ref="boolean"/>
+        <context ref="logic-ops"/>
+        <context ref="builtins"/>
+        <context ref="operators"/>
+        <context ref="def:decimal"/>
+        <context ref="def:float"/>
+      </include>
+    </context>
+  </definitions>
+</language>

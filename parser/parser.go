@@ -9,18 +9,22 @@ import (
 )
 
 type Parser struct {
-	tokens  []token.Token
-	pos     int
-	current token.Token
-	peek    token.Token
-	errors  []string
+	tokens   []token.Token
+	pos      int
+	current  token.Token
+	peek     token.Token
+	errors   []string
+	comments []lexer.Comment
 }
 
 func New(input string) *Parser {
 	l := lexer.New(input)
 	tokens := l.Tokenize()
 
-	p := &Parser{tokens: tokens}
+	p := &Parser{
+		tokens:   tokens,
+		comments: l.Comments,
+	}
 	p.advance()
 	p.advance()
 	return p
@@ -36,6 +40,10 @@ func (p *Parser) advance() {
 
 func (p *Parser) Errors() []string {
 	return p.errors
+}
+
+func (p *Parser) Comments() []lexer.Comment {
+	return p.comments
 }
 
 func (p *Parser) error(msg string) {
@@ -137,7 +145,7 @@ func (p *Parser) parseShapeStatement(tok token.Token) ast.Statement {
 		p.error("expected ]")
 		return nil
 	}
-	p.advance() 
+	p.advance()
 	return &ast.ShapeStatement{
 		Token:  tok,
 		Name:   shapeName,
@@ -171,12 +179,12 @@ func (p *Parser) parseIfStatement() ast.Statement {
 
 	var alternative *ast.BlockStatement
 	if p.current.Type == token.Else {
-	    p.advance()  // consume 'else'
-	    if p.current.Type != token.LBrace {
-		p.error("expected { after else")
-		return nil
-	    }
-	    alternative = p.parseBlockStatement()
+		p.advance() // consume 'else'
+		if p.current.Type != token.LBrace {
+			p.error("expected { after else")
+			return nil
+		}
+		alternative = p.parseBlockStatement()
 	}
 
 	return &ast.IfStatement{
@@ -226,10 +234,10 @@ func (p *Parser) parseMatchStatement() ast.Statement {
 
 	var arms []*ast.MatchArm
 	for p.current.Type != token.RBrace && p.current.Type != token.EOF {
-	    arm := p.parseMatchArm()
-	    if arm != nil {
-		arms = append(arms, arm)
-	    }
+		arm := p.parseMatchArm()
+		if arm != nil {
+			arms = append(arms, arm)
+		}
 	}
 
 	p.advance()
@@ -382,7 +390,7 @@ func (p *Parser) parseImportStatement() ast.Statement {
 
 func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 	block := &ast.BlockStatement{Token: p.current}
-	p.advance()  // consume '{'
+	p.advance() // consume '{'
 
 	for p.current.Type != token.RBrace && p.current.Type != token.EOF {
 		stmt := p.parseStatement()

@@ -1,12 +1,22 @@
 package eval
 
 import (
+	"fmt"
 	"math/big"
 
 	"aiki/ast"
 	"aiki/parser"
 	"aiki/value"
 )
+
+// BuiltinNames exports builtin names for shadow checking
+var BuiltinNames = make(map[string]bool)
+
+func init() {
+	for name := range builtins {
+		BuiltinNames[name] = true
+	}
+}
 
 func Run(input string, env *value.Env) value.Value {
 	p := parser.New(input)
@@ -148,7 +158,23 @@ func evalLetStatement(stmt *ast.LetStatement, env *value.Env) value.Value {
 	if isError(val) {
 		return val
 	}
-	env.Set(stmt.Name.Value, val)
+	
+	name := stmt.Name.Value
+	
+	// Block builtin shadowing
+	if BuiltinNames[name] {
+		return value.NewError("cannot shadow builtin: %s", name)
+	}
+	
+	// Check for prelude shadowing (warning only)
+	snapshot := env.GetSnapshot()
+	if snapshot != nil {
+		if _, ok := snapshot[name]; ok {
+			fmt.Printf("warning: %s shadows prelude (use restore(\"%s\") to undo)\n", name, name)
+		}
+	}
+	
+	env.Set(name, val)
 	return value.NULL
 }
 
@@ -323,6 +349,11 @@ func evalShapedListLiteral(node *ast.ShapedListLiteral, env *value.Env) value.Va
 }
 
 func evalCallExpression(node *ast.CallExpression, env *value.Env) value.Value {
+	// Handle restore() specially - it needs env access
+	if ident, ok := node.Function.(*ast.Identifier); ok && ident.Value == "restore" {
+		return evalRestore(node, env)
+	}
+	
 	fn := Eval(node.Function, env)
 	if isError(fn) {
 		return fn
@@ -334,6 +365,30 @@ func evalCallExpression(node *ast.CallExpression, env *value.Env) value.Value {
 	}
 
 	return applyFunction(fn, args)
+}
+
+func evalRestore(node *ast.CallExpression, env *value.Env) value.Value {
+	if len(node.Arguments) != 1 {
+		return value.NewError("restore: want 1 argument, got %d", len(node.Arguments))
+	}
+	
+	arg := Eval(node.Arguments[0], env)
+	if isError(arg) {
+		return arg
+	}
+	
+	str, ok := arg.(*value.String)
+	if !ok {
+		return value.NewError("restore: expected string argument")
+	}
+	
+	name := str.Value
+	
+	if env.Restore(name) {
+		return value.NULL
+	}
+	
+	return value.NewError("restore: %s not found in prelude", name)
 }
 
 func applyFunction(fn value.Value, args []value.Value) value.Value {
@@ -415,32 +470,32 @@ func evalInfixExpression(node *ast.InfixExpression, env *value.Env) value.Value 
 	}
 
 	switch {
-	    case left.Type() == value.NumberType && right.Type() == value.NumberType:
+	case left.Type() == value.NumberType && right.Type() == value.NumberType:
 		return evalNumberInfix(node.Operator, left.(*value.Number), right.(*value.Number))
-	    case left.Type() == value.StringType && right.Type() == value.StringType:
+	case left.Type() == value.StringType && right.Type() == value.StringType:
 		return evalStringInfix(node.Operator, left.(*value.String), right.(*value.String))
-	    case left.Type() == value.BooleanType && right.Type() == value.BooleanType:
+	case left.Type() == value.BooleanType && right.Type() == value.BooleanType:
 		return evalBooleanInfix(node.Operator, left.(*value.Boolean), right.(*value.Boolean))
-	    case left.Type() == value.SymbolType && right.Type() == value.SymbolType:
+	case left.Type() == value.SymbolType && right.Type() == value.SymbolType:
 		return evalSymbolInfix(node.Operator, left.(*value.Symbol), right.(*value.Symbol))
-	    case node.Operator == "==":
+	case node.Operator == "==":
 		return nativeBoolToBoolean(left == right)
-	    case node.Operator == "!=":
+	case node.Operator == "!=":
 		return nativeBoolToBoolean(left != right)
-	    default:
+	default:
 		return value.NewError("unknown operator: %s %s %s", left.Type(), node.Operator, right.Type())
-	    }
+	}
 }
 
 func evalSymbolInfix(op string, left, right *value.Symbol) value.Value {
-    switch op {
-    case "==":
-        return nativeBoolToBoolean(left.Value == right.Value)
-    case "!=":
-        return nativeBoolToBoolean(left.Value != right.Value)
-    default:
-        return value.NewError("unknown operator: symbol %s symbol", op)
-    }
+	switch op {
+	case "==":
+		return nativeBoolToBoolean(left.Value == right.Value)
+	case "!=":
+		return nativeBoolToBoolean(left.Value != right.Value)
+	default:
+		return value.NewError("unknown operator: symbol %s symbol", op)
+	}
 }
 
 func evalNumberInfix(op string, left, right *value.Number) value.Value {
