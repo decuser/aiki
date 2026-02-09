@@ -302,6 +302,47 @@ Why this split:
 
 Arithmetic uses operators (`+`, `-`, `*`, `/`, `%`), not functions. One way to add.
 
+Add to design.md under "Primitives vs Prelude":
+
+---
+
+## Hash Map in Prelude
+
+Aiki has no native map/dictionary type. Eight types are enough.
+
+But key-value lookup is fundamental. Rather than add a ninth type, the prelude provides a hash map implementation in pure Aiki:
+
+```
+let m = map_new()
+let m = map_put(m "name" "Mochi")
+let result = map_get(m "name")  # [@ok "Mochi"]
+```
+
+**Why prelude, not primitive:**
+
+- Proves the language is complete enough for real data structures
+- No special syntax, no new type—just lists and functions
+- User can read, understand, replace with their own implementation
+- Keeps the runtime small
+
+**Performance:**
+
+The implementation uses bucket hashing with chaining. O(1) average lookup, O(n) worst case. Good enough for most uses. If you need faster, call out to Go.
+
+**Structure (hidden):**
+
+```
+# 64 buckets, each a list of [key value] pairs
+let m = [[] [] [] ... []]
+
+# hash disperses keys across buckets
+# get scans the bucket chain
+# put returns new map (immutable)
+```
+
+This is the standard way to do key-value storage in Aiki. One way.
+
+
 ## No Language Extension
 
 No macros. No metaprogramming. Functions are the only extension mechanism. The language is closed. The library is open.
