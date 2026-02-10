@@ -13,6 +13,16 @@ import (
 	"aiki/value"
 )
 
+var lastPrintEndedWithNewline bool
+
+func LastPrintEndedWithNewline() bool {
+	return lastPrintEndedWithNewline
+}
+
+func ResetLastPrint() {
+	lastPrintEndedWithNewline = false
+}
+
 var builtins = map[string]*value.Builtin{
 	// List operations
 	"first": {
@@ -196,13 +206,13 @@ var builtins = map[string]*value.Builtin{
 			}
 			s, ok := args[0].(*value.String)
 			if !ok {
-				return makeError("tonum: expected string")
+				return makeBuiltinError("tonum: expected string")
 			}
 			n, err := value.NewNumberFromString(s.Value)
 			if err != nil {
-				return makeError("invalid number: " + s.Value)
+				return makeBuiltinError("invalid number: " + s.Value)
 			}
-			return makeOk(n)
+			return n
 		},
 	},
 	"todecimal": {
@@ -239,7 +249,10 @@ var builtins = map[string]*value.Builtin{
 					parts[i] = a.Inspect()
 				}
 			}
-			fmt.Println(strings.Join(parts, " "))
+			s := strings.Join(parts, " ")
+			fmt.Print(s)
+			os.Stdout.Sync()
+			lastPrintEndedWithNewline = strings.HasSuffix(s, "\n")
 			return value.NULL
 		},
 	},
@@ -256,12 +269,10 @@ var builtins = map[string]*value.Builtin{
 							Shape:    "end",
 						}
 					}
-					// Return partial line at EOF
 					return &value.String{Value: line}
 				}
-				return makeError("read: " + err.Error())
+				return makeBuiltinError("read: " + err.Error())
 			}
-			// Strip trailing newline
 			if len(line) > 0 && line[len(line)-1] == '\n' {
 				line = line[:len(line)-1]
 			}
@@ -384,19 +395,21 @@ Type help(name) for details.`
 			return value.NewNumber(hashValue(args[0]), 1)
 		},
 	},
+
+	// File I/O
 	"open": {
 		Name: "open",
 		Fn: func(args ...value.Value) value.Value {
 			if len(args) != 1 {
-				return makeError("open: want 1 argument")
+				return makeBuiltinError("open: want 1 argument")
 			}
 			path, ok := args[0].(*value.String)
 			if !ok {
-				return makeError("open: expected string path")
+				return makeBuiltinError("open: expected string path")
 			}
 			f, err := os.Open(path.Value)
 			if err != nil {
-				return makeError("open: " + err.Error())
+				return makeBuiltinError("open: " + err.Error())
 			}
 			return &value.Handle{File: f, Path: path.Value}
 		},
@@ -405,15 +418,15 @@ Type help(name) for details.`
 		Name: "create",
 		Fn: func(args ...value.Value) value.Value {
 			if len(args) != 1 {
-				return makeError("create: want 1 argument")
+				return makeBuiltinError("create: want 1 argument")
 			}
 			path, ok := args[0].(*value.String)
 			if !ok {
-				return makeError("create: expected string path")
+				return makeBuiltinError("create: expected string path")
 			}
 			f, err := os.Create(path.Value)
 			if err != nil {
-				return makeError("create: " + err.Error())
+				return makeBuiltinError("create: " + err.Error())
 			}
 			return &value.Handle{File: f, Path: path.Value}
 		},
@@ -422,11 +435,11 @@ Type help(name) for details.`
 		Name: "fread",
 		Fn: func(args ...value.Value) value.Value {
 			if len(args) != 1 {
-				return makeError("fread: want 1 argument")
+				return makeBuiltinError("fread: want 1 argument")
 			}
 			h, ok := args[0].(*value.Handle)
 			if !ok {
-				return makeError("fread: expected handle")
+				return makeBuiltinError("fread: expected handle")
 			}
 			buf := make([]byte, 4096)
 			n, err := h.File.Read(buf)
@@ -437,7 +450,7 @@ Type help(name) for details.`
 						Shape:    "end",
 					}
 				}
-				return makeError("fread: " + err.Error())
+				return makeBuiltinError("fread: " + err.Error())
 			}
 			return &value.String{Value: string(buf[:n])}
 		},
@@ -446,11 +459,11 @@ Type help(name) for details.`
 		Name: "fwrite",
 		Fn: func(args ...value.Value) value.Value {
 			if len(args) != 2 {
-				return makeError("fwrite: want 2 arguments")
+				return makeBuiltinError("fwrite: want 2 arguments")
 			}
 			h, ok := args[0].(*value.Handle)
 			if !ok {
-				return makeError("fwrite: expected handle")
+				return makeBuiltinError("fwrite: expected handle")
 			}
 			var data []byte
 			switch v := args[1].(type) {
@@ -459,11 +472,11 @@ Type help(name) for details.`
 			case *value.Bytes:
 				data = v.Value
 			default:
-				return makeError("fwrite: expected string or bytes")
+				return makeBuiltinError("fwrite: expected string or bytes")
 			}
 			_, err := h.File.Write(data)
 			if err != nil {
-				return makeError("fwrite: " + err.Error())
+				return makeBuiltinError("fwrite: " + err.Error())
 			}
 			return value.True
 		},
@@ -472,18 +485,24 @@ Type help(name) for details.`
 		Name: "fclose",
 		Fn: func(args ...value.Value) value.Value {
 			if len(args) != 1 {
-				return makeError("fclose: want 1 argument")
+				return makeBuiltinError("fclose: want 1 argument")
 			}
 			h, ok := args[0].(*value.Handle)
 			if !ok {
-				return makeError("fclose: expected handle")
+				return makeBuiltinError("fclose: expected handle")
 			}
 			err := h.File.Close()
 			if err != nil {
-				return makeError("fclose: " + err.Error())
+				return makeBuiltinError("fclose: " + err.Error())
 			}
 			return value.True
 		},
+	},
+
+	// Load - placeholder, handled specially in eval
+	"load": {
+		Name: "load",
+		Fn:   nil,
 	},
 }
 
@@ -537,7 +556,8 @@ func makeOk(v value.Value) value.Value {
 	}
 }
 
-func makeError(msg string) value.Value {
+// makeBuiltinError returns an [@error reason] shaped list for builtins
+func makeBuiltinError(msg string) value.Value {
 	return &value.List{
 		Elements: []value.Value{
 			&value.Symbol{Value: "error"},
@@ -551,7 +571,6 @@ func makeError(msg string) value.Value {
 func hashValue(v value.Value) int64 {
 	switch val := v.(type) {
 	case *value.Number:
-		// Hash the string representation for consistency
 		return hashString(val.Inspect())
 	case *value.Boolean:
 		if val.Value {
@@ -565,7 +584,6 @@ func hashValue(v value.Value) int64 {
 	case *value.Symbol:
 		return hashString(val.Value)
 	case *value.List:
-		// Hash shape + elements
 		h := hashString(val.Shape)
 		for _, e := range val.Elements {
 			h = h*31 + hashValue(e)

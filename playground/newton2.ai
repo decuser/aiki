@@ -1,0 +1,34 @@
+let abs = (x) {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
+let average = (x y) {
+	return x + y / 2
+}
+
+let good_enough = (guess x) {
+	return abs(guess * guess - x) < (1 / 10000)
+}
+
+let improve = (guess x) {
+	return average(guess(x / guess))
+}
+
+let sqrt_iter = (guess x) {
+	if good_enough(guess x) {
+		return guess
+	}
+	return sqrt_iter(improve(guess x) x)
+}
+
+let my_sqrt = (x) {
+	return sqrt_iter(1 x)
+}
+
+print(todecimal(my_sqrt(2) 10))
+print("\n")
+print(todecimal(my_sqrt(9) 10))
+print("\n")

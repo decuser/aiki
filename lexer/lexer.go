@@ -99,7 +99,6 @@ func (l *Lexer) backup() {
 	r, _ := utf8.DecodeRuneInString(l.input[l.pos:])
 	if r == '\n' {
 		l.line--
-		// col is approximate after backup across newline
 	} else {
 		l.col--
 	}

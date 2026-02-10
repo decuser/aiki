@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/peterh/liner"
-
 	"aiki/eval"
 	"aiki/value"
 )
@@ -16,66 +14,55 @@ const (
 )
 
 func Start(in io.Reader, out io.Writer, env *value.Env, debug bool) {
-	line := liner.NewLiner()
-	defer line.Close()
-
-	line.SetCtrlCAborts(true)
+	reader, err := NewReadlineReader()
+	if err != nil {
+		reader = NewSimpleReader()
+	}
+	defer reader.Close()
 
 	var buffer string
 	prompt := promptMain
 
 	for {
-		input, err := line.Prompt(prompt)
-		if err == io.EOF {
-			fmt.Fprintln(out, "\nGoodbye!")
-			return
-		}
-		if err == liner.ErrPromptAborted {
-			// Ctrl+C: clear buffer and reset
+		line, err := reader.Prompt(prompt)
+		if err == ErrInterrupt {
 			buffer = ""
 			prompt = promptMain
 			fmt.Fprintln(out)
 			continue
 		}
 		if err != nil {
-			fmt.Fprintln(out, "error:", err)
+			fmt.Fprintln(out, "\nGoodbye!")
 			return
 		}
 
-		// Accumulate input
 		if buffer == "" {
-			buffer = input
+			buffer = line
 		} else {
-			buffer = buffer + "\n" + input
+			buffer = buffer + "\n" + line
 		}
 
-		// Check if input is complete (balanced delimiters)
 		if !isComplete(buffer) {
 			prompt = promptCont
 			continue
 		}
 
-		// Skip empty input
 		if isBlank(buffer) {
 			buffer = ""
 			prompt = promptMain
 			continue
 		}
 
-		// Add to history (complete input only)
-		line.AppendHistory(buffer)
-
-		// Parse and evaluate
 		result := eval.Run(buffer, env)
-
-		// Reset for next input
 		buffer = ""
 		prompt = promptMain
 
-		// Display result
 		if result != nil && result != value.NULL {
 			fmt.Fprintln(out, result.Inspect())
+		} else if !eval.LastPrintEndedWithNewline() {
+			fmt.Fprintln(out)
 		}
+		eval.ResetLastPrint()
 	}
 }
 
@@ -91,7 +78,6 @@ func isComplete(input string) bool {
 	for i := 0; i < len(runes); i++ {
 		r := runes[i]
 
-		// Handle comments
 		if r == '#' && !inString {
 			inComment = true
 			continue
@@ -104,13 +90,11 @@ func isComplete(input string) bool {
 			continue
 		}
 
-		// Handle strings
 		if r == '"' && !inString {
 			inString = true
 			continue
 		}
 		if r == '"' && inString {
-			// Check for escape
 			if i > 0 && runes[i-1] == '\\' {
 				continue
 			}
@@ -121,7 +105,6 @@ func isComplete(input string) bool {
 			continue
 		}
 
-		// Count delimiters
 		switch r {
 		case '{':
 			braces++
@@ -138,7 +121,6 @@ func isComplete(input string) bool {
 		}
 	}
 
-	// Incomplete if still in string or any delimiter is unclosed
 	if inString {
 		return false
 	}

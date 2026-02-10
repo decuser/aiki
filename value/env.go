@@ -1,27 +1,91 @@
 package value
 
+import "strings"
+
 // Env holds variable bindings with lexical scoping.
 type Env struct {
 	store    map[string]Value
 	outer    *Env
 	shapes   map[string]*ShapeDef
-	snapshot map[string]Value // snapshot of prelude bindings for restore
+	snapshot map[string]Value
+	stack    *[]StackFrame
+	file     *string   // current filename (shared)
+	source   *[]string // source lines (shared)
 }
 
 // ShapeDef holds a shape definition.
 type ShapeDef struct {
 	Name   string
 	Fields []string
-	Embeds []string // names of embedded shapes
+	Embeds []string
 }
 
 // NewEnv creates a new environment.
 func NewEnv(outer *Env) *Env {
-	return &Env{
+	e := &Env{
 		store:  make(map[string]Value),
 		outer:  outer,
 		shapes: make(map[string]*ShapeDef),
 	}
+	if outer != nil {
+		e.stack = outer.stack
+		e.file = outer.file
+		e.source = outer.source
+	} else {
+		s := make([]StackFrame, 0)
+		e.stack = &s
+		empty := ""
+		e.file = &empty
+		lines := make([]string, 0)
+		e.source = &lines
+	}
+	return e
+}
+
+// SetFile sets the current filename for error reporting.
+func (e *Env) SetFile(filename string) {
+	*e.file = filename
+}
+
+// GetFile returns the current filename.
+func (e *Env) GetFile() string {
+	return *e.file
+}
+
+// SetSource sets the source code for line lookup.
+func (e *Env) SetSource(code string) {
+	*e.source = strings.Split(code, "\n")
+}
+
+// GetSourceLine returns the source line at the given line number (1-indexed).
+func (e *Env) GetSourceLine(line int) string {
+	if line < 1 || line > len(*e.source) {
+		return ""
+	}
+	return (*e.source)[line-1]
+}
+
+// PushFrame adds a stack frame.
+func (e *Env) PushFrame(name string, line int) {
+	*e.stack = append(*e.stack, StackFrame{
+		Name: name,
+		File: *e.file,
+		Line: line,
+	})
+}
+
+// PopFrame removes the top stack frame.
+func (e *Env) PopFrame() {
+	if len(*e.stack) > 0 {
+		*e.stack = (*e.stack)[:len(*e.stack)-1]
+	}
+}
+
+// CopyStack returns a copy of the current call stack.
+func (e *Env) CopyStack() []StackFrame {
+	cp := make([]StackFrame, len(*e.stack))
+	copy(cp, *e.stack)
+	return cp
 }
 
 // SnapshotPrelude saves current bindings for later restore.
@@ -53,45 +117,34 @@ func (e *Env) Get(name string) (Value, bool) {
 }
 
 // Set binds a new name in the current scope.
-// Returns what was shadowed: "prelude", "builtin", or "" if nothing.
 func (e *Env) Set(name string, val Value) string {
 	shadowed := ""
-
-	// Check if this shadows something in outer scope
 	if e.outer != nil {
 		if _, ok := e.outer.Get(name); ok {
 			shadowed = "prelude"
 		}
 	}
-
 	e.store[name] = val
 	return shadowed
 }
 
 // SetWithBuiltinCheck binds a name and checks for builtin shadowing.
-// builtinNames should be passed from the eval package.
-// Returns "builtin", "prelude", or "" if nothing shadowed.
 func (e *Env) SetWithBuiltinCheck(name string, val Value, builtinNames map[string]bool) string {
-	// Check builtin first
 	if builtinNames != nil && builtinNames[name] {
 		e.store[name] = val
 		return "builtin"
 	}
-
-	// Check outer scope (prelude)
 	if e.outer != nil {
 		if _, ok := e.outer.Get(name); ok {
 			e.store[name] = val
 			return "prelude"
 		}
 	}
-
 	e.store[name] = val
 	return ""
 }
 
 // Update mutates an existing binding, walking up the scope chain.
-// Returns false if the name was not found.
 func (e *Env) Update(name string, val Value) bool {
 	if _, ok := e.store[name]; ok {
 		e.store[name] = val
@@ -146,7 +199,6 @@ func (e *Env) Symbols() []string {
 }
 
 // Delete removes a binding from the current scope.
-// Returns true if the name was found and deleted.
 func (e *Env) Delete(name string) bool {
 	if _, ok := e.store[name]; ok {
 		delete(e.store, name)
@@ -156,20 +208,15 @@ func (e *Env) Delete(name string) bool {
 }
 
 // Restore restores a name from the prelude snapshot.
-// Returns true if the name was found in snapshot and restored.
 func (e *Env) Restore(name string) bool {
 	snapshot := e.GetSnapshot()
 	if snapshot == nil {
 		return false
 	}
-
-	// Get value from snapshot
 	val, ok := snapshot[name]
 	if !ok {
 		return false
 	}
-
-	// Restore the original value
 	e.store[name] = val
 	return true
 }

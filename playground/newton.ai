@@ -1,0 +1,31 @@
+# Newton's method for square roots
+# This file will trigger an error to demonstrate error display
+
+let abs = (x) {
+    if x < 0 {
+        return -x
+    }
+    return x
+}
+
+let good_enough = (guess x) {
+    # Bug: comparing boolean to number!
+    return abs(guess * guess - x) < true / 10000
+}
+
+let improve = (guess x) {
+    return (guess + x / guess) / 2
+}
+
+let sqrt_iter = (guess x) {
+    if good_enough(guess x) {
+        return guess
+    }
+    return sqrt_iter(improve(guess x) x)
+}
+
+let my_sqrt = (x) {
+    return sqrt_iter(1 x)
+}
+
+my_sqrt(2)

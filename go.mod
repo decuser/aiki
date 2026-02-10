@@ -1,9 +1,7 @@
 module aiki
 
-go 1.25.7
+go 1.21
 
-require (
-	github.com/mattn/go-runewidth v0.0.3 // indirect
-	github.com/peterh/liner v1.2.2 // indirect
-	golang.org/x/sys v0.0.0-20211117180635-dee7805ff2e1 // indirect
-)
+require github.com/chzyer/readline v1.5.1
+
+require golang.org/x/sys v0.0.0-20220310020820-b874c991c1a5 // indirect

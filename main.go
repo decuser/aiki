@@ -67,16 +67,10 @@ func startREPL(env *value.Env, opts Options) {
 }
 
 func runFile(filename string, env *value.Env, opts Options) {
-	data, err := os.ReadFile(filename)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error reading file: %s\n", err)
-		os.Exit(1)
-	}
-
-	result := eval.Run(string(data), env)
+	result := eval.RunFile(filename, env)
 
 	if e, ok := result.(*value.Error); ok {
-		fmt.Fprintf(os.Stderr, "error: %s\n", e.Message)
+		fmt.Fprintln(os.Stderr, e.Inspect())
 		os.Exit(1)
 	}
 
