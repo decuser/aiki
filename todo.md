@@ -23,6 +23,7 @@
 - [x] Concurrency (spawn, channel, send, recv)
 
 ## Next
+- [ ] Contemplate and decide - remove !, !=, == in favor of not, not equal, equal?
 - [ ] Debugger
 - [ ] Regex primitives
 - [ ] Bit primitives
