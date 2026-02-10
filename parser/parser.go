@@ -139,6 +139,11 @@ func (p *Parser) parseShapeStatement(tok token.Token) ast.Statement {
 			return nil
 		}
 		p.advance()
+
+		// Optional comma
+		if p.current.Type == token.Comma {
+			p.advance()
+		}
 	}
 
 	if p.current.Type != token.RBracket {
@@ -294,9 +299,18 @@ func (p *Parser) parseListPattern() ast.Pattern {
 
 		var elements []ast.Pattern
 		for p.current.Type != token.RBracket && p.current.Type != token.EOF {
+			// Skip leading comma after shape name
+			if p.current.Type == token.Comma {
+				p.advance()
+				continue
+			}
 			pat := p.parsePattern()
 			if pat != nil {
 				elements = append(elements, pat)
+			}
+			// Optional comma between elements
+			if p.current.Type == token.Comma {
+				p.advance()
 			}
 		}
 
@@ -315,6 +329,10 @@ func (p *Parser) parseListPattern() ast.Pattern {
 		pat := p.parsePattern()
 		if pat != nil {
 			elements = append(elements, pat)
+		}
+		// Optional comma between elements
+		if p.current.Type == token.Comma {
+			p.advance()
 		}
 	}
 
@@ -341,6 +359,9 @@ func (p *Parser) parseExportStatement() ast.Statement {
 	for p.current.Type == token.Name {
 		names = append(names, p.current.Lexeme)
 		p.advance()
+		if p.current.Type == token.Comma {
+			p.advance()
+		}
 	}
 
 	if p.current.Type != token.RBracket {
@@ -378,6 +399,9 @@ func (p *Parser) parseImportStatement() ast.Statement {
 	for p.current.Type == token.Name {
 		names = append(names, p.current.Lexeme)
 		p.advance()
+		if p.current.Type == token.Comma {
+			p.advance()
+		}
 	}
 
 	if p.current.Type != token.RBracket {
@@ -487,12 +511,20 @@ func (p *Parser) parseCall() ast.Expression {
 		p.advance()
 
 		var args []ast.Expression
-		for p.current.Type != token.RParen && p.current.Type != token.EOF {
+		if p.current.Type != token.RParen {
+			// First argument
 			arg := p.parseExpression()
 			if arg != nil {
 				args = append(args, arg)
 			}
-			// No comma separator in Aiki
+			// Remaining arguments (comma-separated)
+			for p.current.Type == token.Comma {
+				p.advance()
+				arg := p.parseExpression()
+				if arg != nil {
+					args = append(args, arg)
+				}
+			}
 		}
 
 		if p.current.Type != token.RParen {
@@ -596,9 +628,18 @@ func (p *Parser) parseList() ast.Expression {
 
 		var elements []ast.Expression
 		for p.current.Type != token.RBracket && p.current.Type != token.EOF {
+			// Skip leading comma after shape name
+			if p.current.Type == token.Comma {
+				p.advance()
+				continue
+			}
 			elem := p.parseExpression()
 			if elem != nil {
 				elements = append(elements, elem)
+			}
+			// Optional comma between elements
+			if p.current.Type == token.Comma {
+				p.advance()
 			}
 		}
 
@@ -613,10 +654,19 @@ func (p *Parser) parseList() ast.Expression {
 
 	// Raw list
 	var elements []ast.Expression
-	for p.current.Type != token.RBracket && p.current.Type != token.EOF {
+	if p.current.Type != token.RBracket {
+		// First element
 		elem := p.parseExpression()
 		if elem != nil {
 			elements = append(elements, elem)
+		}
+		// Remaining elements (comma-separated)
+		for p.current.Type == token.Comma {
+			p.advance()
+			elem := p.parseExpression()
+			if elem != nil {
+				elements = append(elements, elem)
+			}
 		}
 	}
 
@@ -644,25 +694,13 @@ func (p *Parser) parseGroupOrFunction() ast.Expression {
 		return nil
 	}
 
-	// First token determines path
-	if p.current.Type == token.Name && (p.peek.Type == token.Name || p.peek.Type == token.RParen) {
-		// Likely function params: (a b c) { }
-		var params []string
-		for p.current.Type == token.Name {
-			params = append(params, p.current.Lexeme)
-			p.advance()
+	// Check if this looks like function params: (a, b, c) { } or (a) { }
+	// Function params are comma-separated names followed by ) {
+	if p.current.Type == token.Name {
+		// Try to parse as function params
+		if p.looksLikeFunctionParams() {
+			return p.parseFunctionParams(tok)
 		}
-		if p.current.Type != token.RParen {
-			p.error("expected ) after parameters")
-			return nil
-		}
-		p.advance()
-		if p.current.Type != token.LBrace {
-			p.error("expected { after function parameters")
-			return nil
-		}
-		body := p.parseBlockStatement()
-		return &ast.FunctionLiteral{Token: tok, Parameters: params, Body: body}
 	}
 
 	// Otherwise it's a grouped expression: (1 + 2)
@@ -673,6 +711,67 @@ func (p *Parser) parseGroupOrFunction() ast.Expression {
 	}
 	p.advance()
 	return expr
+}
+
+// looksLikeFunctionParams peeks ahead to determine if we're parsing function params
+func (p *Parser) looksLikeFunctionParams() bool {
+	// Save position
+	savedPos := p.pos
+	savedCurrent := p.current
+	savedPeek := p.peek
+
+	// Try to consume names and commas until we hit ) or something else
+	for p.current.Type == token.Name {
+		p.advance()
+		if p.current.Type == token.Comma {
+			p.advance()
+		} else {
+			break
+		}
+	}
+
+	// Check if we're at ) followed by {
+	isFunc := p.current.Type == token.RParen && p.peek.Type == token.LBrace
+
+	// Restore position
+	p.pos = savedPos
+	p.current = savedCurrent
+	p.peek = savedPeek
+
+	return isFunc
+}
+
+func (p *Parser) parseFunctionParams(tok token.Token) ast.Expression {
+	var params []string
+
+	// First param
+	params = append(params, p.current.Lexeme)
+	p.advance()
+
+	// Remaining params (comma-separated)
+	for p.current.Type == token.Comma {
+		p.advance()
+		if p.current.Type != token.Name {
+			p.error("expected parameter name")
+			return nil
+		}
+		params = append(params, p.current.Lexeme)
+		p.advance()
+	}
+
+	if p.current.Type != token.RParen {
+		p.error("expected ) after parameters")
+		return nil
+	}
+	p.advance()
+
+	if p.current.Type != token.LBrace {
+		p.error("expected { after function parameters")
+		return nil
+	}
+	body := p.parseBlockStatement()
+
+	return &ast.FunctionLiteral{Token: tok, Parameters: params, Body: body}
 }
 
 func processEscapes(s string) string {

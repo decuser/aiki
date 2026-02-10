@@ -1,260 +1,164 @@
-# Aiki Standard Library (v0.2.2)
+# Aiki Standard Library
 
-The library is split into two layers:
-1. **Primitives:** Implemented in Go. Cannot be written in Aiki.
-2. **Prelude:** Implemented in Aiki. Loaded automatically. User can override.
+## Convention
 
-## The Way
-
-Functions that can fail return either the value (success) or `[@error reason]` (failure). Success is not wrapped.
-```
-find([1 2 3] isEven)   # 2, or [@error "not found"]
-max([5 3 8])           # 8, or [@error "empty list"]
-open("file.txt")       # handle, or [@error reason]
-```
-
-The pipe operator recognizes this:
-- `[@error ...]` short-circuits the pipeline
-- `[@ok ...]` auto-unwraps (for compatibility)
-- Raw values pass through
-
-**Success needs no announcement.**
-
----
+Success returns value. Failure returns `[@error, reason]`.
 
 ## Primitives
 
-These are the atomic operations required to build everything else.
+Implemented in Go.
 
 ### List
 
-| Function | Signature | Description |
-|----------|-----------|-------------|
-| `first`  | `(list)` | Returns the first element. Error if empty. |
-| `rest`   | `(list)` | Returns list without first element. Empty if single. |
-| `len`    | `(list)` | Returns number of elements. O(1). |
-| `prepend`| `(list val)` | Adds `val` to start. Returns new list. |
-| `append` | `(list val)` | Adds `val` to end. Returns new list. |
-| `nth`    | `(list n)` | Returns element at index n. |
-
-Works on raw lists, shaped lists, strings, and bytes.
+| Function | Description |
+|----------|-------------|
+| `first(list)` | First element. Error if empty. |
+| `rest(list)` | List without first. Empty if single. |
+| `nth(list, n)` | Element at index n. |
+| `len(list)` | Element count. |
+| `prepend(list, val)` | Add to start. |
+| `append(list, val)` | Add to end. |
 
 ### Type
 
-| Function | Signature | Description |
-|----------|-----------|-------------|
-| `type`   | `(val)` | Returns `:number`, `:boolean`, `:string`, `:rune`, `:bytes`, `:symbol`, `:list`, `:function`, `:handle`. |
-| `inspect`| `(val)` | Returns string representation for debugging. |
-| `shape`  | `(val)` | Returns shape symbol (`:point`, `:error`, etc.) or `:list` for raw lists. |
-
-### Compare
-
-| Function | Signature | Description |
-|----------|-----------|-------------|
-| `equal`  | `(a b)` | Deep equality. Returns `true` or `false`. |
+| Function | Description |
+|----------|-------------|
+| `type(val)` | Returns `:number`, `:boolean`, `:string`, `:rune`, `:bytes`, `:symbol`, `:list`, `:function`, `:handle`. |
+| `shape(val)` | Returns shape symbol or `:list` for raw. |
+| `equal(a, b)` | Deep equality. |
 
 ### Convert
 
-| Function | Signature | Description |
-|----------|-----------|-------------|
-| `tostr`  | `(val)` | Converts value to string. |
-| `tonum`  | `(str)` | Parses string to number. Returns number or `[@error reason]`. |
-| `todecimal` | `(n places)` | Converts number to decimal string with given precision. |
+| Function | Description |
+|----------|-------------|
+| `tostr(val)` | Value to string. |
+| `tonum(str)` | String to number. Error if invalid. |
+| `todecimal(n, places)` | Number to decimal string. |
 
 ### I/O
 
-| Function | Signature | Description |
-|----------|-----------|-------------|
-| `print`  | `(val...)` | Writes to stdout with newline. Returns `null`. |
-| `read`   | `()` | Reads line from stdin. Returns string or `[@end]` at EOF. |
-| `open`   | `(path)` | Opens file for reading. Returns handle or `[@error reason]`. |
-| `create` | `(path)` | Creates file for writing. Returns handle or `[@error reason]`. |
-| `fread`  | `(handle)` | Reads chunk from file. Returns string, `[@end]`, or `[@error reason]`. |
-| `fwrite` | `(handle data)` | Writes string or bytes to file. Returns `true` or `[@error reason]`. |
-| `fclose` | `(handle)` | Closes file handle. Returns `true`. |
-
-Example:
-```
-let h = create("out.txt")
-fwrite(h "hello\n")
-fclose(h)
-
-let r = open("out.txt")
-let data = fread(r)
-fclose(r)
-```
+| Function | Description |
+|----------|-------------|
+| `print(val...)` | Write to stdout. |
+| `read()` | Read line from stdin. `[@end]` at EOF. |
+| `open(path)` | Open for reading. Returns handle or error. |
+| `create(path)` | Create for writing. Returns handle or error. |
+| `fread(handle)` | Read chunk. Returns string, `[@end]`, or error. |
+| `fwrite(handle, data)` | Write string/bytes. Returns `true` or error. |
+| `fclose(handle)` | Close handle. |
 
 ### Math
 
-| Function | Signature | Description |
-|----------|-----------|-------------|
-| `sqrt`   | `(n)` | Square root. |
-| `cos`    | `(n)` | Cosine (radians). |
-| `sin`    | `(n)` | Sine (radians). |
-| `random` | `(n)` | Random integer from 0 to n-1. |
+| Function | Description |
+|----------|-------------|
+| `sqrt(n)` | Square root. |
+| `abs(n)` | Absolute value. |
+| `random(n)` | Random integer 0 to n-1. |
 
 ### System
 
-| Function | Signature | Description |
-|----------|-----------|-------------|
-| `help`   | `()` | Show help. |
-| `quit`   | `()` | Exit. |
-| `fmt`    | `(path)` | Format file or directory (`./...` for recursive). |
+| Function | Description |
+|----------|-------------|
+| `fmt(path)` | Format file or directory. |
+| `reset()` | Clear environment, close canvases |
 
-### Note on Arithmetic
+### Internal
 
-Arithmetic uses operators, not functions:
-- `+`, `-`, `*`, `/`, `%` for math
-- `==`, `!=`, `<`, `>`, `<=`, `>=` for comparison
-- `and`, `or`, `not` for logic
-
-All arithmetic is exact (rational). Division by zero returns `[@error "division by zero"]`.
-
----
+| Function | Description |
+|----------|-------------|
+| `_hash_code(val)` | Hash code for hash map implementation. |
 
 ## Prelude
 
-Written in Aiki. Proves the language. User can read, modify, replace.
+Implemented in Aiki.
 
 ### Shapes
-```
-let @ok [value]      # success wrapper (for compatibility)
-let @error [reason]  # failure
-let @end []          # stream termination
-```
 
-### each
-
-Side effects over a list. Returns `true`.
 ```
-each([1 2 3] print)
+let @ok [value]
+let @error [reason]
+let @end []
 ```
 
-### map
+### Iteration
 
-Transform each element. Returns new list.
-```
-map([1 2 3] (n) { return n * 2 })   # [2 4 6]
-```
+| Function | Description |
+|----------|-------------|
+| `each(list, f)` | Apply f to each. Returns `true`. |
+| `map(list, f)` | Transform each. Returns new list. |
+| `filter(list, f)` | Keep where f returns true. |
+| `reduce(list, acc, f)` | Accumulate with f(acc, elem). |
 
-### filter
+### List Operations
 
-Keep elements that pass a test. Returns new list.
-```
-filter([1 2 3 4] (n) { return n > 2 })   # [3 4]
-```
-
-### reduce
-
-Accumulate a single value.
-```
-reduce([1 2 3] 0 (acc n) { return acc + n })   # 6
-```
-
-### range
-
-Generate a list of numbers.
-```
-range(1 5)   # [1 2 3 4]
-```
-
-### reverse
-
-Reverse a list.
-```
-reverse([1 2 3])   # [3 2 1]
-```
-
-### find
-
-Find first element matching a predicate.
-
-Returns: value, or `[@error "not found"]`
-```
-find([1 2 3 4] (n) { return n > 2 })   # 3
-find([1 2 3] (n) { return n > 10 })    # [@error "not found"]
-```
-
-### any
-
-True if any element passes.
-```
-any([1 2 3] (n) { return n > 2 })   # true
-```
-
-### all
-
-True if all elements pass.
-```
-all([1 2 3] (n) { return n > 0 })   # true
-```
-
-### sum
-
-Sum of numbers in list.
-```
-sum([1 2 3 4])   # 10
-```
-
-### max
-
-Maximum value in list.
-
-Returns: value, or `[@error "empty list"]`
-```
-max([3 1 4 1 5])   # 5
-max([])            # [@error "empty list"]
-```
-
-### min
-
-Minimum value in list.
-
-Returns: value, or `[@error "empty list"]`
-```
-min([3 1 4 1 5])   # 1
-min([])            # [@error "empty list"]
-```
+| Function | Description |
+|----------|-------------|
+| `range(start, end)` | List from start to end-1. |
+| `reverse(list)` | Reversed list. |
+| `find(list, f)` | First where f returns true. Error if none. |
+| `any(list, f)` | True if any passes. |
+| `all(list, f)` | True if all pass. |
+| `sum(list)` | Sum of numbers. |
+| `max(list)` | Maximum. Error if empty. |
+| `min(list)` | Minimum. Error if empty. |
 
 ### Hash Map
 
-A hash map implemented in pure Aiki. O(1) average lookup.
+| Function | Description |
+|----------|-------------|
+| `hash_new()` | Create empty hash. |
+| `hash_get(h, key)` | Get value. Error if missing. |
+| `hash_put(h, key, val)` | Set value. Returns new hash. |
+| `hash_has(h, key)` | Check if key exists. |
+| `hash_del(h, key)` | Remove key. Returns new hash. |
+| `hash_keys(h)` | List all keys. |
+| `hash_values(h)` | List all values. |
 
-| Function | Signature | Description |
-|----------|-----------|-------------|
-| `hash_new` | `()` | Create empty hash. |
-| `hash_get` | `(h key)` | Get value. Returns value or `[@error "key not found"]`. |
-| `hash_put` | `(h key val)` | Set value. Returns new hash. |
-| `hash_has` | `(h key)` | Check if key exists. Returns boolean. |
-| `hash_del` | `(h key)` | Remove key. Returns new hash. |
-| `hash_keys` | `(h)` | List all keys. |
-| `hash_values` | `(h)` | List all values. |
+## Operators
 
-Example:
-```
-let h = hash_new()
-let h = hash_put(h "name" "Mochi")
-let h = hash_put(h "age" 3)
-hash_get(h "name")   # "Mochi"
-hash_has(h "color")  # false
-```
+Arithmetic: `+`, `-`, `*`, `/`, `%`
+Comparison: `==`, `!=`, `<`, `>`, `<=`, `>=`
+Logic: `and`, `or`, `not`
 
----
+Division by zero returns `[@error, "division by zero"]`.
 
-## Why This Split
+## Concurrency
 
-**Primitives** touch runtime internals:
-- `first`, `rest`, `append` manipulate list memory
-- `type`, `inspect`, `shape` query runtime type information
-- `print`, `read`, `open`, `fread` perform I/O
-- `sqrt`, `cos`, `sin`, `random` call system libraries
+| Function | Description |
+|----------|-------------|
+| `spawn(function)` | Run function in goroutine, returns `true` |
+| `channel()` | Create unbuffered channel |
+| `send(channel, value)` | Send value, blocks until received |
+| `recv(channel)` | Receive value, blocks until sent |
 
-You cannot write `first` in Aiki without `first`.
+## Canvas
 
-**Prelude** is pure Aiki:
-- `map` is just `while` + `append`
-- `filter` is just `while` + `if` + `append`
-- `hash_*` is lists of lists with a hash function
-- Every function is readable, understandable, replaceable
+| Function | Description |
+|----------|-------------|
+| `canvas(width, height)` | Create window, black bg, white fg |
+| `get_bg(canvas)` | Get background color |
+| `set_bg(canvas, color)` | Set background color |
+| `get_fg(canvas)` | Get foreground color |
+| `set_fg(canvas, color)` | Set foreground color |
+| `pen_size(canvas, size)` | Set pen size (default 2) |
+| `get_pen_size(canvas)` | Get pen size |
+| `line(canvas, x1, y1, x2, y2)` | Line |
+| `rect(canvas, x, y, width, height)` | Rectangle outline |
+| `fill_rect(canvas, x, y, width, height)` | Filled rectangle |
+| `circle(canvas, x, y, radius)` | Circle outline |
+| `fill_circle(canvas, x, y, radius)` | Filled circle |
+| `oval(canvas, x, y, radius_x, radius_y)` | Ellipse outline |
+| `fill_oval(canvas, x, y, radius_x, radius_y)` | Filled ellipse |
+| `dot(canvas, x, y)` | Pixel |
+| `text(canvas, x, y, string)` | Text |
+| `clear(canvas)` | Fill with bg |
+| `undo(canvas)` | Undo last op |
+| `redo(canvas)` | Redo last undo |
+| `get_width(canvas)` | Canvas width |
+| `get_height(canvas)` | Canvas height |
+| `save(canvas, path)` | Save PNG |
+| `destroy(canvas)` | Close window |
 
-The split follows from necessity, not convention.
+Colors: `:black`, `:blue`, `:green`, `:cyan`, `:red`, `:magenta`, `:brown`, `:white`, `:gray`, `:bright_blue`, `:bright_green`, `:bright_cyan`, `:bright_red`, `:bright_magenta`, `:yellow`, `:bright_white`, or `[r, g, b]`.
+
+Draw functions accept optional color as last argument to override fg.

@@ -47,9 +47,9 @@ func TestParserShapeStatements(t *testing.T) {
 		fields []string
 		embeds []string
 	}{
-		{"let @point [x y]", "point", []string{"x", "y"}, nil},
-		{"let @user [name email age]", "user", []string{"name", "email", "age"}, nil},
-		{"let @cat [@pet color]", "cat", []string{"color"}, []string{"pet"}},
+		{"let @point [x, y]", "point", []string{"x", "y"}, nil},
+		{"let @user [name, email, age]", "user", []string{"name", "email", "age"}, nil},
+		{"let @cat [@pet, color]", "cat", []string{"color"}, []string{"pet"}},
 	}
 
 	for _, tt := range tests {
@@ -170,8 +170,8 @@ func TestParserFunctionLiterals(t *testing.T) {
 		params []string
 	}{
 		{"(n) { return n }", []string{"n"}},
-		{"(a b) { return a + b }", []string{"a", "b"}},
-		{"(x y z) { return x }", []string{"x", "y", "z"}},
+		{"(a, b) { return a + b }", []string{"a", "b"}},
+		{"(x, y, z) { return x }", []string{"x", "y", "z"}},
 		{"() { return 42 }", []string{}},
 	}
 
@@ -204,8 +204,8 @@ func TestParserCallExpressions(t *testing.T) {
 	}{
 		{"f()", 0},
 		{"f(1)", 1},
-		{"f(1 2 3)", 3},
-		{"add(1 2)", 2},
+		{"f(1, 2, 3)", 3},
+		{"add(1, 2)", 2},
 	}
 
 	for _, tt := range tests {
@@ -260,8 +260,8 @@ func TestParserListLiterals(t *testing.T) {
 	}{
 		{"[]", 0, false, ""},
 		{"[1]", 1, false, ""},
-		{"[1 2 3]", 3, false, ""},
-		{"[@point 10 20]", 2, true, "point"},
+		{"[1, 2, 3]", 3, false, ""},
+		{"[@point, 10, 20]", 2, true, "point"},
 	}
 
 	for _, tt := range tests {
@@ -351,8 +351,8 @@ func TestParserWhileStatements(t *testing.T) {
 
 func TestParserMatchStatements(t *testing.T) {
 	input := `match x {
-		[@ok val] { return val }
-		[@error msg] { return msg }
+		[@ok, val] { return val }
+		[@error, msg] { return msg }
 		_ { return "unknown" }
 	}`
 
@@ -364,6 +364,21 @@ func TestParserMatchStatements(t *testing.T) {
 
 	if len(stmt.Arms) != 3 {
 		t.Fatalf("arms: got %d, want 3", len(stmt.Arms))
+	}
+}
+
+func TestParserCallWithGroupedArg(t *testing.T) {
+	// This was the ambiguous case that commas fix
+	input := "average(guess, (x / guess))"
+	p := parser.New(input)
+	program := p.Parse()
+	checkParserErrors(t, p)
+
+	stmt := program.Statements[0].(*ast.ExpressionStatement)
+	call := stmt.Expression.(*ast.CallExpression)
+
+	if len(call.Arguments) != 2 {
+		t.Fatalf("arg count: got %d, want 2", len(call.Arguments))
 	}
 }
 

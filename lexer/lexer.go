@@ -219,6 +219,8 @@ func (l *Lexer) lexStart() state {
 		}
 	case '.':
 		l.emit(token.Dot)
+	case ',':
+		l.emit(token.Comma)
 	case '(':
 		l.emit(token.LParen)
 	case ')':

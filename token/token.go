@@ -47,6 +47,7 @@ const (
 	Dot     // .
 
 	// Delimiters
+	Comma    // ,
 	LParen   // (
 	RParen   // )
 	LBracket // [
@@ -133,6 +134,7 @@ var typeNames = map[Type]string{
 	Assign:   "Assign",
 	Pipe:     "Pipe",
 	Dot:      "Dot",
+	Comma:    "Comma",
 	LParen:   "LParen",
 	RParen:   "RParen",
 	LBracket: "LBracket",

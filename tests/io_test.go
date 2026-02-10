@@ -20,7 +20,7 @@ func setupIOEnv() *value.Env {
 
 func TestPipeUnwrapOk(t *testing.T) {
 	env := setupIOEnv()
-	result := eval.Run(`[@ok 42] |> type()`, env)
+	result := eval.Run(`[@ok, 42] |> type()`, env)
 
 	sym, ok := result.(*value.Symbol)
 	if !ok {
@@ -36,7 +36,7 @@ func TestPipeUnwrapOkChained(t *testing.T) {
 	input := `
 let double = (n) { return n * 2 }
 let add1 = (n) { return n + 1 }
-[@ok 5] |> double() |> add1()
+[@ok, 5] |> double() |> add1()
 `
 	result := eval.Run(input, env)
 	testNumberValue(t, result, "11")
@@ -46,7 +46,7 @@ func TestPipeErrorShortCircuit(t *testing.T) {
 	env := setupIOEnv()
 	input := `
 let double = (n) { return n * 2 }
-[@error "failed"] |> double() |> double()
+[@error, "failed"] |> double() |> double()
 `
 	result := eval.Run(input, env)
 
@@ -78,7 +78,7 @@ func TestFileCreateWriteClose(t *testing.T) {
 
 	input := `
 let h = create("test_io.txt")
-fwrite(h "hello")
+fwrite(h, "hello")
 fclose(h)
 `
 	result := eval.Run(input, env)
@@ -165,8 +165,8 @@ func TestFileRoundTrip(t *testing.T) {
 
 	input := `
 let h = create("test_io_round.txt")
-fwrite(h "line one\n")
-fwrite(h "line two\n")
+fwrite(h, "line one\n")
+fwrite(h, "line two\n")
 fclose(h)
 
 let r = open("test_io_round.txt")

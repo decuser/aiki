@@ -7,6 +7,7 @@ import (
 	"os/user"
 
 	"aiki/eval"
+	"aiki/prelude"
 	"aiki/repl"
 	"aiki/value"
 )
@@ -25,7 +26,7 @@ func main() {
 
 	env := value.NewEnv(nil)
 
-	if err := loadPrelude(env); err != nil {
+	if err := prelude.LoadPrelude(env); err != nil {
 		fmt.Fprintf(os.Stderr, "error loading prelude: %s\n", err)
 		os.Exit(1)
 	}

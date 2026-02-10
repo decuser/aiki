@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"aiki/eval"
+	"aiki/prelude"
 	"aiki/value"
 )
 
@@ -22,6 +23,7 @@ func Start(in io.Reader, out io.Writer, env *value.Env, debug bool) {
 
 	var buffer string
 	prompt := promptMain
+	currentEnv := env
 
 	for {
 		line, err := reader.Prompt(prompt)
@@ -53,9 +55,17 @@ func Start(in io.Reader, out io.Writer, env *value.Env, debug bool) {
 			continue
 		}
 
-		result := eval.Run(buffer, env)
+		result := eval.Run(buffer, currentEnv)
 		buffer = ""
 		prompt = promptMain
+
+		// Check for reset signal
+		if _, ok := result.(*eval.ResetSignal); ok {
+			currentEnv = value.NewEnv(nil)
+			prelude.LoadPrelude(currentEnv)
+			fmt.Fprintln(out, "Environment reset.")
+			continue
+		}
 
 		if result != nil && result != value.NULL {
 			fmt.Fprintln(out, result.Inspect())

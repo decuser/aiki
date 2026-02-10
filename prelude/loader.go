@@ -1,4 +1,4 @@
-package main
+package prelude
 
 import (
 	_ "embed"
@@ -8,10 +8,10 @@ import (
 	"aiki/value"
 )
 
-//go:embed prelude/prelude.ai
+//go:embed prelude.ai
 var preludeSource string
 
-func loadPrelude(env *value.Env) error {
+func LoadPrelude(env *value.Env) error {
 	// Load prelude into main env
 	result := eval.Run(preludeSource, env)
 	if e, ok := result.(*value.Error); ok {

@@ -129,6 +129,7 @@ func TestLexerOperators(t *testing.T) {
 		{"=", []token.Type{token.Assign, token.EOF}},
 		{"|>", []token.Type{token.Pipe, token.EOF}},
 		{".", []token.Type{token.Dot, token.EOF}},
+		{",", []token.Type{token.Comma, token.EOF}},
 	}
 
 	for _, tt := range tests {
@@ -146,8 +147,8 @@ func TestLexerOperators(t *testing.T) {
 }
 
 func TestLexerDelimiters(t *testing.T) {
-	input := "( ) [ ] { }"
-	expected := []token.Type{token.LParen, token.RParen, token.LBracket, token.RBracket, token.LBrace, token.RBrace, token.EOF}
+	input := "( ) [ ] { } ,"
+	expected := []token.Type{token.LParen, token.RParen, token.LBracket, token.RBracket, token.LBrace, token.RBrace, token.Comma, token.EOF}
 
 	l := lexer.New(input)
 	tokens := l.Tokenize()
@@ -166,12 +167,13 @@ func TestLexerCombined(t *testing.T) {
 	}{
 		{"1 + 2 * 3", []token.Type{token.Number, token.Plus, token.Number, token.Star, token.Number, token.EOF}},
 		{"(1 + 2)", []token.Type{token.LParen, token.Number, token.Plus, token.Number, token.RParen, token.EOF}},
-		{"[1 2 3]", []token.Type{token.LBracket, token.Number, token.Number, token.Number, token.RBracket, token.EOF}},
-		{"[@point 10 20]", []token.Type{token.LBracket, token.Shape, token.Number, token.Number, token.RBracket, token.EOF}},
+		{"[1, 2, 3]", []token.Type{token.LBracket, token.Number, token.Comma, token.Number, token.Comma, token.Number, token.RBracket, token.EOF}},
+		{"[@point, 10, 20]", []token.Type{token.LBracket, token.Shape, token.Comma, token.Number, token.Comma, token.Number, token.RBracket, token.EOF}},
 		{"(n) { return n }", []token.Type{token.LParen, token.Name, token.RParen, token.LBrace, token.Return, token.Name, token.RBrace, token.EOF}},
 		{"x |> f() |> g()", []token.Type{token.Name, token.Pipe, token.Name, token.LParen, token.RParen, token.Pipe, token.Name, token.LParen, token.RParen, token.EOF}},
 		{"let x = 5", []token.Type{token.Let, token.Name, token.Assign, token.Number, token.EOF}},
-		{"let @point [x y]", []token.Type{token.Let, token.Shape, token.LBracket, token.Name, token.Name, token.RBracket, token.EOF}},
+		{"let @point [x, y]", []token.Type{token.Let, token.Shape, token.LBracket, token.Name, token.Comma, token.Name, token.RBracket, token.EOF}},
+		{"f(a, b, c)", []token.Type{token.Name, token.LParen, token.Name, token.Comma, token.Name, token.Comma, token.Name, token.RParen, token.EOF}},
 	}
 
 	for _, tt := range tests {

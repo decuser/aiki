@@ -9,11 +9,11 @@ import (
 )
 
 // TestBuiltinsFollowTheWay verifies that builtins return raw values on success,
-// [@error reason] on failure. Success is not wrapped in [@ok ...].
+// [@error, reason] on failure. Success is not wrapped in [@ok, ...].
 
 func TestTonum(t *testing.T) {
 	env := setupIOEnv()
-	
+
 	// Success returns raw number
 	result := eval.Run(`tonum("42")`, env)
 	num, ok := result.(*value.Number)
@@ -23,8 +23,8 @@ func TestTonum(t *testing.T) {
 	if num.Inspect() != "42" {
 		t.Errorf("tonum success: got %s, want 42", num.Inspect())
 	}
-	
-	// Failure returns [@error reason]
+
+	// Failure returns [@error, reason]
 	result = eval.Run(`tonum("not a number")`, env)
 	list, ok := result.(*value.List)
 	if !ok {
@@ -37,8 +37,8 @@ func TestTonum(t *testing.T) {
 
 func TestOpen(t *testing.T) {
 	env := setupIOEnv()
-	
-	// Failure returns [@error reason]
+
+	// Failure returns [@error, reason]
 	result := eval.Run(`open("nonexistent_file_xyz.txt")`, env)
 	list, ok := result.(*value.List)
 	if !ok {
@@ -52,13 +52,13 @@ func TestOpen(t *testing.T) {
 func TestCreateBuiltin(t *testing.T) {
 	env := setupIOEnv()
 	defer os.Remove("test_builtin_create.txt")
-	
+
 	// Success returns raw handle
 	result := eval.Run(`create("test_builtin_create.txt")`, env)
 	h, ok := result.(*value.Handle)
 	if !ok {
 		if list, isList := result.(*value.List); isList && list.Shape == "ok" {
-			t.Fatalf("create success: returned [@ok handle], should return raw handle")
+			t.Fatalf("create success: returned [@ok, handle], should return raw handle")
 		}
 		t.Fatalf("create success: expected Handle, got %T: %v", result, result)
 	}
@@ -67,9 +67,9 @@ func TestCreateBuiltin(t *testing.T) {
 
 func TestFirst(t *testing.T) {
 	env := setupIOEnv()
-	
+
 	// Success returns raw value
-	result := eval.Run(`first([1 2 3])`, env)
+	result := eval.Run(`first([1, 2, 3])`, env)
 	num, ok := result.(*value.Number)
 	if !ok {
 		t.Fatalf("first success: expected Number, got %T: %v", result, result)
@@ -81,9 +81,9 @@ func TestFirst(t *testing.T) {
 
 func TestNth(t *testing.T) {
 	env := setupIOEnv()
-	
+
 	// Success returns raw value
-	result := eval.Run(`nth([10 20 30] 1)`, env)
+	result := eval.Run(`nth([10, 20, 30], 1)`, env)
 	num, ok := result.(*value.Number)
 	if !ok {
 		t.Fatalf("nth success: expected Number, got %T: %v", result, result)
@@ -95,8 +95,8 @@ func TestNth(t *testing.T) {
 
 func TestLen(t *testing.T) {
 	env := setupIOEnv()
-	
-	result := eval.Run(`len([1 2 3])`, env)
+
+	result := eval.Run(`len([1, 2, 3])`, env)
 	num, ok := result.(*value.Number)
 	if !ok {
 		t.Fatalf("len: expected Number, got %T: %v", result, result)
@@ -108,7 +108,7 @@ func TestLen(t *testing.T) {
 
 func TestType(t *testing.T) {
 	env := setupIOEnv()
-	
+
 	result := eval.Run(`type(42)`, env)
 	sym, ok := result.(*value.Symbol)
 	if !ok {
@@ -121,9 +121,9 @@ func TestType(t *testing.T) {
 
 func TestShapeBuiltin(t *testing.T) {
 	env := setupIOEnv()
-	
+
 	// Raw list
-	result := eval.Run(`shape([1 2 3])`, env)
+	result := eval.Run(`shape([1, 2, 3])`, env)
 	sym, ok := result.(*value.Symbol)
 	if !ok {
 		t.Fatalf("shape raw: expected Symbol, got %T: %v", result, result)
@@ -131,9 +131,9 @@ func TestShapeBuiltin(t *testing.T) {
 	if sym.Value != "list" {
 		t.Errorf("shape raw: got %s, want list", sym.Value)
 	}
-	
+
 	// Shaped list
-	result = eval.Run(`shape([@error "test"])`, env)
+	result = eval.Run(`shape([@error, "test"])`, env)
 	sym, ok = result.(*value.Symbol)
 	if !ok {
 		t.Fatalf("shape error: expected Symbol, got %T: %v", result, result)
@@ -145,8 +145,8 @@ func TestShapeBuiltin(t *testing.T) {
 
 func TestEqual(t *testing.T) {
 	env := setupIOEnv()
-	
-	result := eval.Run(`equal([1 2] [1 2])`, env)
+
+	result := eval.Run(`equal([1, 2], [1, 2])`, env)
 	b, ok := result.(*value.Boolean)
 	if !ok {
 		t.Fatalf("equal: expected Boolean, got %T: %v", result, result)
@@ -158,7 +158,7 @@ func TestEqual(t *testing.T) {
 
 func TestTostr(t *testing.T) {
 	env := setupIOEnv()
-	
+
 	result := eval.Run(`tostr(42)`, env)
 	str, ok := result.(*value.String)
 	if !ok {
@@ -171,8 +171,8 @@ func TestTostr(t *testing.T) {
 
 func TestTodecimal(t *testing.T) {
 	env := setupIOEnv()
-	
-	result := eval.Run(`todecimal(3.14159 2)`, env)
+
+	result := eval.Run(`todecimal(3.14159, 2)`, env)
 	str, ok := result.(*value.String)
 	if !ok {
 		t.Fatalf("todecimal: expected String, got %T: %v", result, result)
@@ -184,7 +184,7 @@ func TestTodecimal(t *testing.T) {
 
 func TestMath(t *testing.T) {
 	env := setupIOEnv()
-	
+
 	// sqrt
 	result := eval.Run(`sqrt(4)`, env)
 	num, ok := result.(*value.Number)
@@ -194,7 +194,7 @@ func TestMath(t *testing.T) {
 	if num.Inspect() != "2" {
 		t.Errorf("sqrt: got %s, want 2", num.Inspect())
 	}
-	
+
 	// random returns number
 	result = eval.Run(`type(random(100))`, env)
 	sym, ok := result.(*value.Symbol)

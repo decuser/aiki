@@ -21,9 +21,11 @@ const (
 	ListType     Type = "list"
 	FunctionType Type = "function"
 	HandleType   Type = "handle"
+	ChannelType  Type = "channel"
 	ErrorType    Type = "error"
 	NullType     Type = "null"
 	ReturnType   Type = "return"
+	CanvasType   Type = "canvas"
 )
 
 type Value interface {
@@ -108,7 +110,7 @@ func (b *Bytes) Inspect() string {
 	for i, v := range b.Value {
 		parts[i] = fmt.Sprintf("%d", v)
 	}
-	return fmt.Sprintf("[%s]", strings.Join(parts, " "))
+	return fmt.Sprintf("[%s]", strings.Join(parts, ", "))
 }
 
 // Symbol
@@ -133,9 +135,9 @@ func (l *List) Inspect() string {
 		strs[i] = e.Inspect()
 	}
 	if l.Shape != "" {
-		return fmt.Sprintf("[@%s %s]", l.Shape, strings.Join(strs, " "))
+		return fmt.Sprintf("[@%s, %s]", l.Shape, strings.Join(strs, ", "))
 	}
-	return fmt.Sprintf("[%s]", strings.Join(strs, " "))
+	return fmt.Sprintf("[%s]", strings.Join(strs, ", "))
 }
 
 // Function
@@ -148,7 +150,7 @@ type Function struct {
 
 func (f *Function) Type() Type { return FunctionType }
 func (f *Function) Inspect() string {
-	return fmt.Sprintf("(%s) { ... }", strings.Join(f.Parameters, " "))
+	return fmt.Sprintf("(%s) { ... }", strings.Join(f.Parameters, ", "))
 }
 
 // Handle wraps an OS file handle

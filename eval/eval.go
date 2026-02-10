@@ -403,6 +403,11 @@ func evalCallExpression(node *ast.CallExpression, env *value.Env) value.Value {
 		return evalLoad(node, env)
 	}
 
+	// Handle spawn() specially - it needs to run function in goroutine
+	if ident, ok := node.Function.(*ast.Identifier); ok && ident.Value == "spawn" {
+		return evalSpawn(node, env)
+	}
+
 	fn := Eval(node.Function, env)
 	if isError(fn) {
 		return fn
@@ -465,6 +470,32 @@ func evalLoad(node *ast.CallExpression, env *value.Env) value.Value {
 	env.SetFile(oldFile)
 
 	return result
+}
+
+func evalSpawn(node *ast.CallExpression, env *value.Env) value.Value {
+	if len(node.Arguments) != 1 {
+		return makeError(env, node.Token.Line, "spawn: want 1 argument, got %d", len(node.Arguments))
+	}
+
+	arg := Eval(node.Arguments[0], env)
+	if isError(arg) {
+		return arg
+	}
+
+	fn, ok := arg.(*value.Function)
+	if !ok {
+		return makeError(env, node.Token.Line, "spawn: argument must be a function")
+	}
+
+	if len(fn.Parameters) != 0 {
+		return makeError(env, node.Token.Line, "spawn: function must take no arguments")
+	}
+
+	DefaultScheduler.Spawn(func() {
+		Eval(fn.Body, value.NewEnv(fn.Env))
+	})
+
+	return value.True
 }
 
 func applyFunction(fn value.Value, args []value.Value, env *value.Env, callLine int) value.Value {

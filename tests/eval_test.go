@@ -56,13 +56,13 @@ func TestEvalArithmetic(t *testing.T) {
 		{"2 * 3", "6"},
 		{"8 / 2", "4"},
 		{"5 % 3", "2"},
-		{"1 + 2 * 3", "9"},             // left to right: (1+2)*3
-		{"2 * 3 + 1", "7"},             // left to right: (2*3)+1
-		{"(1 + 2) * 3", "9"},           // explicit grouping
-		{"1 + (2 * 3)", "7"},           // explicit grouping
-		{"10 - 5 - 2", "3"},            // left to right: (10-5)-2
-		{"1 / 3 * 3", "1"},             // exact rational arithmetic
-		{"(1/3) + (1/3) + (1/3)", "1"}, // parens required for intended grouping
+		{"1 + 2 * 3", "9"},
+		{"2 * 3 + 1", "7"},
+		{"(1 + 2) * 3", "9"},
+		{"1 + (2 * 3)", "7"},
+		{"10 - 5 - 2", "3"},
+		{"1 / 3 * 3", "1"},
+		{"(1/3) + (1/3) + (1/3)", "1"},
 	}
 
 	for _, tt := range tests {
@@ -180,7 +180,7 @@ func TestEvalFunctions(t *testing.T) {
 	}{
 		{"let f = (n) { return n }\nf(5)", "5"},
 		{"let f = (n) { return n * 2 }\nf(5)", "10"},
-		{"let add = (a b) { return a + b }\nadd(2 3)", "5"},
+		{"let add = (a, b) { return a + b }\nadd(2, 3)", "5"},
 		{"let f = (n) { return n * 2 }\nf(f(5))", "20"},
 	}
 
@@ -248,11 +248,11 @@ func TestEvalLists(t *testing.T) {
 		input    string
 		expected string
 	}{
-		{"[1 2 3].0", "1"},
-		{"[1 2 3].1", "2"},
-		{"[1 2 3].2", "3"},
-		{"first([1 2 3])", "1"},
-		{"len([1 2 3])", "3"},
+		{"[1, 2, 3].0", "1"},
+		{"[1, 2, 3].1", "2"},
+		{"[1, 2, 3].2", "3"},
+		{"first([1, 2, 3])", "1"},
+		{"len([1, 2, 3])", "3"},
 		{"len([])", "0"},
 	}
 
@@ -266,8 +266,8 @@ func TestEvalLists(t *testing.T) {
 
 func TestEvalShapedLists(t *testing.T) {
 	input := `
-let @point [x y]
-let p = [@point 10 20]
+let @point [x, y]
+let p = [@point, 10, 20]
 p.x + p.y
 `
 	result := testEval(input)
@@ -276,8 +276,8 @@ p.x + p.y
 
 func TestEvalShapedListPositionalAccess(t *testing.T) {
 	input := `
-let @point [x y]
-let p = [@point 10 20]
+let @point [x, y]
+let p = [@point, 10, 20]
 p.0 + p.1
 `
 	result := testEval(input)
@@ -340,7 +340,7 @@ let add1 = (n) { return n + 1 }
 }
 
 func TestEvalPipeWithBuiltins(t *testing.T) {
-	input := "[1 2 3] |> first()"
+	input := "[1, 2, 3] |> first()"
 	result := testEval(input)
 	testNumberValue(t, result, "1")
 }
@@ -348,9 +348,9 @@ func TestEvalPipeWithBuiltins(t *testing.T) {
 func TestEvalMatchStatement(t *testing.T) {
 	input := `
 let @ok [value]
-let result = [@ok 42]
+let result = [@ok, 42]
 match result {
-	[@ok val] { val }
+	[@ok, val] { val }
 	_ { 0 }
 }
 `
@@ -396,7 +396,7 @@ func TestEvalBuiltinType(t *testing.T) {
 		{`type("hello")`, ":string"},
 		{"type('a')", ":rune"},
 		{"type(:ok)", ":symbol"},
-		{"type([1 2])", ":list"},
+		{"type([1, 2])", ":list"},
 		{"type((n) { return n })", ":function"},
 	}
 
@@ -416,8 +416,8 @@ func TestEvalBuiltinType(t *testing.T) {
 
 func TestEvalBuiltinShape(t *testing.T) {
 	input := `
-let @point [x y]
-let p = [@point 10 20]
+let @point [x, y]
+let p = [@point, 10, 20]
 shape(p)
 `
 	result := testEval(input)

@@ -249,7 +249,7 @@ func (p *Printer) printShapeStatement(stmt *ShapeStatement) {
 	// Embeds first
 	for i, embed := range stmt.Embeds {
 		if i > 0 {
-			p.write(" ")
+			p.write(", ")
 		}
 		p.write("@")
 		p.write(embed)
@@ -257,7 +257,7 @@ func (p *Printer) printShapeStatement(stmt *ShapeStatement) {
 	// Then fields
 	for i, field := range stmt.Fields {
 		if i > 0 || len(stmt.Embeds) > 0 {
-			p.write(" ")
+			p.write(", ")
 		}
 		p.write(field)
 	}
@@ -339,7 +339,7 @@ func (p *Printer) printPattern(pat Pattern) {
 		p.write("[")
 		for i, elem := range pt.Elements {
 			if i > 0 {
-				p.write(" ")
+				p.write(", ")
 			}
 			p.printPattern(elem)
 		}
@@ -348,7 +348,7 @@ func (p *Printer) printPattern(pat Pattern) {
 		p.write("[@")
 		p.write(pt.Shape)
 		for _, elem := range pt.Elements {
-			p.write(" ")
+			p.write(", ")
 			p.printPattern(elem)
 		}
 		p.write("]")
@@ -360,7 +360,7 @@ func (p *Printer) printExportStatement(stmt *ExportStatement) {
 	p.write("export [")
 	for i, name := range stmt.Names {
 		if i > 0 {
-			p.write(" ")
+			p.write(", ")
 		}
 		p.write(name)
 	}
@@ -374,7 +374,7 @@ func (p *Printer) printImportStatement(stmt *ImportStatement) {
 	p.write(" use [")
 	for i, name := range stmt.Names {
 		if i > 0 {
-			p.write(" ")
+			p.write(", ")
 		}
 		p.write(name)
 	}
@@ -428,7 +428,7 @@ func (p *Printer) printExpression(expr Expression) {
 		p.write("[")
 		for i, elem := range e.Elements {
 			if i > 0 {
-				p.write(" ")
+				p.write(", ")
 			}
 			p.printExpression(elem)
 		}
@@ -438,7 +438,7 @@ func (p *Printer) printExpression(expr Expression) {
 		p.write("[@")
 		p.write(e.Shape)
 		for _, elem := range e.Elements {
-			p.write(" ")
+			p.write(", ")
 			p.printExpression(elem)
 		}
 		p.write("]")
@@ -447,7 +447,7 @@ func (p *Printer) printExpression(expr Expression) {
 		p.write("(")
 		for i, param := range e.Parameters {
 			if i > 0 {
-				p.write(" ")
+				p.write(", ")
 			}
 			p.write(param)
 		}
@@ -459,7 +459,7 @@ func (p *Printer) printExpression(expr Expression) {
 		p.write("(")
 		for i, arg := range e.Arguments {
 			if i > 0 {
-				p.write(" ")
+				p.write(", ")
 			}
 			p.printExpression(arg)
 		}

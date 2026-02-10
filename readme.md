@@ -1,62 +1,49 @@
 # Aiki
 
-A minimal, composable programming language with a live environment.
+A minimal, composable programming language.
 
-## Philosophy
-
-**Composition through naming.** Everything is about defining small pieces, naming them, and composing them into larger pieces.
+## Principles
 
 - One way to do each thing
 - Explicit over implicit
-- No magic, no hidden behavior
-- Inspectable, live, transparent
+- Composition through naming
 
-## Quick Example
+## Example
 
-```
-let @point [x y]
-let @user [name email]
+```aiki
+let @point [x, y]
 
-let distance = (p1 p2) {
+let distance = (p1, p2) {
     let dx = p2.x - p1.x
     let dy = p2.y - p1.y
     return sqrt((dx * dx) + (dy * dy))
 }
 
-let u = [@user "jdoe" "j@d.com"]
-let result = u |> validate() |> save()
-
-match result {
-    [@ok val]     { print("saved") }
-    [@error msg]  { print(msg) }
-}
+let a = [@point, 0, 0]
+let b = [@point, 3, 4]
+print(distance(a, b))
 ```
 
-## Key Features
+## Features
 
-- **Eight types**: number (rational), boolean, rune, string, bytes, symbol, list, function
-- **Exact arithmetic**: `1/3 * 3 == 1`, no floating point surprises
-- **Shaped lists**: `[@point 10 20]` with named access and enforcement
-- **Shape composition**: `let @cat [@pet color]` embeds pet's fields
-- **Explicit bindings**: `let` creates, `=` mutates
-- **One function syntax**: `(params) { return expr }`
-- **Guard clauses**: explicit `return` enables flat conditionals
-- **Pipe operator**: `x |> f() |> g()` with error short-circuit
-- **Files as modules**: filesystem is organization
-- **Streams as functions**: `open("file")` returns a callable
-- **Go-lite concurrency**: `spawn`, `channel`, `send`, `recv`
-- **Canvas primitives**: turtle graphics, Logo in 50 lines
-- **Live environment**: REPL, inspection, hot reload, build to executable
-- **The way**: success returns value, failure returns `[@error reason]`
-- **File I/O**: `open`, `create`, `fread`, `fwrite`, `fclose`
+- Eight types: number (rational), boolean, rune, string, bytes, symbol, list, function
+- Exact arithmetic: `1/3 * 3 == 1`
+- Shaped lists: `[@point, 10, 20]` with named access
+- Pipe operator: `x |> f() |> g()` with error short-circuit
+- Pattern matching: `match result { [@ok, val] { ... } }`
+
+## Usage
+
+```
+aiki                    # REPL
+aiki run file.ai        # Run file
+aiki fmt file.ai        # Format file
+aiki fmt ./...          # Format directory recursively
+```
 
 ## Documentation
 
-- [grammar.md](grammar.md) - Language syntax specification
-- [design.md](design.md) - Design rationale and philosophy
-- [stdlib.md](stdlib.md) - Standard library (primitives + prelude)
-- [primer.md](primer.md) - Project collaboration guide
-
-## Status
-
-v0.2.2 - File I/O, pipe auto-unwrap, "the way" convention.
+- [design.md](doc/design.md) - Design and rationale
+- [grammar.md](doc/grammar.md) - Language grammar
+- [stdlib.md](doc/stdlib.md) - Standard library
+- [primer.md](doc/primer.md) - Collaboration guide

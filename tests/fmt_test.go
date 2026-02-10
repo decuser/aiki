@@ -104,3 +104,81 @@ let _HASH_SIZE = 64
 		t.Errorf("not idempotent:\nfirst:\n%s\nsecond:\n%s", output1, output2)
 	}
 }
+
+func TestFmtListsWithCommas(t *testing.T) {
+	input := `let x = [1, 2, 3]`
+
+	p := parser.New(input)
+	program := p.Parse()
+	if len(p.Errors()) > 0 {
+		t.Fatalf("parse errors: %v", p.Errors())
+	}
+
+	output := ast.PrintWithComments(program, p.Comments())
+
+	expected := `let x = [1, 2, 3]
+`
+
+	if output != expected {
+		t.Errorf("list format wrong:\ngot:\n%s\nwant:\n%s", output, expected)
+	}
+}
+
+func TestFmtFunctionWithCommas(t *testing.T) {
+	input := `let add = (a, b) { return a + b }`
+
+	p := parser.New(input)
+	program := p.Parse()
+	if len(p.Errors()) > 0 {
+		t.Fatalf("parse errors: %v", p.Errors())
+	}
+
+	output := ast.PrintWithComments(program, p.Comments())
+
+	expected := `let add = (a, b) {
+	return a + b
+}
+`
+
+	if output != expected {
+		t.Errorf("function format wrong:\ngot:\n%s\nwant:\n%s", output, expected)
+	}
+}
+
+func TestFmtCallWithCommas(t *testing.T) {
+	input := `add(1, 2)`
+
+	p := parser.New(input)
+	program := p.Parse()
+	if len(p.Errors()) > 0 {
+		t.Fatalf("parse errors: %v", p.Errors())
+	}
+
+	output := ast.PrintWithComments(program, p.Comments())
+
+	expected := `add(1, 2)
+`
+
+	if output != expected {
+		t.Errorf("call format wrong:\ngot:\n%s\nwant:\n%s", output, expected)
+	}
+}
+
+func TestFmtShapedListWithCommas(t *testing.T) {
+	input := `let p = [@point, 10, 20]`
+
+	p := parser.New(input)
+	program := p.Parse()
+	if len(p.Errors()) > 0 {
+		t.Fatalf("parse errors: %v", p.Errors())
+	}
+
+	output := ast.PrintWithComments(program, p.Comments())
+
+	expected := `let p = [@point, 10, 20]
+`
+
+	if output != expected {
+		t.Errorf("shaped list format wrong:\ngot:\n%s\nwant:\n%s", output, expected)
+	}
+}

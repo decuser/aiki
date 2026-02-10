@@ -18,66 +18,66 @@ func TestPreludeRawListAccess(t *testing.T) {
 	}{
 		{
 			name:     "range basic",
-			input:    `len(range(1 4))`,
+			input:    `len(range(1, 4))`,
 			expected: "3",
 		},
 		{
 			name: "range with each",
 			input: `let result = []
-let collect = (n) { result = append(result n) }
-each(range(1 4) collect)
+let collect = (n) { result = append(result, n) }
+each(range(1, 4), collect)
 len(result)`,
 			expected: "3",
 		},
 		{
 			name: "map over range",
 			input: `let double = (n) { return n * 2 }
-let doubled = map(range(1 4) double)
-nth(doubled 0)`,
+let doubled = map(range(1, 4), double)
+nth(doubled, 0)`,
 			expected: "2",
 		},
 		{
 			name: "filter on range",
 			input: `let isEven = (n) { return n % 2 == 0 }
-let evens = filter(range(1 6) isEven)
+let evens = filter(range(1, 6), isEven)
 len(evens)`,
 			expected: "2",
 		},
 		{
 			name: "reduce on range",
-			input: `let add = (acc n) { return acc + n }
-reduce(range(1 6) 0 add)`,
+			input: `let add = (acc, n) { return acc + n }
+reduce(range(1, 6), 0, add)`,
 			expected: "15",
 		},
 		{
 			name: "find in range",
 			input: `let gt5 = (n) { return n > 5 }
-		find(range(1 10) gt5)`,
+		find(range(1, 10), gt5)`,
 			expected: "6",
 		},
 		{
 			name: "any on range",
 			input: `let gt3 = (n) { return n > 3 }
-any(range(1 5) gt3)`,
+any(range(1, 5), gt3)`,
 			expected: "true",
 			isBool:   true,
 		},
 		{
 			name: "all on range",
 			input: `let lt10 = (n) { return n < 10 }
-all(range(1 5) lt10)`,
+all(range(1, 5), lt10)`,
 			expected: "true",
 			isBool:   true,
 		},
 		{
 			name: "reverse raw list",
-			input: `let rev = reverse(range(1 4))
-nth(rev 0)`,
+			input: `let rev = reverse(range(1, 4))
+nth(rev, 0)`,
 			expected: "3",
 		},
 		{
 			name:     "sum of range",
-			input:    `sum(range(1 6))`,
+			input:    `sum(range(1, 6))`,
 			expected: "15",
 		},
 	}
