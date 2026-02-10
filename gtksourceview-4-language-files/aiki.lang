@@ -59,10 +59,6 @@
       <keyword>export</keyword>
       <keyword>from</keyword>
       <keyword>use</keyword>
-      <keyword>spawn</keyword>
-      <keyword>channel</keyword>
-      <keyword>send</keyword>
-      <keyword>recv</keyword>
     </context>
 
     <context id="boolean" style-ref="constant">
@@ -77,38 +73,92 @@
     </context>
 
     <context id="builtins" style-ref="builtin">
+      <!-- List -->
       <keyword>first</keyword>
       <keyword>rest</keyword>
+      <keyword>nth</keyword>
       <keyword>len</keyword>
       <keyword>prepend</keyword>
       <keyword>append</keyword>
+      <!-- Type -->
       <keyword>type</keyword>
       <keyword>inspect</keyword>
       <keyword>shape</keyword>
       <keyword>equal</keyword>
+      <!-- Convert -->
       <keyword>tostr</keyword>
       <keyword>tonum</keyword>
       <keyword>tobytes</keyword>
       <keyword>torune</keyword>
       <keyword>todecimal</keyword>
+      <!-- I/O -->
       <keyword>print</keyword>
       <keyword>read</keyword>
       <keyword>open</keyword>
       <keyword>create</keyword>
-      <keyword>close</keyword>
+      <keyword>fread</keyword>
+      <keyword>fwrite</keyword>
+      <keyword>fclose</keyword>
+      <!-- Math -->
       <keyword>sqrt</keyword>
+      <keyword>abs</keyword>
       <keyword>cos</keyword>
       <keyword>sin</keyword>
       <keyword>random</keyword>
+      <!-- Concurrency -->
+      <keyword>spawn</keyword>
+      <keyword>channel</keyword>
+      <keyword>send</keyword>
+      <keyword>recv</keyword>
+      <!-- Canvas -->
       <keyword>canvas</keyword>
-      <keyword>draw_line</keyword>
-      <keyword>draw_rect</keyword>
-      <keyword>draw_circle</keyword>
-      <keyword>draw_text</keyword>
+      <keyword>get_bg</keyword>
+      <keyword>set_bg</keyword>
+      <keyword>get_fg</keyword>
+      <keyword>set_fg</keyword>
+      <keyword>pen_size</keyword>
+      <keyword>get_pen_size</keyword>
+      <keyword>line</keyword>
+      <keyword>rect</keyword>
+      <keyword>fill_rect</keyword>
+      <keyword>circle</keyword>
+      <keyword>fill_circle</keyword>
+      <keyword>oval</keyword>
+      <keyword>fill_oval</keyword>
+      <keyword>dot</keyword>
+      <keyword>text</keyword>
+      <keyword>clear</keyword>
+      <keyword>undo</keyword>
+      <keyword>redo</keyword>
+      <keyword>get_width</keyword>
+      <keyword>get_height</keyword>
+      <keyword>save</keyword>
+      <keyword>destroy</keyword>
+      <!-- System -->
+      <keyword>reset</keyword>
+      <keyword>fmt</keyword>
+      <keyword>load</keyword>
+      <keyword>restore</keyword>
+      <!-- Prelude -->
+      <keyword>each</keyword>
       <keyword>map</keyword>
       <keyword>filter</keyword>
       <keyword>reduce</keyword>
       <keyword>range</keyword>
+      <keyword>reverse</keyword>
+      <keyword>find</keyword>
+      <keyword>any</keyword>
+      <keyword>all</keyword>
+      <keyword>sum</keyword>
+      <keyword>max</keyword>
+      <keyword>min</keyword>
+      <keyword>hash_new</keyword>
+      <keyword>hash_get</keyword>
+      <keyword>hash_put</keyword>
+      <keyword>hash_has</keyword>
+      <keyword>hash_del</keyword>
+      <keyword>hash_keys</keyword>
+      <keyword>hash_values</keyword>
     </context>
 
     <context id="operators" style-ref="operator">
