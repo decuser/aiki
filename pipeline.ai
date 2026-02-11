@@ -1,0 +1,13 @@
+# 1. Define your atomic tools
+let square = (x) { return x * x }
+let is_even = (x) { return x % 2 == 0 }
+
+# 2. The Pipeline
+# Reads left-to-right: Generate -> Filter -> Transform -> Aggregate
+range(1, 11)        # [1, 2, ... 10]
+|> filter(is_even)  # [2, 4, 6, 8, 10]
+|> map(square)      # [4, 16, 36, 64, 100]
+|> sum()            # 220
+|> print()          # Output
+
+print("\n")

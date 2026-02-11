@@ -1,0 +1,37 @@
+# Newton's Method for Square Roots (Functional / Recursive)
+
+let square = (x) {
+    return x * x
+}
+
+let abs = (x) {
+    if x < 0 { return -x }
+    return x
+}
+
+let average = (x, y) {
+    return (x + y) / 2
+}
+
+let good_enough = (guess, x) {
+    let diff = abs(square(guess) - x)
+    return diff < 0.001
+}
+
+let improve = (guess, x) {
+    return average(guess, x / guess)
+}
+
+let sqrt_iter = (guess, x) {
+    if good_enough(guess, x) {
+        return guess
+    }
+    return sqrt_iter(improve(guess, x), x)
+}
+
+let my_sqrt = (x) {
+    return sqrt_iter(1.0, x)
+}
+
+print(sqrt(9), "\n")
+print(sqrt(2), "\n")
