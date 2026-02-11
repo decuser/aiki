@@ -3,8 +3,8 @@ package tests
 import (
 	"testing"
 
-	"aiki/eval"
-	"aiki/value"
+	"aiki/lang/eval"
+	"aiki/lang/value"
 )
 
 func TestHashNew(t *testing.T) {

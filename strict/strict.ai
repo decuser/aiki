@@ -1,0 +1,265 @@
+# Standard library written in pure Aiki
+export [abs, all, any, chunk, concat, contains, count, drop, each, empty, enumerate, filter, find, first, flatten, hash_del, hash_get, hash_has, hash_keys, hash_new, hash_put, hash_vals, index_of, last, length, map, max, merge, merge_sort, min, nth, partition, range, reduce, repeat, rest, reverse, slice, sort, sum, take, unique, zip]
+
+let @ok [value]
+let @error [reason]
+let @end []
+
+let each = (list, f) {
+    let i = 0
+    while i < length(list) {
+        f(nth(list, i))
+        i = i + 1
+    }
+    return true
+}
+
+let map = (list, f) {
+    let result = []
+    let i = 0
+    while i < length(list) {
+        result = append(result, f(nth(list, i)))
+        i = i + 1
+    }
+    return result
+}
+
+let filter = (list, f) {
+    let result = []
+    let i = 0
+    while i < length(list) {
+        if f(nth(list, i)) {
+            result = append(result, nth(list, i))
+        }
+        i = i + 1
+    }
+    return result
+}
+
+let reduce = (list, acc, f) {
+    let result = acc
+    let i = 0
+    while i < length(list) {
+        result = f(result, nth(list, i))
+        i = i + 1
+    }
+    return result
+}
+
+let range = (start, end) {
+    let result = []
+    let i = start
+    while i < end {
+        result = append(result, i)
+        i = i + 1
+    }
+    return result
+}
+
+let reverse = (list) {
+    let result = []
+    let i = length(list) - 1
+    while i >= 0 {
+        result = append(result, nth(list, i))
+        i = i - 1
+    }
+    return result
+}
+
+let find = (list, f) {
+    let i = 0
+    while i < length(list) {
+        if f(nth(list, i)) {
+            return nth(list, i)
+        }
+        i = i + 1
+    }
+    return [@error, "not found"]
+}
+
+let any = (list, f) {
+    let i = 0
+    while i < length(list) {
+        if f(nth(list, i)) {
+            return true
+        }
+        i = i + 1
+    }
+    return false
+}
+
+let all = (list, f) {
+    let i = 0
+    while i < length(list) {
+        if not f(nth(list, i)) {
+            return false
+        }
+        i = i + 1
+    }
+    return true
+}
+
+let sum = (list) {
+    let add = (acc, x) {
+        return acc + x
+    }
+    return reduce(list, 0, add)
+}
+
+let max = (list) {
+    if length(list) == 0 {
+        return [@error, "empty list"]
+    }
+    let m = nth(list, 0)
+    let i = 1
+    while i < length(list) {
+        if nth(list, i) > m {
+            m = nth(list, i)
+        }
+        i = i + 1
+    }
+    return m
+}
+
+let min = (list) {
+    if length(list) == 0 {
+        return [@error, "empty list"]
+    }
+    let m = nth(list, 0)
+    let i = 1
+    while i < length(list) {
+        if nth(list, i) < m {
+            m = nth(list, i)
+        }
+        i = i + 1
+    }
+    return m
+}
+
+# Hash map implementation
+# A hash is a list of 64 buckets, each bucket is a list of [key, value] pairs
+let _HASH_SIZE = 64
+
+let hash_new = () {
+    let buckets = []
+    let i = 0
+    while i < _HASH_SIZE {
+        buckets = append(buckets, [])
+        i = i + 1
+    }
+    return buckets
+}
+
+let _bucket_index = (key) {
+    return _hash_code(key) % _HASH_SIZE
+}
+
+let hash_get = (h, key) {
+    let idx = _bucket_index(key)
+    let bucket = nth(h, idx)
+    let i = 0
+    while i < length(bucket) {
+        let pair = nth(bucket, i)
+        if equal(nth(pair, 0), key) {
+            return nth(pair, 1)
+        }
+        i = i + 1
+    }
+    return [@error, "key not found"]
+}
+
+let hash_put = (h, key, val) {
+    let idx = _bucket_index(key)
+    let bucket = nth(h, idx)
+    let new_bucket = []
+    let found = false
+    let i = 0
+    while i < length(bucket) {
+        let pair = nth(bucket, i)
+        if equal(nth(pair, 0), key) {
+            new_bucket = append(new_bucket, [key, val])
+            found = true
+        } else {
+            new_bucket = append(new_bucket, pair)
+        }
+        i = i + 1
+    }
+    if not found {
+        new_bucket = append(new_bucket, [key, val])
+    }
+    # Build new hash with updated bucket
+    let new_h = []
+    let j = 0
+    while j < _HASH_SIZE {
+        if j == idx {
+            new_h = append(new_h, new_bucket)
+        } else {
+            new_h = append(new_h, nth(h, j))
+        }
+        j = j + 1
+    }
+    return new_h
+}
+
+let hash_has = (h, key) {
+    let result = hash_get(h, key)
+    return shape(result) != :error
+}
+
+let hash_del = (h, key) {
+    let idx = _bucket_index(key)
+    let bucket = nth(h, idx)
+    let new_bucket = []
+    let i = 0
+    while i < length(bucket) {
+        let pair = nth(bucket, i)
+        if not equal(nth(pair, 0), key) {
+            new_bucket = append(new_bucket, pair)
+        }
+        i = i + 1
+    }
+    # Build new hash with updated bucket
+    let new_h = []
+    let j = 0
+    while j < _HASH_SIZE {
+        if j == idx {
+            new_h = append(new_h, new_bucket)
+        } else {
+            new_h = append(new_h, nth(h, j))
+        }
+        j = j + 1
+    }
+    return new_h
+}
+
+let hash_keys = (h) {
+    let keys = []
+    let i = 0
+    while i < _HASH_SIZE {
+        let bucket = nth(h, i)
+        let j = 0
+        while j < length(bucket) {
+            let pair = nth(bucket, j)
+            keys = append(keys, nth(pair, 0))
+            j = j + 1
+        }
+        i = i + 1
+    }
+    return keys
+}
+
+let hash_values = (h) {
+    let vals = []
+    let i = 0
+    while i < _HASH_SIZE {
+        let bucket = nth(h, i)
+        let j = 0
+        while j < length(bucket) {
+            let pair = nth(bucket, j)
+            vals = append(vals, nth(pair, 1))
+            j = j + 1
+        }
+        i = i + 1
+    }
+    return vals
+}

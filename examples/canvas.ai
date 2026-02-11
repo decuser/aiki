@@ -1,0 +1,14 @@
+let canvas_ref = canvas(800, 800)
+let center_x = 400
+let center_y = 400
+let tick = 0
+let outer_radius = 200
+let inner_radius = 80
+let pen_distance = 150
+while tick < 6280 {
+    let angle = tick / 100
+    let x = center_x + outer_radius - inner_radius * cos(angle) + pen_distance * cos(outer_radius - inner_radius / inner_radius * angle)
+    let y = center_y + outer_radius - inner_radius * sin(angle) - pen_distance * sin(outer_radius - inner_radius / inner_radius * angle)
+    dot(canvas_ref, x, y, :cyan)
+    tick = tick + 1
+}

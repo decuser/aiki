@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"aiki/eval"
-	"aiki/value"
+	"aiki/lang/eval"
+	"aiki/lang/value"
 )
 
 func TestChannel(t *testing.T) {

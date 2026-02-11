@@ -3,8 +3,8 @@ package tests
 import (
 	"testing"
 
-	"aiki/lexer"
-	"aiki/token"
+	"aiki/lang/lexer"
+	"aiki/lang/token"
 )
 
 func TestLexerBasicTokens(t *testing.T) {

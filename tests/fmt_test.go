@@ -3,8 +3,8 @@ package tests
 import (
 	"testing"
 
-	"aiki/ast"
-	"aiki/parser"
+	"aiki/lang/ast"
+	"aiki/lang/parser"
 )
 
 func TestFmtCommentOrder(t *testing.T) {

@@ -86,11 +86,11 @@
       <keyword>shape</keyword>
       <keyword>equal</keyword>
       <!-- Convert -->
-      <keyword>tostr</keyword>
-      <keyword>tonum</keyword>
-      <keyword>tobytes</keyword>
-      <keyword>torune</keyword>
-      <keyword>todecimal</keyword>
+      <keyword>to_str</keyword>
+      <keyword>to_num</keyword>
+      <keyword>to_bytes</keyword>
+      <keyword>to_rune</keyword>
+      <keyword>to_decimal</keyword>
       <!-- I/O -->
       <keyword>print</keyword>
       <keyword>read</keyword>

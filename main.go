@@ -6,10 +6,13 @@ import (
 	"os"
 	"os/user"
 
-	"aiki/eval"
-	"aiki/prelude"
-	"aiki/repl"
-	"aiki/value"
+	"aiki/lang/eval"
+	"aiki/strict"
+	"aiki/cmd/repl"
+	"aiki/lang/value"
+
+    aikifmt "aiki/cmd/fmt"
+    aikilint "aiki/cmd/lint"
 )
 
 func main() {
@@ -17,7 +20,10 @@ func main() {
 	if len(os.Args) > 1 {
 		switch os.Args[1] {
 		case "fmt":
-			runFmt(os.Args[2:])
+			aikifmt.Run(os.Args[2:])
+			return
+		case "lint": // New case
+			aikilint.Run(os.Args[2:])
 			return
 		}
 	}
@@ -26,8 +32,8 @@ func main() {
 
 	env := value.NewEnv(nil)
 
-	if err := prelude.LoadPrelude(env); err != nil {
-		fmt.Fprintf(os.Stderr, "error loading prelude: %s\n", err)
+	if err := strict.LoadStrict(env); err != nil {
+		fmt.Fprintf(os.Stderr, "error loading strict: %s\n", err)
 		os.Exit(1)
 	}
 
@@ -35,22 +41,6 @@ func main() {
 		startREPL(env, opts)
 	} else {
 		runFile(flag.Arg(0), env, opts)
-	}
-}
-
-func runFmt(args []string) {
-	if len(args) == 0 {
-		fmt.Fprintln(os.Stderr, "usage: aiki fmt <path>")
-		fmt.Fprintln(os.Stderr, "       aiki fmt ./...")
-		os.Exit(1)
-	}
-
-	for _, path := range args {
-		result := eval.Format(path)
-		if err, ok := result.(*value.Error); ok {
-			fmt.Fprintf(os.Stderr, "%s\n", err.Message)
-			os.Exit(1)
-		}
 	}
 }
 

@@ -4,8 +4,8 @@ import (
 	"os"
 	"testing"
 
-	"aiki/eval"
-	"aiki/value"
+	"aiki/lang/eval"
+	"aiki/lang/value"
 )
 
 // TestBuiltinsFollowTheWay verifies that builtins return raw values on success,

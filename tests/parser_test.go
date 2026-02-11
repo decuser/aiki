@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"aiki/ast"
-	"aiki/parser"
+	"aiki/lang/ast"
+	"aiki/lang/parser"
 )
 
 func TestParserLetStatements(t *testing.T) {

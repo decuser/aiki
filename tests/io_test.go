@@ -4,8 +4,8 @@ import (
 	"os"
 	"testing"
 
-	"aiki/eval"
-	"aiki/value"
+	"aiki/lang/eval"
+	"aiki/lang/value"
 )
 
 func setupIOEnv() *value.Env {

@@ -3,8 +3,8 @@ package tests
 import (
 	"testing"
 
-	"aiki/eval"
-	"aiki/value"
+	"aiki/lang/eval"
+	"aiki/lang/value"
 )
 
 func TestCanvasCreate(t *testing.T) {
