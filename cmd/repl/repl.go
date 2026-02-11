@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"io"
 
-	"aiki/lang/eval"
 	"aiki/hal/core"
-	"aiki/strict"
+	"aiki/lang/eval"
 	"aiki/lang/value"
+	"aiki/strict"
 )
 
 const (

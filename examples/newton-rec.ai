@@ -36,5 +36,5 @@ let my_sqrt = (x) {
 
 print(my_sqrt(9))
 print(my_sqrt(2))
-print(to_decimal(my_sqrt(9)))
-print(to_decimal(my_sqrt(2)))
+print(to_decimal(my_sqrt(9), 6), "\n")
+print(to_decimal(my_sqrt(2), 6), "\n")

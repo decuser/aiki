@@ -43,31 +43,31 @@ func Check(node ast.Node, globals []string) []string {
 	var walk func(n ast.Node)
 	walk = func(n ast.Node) {
 		// fmt.Printf("walk: %T %v\n", n, n == nil)
-		    if n != nil && reflect.ValueOf(n).IsNil() {
+		if n != nil && reflect.ValueOf(n).IsNil() {
 			// fmt.Printf("TYPED NIL: %T\n", n)
 			return
-		    }
-		    // fmt.Printf("walk: %T %v\n", n, n == nil)
+		}
+		// fmt.Printf("walk: %T %v\n", n, n == nil)
 		if n == nil {
 			return
 		}
 
 		switch node := n.(type) {
 		case nil:
-		    return
+			return
 		case *ast.Program:
-		    pushScope()
-		    // First pass: collect all top-level names
-		    for _, stmt := range node.Statements {
-			if let, ok := stmt.(*ast.LetStatement); ok {
-			    define(let.Name.Value)
+			pushScope()
+			// First pass: collect all top-level names
+			for _, stmt := range node.Statements {
+				if let, ok := stmt.(*ast.LetStatement); ok {
+					define(let.Name.Value)
+				}
 			}
-		    }
-		    // Second pass: check usage
-		    for _, stmt := range node.Statements {
-			walk(stmt)
-		    }
-		    popScope()
+			// Second pass: check usage
+			for _, stmt := range node.Statements {
+				walk(stmt)
+			}
+			popScope()
 
 		case *ast.FunctionLiteral:
 			pushScope()
@@ -84,7 +84,7 @@ func Check(node ast.Node, globals []string) []string {
 			pushScope()
 			for _, stmt := range node.Statements {
 				if stmt == nil || reflect.ValueOf(stmt).IsNil() {
-				    continue
+					continue
 				}
 				walk(stmt)
 			}

@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"os"
 	"strings"
+	"time"
 
 	"aiki/lang/value"
 )
@@ -434,6 +435,7 @@ Primitives:
   sin(n)              - sine
   cos(n)              - cosine
   random(n)           - random 0 to n-1
+  sleep(ms)           - sleep for n millisectons
 
 Type help(name) for details.`
 			return &value.String{Value: help}
@@ -565,6 +567,22 @@ Type help(name) for details.`
 	"load": {
 		Name: "load",
 		Fn:   nil,
+	},
+
+	"sleep": {
+		Name: "sleep",
+		Fn: func(args ...value.Value) value.Value {
+			if len(args) != 1 {
+				return value.NewError("sleep: want 1 argument, got %d", len(args))
+			}
+			n, ok := args[0].(*value.Number)
+			if !ok {
+				return value.NewError("sleep: expected number (milliseconds)")
+			}
+			ms, _ := n.Value.Float64()
+			time.Sleep(time.Duration(ms) * time.Millisecond)
+			return value.True
+		},
 	},
 }
 

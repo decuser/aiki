@@ -356,13 +356,13 @@ func (p *Parser) parseExportStatement() ast.Statement {
 	// fmt.Printf("DEBUG: type=%v lexeme=%q\n", p.current.Type, p.current.Lexeme)
 	var names []string
 	for p.current.Type == token.Name {
-	    // fmt.Printf("DEBUG name: %q\n", p.current.Lexeme)
-	    names = append(names, p.current.Lexeme)
-	    p.advance()
-	    // fmt.Printf("DEBUG after advance: type=%v lexeme=%q\n", p.current.Type, p.current.Lexeme)
-	    if p.current.Type == token.Comma {
+		// fmt.Printf("DEBUG name: %q\n", p.current.Lexeme)
+		names = append(names, p.current.Lexeme)
 		p.advance()
-	    }
+		// fmt.Printf("DEBUG after advance: type=%v lexeme=%q\n", p.current.Type, p.current.Lexeme)
+		if p.current.Type == token.Comma {
+			p.advance()
+		}
 	}
 	// fmt.Printf("DEBUG exited loop: type=%v lexeme=%q\n", p.current.Type, p.current.Lexeme)
 

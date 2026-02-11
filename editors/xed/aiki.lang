@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Aiki syntax highlighting for GtkSourceView editors (xed, gedit, etc.)
+  Install: sudo cp aiki.lang /usr/share/gtksourceview-4/language-specs/
+-->
 <language id="aiki" name="Aiki" version="2.0" _section="Source">
   <metadata>
     <property name="mimetype">text/x-aiki</property>

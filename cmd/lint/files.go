@@ -45,9 +45,9 @@ func lintDir(dir string, allowed []string) (int, error) {
 		}
 		if !info.IsDir() && strings.HasSuffix(path, ".ai") {
 			if err := lintFile(path, allowed); err != nil {
-			    fmt.Fprintf(os.Stderr, "%s\n", err)
+				fmt.Fprintf(os.Stderr, "%s\n", err)
 			} else {
-			    count++
+				count++
 			}
 		}
 		return nil

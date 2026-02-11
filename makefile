@@ -1,10 +1,10 @@
-.PHONY: build clean install run test fmt
+.PHONY: build clean install run test fmt lint
 
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 LDFLAGS := -ldflags "-X main.version=$(VERSION)"
 
 build:
-	go build $(LDFLAGS) -o aiki .
+	go build $(LDFLAGS) -o aiki ./cmd
 
 clean:
 	rm -f aiki
@@ -17,7 +17,10 @@ run: build
 
 test:
 	go test ./tests
+
 fmt:
 	go fmt ./...
 	./aiki fmt ./...
 
+lint:
+	./aiki lint ./...

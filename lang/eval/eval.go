@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"aiki/lang/ast"
 	"aiki/hal/core"
+	"aiki/lang/ast"
 	"aiki/lang/parser"
 	"aiki/lang/value"
 )

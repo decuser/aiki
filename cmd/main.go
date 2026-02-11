@@ -6,13 +6,13 @@ import (
 	"os"
 	"os/user"
 
-	"aiki/lang/eval"
-	"aiki/strict"
 	"aiki/cmd/repl"
+	"aiki/lang/eval"
 	"aiki/lang/value"
+	"aiki/strict"
 
-    aikifmt "aiki/cmd/fmt"
-    aikilint "aiki/cmd/lint"
+	aikifmt "aiki/cmd/fmt"
+	aikilint "aiki/cmd/lint"
 )
 
 func main() {
