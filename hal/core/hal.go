@@ -14,15 +14,7 @@ import (
 	"aiki/lang/value"
 )
 
-var lastPrintEndedWithNewline bool
-
-func LastPrintEndedWithNewline() bool {
-	return lastPrintEndedWithNewline
-}
-
-func ResetLastPrint() {
-	lastPrintEndedWithNewline = false
-}
+var Stdout io.Writer = os.Stdout
 
 // HAL defines the Host Abstraction Layer for Aiki.
 //
@@ -313,9 +305,10 @@ var HAL = map[string]*value.Builtin{
 				}
 			}
 			s := strings.Join(parts, " ")
-			fmt.Print(s)
-			os.Stdout.Sync()
-			lastPrintEndedWithNewline = strings.HasSuffix(s, "\n")
+			fmt.Fprint(Stdout, s)
+			if f, ok := Stdout.(*os.File); ok {
+				f.Sync()
+			}
 			return value.NULL
 		},
 	},

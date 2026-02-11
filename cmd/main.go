@@ -10,6 +10,7 @@ import (
 	"aiki/lang/eval"
 	"aiki/lang/value"
 	"aiki/strict"
+	"aiki/version"
 
 	aikifmt "aiki/cmd/fmt"
 	aikilint "aiki/cmd/lint"
@@ -50,11 +51,11 @@ func startREPL(env *value.Env, opts Options) {
 		u = &user.User{Username: "user"}
 	}
 
-	fmt.Printf("%s %s\n", appName, version)
+	fmt.Printf("%s %s\n", appName, version.Version)
 	fmt.Printf("Hello %s! The system is live.\n", u.Username)
 	fmt.Printf("Type help() for commands.\n\n")
 
-	repl.Start(os.Stdin, os.Stdout, env, opts.Debug)
+	repl.Run(os.Stdin, os.Stdout, env, opts.Debug)
 }
 
 func runFile(filename string, env *value.Env, opts Options) {

@@ -15,27 +15,51 @@ const (
 	promptCont = "  "
 )
 
-func Start(in io.Reader, out io.Writer, env *value.Env, debug bool) {
+// Session manages a REPL session.
+type Session struct {
+	out     io.Writer
+	env     *value.Env
+	debug   bool
+	reader  LineReader
+	tracker *TrackingWriter
+}
+
+// NewSession creates a new REPL session.
+func NewSession(out io.Writer, env *value.Env, debug bool) *Session {
 	reader, err := NewReadlineReader()
 	if err != nil {
 		reader = NewSimpleReader()
 	}
-	defer reader.Close()
+
+	tracker := &TrackingWriter{Out: out, EndedWithNewline: true}
+	core.Stdout = tracker
+
+	return &Session{
+		out:     out,
+		env:     env,
+		debug:   debug,
+		reader:  reader,
+		tracker: tracker,
+	}
+}
+
+// Run starts the REPL loop.
+func (s *Session) Run() {
+	defer s.reader.Close()
 
 	var buffer string
 	prompt := promptMain
-	currentEnv := env
 
 	for {
-		line, err := reader.Prompt(prompt)
+		line, err := s.reader.Prompt(prompt)
 		if err == ErrInterrupt {
 			buffer = ""
 			prompt = promptMain
-			fmt.Fprintln(out)
+			fmt.Fprintln(s.out)
 			continue
 		}
 		if err != nil {
-			fmt.Fprintln(out, "\nGoodbye!")
+			fmt.Fprintln(s.out, "\nGoodbye!")
 			return
 		}
 
@@ -56,28 +80,28 @@ func Start(in io.Reader, out io.Writer, env *value.Env, debug bool) {
 			continue
 		}
 
-		result := eval.Run(buffer, currentEnv)
+		s.tracker.EndedWithNewline = true
+		result := eval.Run(buffer, s.env)
 		buffer = ""
 		prompt = promptMain
 
 		// Check for reset signal
 		if _, ok := result.(*core.ResetSignal); ok {
-			currentEnv = value.NewEnv(nil)
-			strict.LoadStrict(currentEnv)
-			fmt.Fprintln(out, "Environment reset.")
+			s.env = value.NewEnv(nil)
+			strict.LoadStrict(s.env)
+			fmt.Fprintln(s.out, "Environment reset.")
 			continue
 		}
 
 		if result != nil && result != value.NULL {
-			fmt.Fprintln(out, result.Inspect())
-		} else if !core.LastPrintEndedWithNewline() {
-			fmt.Fprintln(out)
+			fmt.Fprintln(s.out, result.Inspect())
+		} else if !s.tracker.EndedWithNewline {
+			fmt.Fprintln(s.out)
 		}
-		core.ResetLastPrint()
 	}
 }
 
-// isComplete checks if the input has balanced delimiters
+// isComplete checks if the input has balanced delimiters.
 func isComplete(input string) bool {
 	braces := 0
 	brackets := 0
@@ -139,7 +163,7 @@ func isComplete(input string) bool {
 	return braces <= 0 && brackets <= 0 && parens <= 0
 }
 
-// isBlank checks if input is empty or only whitespace/comments
+// isBlank checks if input is empty or only whitespace/comments.
 func isBlank(input string) bool {
 	inComment := false
 	for _, r := range input {

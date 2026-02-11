@@ -1,7 +1,7 @@
 .PHONY: build clean install run test fmt lint
 
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
-LDFLAGS := -ldflags "-X main.version=$(VERSION)"
+LDFLAGS := -ldflags "-X aiki/version.Version=$(VERSION)"
 
 build:
 	go build $(LDFLAGS) -o aiki ./cmd
