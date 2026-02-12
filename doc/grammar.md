@@ -3,7 +3,7 @@
 ## Tokens
 
 ```
-KEYWORD     let if else while match return true false and or not
+KEYWORD     let if else while match return true false and or not export from
 NUMBER      42  3.14  1/3
 STRING      "hello"
 RUNE        'a'
@@ -16,33 +16,28 @@ COMMENT     # to end of line
 ## Operators
 
 ```
-+  -  *  /
-<  >  <=  >=
++  -  *  /  %
+<  >  <=  >=  ==  !=
 and  or  not
 |>
 .
 =
 ```
 
-**Removed (provisional):**
-- `==` → use `equal(a, b)`
-- `!=` → use `not(equal(a, b))`
-- `%` → use `modulo(a, b)`
-- `!` → use `not`
-
 ## Delimiters
 
 ```
-(  )  [  ]  {  }  ,
+(  )  [  ]  {  }  ,  ;  ...
 ```
 
 ## Grammar
 
 ```ebnf
-program     = { statement }
+program     = { statement [ ";" ] }
 
 statement   = let_stmt | assign_stmt | if_stmt | while_stmt
-            | match_stmt | return_stmt | expr_stmt
+            | match_stmt | return_stmt | export_stmt | import_stmt
+            | expr_stmt
 
 let_stmt    = "let" NAME "=" expr
             | "let" SHAPE "[" [ field { "," field } ] "]"
@@ -50,7 +45,7 @@ field       = NAME | SHAPE
 
 assign_stmt = NAME "=" expr
 
-if_stmt     = "if" expr block [ "else" block ]
+if_stmt     = "if" expr block [ "else" ( if_stmt | block ) ]
 
 while_stmt  = "while" expr block
 
@@ -62,6 +57,10 @@ pattern     = "_" | NAME | literal
 
 return_stmt = "return" expr
 
+export_stmt = "export" "[" NAME { "," NAME } "]"
+
+import_stmt = "from" STRING "import" "[" NAME { "," NAME } "]"
+
 expr_stmt   = expr
 
 expr        = pipe_expr
@@ -70,25 +69,40 @@ pipe_expr   = infix_expr { "|>" call_expr }
 
 infix_expr  = unary_expr { BINOP unary_expr }
 
-unary_expr  = [ "not" | "-" ] call_expr
+unary_expr  = [ "not" | "-" ] postfix_expr
 
-call_expr   = access_expr { "(" [ expr { "," expr } ] ")" }
+postfix_expr = primary { call | index | access }
 
-access_expr = primary { "." ( NAME | NUMBER ) }
+call        = "(" [ expr { "," expr } ] ")"
+
+index       = "[" expr "]"
+
+access      = "." NAME
 
 primary     = NUMBER | STRING | RUNE | SYMBOL | NAME
             | "true" | "false"
-            | "[" [ expr { "," expr } ] "]"
-            | "[" SHAPE { "," expr } "]"
-            | "(" [ NAME { "," NAME } ] ")" block
+            | list_literal
+            | func_literal
             | "(" expr ")"
 
-block       = "{" { statement } "}"
+list_literal = "[" [ expr { "," expr } ] "]"
+             | "[" SHAPE { "," expr } "]"
+
+func_literal = "(" params ")" block
+
+params      = [ param_list ] [ rest_param ]
+            | rest_param
+
+param_list  = NAME { "," NAME }
+
+rest_param  = "..." NAME
+
+block       = "{" { statement [ ";" ] } "}"
 
 literal     = NUMBER | STRING | RUNE | SYMBOL | "true" | "false"
 
-BINOP       = "+" | "-" | "*" | "/"
-            | "<" | ">" | "<=" | ">="
+BINOP       = "+" | "-" | "*" | "/" | "%"
+            | "<" | ">" | "<=" | ">=" | "==" | "!="
             | "and" | "or"
 ```
 
@@ -96,6 +110,9 @@ BINOP       = "+" | "-" | "*" | "/"
 
 - No operator precedence. Left-to-right evaluation. Use parens for grouping.
 - Commas separate function arguments, list elements, parameters, and pattern elements.
+- Semicolons optionally separate statements on the same line.
 - `let` creates bindings. `=` mutates existing bindings.
 - Every function path requires explicit `return`.
-- Modules use `import()` and `export()` functions, not keywords.
+- Rest parameters (`...name`) collect remaining arguments into a list.
+- Bracket indexing works on lists, strings, and call results: `list[i]`, `s[0]`, `f()[0]`.
+- Dot access is field-only (NAME), not numeric.

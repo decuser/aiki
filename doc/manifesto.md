@@ -1,59 +1,71 @@
-# THE AIKI MANIFESTO
+# The Aiki Manifesto
 
-**A Thesis in Code**
+## Focus
 
-*This is the Way.*
+**Constraints over choice.** One way to do each thing. Features enter by replacing complexity, not adding to it.
 
-### The Position
+**Explicit over implicit.** Left-to-right evaluation. Parens for grouping. `let` creates, `=` mutates. Errors are values, not exceptions.
 
-We have confused "easy" with "simple." Modern languages are easy—they guess your intent, hide their state behind syntactic sugar, and prioritize writing speed over reading clarity. Aiki is not easy. It is **simple**.
+**Composition over inheritance.** Small pieces, named and combined. Lists and shapes, not classes.
 
-Aiki asserts that true clarity arises from the deliberate removal of choice. **In an era of Information Overload, constraints are the only antidote to chaos.** We do not stand on the shoulders of giants to hide the view; we stand there to see the horizon clearly.
+**Simplicity over ease.** Simple removes complexity. Easy hides it.
 
-### The Axioms
+**Exactness by default.** Rational arithmetic in the core. `1/3 * 3 = 1`. Floats are opt-in, in a separate layer.
 
-**1. The Arithmetic of Certainty**
-Aiki rejects the IEEE 754 floating-point compromise. In this system, `1/3 * 3` is exactly `1`. There is no epsilon; there is no "close enough." We trade the raw speed of the GPU for the absolute truth of Rational arithmetic. If the math is wrong, the logic is wrong.
+**Inspection over abstraction.** The hash map is written in Aiki. The strict layer proves the language works by using it.
 
-**2. The Rejection of Invisible Rules**
-There is no operator precedence. There is no `PEMDAS` to memorize. `1 + 2 * 3` is `9`, because the parser reads left-to-right, just as the machine does.
+## Paradigm
 
-* **The Consequence:** We reject the symbols that fool you. We have removed `==`, `!=`, and `!` from the language. These operators rely on invisible binding powers. In Aiki, you must write `equal(a, b)` or `not(equal(a, b))`. We do not rely on invisible syntax rules; we rely on visible grouping.
+Aiki is pre-paradigmatic. The primitives support multiple styles without privileging one:
 
-**3. The Universality of the List**
-We reject the Cambrian explosion of data types. There are no classes, structs, or records. There are only Lists and Shapes.
+- **Recursive.** Functions call themselves. Lists decompose with `first`/`rest`.
+- **Iterative.** `while` loops. Explicit state.
+- **Functional.** `map`, `filter`, `reduce`, pipes.
+- **Imperative.** Sequential statements. Mutation with `=`.
+- **Immediate.** REPL. `dot(c, x, y)`. Drawing as primitive.
 
-* **The Proof:** The Aiki Hash Map is not a black-box primitive wrapped from the host; it is a visible construction of Aiki Lists, written in Aiki itself. We do not hide complexity; we compost it.
+The language provides the atoms. You choose the chemistry.
 
-### The Architecture of Restraint
+## Mechanisms
 
-Complexity is not a feature; it is a tax. We reject the modern tendency to solve architectural problems with syntactic sugar.
+**Pipes.** `x |> f() |> g()`. Data flows left to right. Errors short-circuit.
 
-* **Control Flow:** We provide one loop (`while`), not three. We provide one conditional (`if`), not a ladder of `switch`, `case`, or `unless`. We reject the "convenience" layers that allow two programmers to write the same logic in mutually unintelligible ways.
-* **The Discipline:** By refusing to guess your intent, we force you to declare it. We offer no macros to hide code, and no inheritance to hide state. The language is finished when there is nothing left to remove.
+**Variadic.** `(...args)` collects. `apply(f, list)` spreads.
 
-### The Lineage
+**Shapes.** `[@point, x, y]`. Structure without classes.
 
-Aiki is a synthesis of the foundational disciplines that shaped our understanding of computation.
+**Match.** Destructure values, bind names, branch on shape. One construct for what other languages split across switch, instanceof, and unpacking.
 
-**The Spirit (Ancestry)**
+**Concurrency.** `spawn(f)` runs. `channel()` connects. `send()`/`recv()` synchronize.
 
-* **BASIC / LOGO:** The Joy. We reclaim the immediate, visceral feedback of the 8-bit era. Aiki is a creative medium where `dot(c, x, y)` is as fundamental as `print(x)`. We do not just compute; we draw.
-* **Algol 60:** The Rigor. We accept that for logic to be sound, the context of every variable must be static and knowable (Lexical Scope).
-* **C:** The Discipline. We embrace the "small language" philosophy, the conviction that a language should be holdable in the mind of a single programmer.
-* **Python:** The Workbench. We adopt the doctrine that "Explicit is better than implicit." We embrace the REPL as the physicist's workbench, valuing immediate feedback over compilation cycles.
-* **Go:** The Catalyst. We acknowledge Go as the muse that proved simplicity is still a virtue in the modern era.
+## Architecture
 
-**The Body (Mechanics)**
+Three layers acknowledge that principles and pragmatism coexist:
 
-* **Scheme:** We follow the path of SICP, building complexity from atoms and combinations. We utilize the homoiconic List as the universal atom of construction, but we reject the Macro.
-* **Smalltalk:** We enforce the discipline of strict left-to-right evaluation, rejecting the hidden state of operator precedence.
-* **ML:** We adopt the pipe operator (`|>`) and the error-value convention, favoring explicit data flow over exception jumping.
-* **Forth:** We adopt the strategy of the "minimal kernel." The Aiki strict library is written in Aiki, proving the language's completeness by using it to build its own tools.
-* **Go:** The Engine. We inhabit the Go Runtime. Aiki processes are Goroutines (M:N scheduling), and we adopt `fmt` to end all formatting wars. We accept the host's physics so we can enforce our own chemistry.
+| Layer | What | Tradeoff |
+|-------|------|----------|
+| hal | Go primitives | Speed, OS access |
+| strict | Pure Aiki | Inspectable, slower |
+| pragmatic | Fast Aiki | Speed, less transparent |
 
-### Conclusion
+Strict is the default. Pragmatic is opt-in. Same API, different physics.
 
-Aiki is not a product. It is an epistemological stance. It proves that a system built on strict constraints, Rational math, explicit grouping, and universal data structures, remains comprehensible long after the author has moved on.
+## Tooling
 
-It is code that does not rot, because it hides nothing.
+One formatter. One style. Errors point to source. The REPL is the workbench.
+
+## Lineage
+
+**Syntax.** BCPL, C, Go. Braces, simplicity, small language philosophy. Familiar costume, different skeleton.
+
+**Data.** Scheme. Lists as universal structure. Composition from atoms.
+
+**Evaluation.** Smalltalk. Strict left-to-right. No operator precedence.
+
+**Flow.** ML, F#. Data flows through pipes. Errors are values like any other. Match on them or let them propagate.
+
+**Kernel.** Forth. Minimal core. Stdlib written in itself.
+
+**Feedback.** BASIC, Logo. Immediate. Drawing as primitive.
+
+**Host.** Go. Goroutines, channels, fmt. We accept the host's physics to enforce our own chemistry.
