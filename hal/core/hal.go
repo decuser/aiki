@@ -19,6 +19,10 @@ var Stdout io.Writer = os.Stdout
 
 // HAL defines the Host Abstraction Layer for Aiki.
 //
+// HAL is the single source of truth for all builtins.
+// Specials that need AST access use Fn: nil and are
+// handled in eval.go's evalCallExpression.
+//
 // This map is the low-level bridge between the Aiki runtime and the
 // underlying Go implementation.
 //

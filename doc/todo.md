@@ -24,6 +24,41 @@
 
 ---
 
+## Done (v0.2.4)
+
+### Syntax
+- [x] Bracket indexing `list[i]`, `string[i]`
+- [x] Dot access for fields only `point.x` (no `list.0`)
+- [x] Rest parameters `(...args)`, `(a, b, ...rest)`
+- [x] Semicolon statement separator
+- [x] GroupExpression preserves parentheses in formatter
+
+### Primitives
+- [x] `ord(rune)` - rune to code point
+- [x] `apply(fn, list)` - spread list as function args
+- [x] `shell(cmd)` - run shell command, returns `[@ok, output]` or `[@error, msg]`
+- [x] Remove `nth` (replaced by bracket indexing)
+
+### CLI
+- [x] `-e` flag for one-liner expressions
+- [x] `quit()` actually exits REPL (ExitSignal)
+
+### Internals
+- [x] HAL is single source of truth for builtins
+- [x] Remove `BuiltinNames` map from eval.go
+- [x] Specials (`apply`, `load`) use `Fn: nil` in HAL
+- [x] Parser handles `f()[0]`, `f().field` chaining
+- [x] Formatter handles IndexExpression, RestParam, GroupExpression
+- [x] Lint handles RestParam in function scope
+
+### Fixes
+- [x] Remove blank line on Ctrl-C
+- [x] Remove "exit" echo on Ctrl-D (EOFPrompt)
+- [x] strict.ai exports list added
+- [x] pragmatic.ai `nth()` → bracket indexing
+
+---
+
 ## Codebase Cleanup
 
 - [x] Rename `builtins` → `hal`
@@ -32,6 +67,19 @@
 - [x] Extract version package (`version/version.go`)
 - [x] TrackingWriter replaces global state
 - [x] Move REPL builtins (`reset`, `help`, `quit`) to `cmd/repl/builtin.go`
+
+---
+
+## Pending (v0.2.4)
+
+- [ ] Fix `^D` literal echo (readline issue)
+- [ ] Update help() text with new primitives
+- [ ] Formatter adds blank line before final statement (cosmetic)
+- [ ] Formatter collapses export to one line (cosmetic)
+- [ ] Run full test suite
+- [ ] Test all examples
+- [ ] Version bump to v0.2.4
+- [ ] Update changelog
 
 ---
 
