@@ -342,3 +342,13 @@ type PipeExpression struct {
 
 func (e *PipeExpression) expressionNode()      {}
 func (e *PipeExpression) TokenLiteral() string { return e.Token.Lexeme }
+
+// GroupExpression: (expr) - preserves explicit grouping
+type GroupExpression struct {
+	Token token.Token
+	Inner Expression
+}
+
+func (e *GroupExpression) expressionNode()      {}
+func (e *GroupExpression) TokenLiteral() string { return e.Token.Lexeme }
+

@@ -732,7 +732,7 @@ func (p *Parser) parseGroupOrFunction() ast.Expression {
 		return nil
 	}
 	p.advance()
-	return expr
+	return &ast.GroupExpression{Token: tok, Inner: expr}
 }
 
 // looksLikeFunctionParams peeks ahead to determine if we're parsing function params

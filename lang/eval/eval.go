@@ -109,7 +109,7 @@ func Eval(node ast.Node, env *value.Env) value.Value {
 
 	case *ast.MatchStatement:
 		return evalMatchStatement(n, env)
-
+	
 	case *ast.Identifier:
 		return evalIdentifier(n, env)
 
@@ -156,6 +156,9 @@ func Eval(node ast.Node, env *value.Env) value.Value {
 
 	case *ast.InfixExpression:
 		return evalInfixExpression(n, env)
+
+	case *ast.GroupExpression:
+		return Eval(n.Inner, env)
 
 	case *ast.PrefixExpression:
 		return evalPrefixExpression(n, env)

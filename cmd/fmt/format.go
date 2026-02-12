@@ -391,6 +391,11 @@ func (p *Printer) printExpression(expr ast.Expression) {
 			p.write("false")
 		}
 
+	case *ast.GroupExpression:
+		p.write("(")
+		p.printExpression(e.Inner)
+		p.write(")")
+
 	case *ast.StringLiteral:
 		p.write("\"")
 		p.write(escapeString(e.Value))
