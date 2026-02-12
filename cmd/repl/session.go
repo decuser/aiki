@@ -55,7 +55,6 @@ func (s *Session) Run() {
 		if err == ErrInterrupt {
 			buffer = ""
 			prompt = promptMain
-			fmt.Fprintln(s.out)
 			continue
 		}
 		if err != nil {
@@ -93,6 +92,10 @@ func (s *Session) Run() {
 			continue
 		}
 
+		if _, ok := result.(*core.ExitSignal); ok {
+			fmt.Fprintln(s.out, "Goodbye!")
+			return
+		}
 		if result != nil && result != value.NULL {
 			fmt.Fprintln(s.out, result.Inspect())
 		} else if !s.tracker.EndedWithNewline {

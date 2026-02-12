@@ -1,92 +1,101 @@
-# Aiki
+# Aiki Grammar
 
-A minimal, composable programming language. v0.2.3
-
-## Thesis
-
-**One way to do each thing.** Constraint forces clarity.
-
-**Composition, not inheritance.** Shapes embed (`let @cat [@pet, color]`). Functions compose (`|>`). Data and behavior stay separate.
-
-## What Makes It Distinctive
-
-1. **Constraint philosophy** — One loop construct (`while`). One function syntax. No `elif`. No operator precedence. The language is deliberately small and closed. No macros, no metaprogramming. Functions are the only extension mechanism.
-
-2. **Rational-only arithmetic** — No floats. `1/3` is a value, not a division operation. `1/3 * 3 == 1`. `0.1 + 0.2 == 0.3`. Exact computation.
-
-3. **No operator precedence** — Left-to-right evaluation. `1 + 2 * 3` is `9`. Parentheses are mandatory for grouping. You never remember precedence rules.
-
-4. **Shaped lists as universal structure** — No classes, no structs, no records. Just lists, optionally tagged. `[@point, 10, 20]` gets named access (`p.x`, `p.y`). Hash maps are implemented in the language itself.
-
-5. **Error short-circuit in pipes** — `[@error, reason]` propagates automatically through `|>`. Not just errors-as-values; the pipe operator knows about errors.
-
-6. **Closed language** — The prelude (standard library) is written in pure Aiki, proving the language is complete without needing extension mechanisms.
-
-## Lineage
+## Tokens
 
 ```
-Scheme ─────────── rationals, lists as data, first-class functions
-    │
-    ├── ML/F# ──── pipe operator, pattern matching
-    │
-    ├── Erlang ─── :symbol syntax, error tuples, tagged data
-    │
-    ├── Go ─────── braces, explicit return, spawn/channels, pragmatic minimalism
-    │
-    ├── Smalltalk ─ left-to-right evaluation, no precedence
-    │
-    └───────────── AIKI
+KEYWORD     let if else while match return true false and or not
+NUMBER      42  3.14  1/3
+STRING      "hello"
+RUNE        'a'
+SYMBOL      :name
+SHAPE       @name
+NAME        identifier
+COMMENT     # to end of line
 ```
 
-Scheme's data philosophy + Go's pragmatism + Elixir's error conventions + Smalltalk's evaluation model + a constraint philosophy that's its own.
+## Operators
 
-## Types
-
-Eight, built from necessity:
-
-| Type | Example | Notes |
-|------|---------|-------|
-| number | `42`, `3/4`, `0.5` | Rational (exact) |
-| boolean | `true`, `false` | |
-| rune | `'a'`, `'€'` | Unicode code point |
-| string | `"hello"` | Immutable rune sequence |
-| bytes | `tobytes("hi")` | Immutable byte sequence |
-| symbol | `:ok`, `:error` | Atomic, identity-compared |
-| list | `[1, 2, 3]` | Raw or shaped |
-| function | `(n) { return n * 2 }` | First-class |
-
-## Syntax Sample
-
-```aiki
-let @point [x, y]
-
-let distance = (p1, p2) {
-    let dx = p2.x - p1.x
-    let dy = p2.y - p1.y
-    return sqrt((dx * dx) + (dy * dy))
-}
-
-let origin = [@point, 0, 0]
-let target = [@point, 3, 4]
-print(distance(origin, target))
+```
++  -  *  /
+<  >  <=  >=
+and  or  not
+|>
+.
+=
 ```
 
-## Implementation
+**Removed (provisional):**
+- `==` → use `equal(a, b)`
+- `!=` → use `not(equal(a, b))`
+- `%` → use `modulo(a, b)`
+- `!` → use `not`
 
-Tree-walking interpreter in Go. ~8000 lines.
+## Delimiters
 
-- State machine lexer (UTF-8)
-- Recursive descent parser (left-to-right, no precedence)
-- Tree-walking evaluator
-- Prelude in pure Aiki (map, filter, reduce, hash maps)
-- Formatter with comment preservation
-- Canvas graphics (Ebiten)
-- Concurrency (spawn, channels)
+```
+(  )  [  ]  {  }  ,
+```
 
-## Status
+## Grammar
 
-Working: lexer, parser, evaluator, REPL, file runner, formatter, canvas, concurrency.
+```ebnf
+program     = { statement }
 
-Next: debugger, regex, bit primitives.
+statement   = let_stmt | assign_stmt | if_stmt | while_stmt
+            | match_stmt | return_stmt | expr_stmt
 
-Future: bytecode VM, LSP, WASM target.
+let_stmt    = "let" NAME "=" expr
+            | "let" SHAPE "[" [ field { "," field } ] "]"
+field       = NAME | SHAPE
+
+assign_stmt = NAME "=" expr
+
+if_stmt     = "if" expr block [ "else" block ]
+
+while_stmt  = "while" expr block
+
+match_stmt  = "match" expr "{" { pattern block } "}"
+
+pattern     = "_" | NAME | literal
+            | "[" [ pattern { "," pattern } ] "]"
+            | "[" SHAPE { "," pattern } "]"
+
+return_stmt = "return" expr
+
+expr_stmt   = expr
+
+expr        = pipe_expr
+
+pipe_expr   = infix_expr { "|>" call_expr }
+
+infix_expr  = unary_expr { BINOP unary_expr }
+
+unary_expr  = [ "not" | "-" ] call_expr
+
+call_expr   = access_expr { "(" [ expr { "," expr } ] ")" }
+
+access_expr = primary { "." ( NAME | NUMBER ) }
+
+primary     = NUMBER | STRING | RUNE | SYMBOL | NAME
+            | "true" | "false"
+            | "[" [ expr { "," expr } ] "]"
+            | "[" SHAPE { "," expr } "]"
+            | "(" [ NAME { "," NAME } ] ")" block
+            | "(" expr ")"
+
+block       = "{" { statement } "}"
+
+literal     = NUMBER | STRING | RUNE | SYMBOL | "true" | "false"
+
+BINOP       = "+" | "-" | "*" | "/"
+            | "<" | ">" | "<=" | ">="
+            | "and" | "or"
+```
+
+## Notes
+
+- No operator precedence. Left-to-right evaluation. Use parens for grouping.
+- Commas separate function arguments, list elements, parameters, and pattern elements.
+- `let` creates bindings. `=` mutates existing bindings.
+- Every function path requires explicit `return`.
+- Modules use `import()` and `export()` functions, not keywords.

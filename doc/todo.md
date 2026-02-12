@@ -18,20 +18,111 @@
 - [x] Formatter with comment preservation
 - [x] Comma separators (calls, lists, params, patterns)
 - [x] Ruby-style error messages with source line
-- [~] Test suite
 - [x] Canvas primitives (Ebiten)
 - [x] Concurrency (spawn, channel, send, recv)
+- [~] Test suite
 
-## Next
-- [ ] Contemplate and decide - remove !, !=, == in favor of not, not equal, equal?
-- [ ] Debugger
-- [ ] Regex primitives
-- [ ] Bit primitives
+---
+
+## Codebase Cleanup
+
+- [x] Rename `builtins` → `hal`
+- [x] Rename `prelude` → `strict`
+- [x] REPL subcommand pattern (`cmd/repl/` with `builtin.go`, `cmd.go`, `session.go`)
+- [x] Extract version package (`version/version.go`)
+- [x] TrackingWriter replaces global state
+- [x] Move REPL builtins (`reset`, `help`, `quit`) to `cmd/repl/builtin.go`
+
+---
+
+## Pre-Alpha Stabilization
+
+### Core Cleanup
+
+- [ ] 1. Remove `!`, `==`, `!=`, `%` from lexer/parser
+- [ ] 2. Remove `from`, `use`, `export` keywords from lexer/parser
+- [ ] 3. Add `modulo` (floored), `trunc`, `eq` (atoms only) to hal
+- [ ] 4. Add `import()`, `export()` functions to hal
+
+### Type Consolidation
+
+- [ ] 5. Remove Handle, Canvas, Channel as distinct types
+- [ ] 6. Implement shaped list resources:
+  - [ ] `[@handle, id]` for file handles
+  - [ ] `[@canvas, id]` for canvas windows
+  - [ ] `[@channel, id]` for channels
+- [ ] 7. Add hal registries mapping ids to Go resources
+
+### Strict Layer
+
+- [ ] 8. Move `range`, `sum`, `max`, `min`, `reverse`, `find`, `any`, `all` to strict
+- [ ] 9. Add `equal` (deep structural, uses `hal.eq`) to strict
+
+### Concurrency
+
+- [ ] 10. Enforce spawn isolation (orphan scopes, no closure capture)
+
+### Canvas
+
+- [ ] 11. Add `mouse_pos`, `mouse_down` to hal
+- [ ] 12. Add `present` to hal (flush to GPU)
+- [ ] 13. Add drawing algorithms to strict:
+  - [ ] `line` (Bresenham)
+  - [ ] `rect`, `fill_rect`
+  - [ ] `circle`, `fill_circle` (midpoint)
+  - [ ] `poly`, `fill_poly` (scanline)
+  - [ ] `text` (bitmap font)
+  - [ ] `blit`, `blit_sub`
+
+### Pragmatic Module
+
+- [ ] 14. Create `pragmatic` module scaffold
+- [ ] 15. Add `float`, `exact`, `array`, `tolist` to pragmatic
+- [ ] 16. Move `sin`, `cos`, `tan`, `sqrt`, `random` to pragmatic
+- [ ] 17. Add vectorized ops (`array + array`, `array * scalar`, etc.)
+- [ ] 18. Add pragmatic twins:
+  - [ ] `map`, `filter`, `reduce`, `each`
+  - [ ] `sum`, `mean`, `min`, `max`
+- [ ] 19. Add pragmatic drawing twins (array-backed)
+
+### Modules
+
+- [ ] 20. Create `regex` module (`match`, `find`, `replace`)
+
+### Profiling Foundation
+
+- [ ] 21. Add log/trace infrastructure:
+  - [ ] Segmented ring buffer
+  - [ ] `^t` / SIGUSR1 snapshot
+  - [ ] Terminal stream toggle
+  - [ ] Filter support
+
+---
 
 ## Future
 
-- [ ] Module system (from/use/export)
+- [ ] Debugger (breakpoints, stepping)
+- [ ] Monitor visual interface (Ebiten dashboard, soft-keys, sparklines)
+- [ ] Bit primitives
 - [ ] Bytecode VM
 - [ ] Multi-line REPL
 - [ ] LSP
 - [ ] WASM target
+
+---
+
+## Architecture Reference
+
+| Layer | What | Auto-load |
+|-------|------|-----------|
+| `hal` | Go primitives - memory, I/O, concurrency, canvas | Always |
+| `strict` | Pure Aiki - lists, rationals, inspectable | Yes |
+| `pragmatic` | Fast Aiki - arrays, floats, hardware speed | Opt-in |
+
+**Keywords (11):** `let`, `if`, `else`, `while`, `match`, `return`, `true`, `false`, `and`, `or`, `not`
+
+**Types (8):** Number, Boolean, String, Rune, Symbol, List, Function, Bytes
+
+**The Twin Pattern:** `strict.X` is pure, `pragmatic.X` is fast. Same API, different speed.
+
+**No shadowing.** Namespace separation: `strict.map` vs `pragmatic.map`

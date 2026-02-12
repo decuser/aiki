@@ -271,10 +271,11 @@ type ShapedListLiteral struct {
 func (e *ShapedListLiteral) expressionNode()      {}
 func (e *ShapedListLiteral) TokenLiteral() string { return e.Token.Lexeme }
 
-// FunctionLiteral: (x y) { return x + y }
+// FunctionLiteral: (x, y) { return x + y } or (...args) { }
 type FunctionLiteral struct {
 	Token      token.Token
 	Parameters []string
+	RestParam  string // empty if no rest param, otherwise the name
 	Body       *BlockStatement
 }
 
@@ -291,7 +292,17 @@ type CallExpression struct {
 func (e *CallExpression) expressionNode()      {}
 func (e *CallExpression) TokenLiteral() string { return e.Token.Lexeme }
 
-// AccessExpression: list.0, point.x
+// IndexExpression: list[0], str[i]
+type IndexExpression struct {
+	Token token.Token // the [ token
+	Left  Expression  // the list/string being indexed
+	Index Expression  // the index expression
+}
+
+func (e *IndexExpression) expressionNode()      {}
+func (e *IndexExpression) TokenLiteral() string { return e.Token.Lexeme }
+
+// AccessExpression: point.x (field access only, no numeric indices)
 type AccessExpression struct {
 	Token token.Token
 	Left  Expression

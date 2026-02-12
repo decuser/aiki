@@ -110,6 +110,18 @@ func (l *Lexer) peek() rune {
 	return r
 }
 
+func (l *Lexer) peekNext() rune {
+	if l.pos >= len(l.input) {
+		return eof
+	}
+	_, w := utf8.DecodeRuneInString(l.input[l.pos:])
+	if l.pos+w >= len(l.input) {
+		return eof
+	}
+	r, _ := utf8.DecodeRuneInString(l.input[l.pos+w:])
+	return r
+}
+
 func (l *Lexer) emit(t token.Type) {
 	l.tokens = append(l.tokens, token.Token{
 		Type:   t,
@@ -218,9 +230,17 @@ func (l *Lexer) lexStart() state {
 			l.emit(token.Illegal)
 		}
 	case '.':
-		l.emit(token.Dot)
+		if l.peek() == '.' && l.peekNext() == '.' {
+			l.next() // consume second .
+			l.next() // consume third .
+			l.emit(token.DotDotDot)
+		} else {
+			l.emit(token.Dot)
+		}
 	case ',':
 		l.emit(token.Comma)
+	case ';':
+		l.emit(token.Semicolon)
 	case '(':
 		l.emit(token.LParen)
 	case ')':

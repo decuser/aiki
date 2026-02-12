@@ -3,7 +3,7 @@
 ## Tokens
 
 ```
-KEYWORD     let if else while match return export from use true false and or not
+KEYWORD     let if else while match return true false and or not
 NUMBER      42  3.14  1/3
 STRING      "hello"
 RUNE        'a'
@@ -16,13 +16,19 @@ COMMENT     # to end of line
 ## Operators
 
 ```
-+  -  *  /  %
-==  !=  <  >  <=  >=
++  -  *  /
+<  >  <=  >=
 and  or  not
 |>
 .
 =
 ```
+
+**Removed (provisional):**
+- `==` → use `equal(a, b)`
+- `!=` → use `not(equal(a, b))`
+- `%` → use `modulo(a, b)`
+- `!` → use `not`
 
 ## Delimiters
 
@@ -36,8 +42,7 @@ and  or  not
 program     = { statement }
 
 statement   = let_stmt | assign_stmt | if_stmt | while_stmt
-            | match_stmt | return_stmt | export_stmt | import_stmt
-            | expr_stmt
+            | match_stmt | return_stmt | expr_stmt
 
 let_stmt    = "let" NAME "=" expr
             | "let" SHAPE "[" [ field { "," field } ] "]"
@@ -56,10 +61,6 @@ pattern     = "_" | NAME | literal
             | "[" SHAPE { "," pattern } "]"
 
 return_stmt = "return" expr
-
-export_stmt = "export" "[" [ NAME { "," NAME } ] "]"
-
-import_stmt = "from" NAME "use" "[" [ NAME { "," NAME } ] "]"
 
 expr_stmt   = expr
 
@@ -86,8 +87,8 @@ block       = "{" { statement } "}"
 
 literal     = NUMBER | STRING | RUNE | SYMBOL | "true" | "false"
 
-BINOP       = "+" | "-" | "*" | "/" | "%"
-            | "==" | "!=" | "<" | ">" | "<=" | ">="
+BINOP       = "+" | "-" | "*" | "/"
+            | "<" | ">" | "<=" | ">="
             | "and" | "or"
 ```
 
@@ -97,3 +98,4 @@ BINOP       = "+" | "-" | "*" | "/" | "%"
 - Commas separate function arguments, list elements, parameters, and pattern elements.
 - `let` creates bindings. `=` mutates existing bindings.
 - Every function path requires explicit `return`.
+- Modules use `import()` and `export()` functions, not keywords.

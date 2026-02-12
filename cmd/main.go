@@ -7,6 +7,7 @@ import (
 	"os/user"
 
 	"aiki/cmd/repl"
+	"aiki/hal/core"
 	"aiki/lang/eval"
 	"aiki/lang/value"
 	"aiki/strict"
@@ -38,6 +39,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	if opts.Expr != "" {
+		runExpr(opts.Expr, env, opts)
+		return
+	}
+
 	if flag.NArg() == 0 {
 		startREPL(env, opts)
 	} else {
@@ -53,13 +59,30 @@ func startREPL(env *value.Env, opts Options) {
 
 	fmt.Printf("%s %s\n", appName, version.Version)
 	fmt.Printf("Hello %s! The system is live.\n", u.Username)
-	fmt.Printf("Type help() for commands.\n\n")
+	fmt.Printf("Type help() for help.\n\n")
 
 	repl.Run(os.Stdin, os.Stdout, env, opts.Debug)
 }
 
 func runFile(filename string, env *value.Env, opts Options) {
 	result := eval.RunFile(filename, env)
+
+	if e, ok := result.(*value.Error); ok {
+		fmt.Fprintln(os.Stderr, e.Inspect())
+		os.Exit(1)
+	}
+
+	if opts.Debug {
+		fmt.Println(result.Inspect())
+	}
+}
+
+func runExpr(expr string, env *value.Env, opts Options) {
+	result := eval.Run(expr, env)
+
+	if _, ok := result.(*core.ExitSignal); ok {
+		return
+	}
 
 	if e, ok := result.(*value.Error); ok {
 		fmt.Fprintln(os.Stderr, e.Inspect())

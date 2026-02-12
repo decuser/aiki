@@ -11,6 +11,13 @@ func (r *ResetSignal) Inspect() string  { return "<reset>" }
 
 var Reset = &ResetSignal{}
 
+type ExitSignal struct{}
+
+func (e *ExitSignal) Type() value.Type { return "exit" }
+func (e *ExitSignal) Inspect() string  { return "" }
+
+var Exit = &ExitSignal{}
+
 func init() {
 	HAL["reset"] = &value.Builtin{
 		Name: "reset",
@@ -22,6 +29,16 @@ func init() {
 				CloseAllCanvases()
 			}
 			return Reset
+		},
+	}
+
+	HAL["quit"] = &value.Builtin{
+		Name: "quit",
+		Fn: func(args ...value.Value) value.Value {
+			if CloseAllCanvases != nil {
+				CloseAllCanvases()
+			}
+			return Exit
 		},
 	}
 }

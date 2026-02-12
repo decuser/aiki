@@ -144,13 +144,21 @@ func (l *List) Inspect() string {
 type Function struct {
 	Name       string
 	Parameters []string
+	RestParam  string // empty if no rest param, otherwise the name
 	Body       *ast.BlockStatement
 	Env        *Env
 }
 
 func (f *Function) Type() Type { return FunctionType }
 func (f *Function) Inspect() string {
-	return fmt.Sprintf("(%s) { ... }", strings.Join(f.Parameters, ", "))
+	params := strings.Join(f.Parameters, ", ")
+	if f.RestParam != "" {
+		if params != "" {
+			params += ", "
+		}
+		params += "..." + f.RestParam
+	}
+	return fmt.Sprintf("(%s) { ... }", params)
 }
 
 // Handle wraps an OS file handle

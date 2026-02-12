@@ -31,29 +31,31 @@ const (
 	Not
 
 	// Operators
-	Plus    // +
-	Minus   // -
-	Star    // *
-	Slash   // /
-	Percent // %
-	Eq      // ==
-	NotEq   // !=
-	Lt      // <
-	Gt      // >
-	LtEq    // <=
-	GtEq    // >=
-	Assign  // =
-	Pipe    // |>
-	Dot     // .
+	Plus      // +
+	Minus     // -
+	Star      // *
+	Slash     // /
+	Percent   // %
+	Eq        // ==
+	NotEq     // !=
+	Lt        // <
+	Gt        // >
+	LtEq      // <=
+	GtEq      // >=
+	Assign    // =
+	Pipe      // |>
+	Dot       // .
+	DotDotDot // ...
 
 	// Delimiters
-	Comma    // ,
-	LParen   // (
-	RParen   // )
-	LBracket // [
-	RBracket // ]
-	LBrace   // {
-	RBrace   // }
+	Comma     // ,
+	Semicolon // ;
+	LParen    // (
+	RParen    // )
+	LBracket  // [
+	RBracket  // ]
+	LBrace    // {
+	RBrace    // }
 
 	// Special
 	Newline
@@ -98,51 +100,52 @@ func (t Token) String() string {
 }
 
 var typeNames = map[Type]string{
-	Illegal:  "Illegal",
-	EOF:      "EOF",
-	Number:   "Number",
-	String:   "String",
-	Rune:     "Rune",
-	Symbol:   "Symbol",
-	Shape:    "Shape",
-	Name:     "Name",
-	Let:      "Let",
-	If:       "If",
-	Else:     "Else",
-	While:    "While",
-	Match:    "Match",
-	Return:   "Return",
-	Export:   "Export",
-	From:     "From",
-	Use:      "Use",
-	True:     "True",
-	False:    "False",
-	And:      "And",
-	Or:       "Or",
-	Not:      "Not",
-	Plus:     "Plus",
-	Minus:    "Minus",
-	Star:     "Star",
-	Slash:    "Slash",
-	Percent:  "Percent",
-	Eq:       "Eq",
-	NotEq:    "NotEq",
-	Lt:       "Lt",
-	Gt:       "Gt",
-	LtEq:     "LtEq",
-	GtEq:     "GtEq",
-	Assign:   "Assign",
-	Pipe:     "Pipe",
-	Dot:      "Dot",
-	Comma:    "Comma",
-	LParen:   "LParen",
-	RParen:   "RParen",
-	LBracket: "LBracket",
-	RBracket: "RBracket",
-	LBrace:   "LBrace",
-	RBrace:   "RBrace",
-	Newline:  "Newline",
-	Comment:  "Comment",
+	Illegal:   "Illegal",
+	EOF:       "EOF",
+	Number:    "Number",
+	String:    "String",
+	Rune:      "Rune",
+	Symbol:    "Symbol",
+	Shape:     "Shape",
+	Name:      "Name",
+	Let:       "Let",
+	If:        "If",
+	Else:      "Else",
+	While:     "While",
+	Match:     "Match",
+	Return:    "Return",
+	Export:    "Export",
+	From:      "From",
+	Use:       "Use",
+	True:      "True",
+	False:     "False",
+	And:       "And",
+	Or:        "Or",
+	Not:       "Not",
+	Plus:      "Plus",
+	Minus:     "Minus",
+	Star:      "Star",
+	Slash:     "Slash",
+	Percent:   "Percent",
+	Eq:        "Eq",
+	NotEq:     "NotEq",
+	Lt:        "Lt",
+	Gt:        "Gt",
+	LtEq:      "LtEq",
+	GtEq:      "GtEq",
+	Assign:    "Assign",
+	Pipe:      "Pipe",
+	Dot:       "Dot",
+	DotDotDot: "DotDotDot",
+	Comma:     "Comma",
+	LParen:    "LParen",
+	RParen:    "RParen",
+	LBracket:  "LBracket",
+	RBracket:  "RBracket",
+	LBrace:    "LBrace",
+	RBrace:    "RBrace",
+	Newline:   "Newline",
+	Comment:   "Comment",
 }
 
 func (t Type) String() string {

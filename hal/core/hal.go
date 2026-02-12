@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"math/rand"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -121,27 +122,6 @@ var HAL = map[string]*value.Builtin{
 			copy(newElements, list.Elements)
 			newElements[len(list.Elements)] = args[1]
 			return &value.List{Elements: newElements}
-		},
-	},
-	"nth": {
-		Name: "nth",
-		Fn: func(args ...value.Value) value.Value {
-			if len(args) != 2 {
-				return value.NewError("nth: want 2 arguments, got %d", len(args))
-			}
-			list, ok := args[0].(*value.List)
-			if !ok {
-				return value.NewError("nth: first argument must be list")
-			}
-			idx, ok := args[1].(*value.Number)
-			if !ok || !idx.Value.IsInt() {
-				return value.NewError("nth: second argument must be integer")
-			}
-			i := int(idx.Value.Num().Int64())
-			if i < 0 || i >= len(list.Elements) {
-				return value.NewError("nth: index out of bounds: %d", i)
-			}
-			return list.Elements[i]
 		},
 	},
 
@@ -290,6 +270,19 @@ var HAL = map[string]*value.Builtin{
 			}
 		},
 	},
+	"ord": {
+		Name: "ord",
+		Fn: func(args ...value.Value) value.Value {
+			if len(args) != 1 {
+				return value.NewError("ord: want 1 argument, got %d", len(args))
+			}
+			r, ok := args[0].(*value.Rune)
+			if !ok {
+				return value.NewError("ord: expected rune")
+			}
+			return value.NewNumber(int64(r.Value), 1)
+		},
+	},
 
 	// I/O
 	"print": {
@@ -407,42 +400,39 @@ var HAL = map[string]*value.Builtin{
 	"help": {
 		Name: "help",
 		Fn: func(args ...value.Value) value.Value {
-			help := `Aiki v0.2.0
+			help := `Aiki v0.2.3
 
 Primitives:
   first(list)         - first element
   rest(list)          - all but first
-  len(list)           - length
-  prepend(list val)   - add to front
-  append(list val)    - add to end
+  length(list)        - length
+  prepend(list, val)  - add to front
+  append(list, val)   - add to end
   type(val)           - type as symbol
   inspect(val)        - string representation
   shape(val)          - shape name or :list
-  equal(a b)          - deep equality
-  tostr(val)          - convert to string
-  tonum(str)          - parse number
-  todecimal(n places) - format decimal
+  equal(a, b)         - deep equality
+  ord(rune)           - rune to code point
+  to_str(val)         - convert to string
+  to_number(str)      - parse number
+  to_decimal(n, p)    - format decimal
   print(val...)       - output
   read()              - input line
   sqrt(n)             - square root
   sin(n)              - sine
   cos(n)              - cosine
   random(n)           - random 0 to n-1
-  sleep(ms)           - sleep for n millisectons
+  sleep(ms)           - pause execution
+  apply(fn, list)     - call fn with list as args
 
-Type help(name) for details.`
+Indexing: list[i], string[i]
+Fields: point.x (shaped lists only)
+
+`
 			return &value.String{Value: help}
 		},
 	},
-	"quit": {
-		Name: "quit",
-		Fn: func(args ...value.Value) value.Value {
-			fmt.Println("Goodbye!")
-			return value.NULL
-		},
-	},
-
-	// Internal - used by strict
+	// Internal - used by pragmatic
 	"_hash_code": {
 		Name: "_hash_code",
 		Fn: func(args ...value.Value) value.Value {
@@ -577,6 +567,25 @@ Type help(name) for details.`
 			return value.True
 		},
 	},
+	"shell": {
+		Name: "shell",
+		Fn: func(args ...value.Value) value.Value {
+			if len(args) != 1 {
+				return value.NewError("shell: want 1 argument, got %d", len(args))
+			}
+			cmd, ok := args[0].(*value.String)
+			if !ok {
+				return value.NewError("shell: expected string")
+			}
+
+			out, err := exec.Command("/bin/sh", "-c", cmd.Value).CombinedOutput()
+			if err != nil {
+				return makeBuiltinError(string(out) + err.Error())
+			}
+
+			return makeOk(&value.String{Value: string(out)})
+		},
+	},
 }
 
 func deepEqual(a, b value.Value) bool {
@@ -620,24 +629,17 @@ func deepEqual(a, b value.Value) bool {
 
 func makeOk(v value.Value) value.Value {
 	return &value.List{
-		Elements: []value.Value{
-			&value.Symbol{Value: "ok"},
-			v,
-		},
-		Shape:  "ok",
-		Fields: []string{"tag", "value"},
+		Elements: []value.Value{v},
+		Shape:    "ok",
+		Fields:   []string{"value"},
 	}
 }
 
-// makeBuiltinError returns an [@error reason] shaped list for HAL
 func makeBuiltinError(msg string) value.Value {
 	return &value.List{
-		Elements: []value.Value{
-			&value.Symbol{Value: "error"},
-			&value.String{Value: msg},
-		},
-		Shape:  "error",
-		Fields: []string{"tag", "reason"},
+		Elements: []value.Value{&value.String{Value: msg}},
+		Shape:    "error",
+		Fields:   []string{"reason"},
 	}
 }
 

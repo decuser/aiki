@@ -13,11 +13,13 @@ const appName = "aiki"
 type Options struct {
 	Version bool
 	Debug   bool
+	Expr    string
 }
 
 func parseOptions() Options {
 	showVersion := flag.Bool("v", false, "show version and exit")
 	debug := flag.Bool("d", false, "debug output")
+	expr := flag.String("e", "", "evaluate expression and exit")
 
 	flag.Usage = func() {
 		fmt.Fprintln(os.Stderr, "usage: aiki [options] [file.ai]")
@@ -35,5 +37,6 @@ func parseOptions() Options {
 	return Options{
 		Version: *showVersion,
 		Debug:   *debug,
+		Expr:    *expr,
 	}
 }

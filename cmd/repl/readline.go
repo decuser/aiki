@@ -15,7 +15,7 @@ func NewReadlineReader() (LineReader, error) {
 	rl, err := readline.NewEx(&readline.Config{
 		Prompt:          "",
 		InterruptPrompt: "^C",
-		EOFPrompt:       "exit",
+		EOFPrompt:       "",
 	})
 	if err != nil {
 		return nil, err

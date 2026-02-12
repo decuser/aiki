@@ -9,19 +9,6 @@ import (
 )
 
 func init() {
-	core.HAL["reset"] = &value.Builtin{
-		Name: "reset",
-		Fn: func(args ...value.Value) value.Value {
-			if len(args) != 0 {
-				return value.NewError("reset: want 0 arguments, got %d", len(args))
-			}
-			if core.CloseAllCanvases != nil {
-				core.CloseAllCanvases()
-			}
-			return core.Reset
-		},
-	}
-
 	core.HAL["help"] = &value.Builtin{
 		Name: "help",
 		Fn: func(args ...value.Value) value.Value {
@@ -48,16 +35,7 @@ Primitives:
   random(n)           - random 0 to n-1
   sleep(ms)           - sleep for n milliseconds
 
-Type help(name) for details.
 `, version.Version)
-			return value.NULL
-		},
-	}
-
-	core.HAL["quit"] = &value.Builtin{
-		Name: "quit",
-		Fn: func(args ...value.Value) value.Value {
-			fmt.Println("Goodbye!")
 			return value.NULL
 		},
 	}

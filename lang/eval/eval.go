@@ -21,6 +21,8 @@ func init() {
 	for name := range HAL {
 		BuiltinNames[name] = true
 	}
+	// Add apply as a special builtin
+	BuiltinNames["apply"] = true
 }
 
 // Run parses and evaluates code in the given environment.
@@ -138,12 +140,16 @@ func Eval(node ast.Node, env *value.Env) value.Value {
 	case *ast.FunctionLiteral:
 		return &value.Function{
 			Parameters: n.Parameters,
+			RestParam:  n.RestParam,
 			Body:       n.Body,
 			Env:        env,
 		}
 
 	case *ast.CallExpression:
 		return evalCallExpression(n, env)
+
+	case *ast.IndexExpression:
+		return evalIndexExpression(n, env)
 
 	case *ast.AccessExpression:
 		return evalAccessExpression(n, env)
@@ -411,6 +417,11 @@ func evalCallExpression(node *ast.CallExpression, env *value.Env) value.Value {
 		return evalSpawn(node, env)
 	}
 
+	// Handle apply() specially - it needs to spread list as args
+	if ident, ok := node.Function.(*ast.Identifier); ok && ident.Value == "apply" {
+		return evalApply(node, env)
+	}
+
 	fn := Eval(node.Function, env)
 	if isError(fn) {
 		return fn
@@ -501,13 +512,32 @@ func evalSpawn(node *ast.CallExpression, env *value.Env) value.Value {
 	return value.True
 }
 
+func evalApply(node *ast.CallExpression, env *value.Env) value.Value {
+	if len(node.Arguments) != 2 {
+		return makeError(env, node.Token.Line, "apply: want 2 arguments, got %d", len(node.Arguments))
+	}
+
+	fn := Eval(node.Arguments[0], env)
+	if isError(fn) {
+		return fn
+	}
+
+	argList := Eval(node.Arguments[1], env)
+	if isError(argList) {
+		return argList
+	}
+
+	list, ok := argList.(*value.List)
+	if !ok {
+		return makeError(env, node.Token.Line, "apply: second argument must be list")
+	}
+
+	return applyFunction(fn, list.Elements, env, node.Token.Line)
+}
+
 func applyFunction(fn value.Value, args []value.Value, env *value.Env, callLine int) value.Value {
 	switch f := fn.(type) {
 	case *value.Function:
-		if len(args) != len(f.Parameters) {
-			return makeError(env, callLine, "wrong number of arguments: want %d, got %d", len(f.Parameters), len(args))
-		}
-
 		name := f.Name
 		if name == "" {
 			name = "<anonymous>"
@@ -516,9 +546,34 @@ func applyFunction(fn value.Value, args []value.Value, env *value.Env, callLine 
 		defer env.PopFrame()
 
 		extEnv := value.NewEnv(f.Env)
-		for i, param := range f.Parameters {
-			extEnv.Set(param, args[i])
+
+		if f.RestParam != "" {
+			// Has rest param - need at least len(Parameters) args
+			if len(args) < len(f.Parameters) {
+				return makeError(env, callLine, "wrong number of arguments: want at least %d, got %d",
+					len(f.Parameters), len(args))
+			}
+
+			// Bind regular params
+			for i, param := range f.Parameters {
+				extEnv.Set(param, args[i])
+			}
+
+			// Bind rest param to list of remaining args
+			restArgs := args[len(f.Parameters):]
+			restList := &value.List{Elements: restArgs}
+			extEnv.Set(f.RestParam, restList)
+		} else {
+			// No rest param - exact arity required
+			if len(args) != len(f.Parameters) {
+				return makeError(env, callLine, "wrong number of arguments: want %d, got %d",
+					len(f.Parameters), len(args))
+			}
+			for i, param := range f.Parameters {
+				extEnv.Set(param, args[i])
+			}
 		}
+
 		result := Eval(f.Body, extEnv)
 		if ret, ok := result.(*value.Return); ok {
 			return ret.Value
@@ -533,6 +588,42 @@ func applyFunction(fn value.Value, args []value.Value, env *value.Env, callLine 
 	}
 }
 
+func evalIndexExpression(node *ast.IndexExpression, env *value.Env) value.Value {
+	left := Eval(node.Left, env)
+	if isError(left) {
+		return left
+	}
+
+	index := Eval(node.Index, env)
+	if isError(index) {
+		return index
+	}
+
+	idx, ok := index.(*value.Number)
+	if !ok || !idx.Value.IsInt() {
+		return makeError(env, node.Token.Line, "index must be integer")
+	}
+	i := int(idx.Value.Num().Int64())
+
+	switch l := left.(type) {
+	case *value.List:
+		if i < 0 || i >= len(l.Elements) {
+			return makeError(env, node.Token.Line, "index out of bounds: %d", i)
+		}
+		return l.Elements[i]
+
+	case *value.String:
+		runes := []rune(l.Value)
+		if i < 0 || i >= len(runes) {
+			return makeError(env, node.Token.Line, "index out of bounds: %d", i)
+		}
+		return &value.Rune{Value: runes[i]}
+
+	default:
+		return makeError(env, node.Token.Line, "cannot index %s", left.Type())
+	}
+}
+
 func evalAccessExpression(node *ast.AccessExpression, env *value.Env) value.Value {
 	left := Eval(node.Left, env)
 	if isError(left) {
@@ -541,38 +632,19 @@ func evalAccessExpression(node *ast.AccessExpression, env *value.Env) value.Valu
 
 	switch l := left.(type) {
 	case *value.List:
-		// Try numeric index first
-		if idx, ok := parseIndex(node.Key); ok {
-			if idx < 0 || idx >= len(l.Elements) {
-				return makeError(env, node.Token.Line, "index out of bounds: %d", idx)
-			}
-			return l.Elements[idx]
+		// Named field access for shaped lists only (no numeric indices via dot)
+		if l.Shape == "" {
+			return makeError(env, node.Token.Line, "cannot access field on raw list, use [index]")
 		}
-
-		// Named field access for shaped lists
-		if l.Shape != "" {
-			for i, field := range l.Fields {
-				if field == node.Key {
-					return l.Elements[i]
-				}
+		for i, field := range l.Fields {
+			if field == node.Key {
+				return l.Elements[i]
 			}
-			return makeError(env, node.Token.Line, "unknown field: %s", node.Key)
 		}
-
-		return makeError(env, node.Token.Line, "cannot access field on raw list")
-
-	case *value.String:
-		if idx, ok := parseIndex(node.Key); ok {
-			runes := []rune(l.Value)
-			if idx < 0 || idx >= len(runes) {
-				return makeError(env, node.Token.Line, "index out of bounds: %d", idx)
-			}
-			return &value.Rune{Value: runes[idx]}
-		}
-		return makeError(env, node.Token.Line, "string access requires numeric index")
+		return makeError(env, node.Token.Line, "unknown field: %s", node.Key)
 
 	default:
-		return makeError(env, node.Token.Line, "cannot access on %s", left.Type())
+		return makeError(env, node.Token.Line, "cannot access field on %s", left.Type())
 	}
 }
 
@@ -776,15 +848,4 @@ func isTruthy(v value.Value) bool {
 	default:
 		return true
 	}
-}
-
-func parseIndex(s string) (int, bool) {
-	idx := 0
-	for _, r := range s {
-		if r < '0' || r > '9' {
-			return 0, false
-		}
-		idx = idx*10 + int(r-'0')
-	}
-	return idx, true
 }

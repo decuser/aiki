@@ -54,6 +54,11 @@ func (p *Parser) Parse() *ast.Program {
 	program := &ast.Program{}
 
 	for p.current.Type != token.EOF {
+		if p.current.Type == token.Semicolon {
+			p.advance()
+			continue
+		}
+
 		stmt := p.parseStatement()
 		if stmt != nil {
 			program.Statements = append(program.Statements, stmt)
@@ -353,18 +358,14 @@ func (p *Parser) parseExportStatement() ast.Statement {
 		return nil
 	}
 	p.advance()
-	// fmt.Printf("DEBUG: type=%v lexeme=%q\n", p.current.Type, p.current.Lexeme)
 	var names []string
 	for p.current.Type == token.Name {
-		// fmt.Printf("DEBUG name: %q\n", p.current.Lexeme)
 		names = append(names, p.current.Lexeme)
 		p.advance()
-		// fmt.Printf("DEBUG after advance: type=%v lexeme=%q\n", p.current.Type, p.current.Lexeme)
 		if p.current.Type == token.Comma {
 			p.advance()
 		}
 	}
-	// fmt.Printf("DEBUG exited loop: type=%v lexeme=%q\n", p.current.Type, p.current.Lexeme)
 
 	if p.current.Type != token.RBracket {
 		p.error("expected ]")
@@ -506,56 +507,52 @@ func isInfixOp(t token.Type) bool {
 }
 
 func (p *Parser) parseCall() ast.Expression {
-	expr := p.parseAccess()
-
-	for p.current.Type == token.LParen {
-		tok := p.current
-		p.advance()
-
-		var args []ast.Expression
-		if p.current.Type != token.RParen {
-			// First argument
-			arg := p.parseExpression()
-			if arg != nil {
-				args = append(args, arg)
-			}
-			// Remaining arguments (comma-separated)
-			for p.current.Type == token.Comma {
-				p.advance()
+	expr := p.parsePrimary()
+	for p.current.Type == token.LParen || p.current.Type == token.LBracket || p.current.Type == token.Dot {
+		if p.current.Type == token.LParen {
+			tok := p.current
+			p.advance()
+			var args []ast.Expression
+			if p.current.Type != token.RParen {
 				arg := p.parseExpression()
 				if arg != nil {
 					args = append(args, arg)
 				}
+				for p.current.Type == token.Comma {
+					p.advance()
+					arg := p.parseExpression()
+					if arg != nil {
+						args = append(args, arg)
+					}
+				}
 			}
+			if p.current.Type != token.RParen {
+				p.error("expected )")
+				return expr
+			}
+			p.advance()
+			expr = &ast.CallExpression{Token: tok, Function: expr, Arguments: args}
+		} else if p.current.Type == token.LBracket {
+			tok := p.current
+			p.advance()
+			index := p.parseExpression()
+			if p.current.Type != token.RBracket {
+				p.error("expected ]")
+				return expr
+			}
+			p.advance()
+			expr = &ast.IndexExpression{Token: tok, Left: expr, Index: index}
+		} else {
+			p.advance()
+			if p.current.Type != token.Name {
+				p.error("expected field name after .")
+				return expr
+			}
+			tok := p.current
+			expr = &ast.AccessExpression{Token: tok, Left: expr, Key: p.current.Lexeme}
+			p.advance()
 		}
-
-		if p.current.Type != token.RParen {
-			p.error("expected )")
-			return expr
-		}
-		p.advance()
-
-		expr = &ast.CallExpression{Token: tok, Function: expr, Arguments: args}
 	}
-
-	return expr
-}
-
-func (p *Parser) parseAccess() ast.Expression {
-	expr := p.parsePrimary()
-
-	for p.current.Type == token.Dot {
-		p.advance()
-		if p.current.Type != token.Name && p.current.Type != token.Number {
-			p.error("expected field name or index after .")
-			return expr
-		}
-		key := p.current.Lexeme
-		tok := p.current
-		p.advance()
-		expr = &ast.AccessExpression{Token: tok, Left: expr, Key: key}
-	}
-
 	return expr
 }
 
@@ -585,7 +582,8 @@ func (p *Parser) parsePrimary() ast.Expression {
 
 	case token.Rune:
 		// Strip quotes and parse rune
-		val := []rune(p.current.Lexeme[1 : len(p.current.Lexeme)-1])
+		raw := p.current.Lexeme[1 : len(p.current.Lexeme)-1]
+		val := []rune(processEscapes(raw))
 		var r rune
 		if len(val) > 0 {
 			r = val[0]
@@ -685,7 +683,7 @@ func (p *Parser) parseGroupOrFunction() ast.Expression {
 	tok := p.current
 	p.advance()
 
-	// Empty parens: () or () { }
+	// Empty parens followed by block: () { }
 	if p.current.Type == token.RParen {
 		p.advance()
 		if p.current.Type == token.LBrace {
@@ -696,10 +694,32 @@ func (p *Parser) parseGroupOrFunction() ast.Expression {
 		return nil
 	}
 
+	// Check for rest param as only param: (...args) { }
+	if p.current.Type == token.DotDotDot {
+		p.advance()
+		if p.current.Type != token.Name {
+			p.error("expected parameter name after ...")
+			return nil
+		}
+		restParam := p.current.Lexeme
+		p.advance()
+
+		if p.current.Type != token.RParen {
+			p.error("rest parameter must be last")
+			return nil
+		}
+		p.advance()
+
+		if p.current.Type != token.LBrace {
+			p.error("expected { after function parameters")
+			return nil
+		}
+		body := p.parseBlockStatement()
+		return &ast.FunctionLiteral{Token: tok, Parameters: []string{}, RestParam: restParam, Body: body}
+	}
+
 	// Check if this looks like function params: (a, b, c) { } or (a) { }
-	// Function params are comma-separated names followed by ) {
 	if p.current.Type == token.Name {
-		// Try to parse as function params
 		if p.looksLikeFunctionParams() {
 			return p.parseFunctionParams(tok)
 		}
@@ -722,11 +742,19 @@ func (p *Parser) looksLikeFunctionParams() bool {
 	savedCurrent := p.current
 	savedPeek := p.peek
 
-	// Try to consume names and commas until we hit ) or something else
+	// Try to consume names, commas, and possible ...rest until we hit ) or something else
 	for p.current.Type == token.Name {
 		p.advance()
 		if p.current.Type == token.Comma {
 			p.advance()
+			// Check for ...rest after comma
+			if p.current.Type == token.DotDotDot {
+				p.advance()
+				if p.current.Type == token.Name {
+					p.advance()
+				}
+				break
+			}
 		} else {
 			break
 		}
@@ -745,6 +773,7 @@ func (p *Parser) looksLikeFunctionParams() bool {
 
 func (p *Parser) parseFunctionParams(tok token.Token) ast.Expression {
 	var params []string
+	var restParam string
 
 	// First param
 	params = append(params, p.current.Lexeme)
@@ -753,6 +782,19 @@ func (p *Parser) parseFunctionParams(tok token.Token) ast.Expression {
 	// Remaining params (comma-separated)
 	for p.current.Type == token.Comma {
 		p.advance()
+
+		// Check for rest param: (a, b, ...rest)
+		if p.current.Type == token.DotDotDot {
+			p.advance()
+			if p.current.Type != token.Name {
+				p.error("expected parameter name after ...")
+				return nil
+			}
+			restParam = p.current.Lexeme
+			p.advance()
+			break // rest must be last
+		}
+
 		if p.current.Type != token.Name {
 			p.error("expected parameter name")
 			return nil
@@ -773,7 +815,7 @@ func (p *Parser) parseFunctionParams(tok token.Token) ast.Expression {
 	}
 	body := p.parseBlockStatement()
 
-	return &ast.FunctionLiteral{Token: tok, Parameters: params, Body: body}
+	return &ast.FunctionLiteral{Token: tok, Parameters: params, RestParam: restParam, Body: body}
 }
 
 func processEscapes(s string) string {
