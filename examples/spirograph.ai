@@ -12,5 +12,5 @@ while tick < 6280 {
     dot(c, x, y, :cyan)
     tick = tick + 1
 }
-sleep(1000)
 
+sleep(1000)

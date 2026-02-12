@@ -351,4 +351,3 @@ type GroupExpression struct {
 
 func (e *GroupExpression) expressionNode()      {}
 func (e *GroupExpression) TokenLiteral() string { return e.Token.Lexeme }
-

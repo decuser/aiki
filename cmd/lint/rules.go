@@ -77,6 +77,12 @@ func Check(node ast.Node, globals []string) []string {
 				}
 				define(param)
 			}
+			if node.RestParam != "" {
+				if !snakeCase.MatchString(node.RestParam) {
+					errors = append(errors, fmt.Sprintf("line %d: parameter '%s' should be snake_case", node.Token.Line, node.RestParam))
+				}
+				define(node.RestParam)
+			}
 			walk(node.Body)
 			popScope()
 

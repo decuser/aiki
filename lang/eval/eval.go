@@ -109,7 +109,7 @@ func Eval(node ast.Node, env *value.Env) value.Value {
 
 	case *ast.MatchStatement:
 		return evalMatchStatement(n, env)
-	
+
 	case *ast.Identifier:
 		return evalIdentifier(n, env)
 

@@ -12,4 +12,5 @@ while tick < 6280 {
     dot(canvas_ref, x, y, :cyan)
     tick = tick + 1
 }
+
 sleep(1000)
