@@ -432,6 +432,13 @@ func (p *Printer) printExpression(expr ast.Expression) {
 			}
 			p.write(param)
 		}
+		if e.RestParam != "" {
+			if len(e.Parameters) > 0 {
+				p.write(", ")
+			}
+			p.write("...")
+			p.write(e.RestParam)
+		}
 		p.write(") ")
 		p.printBlock(e.Body)
 
@@ -450,6 +457,12 @@ func (p *Printer) printExpression(expr ast.Expression) {
 		p.printExpression(e.Left)
 		p.write(".")
 		p.write(e.Key)
+
+	case *ast.IndexExpression:
+		p.printExpression(e.Left)
+		p.write("[")
+		p.printExpression(e.Index)
+		p.write("]")
 
 	case *ast.InfixExpression:
 		p.printExpression(e.Left)
