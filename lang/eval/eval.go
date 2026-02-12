@@ -12,18 +12,10 @@ import (
 	"aiki/lang/value"
 )
 
+// HAL is the single source of truth for all builtins.
+// Specials that need AST access use Fn: nil and are
+// handled in evalCallExpression.
 var HAL = core.HAL
-
-// BuiltinNames exports builtin names for shadow checking
-var BuiltinNames = make(map[string]bool)
-
-func init() {
-	for name := range HAL {
-		BuiltinNames[name] = true
-	}
-	// Add apply as a special builtin
-	BuiltinNames["apply"] = true
-}
 
 // Run parses and evaluates code in the given environment.
 func Run(input string, env *value.Env) value.Value {
@@ -48,10 +40,6 @@ func RunFile(filename string, env *value.Env) value.Value {
 	env.SetFile(filepath.Base(filename))
 	env.SetSource(string(data))
 
-	// Push <main> frame
-	env.PushFrame("<main>", 1)
-	defer env.PopFrame()
-
 	p := parser.New(string(data))
 	program := p.Parse()
 
@@ -62,18 +50,7 @@ func RunFile(filename string, env *value.Env) value.Value {
 	return Eval(program, env)
 }
 
-// makeError creates an error with file, line, source context, and stack trace.
-func makeError(env *value.Env, line int, format string, a ...interface{}) *value.Error {
-	return value.NewErrorAt(
-		env.GetFile(),
-		line,
-		env.GetSourceLine(line),
-		env.CopyStack(),
-		format,
-		a...,
-	)
-}
-
+// Eval evaluates an AST node in the given environment.
 func Eval(node ast.Node, env *value.Env) value.Value {
 	switch n := node.(type) {
 	case *ast.Program:
@@ -114,13 +91,10 @@ func Eval(node ast.Node, env *value.Env) value.Value {
 		return evalIdentifier(n, env)
 
 	case *ast.NumberLiteral:
-		return evalNumberLiteral(n)
+		return evalNumberLiteral(n, env)
 
 	case *ast.BooleanLiteral:
-		if n.Value {
-			return value.True
-		}
-		return value.False
+		return value.NativeBoolToBoolean(n.Value)
 
 	case *ast.StringLiteral:
 		return &value.String{Value: n.Value}
@@ -138,12 +112,7 @@ func Eval(node ast.Node, env *value.Env) value.Value {
 		return evalShapedListLiteral(n, env)
 
 	case *ast.FunctionLiteral:
-		return &value.Function{
-			Parameters: n.Parameters,
-			RestParam:  n.RestParam,
-			Body:       n.Body,
-			Env:        env,
-		}
+		return evalFunctionLiteral(n, env)
 
 	case *ast.CallExpression:
 		return evalCallExpression(n, env)
@@ -165,6 +134,12 @@ func Eval(node ast.Node, env *value.Env) value.Value {
 
 	case *ast.PipeExpression:
 		return evalPipeExpression(n, env)
+
+	case *ast.ImportStatement:
+		return evalImportStatement(n, env)
+
+	case *ast.ExportStatement:
+		return value.NULL
 	}
 
 	return value.NULL
@@ -213,8 +188,8 @@ func evalLetStatement(stmt *ast.LetStatement, env *value.Env) value.Value {
 
 	name := stmt.Name.Value
 
-	// Block builtin shadowing
-	if BuiltinNames[name] {
+	// Block builtin shadowing - HAL is the single source of truth
+	if HAL[name] != nil {
 		return makeError(env, stmt.Token.Line, "cannot shadow builtin: %s", name)
 	}
 
@@ -250,8 +225,10 @@ func evalAssignStatement(stmt *ast.AssignStatement, env *value.Env) value.Value 
 	if isError(val) {
 		return val
 	}
-	if !env.Update(stmt.Name.Value, val) {
-		return makeError(env, stmt.Token.Line, "undefined variable: %s", stmt.Name.Value)
+
+	name := stmt.Name.Value
+	if !env.Update(name, val) {
+		return makeError(env, stmt.Token.Line, "undefined: %s", name)
 	}
 	return value.NULL
 }
@@ -267,13 +244,10 @@ func evalIfStatement(stmt *ast.IfStatement, env *value.Env) value.Value {
 	} else if stmt.Alternative != nil {
 		return Eval(stmt.Alternative, env)
 	}
-
 	return value.NULL
 }
 
 func evalWhileStatement(stmt *ast.WhileStatement, env *value.Env) value.Value {
-	var result value.Value = value.NULL
-
 	for {
 		condition := Eval(stmt.Condition, env)
 		if isError(condition) {
@@ -284,7 +258,7 @@ func evalWhileStatement(stmt *ast.WhileStatement, env *value.Env) value.Value {
 			break
 		}
 
-		result = Eval(stmt.Body, env)
+		result := Eval(stmt.Body, env)
 		if result != nil {
 			rt := result.Type()
 			if rt == value.ReturnType || rt == value.ErrorType {
@@ -292,8 +266,7 @@ func evalWhileStatement(stmt *ast.WhileStatement, env *value.Env) value.Value {
 			}
 		}
 	}
-
-	return result
+	return value.NULL
 }
 
 func evalMatchStatement(stmt *ast.MatchStatement, env *value.Env) value.Value {
@@ -303,12 +276,8 @@ func evalMatchStatement(stmt *ast.MatchStatement, env *value.Env) value.Value {
 	}
 
 	for _, arm := range stmt.Arms {
-		bindings := make(map[string]value.Value)
-		if matchPattern(arm.Pattern, val, bindings) {
-			matchEnv := value.NewEnv(env)
-			for name, v := range bindings {
-				matchEnv.Set(name, v)
-			}
+		matchEnv := value.NewEnv(env)
+		if matchPattern(arm.Pattern, val, matchEnv) {
 			return Eval(arm.Body, matchEnv)
 		}
 	}
@@ -316,25 +285,26 @@ func evalMatchStatement(stmt *ast.MatchStatement, env *value.Env) value.Value {
 	return value.NULL
 }
 
-func matchPattern(pattern ast.Pattern, val value.Value, bindings map[string]value.Value) bool {
+func matchPattern(pattern ast.Pattern, val value.Value, env *value.Env) bool {
 	switch p := pattern.(type) {
 	case *ast.WildcardPattern:
 		return true
 
 	case *ast.NamePattern:
-		bindings[p.Name] = val
+		env.Set(p.Name, val)
 		return true
 
 	case *ast.LiteralPattern:
-		return false
+		patVal := Eval(p.Value, env)
+		return valuesEqual(patVal, val)
 
 	case *ast.ListPattern:
 		list, ok := val.(*value.List)
 		if !ok || len(list.Elements) != len(p.Elements) {
 			return false
 		}
-		for i, elem := range p.Elements {
-			if !matchPattern(elem, list.Elements[i], bindings) {
+		for i, elemPat := range p.Elements {
+			if !matchPattern(elemPat, list.Elements[i], env) {
 				return false
 			}
 		}
@@ -342,17 +312,43 @@ func matchPattern(pattern ast.Pattern, val value.Value, bindings map[string]valu
 
 	case *ast.ShapedListPattern:
 		list, ok := val.(*value.List)
-		if !ok || list.Shape != p.Shape || len(list.Elements) != len(p.Elements) {
+		if !ok || list.Shape != p.Shape {
 			return false
 		}
-		for i, elem := range p.Elements {
-			if !matchPattern(elem, list.Elements[i], bindings) {
+		if len(list.Elements) != len(p.Elements) {
+			return false
+		}
+		for i, elemPat := range p.Elements {
+			if !matchPattern(elemPat, list.Elements[i], env) {
 				return false
 			}
 		}
 		return true
 	}
+	return false
+}
 
+func valuesEqual(a, b value.Value) bool {
+	if a.Type() != b.Type() {
+		return false
+	}
+	switch av := a.(type) {
+	case *value.Number:
+		bv := b.(*value.Number)
+		return av.Value.Cmp(bv.Value) == 0
+	case *value.Boolean:
+		bv := b.(*value.Boolean)
+		return av.Value == bv.Value
+	case *value.String:
+		bv := b.(*value.String)
+		return av.Value == bv.Value
+	case *value.Symbol:
+		bv := b.(*value.Symbol)
+		return av.Value == bv.Value
+	case *value.Rune:
+		bv := b.(*value.Rune)
+		return av.Value == bv.Value
+	}
 	return false
 }
 
@@ -360,24 +356,30 @@ func evalIdentifier(node *ast.Identifier, env *value.Env) value.Value {
 	if val, ok := env.Get(node.Value); ok {
 		return val
 	}
+
 	if builtin, ok := HAL[node.Value]; ok {
 		return builtin
 	}
+
 	return makeError(env, node.Token.Line, "undefined: %s", node.Value)
 }
 
-func evalNumberLiteral(node *ast.NumberLiteral) value.Value {
-	n, err := value.NewNumberFromString(node.Value)
-	if err != nil {
-		return value.NewError("invalid number: %s", node.Value)
+func evalNumberLiteral(node *ast.NumberLiteral, env *value.Env) value.Value {
+	r := new(big.Rat)
+	if _, ok := r.SetString(node.Value); !ok {
+		return makeError(env, node.Token.Line, "invalid number: %s", node.Value)
 	}
-	return n
+	return &value.Number{Value: r}
 }
 
 func evalListLiteral(node *ast.ListLiteral, env *value.Env) value.Value {
-	elements := evalExpressions(node.Elements, env)
-	if len(elements) == 1 && isError(elements[0]) {
-		return elements[0]
+	elements := make([]value.Value, len(node.Elements))
+	for i, el := range node.Elements {
+		val := Eval(el, env)
+		if isError(val) {
+			return val
+		}
+		elements[i] = val
 	}
 	return &value.List{Elements: elements}
 }
@@ -388,13 +390,18 @@ func evalShapedListLiteral(node *ast.ShapedListLiteral, env *value.Env) value.Va
 		return makeError(env, node.Token.Line, "undefined shape: @%s", node.Shape)
 	}
 
-	elements := evalExpressions(node.Elements, env)
-	if len(elements) == 1 && isError(elements[0]) {
-		return elements[0]
+	if len(node.Elements) != len(fields) {
+		return makeError(env, node.Token.Line, "shape @%s requires %d fields, got %d",
+			node.Shape, len(fields), len(node.Elements))
 	}
 
-	if len(elements) != len(fields) {
-		return makeError(env, node.Token.Line, "shape @%s requires %d fields, got %d", node.Shape, len(fields), len(elements))
+	elements := make([]value.Value, len(node.Elements))
+	for i, el := range node.Elements {
+		val := Eval(el, env)
+		if isError(val) {
+			return val
+		}
+		elements[i] = val
 	}
 
 	return &value.List{
@@ -404,25 +411,24 @@ func evalShapedListLiteral(node *ast.ShapedListLiteral, env *value.Env) value.Va
 	}
 }
 
+func evalFunctionLiteral(node *ast.FunctionLiteral, env *value.Env) value.Value {
+	return &value.Function{
+		Parameters: node.Parameters,
+		RestParam:  node.RestParam,
+		Body:       node.Body,
+		Env:        env,
+	}
+}
+
 func evalCallExpression(node *ast.CallExpression, env *value.Env) value.Value {
-	// Handle restore() specially - it needs env access
-	if ident, ok := node.Function.(*ast.Identifier); ok && ident.Value == "restore" {
-		return evalRestore(node, env)
-	}
-
-	// Handle load() specially - it needs env access
-	if ident, ok := node.Function.(*ast.Identifier); ok && ident.Value == "load" {
-		return evalLoad(node, env)
-	}
-
-	// Handle spawn() specially - it needs to run function in goroutine
-	if ident, ok := node.Function.(*ast.Identifier); ok && ident.Value == "spawn" {
-		return evalSpawn(node, env)
-	}
-
 	// Handle apply() specially - it needs to spread list as args
 	if ident, ok := node.Function.(*ast.Identifier); ok && ident.Value == "apply" {
 		return evalApply(node, env)
+	}
+
+	// Handle load() specially - it needs file access
+	if ident, ok := node.Function.(*ast.Identifier); ok && ident.Value == "load" {
+		return evalLoad(node, env)
 	}
 
 	fn := Eval(node.Function, env)
@@ -430,89 +436,16 @@ func evalCallExpression(node *ast.CallExpression, env *value.Env) value.Value {
 		return fn
 	}
 
-	args := evalExpressions(node.Arguments, env)
-	if len(args) == 1 && isError(args[0]) {
-		return args[0]
+	args := make([]value.Value, len(node.Arguments))
+	for i, arg := range node.Arguments {
+		val := Eval(arg, env)
+		if isError(val) {
+			return val
+		}
+		args[i] = val
 	}
 
 	return applyFunction(fn, args, env, node.Token.Line)
-}
-
-func evalRestore(node *ast.CallExpression, env *value.Env) value.Value {
-	if len(node.Arguments) != 1 {
-		return makeError(env, node.Token.Line, "restore: want 1 argument, got %d", len(node.Arguments))
-	}
-
-	arg := Eval(node.Arguments[0], env)
-	if isError(arg) {
-		return arg
-	}
-
-	str, ok := arg.(*value.String)
-	if !ok {
-		return makeError(env, node.Token.Line, "restore: expected string argument")
-	}
-
-	name := str.Value
-
-	if env.Restore(name) {
-		return value.NULL
-	}
-
-	return makeError(env, node.Token.Line, "restore: %s not found in strict", name)
-}
-
-func evalLoad(node *ast.CallExpression, env *value.Env) value.Value {
-	if len(node.Arguments) != 1 {
-		return makeError(env, node.Token.Line, "load: want 1 argument, got %d", len(node.Arguments))
-	}
-
-	arg := Eval(node.Arguments[0], env)
-	if isError(arg) {
-		return arg
-	}
-
-	path, ok := arg.(*value.String)
-	if !ok {
-		return makeError(env, node.Token.Line, "load: expected string argument")
-	}
-
-	// Save current file context
-	oldFile := env.GetFile()
-
-	// Run the loaded file
-	result := RunFile(path.Value, env)
-
-	// Restore file context
-	env.SetFile(oldFile)
-
-	return result
-}
-
-func evalSpawn(node *ast.CallExpression, env *value.Env) value.Value {
-	if len(node.Arguments) != 1 {
-		return makeError(env, node.Token.Line, "spawn: want 1 argument, got %d", len(node.Arguments))
-	}
-
-	arg := Eval(node.Arguments[0], env)
-	if isError(arg) {
-		return arg
-	}
-
-	fn, ok := arg.(*value.Function)
-	if !ok {
-		return makeError(env, node.Token.Line, "spawn: argument must be a function")
-	}
-
-	if len(fn.Parameters) != 0 {
-		return makeError(env, node.Token.Line, "spawn: function must take no arguments")
-	}
-
-	core.DefaultScheduler.Spawn(func() {
-		Eval(fn.Body, value.NewEnv(fn.Env))
-	})
-
-	return value.True
 }
 
 func evalApply(node *ast.CallExpression, env *value.Env) value.Value {
@@ -525,12 +458,12 @@ func evalApply(node *ast.CallExpression, env *value.Env) value.Value {
 		return fn
 	}
 
-	argList := Eval(node.Arguments[1], env)
-	if isError(argList) {
-		return argList
+	listVal := Eval(node.Arguments[1], env)
+	if isError(listVal) {
+		return listVal
 	}
 
-	list, ok := argList.(*value.List)
+	list, ok := listVal.(*value.List)
 	if !ok {
 		return makeError(env, node.Token.Line, "apply: second argument must be list")
 	}
@@ -541,54 +474,73 @@ func evalApply(node *ast.CallExpression, env *value.Env) value.Value {
 func applyFunction(fn value.Value, args []value.Value, env *value.Env, callLine int) value.Value {
 	switch f := fn.(type) {
 	case *value.Function:
-		name := f.Name
-		if name == "" {
-			name = "<anonymous>"
-		}
-		env.PushFrame(name, callLine)
-		defer env.PopFrame()
-
-		extEnv := value.NewEnv(f.Env)
-
+		// Check arity
 		if f.RestParam != "" {
-			// Has rest param - need at least len(Parameters) args
 			if len(args) < len(f.Parameters) {
-				return makeError(env, callLine, "wrong number of arguments: want at least %d, got %d",
-					len(f.Parameters), len(args))
+				return makeError(env, callLine, "%s: want at least %d arguments, got %d",
+					f.Name, len(f.Parameters), len(args))
 			}
-
-			// Bind regular params
-			for i, param := range f.Parameters {
-				extEnv.Set(param, args[i])
+		} else {
+			if len(args) != len(f.Parameters) {
+				return makeError(env, callLine, "%s: want %d arguments, got %d",
+					f.Name, len(f.Parameters), len(args))
 			}
+		}
 
-			// Bind rest param to list of remaining args
+		funcEnv := value.NewEnv(f.Env)
+
+		// Bind regular parameters
+		for i, param := range f.Parameters {
+			funcEnv.Set(param, args[i])
+		}
+
+		// Bind rest parameter if present
+		if f.RestParam != "" {
 			restArgs := args[len(f.Parameters):]
 			restList := &value.List{Elements: restArgs}
-			extEnv.Set(f.RestParam, restList)
-		} else {
-			// No rest param - exact arity required
-			if len(args) != len(f.Parameters) {
-				return makeError(env, callLine, "wrong number of arguments: want %d, got %d",
-					len(f.Parameters), len(args))
-			}
-			for i, param := range f.Parameters {
-				extEnv.Set(param, args[i])
-			}
+			funcEnv.Set(f.RestParam, restList)
 		}
 
-		result := Eval(f.Body, extEnv)
+		funcName := f.Name
+		if funcName == "" {
+			funcName = "<lambda>"
+		}
+		env.PushFrame(funcName, callLine)
+		result := Eval(f.Body, funcEnv)
+		env.PopFrame()
+
 		if ret, ok := result.(*value.Return); ok {
 			return ret.Value
 		}
 		return result
 
 	case *value.Builtin:
+		if f.Fn == nil {
+			return makeError(env, callLine, "cannot call %s directly", f.Name)
+		}
 		return f.Fn(args...)
 
 	default:
 		return makeError(env, callLine, "not a function: %s", fn.Type())
 	}
+}
+
+func evalLoad(node *ast.CallExpression, env *value.Env) value.Value {
+	if len(node.Arguments) != 1 {
+		return makeError(env, node.Token.Line, "load: want 1 argument, got %d", len(node.Arguments))
+	}
+
+	pathVal := Eval(node.Arguments[0], env)
+	if isError(pathVal) {
+		return pathVal
+	}
+
+	pathStr, ok := pathVal.(*value.String)
+	if !ok {
+		return makeError(env, node.Token.Line, "load: expected string path")
+	}
+
+	return RunFile(pathStr.Value, env)
 }
 
 func evalIndexExpression(node *ast.IndexExpression, env *value.Env) value.Value {
@@ -602,26 +554,24 @@ func evalIndexExpression(node *ast.IndexExpression, env *value.Env) value.Value 
 		return index
 	}
 
-	idx, ok := index.(*value.Number)
-	if !ok || !idx.Value.IsInt() {
+	idxNum, ok := index.(*value.Number)
+	if !ok || !idxNum.Value.IsInt() {
 		return makeError(env, node.Token.Line, "index must be integer")
 	}
-	i := int(idx.Value.Num().Int64())
+	idx := int(idxNum.Value.Num().Int64())
 
-	switch l := left.(type) {
+	switch obj := left.(type) {
 	case *value.List:
-		if i < 0 || i >= len(l.Elements) {
-			return makeError(env, node.Token.Line, "index out of bounds: %d", i)
+		if idx < 0 || idx >= len(obj.Elements) {
+			return makeError(env, node.Token.Line, "index out of bounds: %d", idx)
 		}
-		return l.Elements[i]
-
+		return obj.Elements[idx]
 	case *value.String:
-		runes := []rune(l.Value)
-		if i < 0 || i >= len(runes) {
-			return makeError(env, node.Token.Line, "index out of bounds: %d", i)
+		runes := []rune(obj.Value)
+		if idx < 0 || idx >= len(runes) {
+			return makeError(env, node.Token.Line, "index out of bounds: %d", idx)
 		}
-		return &value.Rune{Value: runes[i]}
-
+		return &value.Rune{Value: runes[idx]}
 	default:
 		return makeError(env, node.Token.Line, "cannot index %s", left.Type())
 	}
@@ -633,22 +583,22 @@ func evalAccessExpression(node *ast.AccessExpression, env *value.Env) value.Valu
 		return left
 	}
 
-	switch l := left.(type) {
-	case *value.List:
-		// Named field access for shaped lists only (no numeric indices via dot)
-		if l.Shape == "" {
-			return makeError(env, node.Token.Line, "cannot access field on raw list, use [index]")
-		}
-		for i, field := range l.Fields {
-			if field == node.Key {
-				return l.Elements[i]
-			}
-		}
-		return makeError(env, node.Token.Line, "unknown field: %s", node.Key)
-
-	default:
+	list, ok := left.(*value.List)
+	if !ok {
 		return makeError(env, node.Token.Line, "cannot access field on %s", left.Type())
 	}
+
+	if list.Shape == "" {
+		return makeError(env, node.Token.Line, "cannot access field on raw list, use [index]")
+	}
+
+	for i, field := range list.Fields {
+		if field == node.Key {
+			return list.Elements[i]
+		}
+	}
+
+	return makeError(env, node.Token.Line, "unknown field: %s", node.Key)
 }
 
 func evalInfixExpression(node *ast.InfixExpression, env *value.Env) value.Value {
@@ -671,12 +621,95 @@ func evalInfixExpression(node *ast.InfixExpression, env *value.Env) value.Value 
 		return evalBooleanInfix(node.Operator, left.(*value.Boolean), right.(*value.Boolean), node.Token.Line, env)
 	case left.Type() == value.SymbolType && right.Type() == value.SymbolType:
 		return evalSymbolInfix(node.Operator, left.(*value.Symbol), right.(*value.Symbol), node.Token.Line, env)
-	case node.Operator == "==":
-		return value.NativeBoolToBoolean(left == right)
-	case node.Operator == "!=":
-		return value.NativeBoolToBoolean(left != right)
+	case node.Operator == "==" || node.Operator == "!=":
+		// Cross-type comparison
+		eq := left.Type() == right.Type() && left.Inspect() == right.Inspect()
+		if node.Operator == "!=" {
+			eq = !eq
+		}
+		return value.NativeBoolToBoolean(eq)
 	default:
 		return makeError(env, node.Token.Line, "unknown operator: %s %s %s", left.Type(), node.Operator, right.Type())
+	}
+}
+
+func evalNumberInfix(op string, left, right *value.Number, line int, env *value.Env) value.Value {
+	l, r := left.Value, right.Value
+	result := new(big.Rat)
+
+	switch op {
+	case "+":
+		result.Add(l, r)
+	case "-":
+		result.Sub(l, r)
+	case "*":
+		result.Mul(l, r)
+	case "/":
+		if r.Sign() == 0 {
+			return makeError(env, line, "division by zero")
+		}
+		result.Quo(l, r)
+	case "%":
+		if !l.IsInt() || !r.IsInt() {
+			return makeError(env, line, "modulo requires integers")
+		}
+		if r.Num().Int64() == 0 {
+			return makeError(env, line, "modulo by zero")
+		}
+		li, ri := l.Num().Int64(), r.Num().Int64()
+		result.SetInt64(li % ri)
+	case "<":
+		return value.NativeBoolToBoolean(l.Cmp(r) < 0)
+	case ">":
+		return value.NativeBoolToBoolean(l.Cmp(r) > 0)
+	case "<=":
+		return value.NativeBoolToBoolean(l.Cmp(r) <= 0)
+	case ">=":
+		return value.NativeBoolToBoolean(l.Cmp(r) >= 0)
+	case "==":
+		return value.NativeBoolToBoolean(l.Cmp(r) == 0)
+	case "!=":
+		return value.NativeBoolToBoolean(l.Cmp(r) != 0)
+	default:
+		return makeError(env, line, "unknown operator: %s", op)
+	}
+
+	return &value.Number{Value: result}
+}
+
+func evalStringInfix(op string, left, right *value.String, line int, env *value.Env) value.Value {
+	switch op {
+	case "+":
+		return &value.String{Value: left.Value + right.Value}
+	case "==":
+		return value.NativeBoolToBoolean(left.Value == right.Value)
+	case "!=":
+		return value.NativeBoolToBoolean(left.Value != right.Value)
+	case "<":
+		return value.NativeBoolToBoolean(left.Value < right.Value)
+	case ">":
+		return value.NativeBoolToBoolean(left.Value > right.Value)
+	case "<=":
+		return value.NativeBoolToBoolean(left.Value <= right.Value)
+	case ">=":
+		return value.NativeBoolToBoolean(left.Value >= right.Value)
+	default:
+		return makeError(env, line, "unknown operator: string %s string", op)
+	}
+}
+
+func evalBooleanInfix(op string, left, right *value.Boolean, line int, env *value.Env) value.Value {
+	switch op {
+	case "==":
+		return value.NativeBoolToBoolean(left.Value == right.Value)
+	case "!=":
+		return value.NativeBoolToBoolean(left.Value != right.Value)
+	case "and":
+		return value.NativeBoolToBoolean(left.Value && right.Value)
+	case "or":
+		return value.NativeBoolToBoolean(left.Value || right.Value)
+	default:
+		return makeError(env, line, "unknown operator: boolean %s boolean", op)
 	}
 }
 
@@ -691,86 +724,6 @@ func evalSymbolInfix(op string, left, right *value.Symbol, line int, env *value.
 	}
 }
 
-func evalNumberInfix(op string, left, right *value.Number, line int, env *value.Env) value.Value {
-	switch op {
-	case "+":
-		r := new(big.Rat).Add(left.Value, right.Value)
-		return &value.Number{Value: r}
-	case "-":
-		r := new(big.Rat).Sub(left.Value, right.Value)
-		return &value.Number{Value: r}
-	case "*":
-		r := new(big.Rat).Mul(left.Value, right.Value)
-		return &value.Number{Value: r}
-	case "/":
-		if right.Value.Sign() == 0 {
-			return &value.List{
-				Elements: []value.Value{
-					&value.Symbol{Value: "error"},
-					&value.String{Value: "division by zero"},
-				},
-				Shape:  "error",
-				Fields: []string{"tag", "reason"},
-			}
-		}
-		r := new(big.Rat).Quo(left.Value, right.Value)
-		return &value.Number{Value: r}
-	case "%":
-		if !left.Value.IsInt() || !right.Value.IsInt() {
-			return makeError(env, line, "modulo requires integers")
-		}
-		if right.Value.Sign() == 0 {
-			return makeError(env, line, "division by zero")
-		}
-		l := left.Value.Num()
-		r := right.Value.Num()
-		m := new(big.Int).Mod(l, r)
-		return &value.Number{Value: new(big.Rat).SetInt(m)}
-	case "<":
-		return value.NativeBoolToBoolean(left.Value.Cmp(right.Value) < 0)
-	case ">":
-		return value.NativeBoolToBoolean(left.Value.Cmp(right.Value) > 0)
-	case "<=":
-		return value.NativeBoolToBoolean(left.Value.Cmp(right.Value) <= 0)
-	case ">=":
-		return value.NativeBoolToBoolean(left.Value.Cmp(right.Value) >= 0)
-	case "==":
-		return value.NativeBoolToBoolean(left.Value.Cmp(right.Value) == 0)
-	case "!=":
-		return value.NativeBoolToBoolean(left.Value.Cmp(right.Value) != 0)
-	default:
-		return makeError(env, line, "unknown operator: %s", op)
-	}
-}
-
-func evalStringInfix(op string, left, right *value.String, line int, env *value.Env) value.Value {
-	switch op {
-	case "+":
-		return &value.String{Value: left.Value + right.Value}
-	case "==":
-		return value.NativeBoolToBoolean(left.Value == right.Value)
-	case "!=":
-		return value.NativeBoolToBoolean(left.Value != right.Value)
-	default:
-		return makeError(env, line, "unknown operator: string %s string", op)
-	}
-}
-
-func evalBooleanInfix(op string, left, right *value.Boolean, line int, env *value.Env) value.Value {
-	switch op {
-	case "and":
-		return value.NativeBoolToBoolean(left.Value && right.Value)
-	case "or":
-		return value.NativeBoolToBoolean(left.Value || right.Value)
-	case "==":
-		return value.NativeBoolToBoolean(left.Value == right.Value)
-	case "!=":
-		return value.NativeBoolToBoolean(left.Value != right.Value)
-	default:
-		return makeError(env, line, "unknown operator: boolean %s boolean", op)
-	}
-}
-
 func evalPrefixExpression(node *ast.PrefixExpression, env *value.Env) value.Value {
 	right := Eval(node.Right, env)
 	if isError(right) {
@@ -779,16 +732,30 @@ func evalPrefixExpression(node *ast.PrefixExpression, env *value.Env) value.Valu
 
 	switch node.Operator {
 	case "not":
-		return value.NativeBoolToBoolean(!isTruthy(right))
+		return evalNotOperator(right)
 	case "-":
-		if n, ok := right.(*value.Number); ok {
-			r := new(big.Rat).Neg(n.Value)
-			return &value.Number{Value: r}
-		}
-		return makeError(env, node.Token.Line, "cannot negate %s", right.Type())
+		return evalMinusPrefix(right, node.Token.Line, env)
 	default:
 		return makeError(env, node.Token.Line, "unknown operator: %s", node.Operator)
 	}
+}
+
+func evalNotOperator(right value.Value) value.Value {
+	switch r := right.(type) {
+	case *value.Boolean:
+		return value.NativeBoolToBoolean(!r.Value)
+	default:
+		return value.False
+	}
+}
+
+func evalMinusPrefix(right value.Value, line int, env *value.Env) value.Value {
+	num, ok := right.(*value.Number)
+	if !ok {
+		return makeError(env, line, "cannot negate %s", right.Type())
+	}
+	result := new(big.Rat).Neg(num.Value)
+	return &value.Number{Value: result}
 }
 
 func evalPipeExpression(node *ast.PipeExpression, env *value.Env) value.Value {
@@ -826,24 +793,42 @@ func evalPipeExpression(node *ast.PipeExpression, env *value.Env) value.Value {
 	return applyFunction(fn, args, env, node.Token.Line)
 }
 
-func evalExpressions(exprs []ast.Expression, env *value.Env) []value.Value {
-	var result []value.Value
-	for _, e := range exprs {
-		val := Eval(e, env)
-		if isError(val) {
-			return []value.Value{val}
-		}
-		result = append(result, val)
+func evalImportStatement(node *ast.ImportStatement, env *value.Env) value.Value {
+	modPath := node.Module + ".ai"
+
+	data, err := os.ReadFile(modPath)
+	if err != nil {
+		return makeError(env, node.Token.Line, "cannot load module: %s", modPath)
 	}
-	return result
+
+	modEnv := value.NewEnv(nil)
+
+	p := parser.New(string(data))
+	program := p.Parse()
+
+	if len(p.Errors()) > 0 {
+		return makeError(env, node.Token.Line, "parse error in %s: %s", modPath, p.Errors()[0])
+	}
+
+	result := Eval(program, modEnv)
+	if isError(result) {
+		return result
+	}
+
+	// Import requested names
+	for _, name := range node.Names {
+		val, ok := modEnv.Get(name)
+		if !ok {
+			return makeError(env, node.Token.Line, "module %s does not export: %s", node.Module, name)
+		}
+		env.Set(name, val)
+	}
+
+	return value.NULL
 }
 
-func isError(v value.Value) bool {
-	return v != nil && v.Type() == value.ErrorType
-}
-
-func isTruthy(v value.Value) bool {
-	switch v := v.(type) {
+func isTruthy(val value.Value) bool {
+	switch v := val.(type) {
 	case *value.Boolean:
 		return v.Value
 	case *value.Null:
@@ -851,4 +836,19 @@ func isTruthy(v value.Value) bool {
 	default:
 		return true
 	}
+}
+
+func isError(val value.Value) bool {
+	return val != nil && val.Type() == value.ErrorType
+}
+
+func makeError(env *value.Env, line int, format string, args ...interface{}) *value.Error {
+	return value.NewErrorAt(
+		env.GetFile(),
+		line,
+		env.GetSourceLine(line),
+		env.CopyStack(),
+		format,
+		args...,
+	)
 }

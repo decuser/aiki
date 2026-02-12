@@ -552,6 +552,11 @@ Fields: point.x (shaped lists only)
 		Fn:   nil,
 	},
 
+	"apply": {
+		Name: "apply",
+		Fn:   nil, // handled specially in eval
+	},
+
 	"sleep": {
 		Name: "sleep",
 		Fn: func(args ...value.Value) value.Value {

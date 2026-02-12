@@ -128,22 +128,6 @@ func (e *Env) Set(name string, val Value) string {
 	return shadowed
 }
 
-// SetWithBuiltinCheck binds a name and checks for builtin shadowing.
-func (e *Env) SetWithBuiltinCheck(name string, val Value, builtinNames map[string]bool) string {
-	if builtinNames != nil && builtinNames[name] {
-		e.store[name] = val
-		return "HAL"
-	}
-	if e.outer != nil {
-		if _, ok := e.outer.Get(name); ok {
-			e.store[name] = val
-			return "strict"
-		}
-	}
-	e.store[name] = val
-	return ""
-}
-
 // Update mutates an existing binding, walking up the scope chain.
 func (e *Env) Update(name string, val Value) bool {
 	if _, ok := e.store[name]; ok {
