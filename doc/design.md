@@ -40,6 +40,18 @@ A minimal, composable language. The language is complete; the system layer is fu
 | `strict` | Pure Aiki — lists, rationals, inspectable | Yes |
 | `pragmatic` | Fast Aiki — arrays, floats, hardware speed | Opt-in |
 
+### Runtime Strata
+
+Three layers with distinct responsibilities:
+
+**HAL (Host Abstraction Layer)** - Narrow membrane to Go. Effects live here: canvas, channels, spawn, file I/O. Minimal surface. Everything that touches the outside world.
+
+**Strict** - Pure semantic core. Deterministic evaluation. The canonical specification. All behavior defined here first.
+
+**Pragmatic** - Performance-oriented shadow of Strict. Must be observationally equivalent. Never defines behavior, only optimizes it.
+
+Principle: impurity pushed to edges, purity at center.
+
 **The Twin Pattern:** `strict.X` is pure and inspectable. `pragmatic.X` is fast with same API. No shadowing — namespace separation.
 
 ## Decisions

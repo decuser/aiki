@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"strings"
 
 	"aiki/lang/ast"
 	"aiki/lang/lexer"
@@ -15,6 +16,7 @@ type Parser struct {
 	peek     token.Token
 	errors   []string
 	comments []lexer.Comment
+	lines []string
 }
 
 func New(input string) *Parser {
@@ -27,6 +29,7 @@ func New(input string) *Parser {
 	}
 	p.advance()
 	p.advance()
+	p.lines = strings.Split(input, "\n")
 	return p
 }
 
@@ -47,7 +50,18 @@ func (p *Parser) Comments() []lexer.Comment {
 }
 
 func (p *Parser) error(msg string) {
-	p.errors = append(p.errors, fmt.Sprintf("line %d: %s", p.current.Line, msg))
+    line := p.current.Line
+    col := p.current.Col
+    
+    var buf strings.Builder
+    buf.WriteString(fmt.Sprintf("line %d:%d: %s\n", line, col, msg))
+    
+    if line > 0 && line <= len(p.lines) {
+        buf.WriteString("  " + p.lines[line-1] + "\n")
+        buf.WriteString("  " + strings.Repeat(" ", col-1) + "^")
+    }
+    
+    p.errors = append(p.errors, buf.String())
 }
 
 func (p *Parser) Parse() *ast.Program {

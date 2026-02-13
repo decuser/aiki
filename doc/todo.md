@@ -1,5 +1,10 @@
 # Aiki TODO
 
+## Invariants
+
+- Shape is claim, registry is authority. Tagged lists like `[@canvas, id]` are handles, not permission. The host registry validates on use—same pattern as bounds checking.
+- Canonical (strict until we rename it) is specification. Pragmatic must pass Canonical equivalence tests. Never define behavior in Pragmatic first.
+
 ## Alpha Checklist
 
 ### Core Cleanup
