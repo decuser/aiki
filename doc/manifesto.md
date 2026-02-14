@@ -56,7 +56,15 @@ One formatter. One style. Errors point to source. The REPL is the workbench.
 
 Subcommands are pure Aiki. The tools prove the language works by using it.
 
-Help is projection, not explanation. Derived from grammar, not written as prose.
+## Projections
+
+Grammar is infrastructure. Derived, not written:
+
+- **Help** is projection. Derived from grammar and layer metadata.
+- **Errors** are projection. Templates per function, filled at runtime.
+- **Lint** is projection. Grammar plus style rules.
+
+One source of truth, multiple views. If the grammar changes, the projections update.
 
 ## Lineage
 

@@ -1,39 +1,41 @@
 # Aiki TODO
 
-**TODO for parity:**
+## Parity: COMPLETE
 
-1. **lint** — rewrite with EBNF AST (same pattern as fmt)
-   - `cmd/lint/lint.go` — walker, scope tracking, snake_case check
-   - `cmd/lint/cmd.go` — CLI
-   - `cmd/lint/lint_test.go` — tests
-   - Pass grammar via `SetGrammar()` like fmt
-
-2. **export statement** — verify it works
-   - Check `evalNodeExport` exists in `eval_node.go`
-   - Test: `export [foo]` should mark `foo` as exported
-   - Modules using `from x use [foo]` should only see exported names
-
-3. **import statement** — verify `from mod use [names]` works
-   - Check `evalNodeImport` in `eval_node.go`
-   - Should parse module with grammar, run it, copy exported names
-
-4. **strict exports** — verify `strict.Exports()` matches actual exports
-   - The list is hardcoded in `strict/strict.go`
-   - Should match the `export [...]` line in `strict/strict.ai`
-
-5. **tests** — run full suite
+1. ~~**lint** — rewrite with EBNF AST~~ ✓
+2. ~~**export statement** — verified~~ ✓
+3. ~~**import statement** — verified~~ ✓
+4. ~~**strict exports** — parses from strict.ai~~ ✓
+5. **tests** — run full suite to confirm
    ```bash
    go test ./...
    ./aiki examples/canvas.ai
    ./aiki -e 'print(sum(range(1, 10)))'
+   ```
 
+## Rich Errors: Phase 1 COMPLETE
+
+- ✓ `makeError(env, node, ...)` throughout eval
+- ✓ HAL errors annotated with call-site position
+- ✓ Stack traces with `from` lines
+- ✓ Layer system (user/strict/pragmatic/hal)
+- ✓ `InspectAtLayer()` for filtered display
+- ✓ Tests in `tests/error_test.go`
+
+## Rich Errors: Phase 2 (Future)
+
+- [ ] Error template registry (fn + code → template)
+- [ ] HAL registers templates at init
+- [ ] `@error` shape in grammar for strict/user layers
+- [ ] Template interpolation (`{key}` → value)
 
 ## Invariants
 
-- Shape is claim, registry is authority. Tagged lists like `[@canvas, id]` are handles, not permission. The host registry validates on use—same pattern as bounds checking.
-- Canonical (strict) is specification. Pragmatic must pass Canonical equivalence tests. Never define behavior in Pragmatic first.
-- Help is projection, not explanation. Derived from grammar + paradigm contexts + fmt rules + lint rules.
-- Grammar is infrastructure, language is client. Aiki-grammar is the kernel; Aiki-lang is the first client.
+- Shape is claim, registry is authority
+- Canonical (strict) is specification
+- Help is projection, not explanation — derived from grammar
+- Grammar is infrastructure, language is client
+- Errors are projection — templates from grammar/layers
 
 ## Alpha Checklist
 
@@ -63,6 +65,7 @@
 - [ ] `aiki clean` — remove generated cruft
 - [ ] `aiki help [topic]` — help system entry point
 - [ ] Auto-fmt in memory on `aiki run` (original positions for errors)
+- [ ] `--errors=user|strict|hal` flag for error depth
 
 ### Subcommands as Pure Aiki
 - [ ] Move fmt to pure Aiki (register as subcommand)

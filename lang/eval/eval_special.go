@@ -21,37 +21,48 @@ func evalNodeCallSafe(fn value.Value, node *ebnf.Node, env *value.Env) value.Val
 		args = append(args, val)
 	}
 
-	return dispatchCall(fn, args, env)
+	return dispatchCall(fn, args, env, node)
 }
 
 // dispatchCall applies a function to evaluated arguments.
 // Handles specials (apply, load), builtin nil-Fn guard, and normal dispatch.
-func dispatchCall(fn value.Value, args []value.Value, env *value.Env) value.Value {
+// The node parameter is the call site, used to annotate errors from builtins.
+func dispatchCall(fn value.Value, args []value.Value, env *value.Env, node *ebnf.Node) value.Value {
 	switch f := fn.(type) {
 	case *value.Builtin:
 		// Intercept specials by name before calling Fn
 		switch f.Name {
 		case "apply":
-			return evalApply(args, env)
+			return evalApply(args, env, node)
 		case "load":
-			return evalLoad(args, env)
+			return evalLoad(args, env, node)
 		}
 		// Guard: Fn: nil means special-only, shouldn't reach here
 		if f.Fn == nil {
-			return value.NewError("cannot call %s directly", f.Name)
+			return makeError(env, node, "cannot call %s directly", f.Name)
 		}
-		return f.Fn(args...)
+		result := f.Fn(args...)
+		// Annotate bare errors from builtins with call-site position
+		if err, ok := result.(*value.Error); ok && err.Line == 0 {
+			return value.AnnotateError(err,
+				env.GetFile(),
+				node.Line,
+				env.GetSourceLine(node.Line),
+				env.CopyStack(),
+			)
+		}
+		return result
 	case *value.Function:
-		return applyNodeFunc(f, args)
+		return applyNodeFunc(f, args, node.Line)
 	default:
-		return value.NewError("not callable: %s", fn.Type())
+		return makeError(env, node, "not callable: %s", fn.Type())
 	}
 }
 
 // evalApply implements apply(fn, list) — spreads list as args.
-func evalApply(args []value.Value, env *value.Env) value.Value {
+func evalApply(args []value.Value, env *value.Env, node *ebnf.Node) value.Value {
 	if len(args) != 2 {
-		return value.NewError("apply: want 2 arguments, got %d", len(args))
+		return makeError(env, node, "apply: want 2 arguments, got %d", len(args))
 	}
 
 	fn := args[0]
@@ -59,25 +70,25 @@ func evalApply(args []value.Value, env *value.Env) value.Value {
 
 	list, ok := listVal.(*value.List)
 	if !ok {
-		return value.NewError("apply: second argument must be list, got %s", listVal.Type())
+		return makeError(env, node, "apply: second argument must be list, got %s", listVal.Type())
 	}
 
-	return dispatchCall(fn, list.Elements, env)
+	return dispatchCall(fn, list.Elements, env, node)
 }
 
 // evalLoad implements load(path) — reads and evaluates a file.
-func evalLoad(args []value.Value, env *value.Env) value.Value {
+func evalLoad(args []value.Value, env *value.Env, node *ebnf.Node) value.Value {
 	if len(args) != 1 {
-		return value.NewError("load: want 1 argument, got %d", len(args))
+		return makeError(env, node, "load: want 1 argument, got %d", len(args))
 	}
 
 	pathStr, ok := args[0].(*value.String)
 	if !ok {
-		return value.NewError("load: expected string path, got %s", args[0].Type())
+		return makeError(env, node, "load: expected string path, got %s", args[0].Type())
 	}
 
 	if nodeGrammar == nil {
-		return value.NewError("load: grammar not available")
+		return makeError(env, node, "load: grammar not available")
 	}
 
 	return RunFileNode(nodeGrammar, pathStr.Value, env)
@@ -86,6 +97,7 @@ func evalLoad(args []value.Value, env *value.Env) value.Value {
 // evalPipeCallSafe dispatches a pipe call, handling Fn: nil specials.
 func evalPipeCallSafe(node *ebnf.Node, pipedValue value.Value, env *value.Env) value.Value {
 	var fn value.Value
+	var callNode *ebnf.Node
 	var args []value.Value
 	args = append(args, pipedValue)
 
@@ -98,6 +110,7 @@ func evalPipeCallSafe(node *ebnf.Node, pipedValue value.Value, env *value.Env) v
 			case "NAME":
 				fn = evalNodeIdent(child.Value, env)
 			case "call":
+				callNode = child
 				for _, callChild := range child.Children {
 					if callChild.Type == "TERMINAL" {
 						continue
@@ -115,11 +128,15 @@ func evalPipeCallSafe(node *ebnf.Node, pipedValue value.Value, env *value.Env) v
 	walk(node)
 
 	if fn == nil {
-		return value.NewError("pipe: could not find function")
+		return makeError(env, node, "pipe: could not find function")
 	}
 	if isError(fn) {
 		return fn
 	}
 
-	return dispatchCall(fn, args, env)
+	// Use callNode if found, otherwise fall back to node
+	if callNode == nil {
+		callNode = node
+	}
+	return dispatchCall(fn, args, env, callNode)
 }

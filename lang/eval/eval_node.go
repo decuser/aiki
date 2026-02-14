@@ -15,6 +15,18 @@ import (
 // HAL is the single source of truth for all builtins.
 var HAL = core.HAL
 
+// makeError creates a rich error with file, line, source context, and stack trace.
+func makeError(env *value.Env, node *ebnf.Node, format string, args ...interface{}) *value.Error {
+	return value.NewErrorAt(
+		env.GetFile(),
+		node.Line,
+		env.GetSourceLine(node.Line),
+		env.CopyStack(),
+		format,
+		args...,
+	)
+}
+
 // isError checks if a value is an error.
 func isError(val value.Value) bool {
 	return val != nil && val.Type() == value.ErrorType
@@ -90,12 +102,12 @@ func EvalNode(node *ebnf.Node, env *value.Env) value.Value {
 		return evalNodeList(node, env)
 
 	case "NUMBER":
-		return evalNodeNumber(node.Value)
+		return evalNodeNumber(node, env)
 
 	case "STRING":
 		s, err := strconv.Unquote(node.Value)
 		if err != nil {
-			return value.NewError("invalid string: %s", node.Value)
+			return makeError(env, node, "invalid string: %s", node.Value)
 		}
 		return &value.String{Value: s}
 
@@ -129,7 +141,7 @@ func EvalNode(node *ebnf.Node, env *value.Env) value.Value {
 		return &value.Symbol{Value: strings.TrimPrefix(node.Value, ":")}
 
 	case "NAME":
-		return evalNodeIdent(node.Value, env)
+		return evalNodeIdentWithNode(node, env)
 
 	case "TERMINAL":
 		switch node.Value {
@@ -170,6 +182,7 @@ func evalNodeLet(node *ebnf.Node, env *value.Env) value.Value {
 	// Or shape: TERMINAL:"let" SHAPE TERMINAL:"[" fields TERMINAL:"]"
 	
 	var name string
+	var nameNode *ebnf.Node
 	var valNode *ebnf.Node
 	var isShape bool
 	var shapeFields []string
@@ -177,10 +190,12 @@ func evalNodeLet(node *ebnf.Node, env *value.Env) value.Value {
 	for i, child := range node.Children {
 		if child.Type == "NAME" && name == "" {
 			name = child.Value
+			nameNode = child
 		}
 		if child.Type == "SHAPE" {
 			isShape = true
 			name = strings.TrimPrefix(child.Value, "@")
+			nameNode = child
 		}
 		if child.Type == "field" {
 			for _, f := range child.Children {
@@ -214,14 +229,14 @@ func evalNodeLet(node *ebnf.Node, env *value.Env) value.Value {
 	}
 
 	if name == "" {
-		return value.NewError("let: missing name")
+		return makeError(env, node, "let: missing name")
 	}
 	if valNode == nil {
-		return value.NewError("let: missing value")
+		return makeError(env, node, "let: missing value")
 	}
 
 	if HAL[name] != nil {
-		return value.NewError("cannot shadow builtin: %s", name)
+		return makeError(env, nameNode, "cannot shadow builtin: %s", name)
 	}
 
 	val := EvalNode(valNode, env)
@@ -239,11 +254,13 @@ func evalNodeLet(node *ebnf.Node, env *value.Env) value.Value {
 
 func evalNodeAssign(node *ebnf.Node, env *value.Env) value.Value {
 	var name string
+	var nameNode *ebnf.Node
 	var valNode *ebnf.Node
 
 	for i, child := range node.Children {
 		if child.Type == "NAME" && name == "" {
 			name = child.Value
+			nameNode = child
 		}
 		if child.Type == "TERMINAL" && child.Value == "=" && i+1 < len(node.Children) {
 			valNode = node.Children[i+1]
@@ -251,7 +268,7 @@ func evalNodeAssign(node *ebnf.Node, env *value.Env) value.Value {
 	}
 
 	if name == "" || valNode == nil {
-		return value.NewError("assign: invalid statement")
+		return makeError(env, node, "assign: invalid statement")
 	}
 
 	val := EvalNode(valNode, env)
@@ -260,7 +277,7 @@ func evalNodeAssign(node *ebnf.Node, env *value.Env) value.Value {
 	}
 
 	if !env.Update(name, val) {
-		return value.NewError("undefined: %s", name)
+		return makeError(env, nameNode, "undefined: %s", name)
 	}
 	return value.NULL
 }
@@ -306,7 +323,7 @@ func evalNodeIf(node *ebnf.Node, env *value.Env) value.Value {
 	}
 
 	if condNode == nil || thenBlock == nil {
-		return value.NewError("if: invalid statement")
+		return makeError(env, node, "if: invalid statement")
 	}
 
 	cond := EvalNode(condNode, env)
@@ -338,7 +355,7 @@ func evalNodeWhile(node *ebnf.Node, env *value.Env) value.Value {
 	}
 
 	if condNode == nil || bodyNode == nil {
-		return value.NewError("while: invalid statement")
+		return makeError(env, node, "while: invalid statement")
 	}
 
 	var result value.Value = value.NULL
@@ -420,7 +437,7 @@ func matchNodePattern(pattern *ebnf.Node, subject value.Value, env *value.Env) b
 			return true
 		case "NUMBER":
 			if num, ok := subject.(*value.Number); ok {
-				patNum := evalNodeNumber(child.Value)
+				patNum := evalNodeNumber(child, env)
 				if pn, ok := patNum.(*value.Number); ok {
 					return num.Value.Cmp(pn.Value) == 0
 				}
@@ -518,6 +535,7 @@ func evalNodePipe(node *ebnf.Node, env *value.Env) value.Value {
 func evalNodeInfix(node *ebnf.Node, env *value.Env) value.Value {
 	var result value.Value
 	var op string
+	var opNode *ebnf.Node
 
 	for _, child := range node.Children {
 		// Check for operator in BINOP production or as terminal
@@ -525,12 +543,14 @@ func evalNodeInfix(node *ebnf.Node, env *value.Env) value.Value {
 			for _, c := range child.Children {
 				if c.Type == "TERMINAL" {
 					op = c.Value
+					opNode = c
 				}
 			}
 			continue
 		}
 		if child.Type == "TERMINAL" && isOp(child.Value) {
 			op = child.Value
+			opNode = child
 			continue
 		}
 
@@ -542,11 +562,12 @@ func evalNodeInfix(node *ebnf.Node, env *value.Env) value.Value {
 		if result == nil {
 			result = val
 		} else if op != "" {
-			result = applyOp(op, result, val)
+			result = applyOp(op, result, val, env, opNode)
 			if isError(result) {
 				return result
 			}
 			op = ""
+			opNode = nil
 		}
 	}
 
@@ -555,12 +576,14 @@ func evalNodeInfix(node *ebnf.Node, env *value.Env) value.Value {
 
 func evalNodeUnary(node *ebnf.Node, env *value.Env) value.Value {
 	var prefixes []string
+	var prefixNodes []*ebnf.Node
 	var operand value.Value
 
 	for _, child := range node.Children {
 		if child.Type == "TERMINAL" {
 			if child.Value == "not" || child.Value == "-" {
 				prefixes = append(prefixes, child.Value)
+				prefixNodes = append(prefixNodes, child)
 				continue
 			}
 		}
@@ -583,7 +606,7 @@ func evalNodeUnary(node *ebnf.Node, env *value.Env) value.Value {
 			if num, ok := operand.(*value.Number); ok {
 				operand = &value.Number{Value: new(big.Rat).Neg(num.Value)}
 			} else {
-				return value.NewError("cannot negate %s", operand.Type())
+				return makeError(env, prefixNodes[i], "cannot negate %s", operand.Type())
 			}
 		}
 	}
@@ -728,7 +751,7 @@ func evalNodeIndex(target value.Value, node *ebnf.Node, env *value.Env) value.Va
 
 	idx, ok := idxVal.(*value.Number)
 	if !ok {
-		return value.NewError("index must be number, got %s", idxVal.Type())
+		return makeError(env, node, "index must be number, got %s", idxVal.Type())
 	}
 
 	i := int(idx.Value.Num().Int64())
@@ -736,17 +759,17 @@ func evalNodeIndex(target value.Value, node *ebnf.Node, env *value.Env) value.Va
 	switch t := target.(type) {
 	case *value.List:
 		if i < 0 || i >= len(t.Elements) {
-			return value.NewError("index out of bounds: %d", i)
+			return makeError(env, node, "index out of bounds: %d", i)
 		}
 		return t.Elements[i]
 	case *value.String:
 		runes := []rune(t.Value)
 		if i < 0 || i >= len(runes) {
-			return value.NewError("index out of bounds: %d", i)
+			return makeError(env, node, "index out of bounds: %d", i)
 		}
 		return &value.Rune{Value: runes[i]}
 	default:
-		return value.NewError("cannot index %s", target.Type())
+		return makeError(env, node, "cannot index %s", target.Type())
 	}
 }
 
@@ -762,11 +785,11 @@ func evalNodeAccess(target value.Value, node *ebnf.Node, env *value.Env) value.V
 
 	list, ok := target.(*value.List)
 	if !ok {
-		return value.NewError("cannot access field on %s", target.Type())
+		return makeError(env, node, "cannot access field on %s", target.Type())
 	}
 
 	if list.Fields == nil {
-		return value.NewError("list has no shape")
+		return makeError(env, node, "list has no shape")
 	}
 
 	for i, f := range list.Fields {
@@ -777,9 +800,22 @@ func evalNodeAccess(target value.Value, node *ebnf.Node, env *value.Env) value.V
 		}
 	}
 
-	return value.NewError("unknown field: %s", fieldName)
+	return makeError(env, node, "unknown field: %s", fieldName)
 }
 
+// evalNodeIdentWithNode looks up an identifier, returning rich error if undefined.
+func evalNodeIdentWithNode(node *ebnf.Node, env *value.Env) value.Value {
+	name := node.Value
+	if val, ok := env.Get(name); ok {
+		return val
+	}
+	if builtin, ok := HAL[name]; ok {
+		return builtin
+	}
+	return makeError(env, node, "undefined: %s", name)
+}
+
+// evalNodeIdent looks up an identifier (legacy, for internal use without node).
 func evalNodeIdent(name string, env *value.Env) value.Value {
 	if val, ok := env.Get(name); ok {
 		return val
@@ -790,16 +826,26 @@ func evalNodeIdent(name string, env *value.Env) value.Value {
 	return value.NewError("undefined: %s", name)
 }
 
-func evalNodeNumber(s string) value.Value {
+func evalNodeNumber(node *ebnf.Node, env *value.Env) value.Value {
+	s := node.Value
 	r := new(big.Rat)
 	if _, ok := r.SetString(s); !ok {
-		return value.NewError("invalid number: %s", s)
+		return makeError(env, node, "invalid number: %s", s)
 	}
 	return &value.Number{Value: r}
 }
 
-func applyNodeFunc(fn *value.Function, args []value.Value) value.Value {
+func applyNodeFunc(fn *value.Function, args []value.Value, callLine int) value.Value {
 	funcEnv := value.NewEnv(fn.Env)
+
+	// Determine layer from function
+	layer := fn.Layer
+	if layer == "" {
+		layer = value.LayerUser
+	}
+
+	// Push stack frame for this call
+	funcEnv.PushFrame(fn.Name, callLine, layer)
 
 	for i, param := range fn.Parameters {
 		if i < len(args) {
@@ -823,13 +869,16 @@ func applyNodeFunc(fn *value.Function, args []value.Value) value.Value {
 		result = EvalNode(fn.BodyNode.(*ebnf.Node), funcEnv)
 	}
 
+	// Pop stack frame
+	funcEnv.PopFrame()
+
 	if ret, ok := result.(*value.Return); ok {
 		return ret.Value
 	}
 	return result
 }
 
-func applyOp(op string, left, right value.Value) value.Value {
+func applyOp(op string, left, right value.Value, env *value.Env, node *ebnf.Node) value.Value {
 	leftNum, leftIsNum := left.(*value.Number)
 	rightNum, rightIsNum := right.(*value.Number)
 
@@ -843,15 +892,15 @@ func applyOp(op string, left, right value.Value) value.Value {
 			return &value.Number{Value: new(big.Rat).Mul(leftNum.Value, rightNum.Value)}
 		case "/":
 			if rightNum.Value.Sign() == 0 {
-				return value.NewError("division by zero")
+				return makeError(env, node, "division by zero")
 			}
 			return &value.Number{Value: new(big.Rat).Quo(leftNum.Value, rightNum.Value)}
 		case "%":
 			if !leftNum.Value.IsInt() || !rightNum.Value.IsInt() {
-				return value.NewError("modulo requires integers")
+				return makeError(env, node, "modulo requires integers")
 			}
 			if rightNum.Value.Sign() == 0 {
-				return value.NewError("modulo by zero")
+				return makeError(env, node, "modulo by zero")
 			}
 			l := leftNum.Value.Num()
 			r := rightNum.Value.Num()
@@ -895,7 +944,7 @@ func applyOp(op string, left, right value.Value) value.Value {
 		return value.NativeBoolToBoolean(isTruthy(left) || isTruthy(right))
 	}
 
-	return value.NewError("cannot apply %s to %s and %s", op, left.Type(), right.Type())
+	return makeError(env, node, "cannot apply %s to %s and %s", op, left.Type(), right.Type())
 }
 
 func nodeValuesEqual(a, b value.Value) bool {
@@ -947,7 +996,11 @@ func RunNode(grammar *ebnf.Grammar, input string, env *value.Env) value.Value {
 	if err != nil {
 		return value.NewError("parse error: %s", err)
 	}
-	return EvalNode(ast, env)
+	// Push <main> frame for top-level execution
+	env.PushFrame("<main>", 1, value.LayerUser)
+	result := EvalNode(ast, env)
+	env.PopFrame()
+	return result
 }
 
 // RunFileNode parses and evaluates a file using the EBNF grammar.
@@ -964,5 +1017,9 @@ func RunFileNode(grammar *ebnf.Grammar, filename string, env *value.Env) value.V
 	if err != nil {
 		return value.NewError("parse error: %s", err)
 	}
-	return EvalNode(ast, env)
+	// Push <main> frame for top-level execution
+	env.PushFrame("<main>", 1, value.LayerUser)
+	result := EvalNode(ast, env)
+	env.PopFrame()
+	return result
 }

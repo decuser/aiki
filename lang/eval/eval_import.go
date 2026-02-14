@@ -26,45 +26,49 @@ func evalNodeExport(node *ebnf.Node, env *value.Env) value.Value {
 // into the current environment.
 func evalNodeImport(node *ebnf.Node, env *value.Env) value.Value {
 	var moduleName string
+	var moduleNode *ebnf.Node
 	var importNames []string
+	var importNodes []*ebnf.Node
 	isFirst := true
 
 	for _, child := range node.Children {
 		if child.Type == "NAME" {
 			if isFirst {
 				moduleName = child.Value
+				moduleNode = child
 				isFirst = false
 			} else {
 				importNames = append(importNames, child.Value)
+				importNodes = append(importNodes, child)
 			}
 		}
 	}
 
 	if moduleName == "" {
-		return value.NewError("import: missing module name")
+		return makeError(env, node, "import: missing module name")
 	}
 
 	// Resolve module path
 	modulePath := resolveModulePath(moduleName, env)
 	if modulePath == "" {
-		return value.NewError("import: cannot find module '%s'", moduleName)
+		return makeError(env, moduleNode, "import: cannot find module '%s'", moduleName)
 	}
 
 	// Read module source
 	data, err := os.ReadFile(modulePath)
 	if err != nil {
-		return value.NewError("import: cannot read '%s': %s", modulePath, err)
+		return makeError(env, moduleNode, "import: cannot read '%s': %s", modulePath, err)
 	}
 
 	if nodeGrammar == nil {
-		return value.NewError("import: grammar not available")
+		return makeError(env, node, "import: grammar not available")
 	}
 
 	// Parse and evaluate module in its own environment
 	modEnv := value.NewEnv(nil)
 	ast, parseErr := nodeGrammar.ParseSource(string(data))
 	if parseErr != nil {
-		return value.NewError("import: parse error in '%s': %s", modulePath, parseErr)
+		return makeError(env, moduleNode, "import: parse error in '%s': %s", modulePath, parseErr)
 	}
 
 	result := EvalNode(ast, modEnv)
@@ -74,14 +78,14 @@ func evalNodeImport(node *ebnf.Node, env *value.Env) value.Value {
 
 	// Copy requested names into calling environment
 	exports := modEnv.GetExports()
-	for _, name := range importNames {
+	for i, name := range importNames {
 		// If module declared exports, only allow those
 		if len(exports) > 0 && !containsStr(exports, name) {
-			return value.NewError("import: '%s' is not exported by '%s'", name, moduleName)
+			return makeError(env, importNodes[i], "import: '%s' is not exported by '%s'", name, moduleName)
 		}
 		val, ok := modEnv.Get(name)
 		if !ok {
-			return value.NewError("import: '%s' not defined in '%s'", name, moduleName)
+			return makeError(env, importNodes[i], "import: '%s' not defined in '%s'", name, moduleName)
 		}
 		env.Set(name, val)
 	}

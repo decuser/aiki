@@ -66,12 +66,13 @@ func (e *Env) GetSourceLine(line int) string {
 	return (*e.source)[line-1]
 }
 
-// PushFrame adds a stack frame.
-func (e *Env) PushFrame(name string, line int) {
+// PushFrame adds a stack frame with layer information.
+func (e *Env) PushFrame(name string, line int, layer Layer) {
 	*e.stack = append(*e.stack, StackFrame{
-		Name: name,
-		File: *e.file,
-		Line: line,
+		Name:  name,
+		File:  *e.file,
+		Line:  line,
+		Layer: layer,
 	})
 }
 
@@ -221,4 +222,3 @@ func (e *Env) Restore(name string) bool {
 	e.store[name] = val
 	return true
 }
-

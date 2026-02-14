@@ -26,6 +26,16 @@ const (
 	CanvasType   Type = "canvas"
 )
 
+// Layer identifies where a function is defined.
+type Layer string
+
+const (
+	LayerHal       Layer = "hal"
+	LayerStrict    Layer = "strict"
+	LayerPragmatic Layer = "pragmatic"
+	LayerUser      Layer = "user"
+)
+
 type Value interface {
 	Type() Type
 	Inspect() string
@@ -33,9 +43,10 @@ type Value interface {
 
 // StackFrame represents a call site in the stack trace.
 type StackFrame struct {
-	Name string
-	File string
-	Line int
+	Name  string
+	File  string
+	Line  int
+	Layer Layer
 }
 
 // Number is a rational (exact arithmetic).
@@ -145,6 +156,7 @@ type Function struct {
 	RestParam  string
 	BodyNode   interface{} // *ebnf.Node
 	Env        *Env
+	Layer      Layer
 }
 
 func (f *Function) Type() Type { return FunctionType }
@@ -170,8 +182,9 @@ func (h *Handle) Inspect() string { return fmt.Sprintf("<handle: %s>", h.Path) }
 
 // Builtin is a primitive function implemented in Go.
 type Builtin struct {
-	Name string
-	Fn   func(args ...Value) Value
+	Name  string
+	Fn    func(args ...Value) Value
+	Layer Layer
 }
 
 func (b *Builtin) Type() Type      { return FunctionType }
@@ -195,14 +208,30 @@ func (e *Error) Type() Type { return ErrorType }
 //	    from file:line:in 'func'
 //	    from file:line:in 'func'
 func (e *Error) Inspect() string {
+	return e.InspectAtLayer(LayerHal) // Default to showing everything
+}
+
+// InspectAtLayer returns error formatted to show stack down to the given layer.
+func (e *Error) InspectAtLayer(maxLayer Layer) string {
 	var sb strings.Builder
 
-	// Determine function name for error location
-	// Stack is ordered oldest->newest, so last element is innermost (where error occurred)
+	// Find the innermost visible frame for the header
 	funcName := "<main>"
+	headerLayer := LayerUser
 	if len(e.Stack) > 0 {
-		funcName = e.Stack[len(e.Stack)-1].Name
+		// Walk from innermost outward to find first visible frame
+		for i := len(e.Stack) - 1; i >= 0; i-- {
+			if layerVisible(e.Stack[i].Layer, maxLayer) {
+				funcName = e.Stack[i].Name
+				headerLayer = e.Stack[i].Layer
+				break
+			}
+		}
 	}
+
+	// If innermost frame's layer is not visible, find the deepest visible one
+	// and adjust the error attribution
+	_ = headerLayer // reserved for future use
 
 	// First line: file:line:in 'func': message
 	if e.File != "" && e.Line > 0 {
@@ -222,6 +251,10 @@ func (e *Error) Inspect() string {
 	// Iterate from second-to-last down to first (newest to oldest callers)
 	for i := len(e.Stack) - 2; i >= 0; i-- {
 		frame := e.Stack[i]
+		// Filter by layer if requested
+		if !layerVisible(frame.Layer, maxLayer) {
+			continue
+		}
 		if frame.File != "" {
 			sb.WriteString(fmt.Sprintf("\n        from %s:%d:in '%s'", frame.File, frame.Line, frame.Name))
 		} else {
@@ -230,6 +263,21 @@ func (e *Error) Inspect() string {
 	}
 
 	return sb.String()
+}
+
+// layerVisible returns true if frameLayer should be shown when viewing at maxLayer.
+func layerVisible(frameLayer, maxLayer Layer) bool {
+	order := map[Layer]int{
+		LayerUser:      0,
+		LayerPragmatic: 1,
+		LayerStrict:    2,
+		LayerHal:       3,
+	}
+	// Empty layer treated as user
+	if frameLayer == "" {
+		frameLayer = LayerUser
+	}
+	return order[frameLayer] <= order[maxLayer]
 }
 
 func NewError(format string, a ...interface{}) *Error {
@@ -244,6 +292,17 @@ func NewErrorAt(file string, line int, source string, stack []StackFrame, format
 		Source:  source,
 		Stack:   stack,
 	}
+}
+
+// AnnotateError adds position info to a bare error (one without file/line).
+func AnnotateError(err *Error, file string, line int, source string, stack []StackFrame) *Error {
+	if err.Line == 0 {
+		err.File = file
+		err.Line = line
+		err.Source = source
+		err.Stack = stack
+	}
+	return err
 }
 
 // Null

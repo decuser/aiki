@@ -9,9 +9,11 @@ A minimal, composable language. The language is complete; the system layer is fu
 - **Explicit over implicit.** No magic, no hidden behavior.
 - **Inspectability enables knowing.** Everything answers: what are you, what's in you.
 
-## Keywords (11)
+## Keywords (9)
 
-`let` `if` `else` `while` `match` `return` `true` `false` `and` `or` `not`
+`let` `if` `else` `while` `match` `return` `true` `false` `not`
+
+Note: `and`, `or` are operators. `from`, `use`, `export` become functions.
 
 ## Types (8)
 
@@ -28,9 +30,17 @@ A minimal, composable language. The language is complete; the system layer is fu
 
 ## Operators
 
-**Keep:** `+` `-` `*` `/` `<` `>` `<=` `>=` `|>` `.` `[]`
+**Keep:** `+` `-` `*` `/` `<` `>` `<=` `>=` `and` `or` `|>` `.` `[]`
 
 **Cut:** `!` -> `not`, `==` -> `equal()`, `!=` -> `not(equal())`, `%` -> `modulo()`
+
+## Modules
+
+**`import(module, [names])`** — load module, bind names in current scope.
+
+**`export([names])`** — mark names for external use.
+
+Functions, not keywords. Modules are values.
 
 ## Layers
 
@@ -74,9 +84,19 @@ Principle: impurity pushed to edges, purity at center.
 
 **Bracket indexing.** `list[i]`, `string[i]`. Dot is fields only.
 
-**Errors are values.** No exceptions. `[@error, reason]` on failure.
+**Errors are values.** User errors: `[@error, reason]`. Runtime errors: stack trace with source.
 
 **Semicolons optional.** Statement separator for one-liners.
+
+## Projections
+
+Grammar is infrastructure. These are derived, not written:
+
+- **Help** — from grammar + layer metadata
+- **Errors** — from templates registered per function
+- **Lint** — from grammar + style rules
+
+One source, multiple views.
 
 ## Rejected
 
@@ -92,3 +112,4 @@ Principle: impurity pushed to edges, purity at center.
 | Macros | Language is closed |
 | Floats as default | Rationals are exact |
 | Block comments | Prevents dead code hiding |
+| `from`/`export` keywords | Functions are uniform |

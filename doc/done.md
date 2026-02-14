@@ -1,5 +1,26 @@
 # Aiki Done
 
+## v0.2.5
+
+### Architecture
+- EBNF grammar-driven parser (grammar.ebnf is source of truth)
+- Lexer/parser/fmt/lint all derive from grammar
+- Three-layer error system (user/strict/pragmatic/hal)
+
+### Rich Errors
+- `makeError(env, node, ...)` with file:line:source
+- Stack traces with `from` lines
+- HAL errors annotated with call-site position
+- `InspectAtLayer()` for filtered display by layer
+- `<main>` frame pushed at entry points
+
+### Internals
+- `Layer` type on StackFrame and Function
+- `PushFrame(name, line, layer)` / `PopFrame()`
+- `AnnotateError()` for HAL error decoration
+- Lint rewritten with EBNF AST walker
+- `strict.Exports()` parses from strict.ai (no hardcoded list)
+
 ## v0.2.4
 
 ### Syntax

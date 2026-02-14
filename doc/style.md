@@ -55,6 +55,16 @@ Full words preferred. Exceptions: `x`, `y`, `i`, `n`, `fn`, loop counters.
 
 Default is strict. Opt into looseness with `--proto`.
 
+## Error Depth
+
+| Flag | Shows |
+|------|-------|
+| `--errors=user` | Your code only. Default. |
+| `--errors=strict` | Your code + strict library. |
+| `--errors=hal` | Everything. Full stack to primitives. |
+
+Stack traces filter by layer. Deeper = more detail.
+
 ## Examples
 
 See `strict.ai`.
