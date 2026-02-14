@@ -68,6 +68,13 @@ func EvalNode(node *ebnf.Node, env *value.Env) value.Value {
 	case "match_stmt":
 		return evalNodeMatch(node, env)
 
+	case "export_stmt":
+		return evalNodeExport(node, env)
+
+	case "import_stmt":
+		return evalNodeImport(node, env)
+
+
 	case "block":
 		return evalNodeBlock(node, env)
 

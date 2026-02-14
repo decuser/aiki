@@ -33,6 +33,8 @@ func main() {
 		os.Exit(1)
 	}
 	aikifmt.SetGrammar(grammar)
+	aikilint.SetGrammar(grammar)
+	eval.SetNodeGrammar(grammar)
 
 	// Check for subcommands before flag parsing
 	if len(os.Args) > 1 {

@@ -8,6 +8,7 @@ type Env struct {
 	outer    *Env
 	shapes   map[string]*ShapeDef
 	snapshot map[string]Value
+	exports  []string 
 	stack    *[]StackFrame
 	file     *string   // current filename (shared)
 	source   *[]string // source lines (shared)
@@ -203,4 +204,20 @@ func (e *Env) Restore(name string) bool {
 	}
 	e.store[name] = val
 	return true
+}
+
+// SetExports records the exported names for this environment.
+func (e *Env) SetExports(names []string) {
+    e.exports = names
+}
+
+// GetExports returns the exported names, walking up scope chain.
+func (e *Env) GetExports() []string {
+    if e.exports != nil {
+        return e.exports
+    }
+    if e.outer != nil {
+        return e.outer.GetExports()
+    }
+    return nil
 }
