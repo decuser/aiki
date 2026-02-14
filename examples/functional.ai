@@ -1,9 +1,9 @@
 # Functional: Closures and Function Factories
 let make_adder = (base) {
-    # This inner function "remembers" the base variable
-    return (n) {
-        return base + n
-    }
+	# This inner function "remembers" the base variable
+	return (n) {
+		return base + n
+	}
 }
 
 let add_10 = make_adder(10)

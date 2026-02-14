@@ -6,11 +6,11 @@ let d = 150
 let diff = R - r
 let ratio = diff / r
 while tick < 6280 {
-    let angle = tick / 100
-    let x = 400 + ((diff * cos(angle)) + (d * cos(ratio * angle)))
-    let y = 400 + ((diff * sin(angle)) - (d * sin(ratio * angle)))
-    dot(c, x, y, :cyan)
-    tick = tick + 1
+	let angle = tick / 100
+	let x = 400 + ((diff * cos(angle)) + (d * cos(ratio * angle)))
+	let y = 400 + ((diff * sin(angle)) - (d * sin(ratio * angle)))
+	dot(c, x, y, :cyan)
+	tick = tick + 1
 }
 
 sleep(1000)

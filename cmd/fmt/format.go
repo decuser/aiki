@@ -177,8 +177,10 @@ func (p *printer) printNode(node *ebnf.Node) {
 		p.printExprStmt(node)
 	case "block":
 		p.printBlock(node)
-	case "expr", "pipe_expr":
+	case "expr":
 		p.printExpr(node)
+	case "pipe_expr":
+		p.printPipeExpr(node)
 	case "infix_expr":
 		p.printInfix(node)
 	case "unary_expr":
@@ -549,38 +551,49 @@ func (p *printer) printBlock(node *ebnf.Node) {
 }
 
 func (p *printer) printExpr(node *ebnf.Node) {
-	hasPipe := false
+	// expr contains pipe_expr which contains the actual |> terminals
+	// Just delegate to children - printNode will route pipe_expr correctly
 	for _, child := range node.Children {
-		if child.Type == "TERMINAL" && child.Value == "|>" {
-			hasPipe = true
-			break
-		}
-	}
-
-	if hasPipe {
-		p.printPipeExpr(node)
-	} else {
-		for _, child := range node.Children {
-			p.printNode(child)
-		}
+		p.printNode(child)
 	}
 }
 
 func (p *printer) printPipeExpr(node *ebnf.Node) {
-	first := true
-	for _, child := range node.Children {
+	// Collect all parts: expressions and pipe operators
+	// Output: expr |>\n\tindent expr |>\n\tindent expr
+	children := node.Children
+
+	// Count pipe segments to decide if we should break
+	pipeCount := 0
+	for _, child := range children {
 		if child.Type == "TERMINAL" && child.Value == "|>" {
-			p.newline()
-			p.writeIndent()
-			p.write("|> ")
-		} else {
-			if !first && child.Type != "TERMINAL" {
-				// handled by |>
-			} else {
+			pipeCount++
+		}
+	}
+
+	// Short pipes (1 pipe) stay on one line
+	if pipeCount <= 1 {
+		for _, child := range children {
+			if child.Type == "TERMINAL" && child.Value == "|>" {
+				p.write(" |> ")
+			} else if child.Type != "TERMINAL" {
 				p.printNode(child)
-				first = false
 			}
 		}
+		return
+	}
+
+	// Long pipes break with |> at end of line
+	// Pattern: expr |>\n\texpr |>\n\texpr
+	for i, child := range children {
+		if child.Type == "TERMINAL" && child.Value == "|>" {
+			p.write(" |>")
+			p.newline()
+			p.writeIndent()
+		} else if child.Type != "TERMINAL" {
+			p.printNode(child)
+		}
+		_ = i
 	}
 }
 

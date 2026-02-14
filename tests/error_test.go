@@ -178,7 +178,7 @@ func TestInspectAtLayerUser(t *testing.T) {
 
 	// User layer should show user frames in "from" lines, not strict/hal
 	userView := err.InspectAtLayer(value.LayerUser)
-	
+
 	// Should show "helper" (user layer, second newest)
 	if !strings.Contains(userView, "'helper'") {
 		t.Errorf("user view should show helper, got:\n%s", userView)
@@ -215,7 +215,7 @@ func TestInspectAtLayerStrict(t *testing.T) {
 
 	// Strict layer should show strict and user, not hal
 	strictView := err.InspectAtLayer(value.LayerStrict)
-	
+
 	// Should show user frames
 	if !strings.Contains(strictView, "'helper'") {
 		t.Errorf("strict view should show user layer helper, got:\n%s", strictView)

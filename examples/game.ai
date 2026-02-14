@@ -6,22 +6,22 @@ let guessed = false
 print("I'm thinking of a number between 1 and 100.\n")
 
 while not guessed {
-    print("Enter your guess: ")
-    let input = read()
-    let guess = to_number(input)
-    attempts = attempts + 1
-    if guess == secret {
-        print("Correct! You found it in")
-        print(attempts)
-        print("attempts.")
-        guessed = true
-    } else {
-        if guess < secret {
-            print("Too low, try again.")
-        } else {
-            print("Too high, try again.")
-        }
-    }
+	print("Enter your guess: ")
+	let input = read()
+	let guess = to_number(input)
+	attempts = attempts + 1
+	if guess == secret {
+		print("Correct! You found it in")
+		print(attempts)
+		print("attempts.")
+		guessed = true
+	} else {
+		if guess < secret {
+			print("Too low, try again.")
+		} else {
+			print("Too high, try again.")
+		}
+	}
 }
 
 print("\n")

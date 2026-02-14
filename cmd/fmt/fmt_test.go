@@ -267,7 +267,7 @@ func TestFmtNestedBlocks(t *testing.T) {
 
 	// Check for increasing indentation
 	lines := strings.Split(got, "\n")
-	
+
 	// Should see tabs increasing
 	foundDoubleIndent := false
 	for _, line := range lines {
@@ -276,7 +276,7 @@ func TestFmtNestedBlocks(t *testing.T) {
 			break
 		}
 	}
-	
+
 	if !foundDoubleIndent {
 		t.Errorf("expected nested indentation:\n%s", got)
 	}

@@ -6,11 +6,11 @@ let pen_distance = 150
 let diff = outer_radius - inner_radius
 let ratio = diff / inner_radius
 while tick < 6280 {
-    let angle = tick / 100
-    let x = 400 + ((diff * cos(angle)) + (pen_distance * cos(ratio * angle)))
-    let y = 400 + ((diff * sin(angle)) - (pen_distance * sin(ratio * angle)))
-    dot(canvas_ref, x, y, :cyan)
-    tick = tick + 1
+	let angle = tick / 100
+	let x = 400 + ((diff * cos(angle)) + (pen_distance * cos(ratio * angle)))
+	let y = 400 + ((diff * sin(angle)) - (pen_distance * sin(ratio * angle)))
+	dot(canvas_ref, x, y, :cyan)
+	tick = tick + 1
 }
 
 sleep(1000)

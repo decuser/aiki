@@ -6,15 +6,15 @@ import (
 	"os"
 	"os/user"
 
-	_ "embed"
-	_ "aiki/hal/canvas"
-	"aiki/ebnf"
 	"aiki/cmd/repl"
+	"aiki/ebnf"
+	_ "aiki/hal/canvas"
 	"aiki/hal/core"
 	"aiki/lang/eval"
 	"aiki/lang/value"
 	"aiki/strict"
 	"aiki/version"
+	_ "embed"
 
 	aikifmt "aiki/cmd/fmt"
 	aikilint "aiki/cmd/lint"
@@ -27,7 +27,7 @@ var grammar *ebnf.Grammar
 
 func main() {
 	var err error
-	grammar, err = ebnf.Parse(grammarSource)  // Parse, not ParseFile
+	grammar, err = ebnf.Parse(grammarSource) // Parse, not ParseFile
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error loading grammar: %s\n", err)
 		os.Exit(1)
@@ -54,8 +54,8 @@ func main() {
 
 	result := eval.RunNode(grammar, strict.Source, env)
 	if e, ok := result.(*value.Error); ok {
-	    fmt.Fprintf(os.Stderr, "error loading strict: %s\n", e.Message)
-	    os.Exit(1)
+		fmt.Fprintf(os.Stderr, "error loading strict: %s\n", e.Message)
+		os.Exit(1)
 	}
 	env.SnapshotStrict()
 

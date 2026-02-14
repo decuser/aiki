@@ -87,7 +87,7 @@ func lintFile(path string) error {
 
 	diags, err := LintSource(grammar, string(data))
 	if err != nil {
-		return fmt.Errorf("parse error: %s", err)
+		return fmt.Errorf("%s: parse error: %s", path, err)
 	}
 
 	if len(diags) > 0 {

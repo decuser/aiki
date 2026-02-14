@@ -1,6 +1,6 @@
 let println = (val) {
-    print(val, "\n")
-    return true
+	print(val, "\n")
+	return true
 }
 
 # Test ord primitive

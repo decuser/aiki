@@ -180,7 +180,7 @@ func evalNodeProgram(node *ebnf.Node, env *value.Env) value.Value {
 func evalNodeLet(node *ebnf.Node, env *value.Env) value.Value {
 	// let_stmt: TERMINAL:"let" NAME TERMINAL:"=" expr
 	// Or shape: TERMINAL:"let" SHAPE TERMINAL:"[" fields TERMINAL:"]"
-	
+
 	var name string
 	var nameNode *ebnf.Node
 	var valNode *ebnf.Node
@@ -447,7 +447,7 @@ func matchNodePattern(pattern *ebnf.Node, subject value.Value, env *value.Env) b
 				return sym.Value == strings.TrimPrefix(child.Value, ":")
 			}
 		case "literal":
-		    return matchNodePattern(child, subject, env)
+			return matchNodePattern(child, subject, env)
 		}
 	}
 	return false
