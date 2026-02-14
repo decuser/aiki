@@ -37,6 +37,13 @@
 - Grammar is infrastructure, language is client
 - Errors are projection — templates from grammar/layers
 
+### Error System (add after Invariants, before Alpha Checklist)
+- [ ] Error template registry (fn + code → template)
+- [ ] HAL registers templates at init
+- [ ] `@error` shape in grammar for strict/user layers
+- [ ] Template interpolation (`{key}` → value)
+- [ ] `--errors=user|strict|hal` flag for error depth
+
 ## Alpha Checklist
 
 ### Core Cleanup
@@ -80,7 +87,7 @@
 - [ ] Help indexed by syntactic unit
 - [ ] Paradigm contexts as source truth (recursive, iterative, functional, immediate)
 - [ ] Paradigm contexts shadowable by user
-- [ ] `fmt --rules` and `lint --rules` to print enforced rules
+- [ ] fmt --rules and lint --rules to print enforced rules
 
 ### Lint Rules
 - [ ] Case locked on first use
@@ -95,8 +102,17 @@
 - [ ] Run full test suite
 - [ ] Test all examples
 
-## Future
+### Validation
+- [ ] `make build && make test && make fmt && make lint`
+- [ ] `./aiki -v`
+- [ ] `./aiki` (REPL starts)
+- [ ] `./aiki examples/canvas.ai`
+- [ ] `./aiki examples/pipeline.ai`
 
+
+## Future
+- [ ] Match pinning (`^name` to match against existing variable's value)
+- [ ] Match guards (`pattern if condition { ... }`)
 - [ ] Regex module
 - [ ] Multi-line REPL
 - [ ] Debugger
@@ -104,5 +120,4 @@
 - [ ] LSP
 - [ ] WASM target
 - [ ] `aiki build` — validate + produce artifact
-- [ ] `aiki test` — run tests
 - [ ] `aiki profile` — performance analysis

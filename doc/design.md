@@ -50,6 +50,9 @@ Functions, not keywords. Modules are values.
 | `strict` | Pure Aiki — lists, rationals, inspectable | Yes |
 | `pragmatic` | Fast Aiki — arrays, floats, hardware speed | Opt-in |
 
+**Strict is specification, not performance.** O(N) hash lookup in strict is correct—it proves the algorithm using inspectable lists. Pragmatic provides O(1) using Go maps. "Observationally equivalent" means same results, not same speed.
+
+
 ### Runtime Strata
 
 Three layers with distinct responsibilities:

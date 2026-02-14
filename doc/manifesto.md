@@ -50,6 +50,8 @@ Three layers acknowledge that principles and pragmatism coexist:
 
 Strict is the default. Pragmatic is opt-in. Same API, different physics.
 
+Strict may be slow. That's the price of transparency. Pragmatic is fast. That's the reward for proving correctness first.
+
 ## Tooling
 
 One formatter. One style. Errors point to source. The REPL is the workbench.
