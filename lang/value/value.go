@@ -144,8 +144,9 @@ func (l *List) Inspect() string {
 type Function struct {
 	Name       string
 	Parameters []string
-	RestParam  string // empty if no rest param, otherwise the name
-	Body       *ast.BlockStatement
+	RestParam  string
+	Body       *ast.BlockStatement // old AST path
+	BodyNode   interface{}         // new ebnf.Node path
 	Env        *Env
 }
 

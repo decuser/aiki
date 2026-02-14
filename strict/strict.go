@@ -2,33 +2,16 @@ package strict
 
 import (
 	_ "embed"
-	"fmt"
-
-	"aiki/lang/ast"
-	"aiki/lang/eval"
-	"aiki/lang/parser"
-	"aiki/lang/value"
 )
 
 //go:embed strict.ai
-var strictSource string
-
-func LoadStrict(env *value.Env) error {
-	result := eval.Run(strictSource, env)
-	if e, ok := result.(*value.Error); ok {
-		return fmt.Errorf("%s", e.Message)
-	}
-	env.SnapshotStrict()
-	return nil
-}
+var Source string
 
 func Exports() []string {
-	p := parser.New(strictSource)
-	program := p.Parse()
-	for _, stmt := range program.Statements {
-		if exp, ok := stmt.(*ast.ExportStatement); ok {
-			return exp.Names
-		}
+	return []string{
+		"each", "map", "filter", "reduce", "range", "reverse",
+		"find", "any", "all", "sum", "max", "min",
+		"hash_new", "hash_get", "hash_put", "hash_has", "hash_del",
+		"hash_keys", "hash_values", "hash_code", "println",
 	}
-	return nil
 }

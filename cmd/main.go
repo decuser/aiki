@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/user"
 
+	_ "embed"
+	"aiki/ebnf"
 	"aiki/cmd/repl"
 	"aiki/hal/core"
 	"aiki/lang/eval"
@@ -17,7 +19,19 @@ import (
 	aikilint "aiki/cmd/lint"
 )
 
+//go:embed grammar.ebnf
+var grammarSource string
+
+var grammar *ebnf.Grammar
+
 func main() {
+	var err error
+	grammar, err = ebnf.Parse(grammarSource)  // Parse, not ParseFile
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error loading grammar: %s\n", err)
+		os.Exit(1)
+	}
+
 	// Check for subcommands before flag parsing
 	if len(os.Args) > 1 {
 		switch os.Args[1] {
@@ -34,10 +48,12 @@ func main() {
 
 	env := value.NewEnv(nil)
 
-	if err := strict.LoadStrict(env); err != nil {
-		fmt.Fprintf(os.Stderr, "error loading strict: %s\n", err)
-		os.Exit(1)
+	result := eval.RunNode(grammar, strict.Source, env)
+	if e, ok := result.(*value.Error); ok {
+	    fmt.Fprintf(os.Stderr, "error loading strict: %s\n", e.Message)
+	    os.Exit(1)
 	}
+	env.SnapshotStrict()
 
 	if opts.Expr != "" {
 		runExpr(opts.Expr, env, opts)
@@ -61,11 +77,11 @@ func startREPL(env *value.Env, opts Options) {
 	fmt.Printf("Hello %s! The system is live.\n", u.Username)
 	fmt.Printf("Type help() for help.\n\n")
 
-	repl.Run(os.Stdin, os.Stdout, env, opts.Debug)
+	repl.Run(grammar, os.Stdin, os.Stdout, env, opts.Debug)
 }
 
 func runFile(filename string, env *value.Env, opts Options) {
-	result := eval.RunFile(filename, env)
+	result := eval.RunFileNode(grammar, filename, env)
 
 	if e, ok := result.(*value.Error); ok {
 		fmt.Fprintln(os.Stderr, e.Inspect())
@@ -78,7 +94,7 @@ func runFile(filename string, env *value.Env, opts Options) {
 }
 
 func runExpr(expr string, env *value.Env, opts Options) {
-	result := eval.Run(expr, env)
+	result := eval.RunNode(grammar, expr, env)
 
 	if _, ok := result.(*core.ExitSignal); ok {
 		return

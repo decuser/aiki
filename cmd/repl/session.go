@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 
+	"aiki/ebnf"
 	"aiki/hal/core"
 	"aiki/lang/eval"
 	"aiki/lang/value"
@@ -22,19 +23,19 @@ type Session struct {
 	debug   bool
 	reader  LineReader
 	tracker *TrackingWriter
+	grammar *ebnf.Grammar
 }
 
 // NewSession creates a new REPL session.
-func NewSession(out io.Writer, env *value.Env, debug bool) *Session {
+func NewSession(grammar *ebnf.Grammar, out io.Writer, env *value.Env, debug bool) *Session {
 	reader, err := NewReadlineReader()
 	if err != nil {
 		reader = NewSimpleReader()
 	}
-
 	tracker := &TrackingWriter{Out: out, EndedWithNewline: true}
 	core.Stdout = tracker
-
 	return &Session{
+		grammar: grammar,
 		out:     out,
 		env:     env,
 		debug:   debug,
@@ -80,14 +81,15 @@ func (s *Session) Run() {
 		}
 
 		s.tracker.EndedWithNewline = true
-		result := eval.Run(buffer, s.env)
+		result := eval.RunNode(s.grammar, buffer, s.env)
 		buffer = ""
 		prompt = promptMain
 
 		// Check for reset signal
 		if _, ok := result.(*core.ResetSignal); ok {
 			s.env = value.NewEnv(nil)
-			strict.LoadStrict(s.env)
+			eval.RunNode(s.grammar, strict.Source, s.env)
+			s.env.SnapshotStrict()
 			fmt.Fprintln(s.out, "Environment reset.")
 			continue
 		}
