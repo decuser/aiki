@@ -383,8 +383,8 @@ func (p *printer) printMatch(node *ebnf.Node) {
 		i++
 	}
 
-	// Value expression
-	if i < len(children) && children[i].Type != "TERMINAL" && children[i].Type != "match_arm" {
+	// Value expression - skip terminals and patterns
+	if i < len(children) && children[i].Type != "TERMINAL" && children[i].Type != "pattern" && children[i].Type != "block" {
 		p.printNode(children[i])
 		i++
 	}
@@ -392,11 +392,34 @@ func (p *printer) printMatch(node *ebnf.Node) {
 	p.write(" {\n")
 	p.indent++
 
-	for ; i < len(children); i++ {
+	// Process arms: pattern followed by block
+	// Grammar: match_stmt = "match" expr "{" { pattern block } "}"
+	for i < len(children) {
 		child := children[i]
-		if child.Type == "match_arm" {
-			p.printMatchArm(child)
+
+		// Skip terminals like "{" and "}"
+		if child.Type == "TERMINAL" {
+			i++
+			continue
 		}
+
+		// Found a pattern - next should be block
+		if child.Type == "pattern" {
+			p.writeIndent()
+			p.printPattern(child)
+			i++
+
+			// Look for the block
+			if i < len(children) && children[i].Type == "block" {
+				p.write(" ")
+				p.printBlock(children[i])
+				p.newline()
+				i++
+			}
+			continue
+		}
+
+		i++
 	}
 
 	p.indent--
@@ -406,20 +429,6 @@ func (p *printer) printMatch(node *ebnf.Node) {
 	line := nodeStartLine(node)
 	p.emitEOLComment(line)
 	p.newline()
-}
-
-func (p *printer) printMatchArm(node *ebnf.Node) {
-	p.writeIndent()
-	for _, child := range node.Children {
-		switch child.Type {
-		case "pattern":
-			p.printPattern(child)
-		case "block":
-			p.write(" ")
-			p.printBlock(child)
-			p.newline()
-		}
-	}
 }
 
 func (p *printer) printPattern(node *ebnf.Node) {
@@ -443,6 +452,20 @@ func (p *printer) printPattern(node *ebnf.Node) {
 			p.write(child.Value)
 		case "pattern":
 			p.printPattern(child)
+		case "literal":
+			// Handle nested literal in pattern
+			p.printPatternLiteral(child)
+		}
+	}
+}
+
+func (p *printer) printPatternLiteral(node *ebnf.Node) {
+	for _, child := range node.Children {
+		switch child.Type {
+		case "NUMBER", "STRING", "SYMBOL", "SHAPE":
+			p.write(child.Value)
+		case "TERMINAL":
+			p.write(child.Value)
 		}
 	}
 }

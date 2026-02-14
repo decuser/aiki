@@ -186,17 +186,175 @@ export [_internal]
 	}
 }
 
-func TestLintMatchPattern(t *testing.T) {
+// ============ NEW TESTS FOR BLOCK-SCOPED VARIABLES ============
+
+func TestLintWhileBlockVariable(t *testing.T) {
+	// Variable defined inside while should be visible within the loop
 	diags := lintSource(t, `
-let x = 5
-match x {
-	n { n + 1 }
+let i = 0
+while i < 10 {
+	let x = i * 2
+	println(x)
+	i = i + 1
 }
 `)
-	// 'n' should be defined in the match arm scope
 	for _, d := range diags {
-		if strings.Contains(d.Message, "undefined") && strings.Contains(d.Message, "'n'") {
-			t.Errorf("match pattern name 'n' should be defined in arm scope, got: %s", d.Message)
+		if strings.Contains(d.Message, "undefined") && strings.Contains(d.Message, "'x'") {
+			t.Errorf("'x' defined in while block should be visible, got: %s", d.Message)
+		}
+	}
+}
+
+func TestLintIfBlockVariable(t *testing.T) {
+	// Variable defined inside if should be visible within the block
+	diags := lintSource(t, `
+let cond = true
+if cond {
+	let result = 42
+	println(result)
+}
+`)
+	for _, d := range diags {
+		if strings.Contains(d.Message, "undefined") && strings.Contains(d.Message, "'result'") {
+			t.Errorf("'result' defined in if block should be visible, got: %s", d.Message)
+		}
+	}
+}
+
+func TestLintNestedBlockVariables(t *testing.T) {
+	// Variables in nested blocks
+	diags := lintSource(t, `
+let i = 0
+while i < 10 {
+	let outer = i
+	if outer > 5 {
+		let inner = outer * 2
+		println(inner)
+	}
+	i = i + 1
+}
+`)
+	for _, d := range diags {
+		if strings.Contains(d.Message, "undefined") {
+			t.Errorf("nested block variables should be visible, got: %s", d.Message)
+		}
+	}
+}
+
+func TestLintBlockVariableNotVisibleOutside(t *testing.T) {
+	// Variable defined inside block should NOT be visible outside
+	diags := lintSource(t, `
+if true {
+	let inside = 42
+}
+println(inside)
+`)
+	found := false
+	for _, d := range diags {
+		if strings.Contains(d.Message, "undefined") && strings.Contains(d.Message, "'inside'") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected undefined 'inside' (out of scope), got %v", diags)
+	}
+}
+
+func TestLintFunctionBlockVariable(t *testing.T) {
+	// Variable defined inside function body
+	diags := lintSource(t, `
+let f = () {
+	let local = 42
+	return local
+}
+`)
+	for _, d := range diags {
+		if strings.Contains(d.Message, "undefined") && strings.Contains(d.Message, "'local'") {
+			t.Errorf("'local' defined in function should be visible, got: %s", d.Message)
+		}
+	}
+}
+
+func TestLintNestedFunctionVariables(t *testing.T) {
+	// Outer function's variables visible to inner
+	diags := lintSource(t, `
+let outer = () {
+	let x = 10
+	let inner = () {
+		return x + 1
+	}
+	return inner()
+}
+`)
+	for _, d := range diags {
+		if strings.Contains(d.Message, "undefined") {
+			t.Errorf("closure variable 'x' should be visible, got: %s", d.Message)
+		}
+	}
+}
+
+func TestLintMatchPatternBinding(t *testing.T) {
+	// Variables bound in match patterns
+	diags := lintSource(t, `
+let val = 42
+match val {
+	x {
+		println(x)
+	}
+}
+`)
+	for _, d := range diags {
+		if strings.Contains(d.Message, "undefined") && strings.Contains(d.Message, "'x'") {
+			t.Errorf("pattern binding 'x' should be visible in arm, got: %s", d.Message)
+		}
+	}
+}
+
+func TestLintRestParam(t *testing.T) {
+	// Rest parameter should be visible in function body
+	diags := lintSource(t, `
+let f = (...args) {
+	return length(args)
+}
+`)
+	for _, d := range diags {
+		if strings.Contains(d.Message, "undefined") && strings.Contains(d.Message, "'args'") {
+			t.Errorf("rest param 'args' should be visible, got: %s", d.Message)
+		}
+	}
+}
+
+func TestLintMixedParams(t *testing.T) {
+	// Regular params plus rest param
+	diags := lintSource(t, `
+let f = (a, b, ...rest) {
+	return a + b + length(rest)
+}
+`)
+	for _, d := range diags {
+		if strings.Contains(d.Message, "undefined") {
+			t.Errorf("all params should be visible, got: %s", d.Message)
+		}
+	}
+}
+
+func TestLintComplexWhileLoop(t *testing.T) {
+	// Real-world while loop pattern (from pragmatic.ai)
+	diags := lintSource(t, `
+let _HASH_SIZE = 64
+let make_buckets = () {
+	let buckets = []
+	let i = 0
+	while i < _HASH_SIZE {
+		buckets = append(buckets, [])
+		i = i + 1
+	}
+	return buckets
+}
+`)
+	for _, d := range diags {
+		if d.Level == "error" {
+			t.Errorf("expected no errors, got: %s", d.Message)
 		}
 	}
 }

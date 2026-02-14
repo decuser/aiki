@@ -250,6 +250,8 @@ func (c *checker) checkLet(node *ebnf.Node) {
 	for _, child := range node.Children {
 		if child.Type == "SHAPE" {
 			isShape = true
+			// Define the shape name
+			c.define(child.Value)
 			break
 		}
 		if child.Type == "NAME" && name == nil {
@@ -258,7 +260,7 @@ func (c *checker) checkLet(node *ebnf.Node) {
 	}
 
 	if isShape {
-		// Shape definitions — already collected in first pass
+		// Shape definitions — already handled above
 		return
 	}
 
@@ -269,11 +271,14 @@ func (c *checker) checkLet(node *ebnf.Node) {
 				"naming: '"+name.Value+"' must be snake_case or SCREAMING_SNAKE_CASE")
 		}
 
-		// Check for shadowing (name was pre-defined in first pass)
+		// Check for shadowing
 		if c.isShadowing(name.Value) {
 			c.addWarning(name.Line, name.Column,
 				"shadow: '"+name.Value+"' shadows existing binding")
 		}
+
+		// Define the name in current scope (this was missing!)
+		c.define(name.Value)
 	}
 
 	// Check the expression (right side of =)
@@ -321,34 +326,52 @@ func (c *checker) checkWhile(node *ebnf.Node) {
 
 func (c *checker) checkMatch(node *ebnf.Node) {
 	for _, child := range node.Children {
-		if child.Type == "match_arm" {
-			c.checkMatchArm(child)
+		if child.Type == "pattern" {
+			// Pattern followed by block — handle as arm
+			continue
+		}
+		if child.Type == "block" {
+			// Find the preceding pattern
+			c.checkMatchArm(node, child)
 		} else if child.Type != "TERMINAL" {
 			c.check(child)
 		}
 	}
 }
 
-func (c *checker) checkMatchArm(node *ebnf.Node) {
+func (c *checker) checkMatchArm(matchNode *ebnf.Node, block *ebnf.Node) {
 	c.pushScope()
-	for _, child := range node.Children {
-		if child.Type == "pattern" {
-			c.checkPattern(child)
-		} else if child.Type == "block" {
-			// Don't push another scope — we already pushed one
-			for _, stmt := range child.Children {
-				c.check(stmt)
+
+	// Find pattern that precedes this block
+	var pattern *ebnf.Node
+	for i, child := range matchNode.Children {
+		if child == block && i > 0 {
+			for j := i - 1; j >= 0; j-- {
+				if matchNode.Children[j].Type == "pattern" {
+					pattern = matchNode.Children[j]
+					break
+				}
 			}
-		} else if child.Type != "TERMINAL" {
-			c.check(child)
+			break
 		}
 	}
+
+	if pattern != nil {
+		c.checkPattern(pattern)
+	}
+
+	// Check block contents
+	for _, stmt := range block.Children {
+		c.check(stmt)
+	}
+
 	c.popScope()
 }
 
 func (c *checker) checkPattern(node *ebnf.Node) {
 	for _, child := range node.Children {
 		if child.Type == "NAME" {
+			// Binding in pattern — define it
 			c.define(child.Value)
 		} else if child.Type == "pattern" {
 			c.checkPattern(child)
