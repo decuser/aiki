@@ -1,12 +1,12 @@
 package fmt
 
 import (
-	"aiki/lang/eval"
+	"aiki/hal/core"
 	"aiki/lang/value"
 )
 
 func init() {
-	eval.HAL["fmt"] = &value.Builtin{
+	core.HAL["fmt"] = &value.Builtin{
 		Name: "fmt",
 		Fn:   builtinFmt,
 	}
@@ -17,14 +17,14 @@ func builtinFmt(args ...value.Value) value.Value {
 		return value.NewError("fmt: want 1 argument, got %d", len(args))
 	}
 
-	path, ok := args[0].(*value.String)
+	source, ok := args[0].(*value.String)
 	if !ok {
 		return value.NewError("fmt: expected string argument")
 	}
 
-	count, err := Format(path.Value)
+	formatted, err := Format(source.Value)
 	if err != nil {
 		return value.NewError("fmt: %s", err)
 	}
-	return value.NewNumber(int64(count), 1)
+	return &value.String{Value: formatted}
 }

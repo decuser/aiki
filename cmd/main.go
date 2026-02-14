@@ -7,6 +7,7 @@ import (
 	"os/user"
 
 	_ "embed"
+	_ "aiki/hal/canvas"
 	"aiki/ebnf"
 	"aiki/cmd/repl"
 	"aiki/hal/core"
@@ -31,6 +32,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "error loading grammar: %s\n", err)
 		os.Exit(1)
 	}
+	aikifmt.SetGrammar(grammar)
 
 	// Check for subcommands before flag parsing
 	if len(os.Args) > 1 {
