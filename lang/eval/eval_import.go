@@ -10,8 +10,6 @@ import (
 
 // evalNodeExport handles: export [name1, name2, ...]
 // Records exported names on the environment.
-// Currently permissive: does not restrict access to non-exported names.
-// The Alpha Checklist will replace this keyword with an export() function.
 func evalNodeExport(node *ebnf.Node, env *value.Env) value.Value {
 	var names []string
 	for _, child := range node.Children {
@@ -24,7 +22,7 @@ func evalNodeExport(node *ebnf.Node, env *value.Env) value.Value {
 }
 
 // evalNodeImport handles: from mod use [name1, name2, ...]
-// Parses and evaluates the module, then copies exported (or all) names
+// Parses and evaluates the module, then copies exported names
 // into the current environment.
 func evalNodeImport(node *ebnf.Node, env *value.Env) value.Value {
 	var moduleName string
@@ -58,14 +56,12 @@ func evalNodeImport(node *ebnf.Node, env *value.Env) value.Value {
 		return value.NewError("import: cannot read '%s': %s", modulePath, err)
 	}
 
-	// Parse and evaluate module in its own environment
 	if nodeGrammar == nil {
 		return value.NewError("import: grammar not available")
 	}
 
+	// Parse and evaluate module in its own environment
 	modEnv := value.NewEnv(nil)
-	// Copy HAL builtins are available via evalNodeIdent's HAL lookup
-
 	ast, parseErr := nodeGrammar.ParseSource(string(data))
 	if parseErr != nil {
 		return value.NewError("import: parse error in '%s': %s", modulePath, parseErr)
@@ -93,11 +89,11 @@ func evalNodeImport(node *ebnf.Node, env *value.Env) value.Value {
 	return value.NULL
 }
 
-// nodeGrammar holds a reference to the grammar for import parsing.
+// nodeGrammar holds a reference to the grammar for import/load parsing.
 // Set by SetNodeGrammar during initialization.
 var nodeGrammar *ebnf.Grammar
 
-// SetNodeGrammar stores the grammar for use by import.
+// SetNodeGrammar stores the grammar for use by import and load.
 func SetNodeGrammar(g *ebnf.Grammar) {
 	nodeGrammar = g
 }
@@ -119,7 +115,7 @@ func resolveModulePath(name string, env *value.Env) string {
 		return candidate
 	}
 
-	// Try without extension (already has .ai)
+	// Try without extension
 	if _, err := os.Stat(name); err == nil {
 		return name
 	}

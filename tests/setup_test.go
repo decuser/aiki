@@ -17,9 +17,11 @@ func init() {
 	if err != nil {
 		panic("failed to load grammar: " + err.Error())
 	}
+	eval.SetNodeGrammar(testGrammar)
 }
 
-func setupIOEnv() *value.Env {
+// setupEnv creates an env with strict loaded.
+func setupEnv() *value.Env {
 	env := value.NewEnv(nil)
 	result := eval.RunNode(testGrammar, strict.Source, env)
 	if _, ok := result.(*value.Error); ok {
@@ -29,8 +31,16 @@ func setupIOEnv() *value.Env {
 	return env
 }
 
-func setupEnv() *value.Env {
-	return setupIOEnv()
+// testEval evaluates without strict (bare env).
+func testEval(input string) value.Value {
+	env := value.NewEnv(nil)
+	return eval.RunNode(testGrammar, input, env)
+}
+
+// testEvalStrict evaluates with strict loaded.
+func testEvalStrict(input string) value.Value {
+	env := setupEnv()
+	return eval.RunNode(testGrammar, input, env)
 }
 
 func testNumberValue(t *testing.T, v value.Value, expected string) {
@@ -53,9 +63,4 @@ func testBooleanValue(t *testing.T, v value.Value, expected bool) {
 	if b.Value != expected {
 		t.Errorf("got %v, want %v", b.Value, expected)
 	}
-}
-
-func testEval(input string) value.Value {
-	env := value.NewEnv(nil)
-	return eval.RunNode(testGrammar, input, env)
 }

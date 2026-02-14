@@ -27,7 +27,11 @@ func LintSource(grammar *ebnf.Grammar, source string) ([]Diagnostic, error) {
 	c := &checker{
 		scopes: []map[string]bool{makeGlobals()},
 	}
+
+	// Two-pass: first collect top-level let names, then check
+	c.collectTopLevel(node)
 	c.check(node)
+
 	return c.diags, nil
 }
 
@@ -54,13 +58,51 @@ func makeGlobals() map[string]bool {
 	for _, name := range strict.Exports() {
 		globals[name] = true
 	}
-	// Keywords used as identifiers in special forms
+	// Keywords that appear as identifiers
 	globals["true"] = true
 	globals["false"] = true
 	globals["not"] = true
 	globals["and"] = true
 	globals["or"] = true
 	return globals
+}
+
+// collectTopLevel does a first pass over program children to pre-define
+// all top-level let bindings. This allows forward references at file scope.
+func (c *checker) collectTopLevel(node *ebnf.Node) {
+	if node.Type != "program" {
+		return
+	}
+	for _, child := range node.Children {
+		if child.Type == "statement" && len(child.Children) > 0 {
+			stmt := child.Children[0]
+			switch stmt.Type {
+			case "let_stmt":
+				for _, ch := range stmt.Children {
+					if ch.Type == "NAME" {
+						c.define(ch.Value)
+						break
+					}
+					if ch.Type == "SHAPE" {
+						c.define(ch.Value) // @shape
+						break
+					}
+				}
+			case "import_stmt":
+				// Pre-define imported names
+				isFirst := true
+				for _, ch := range stmt.Children {
+					if ch.Type == "NAME" {
+						if isFirst {
+							isFirst = false
+							continue
+						}
+						c.define(ch.Value)
+					}
+				}
+			}
+		}
+	}
 }
 
 func (c *checker) pushScope() {
@@ -87,7 +129,6 @@ func (c *checker) isDefined(name string) bool {
 }
 
 func (c *checker) isShadowing(name string) bool {
-	// Check all scopes except the current one
 	for i := len(c.scopes) - 2; i >= 0; i-- {
 		if c.scopes[i][name] {
 			return true
@@ -179,10 +220,13 @@ func (c *checker) check(node *ebnf.Node) {
 			c.check(child)
 		}
 
-	case "call", "index", "access":
+	case "call", "index":
 		for _, child := range node.Children {
 			c.check(child)
 		}
+
+	case "access":
+		c.checkAccess(node)
 
 	case "list_literal":
 		for _, child := range node.Children {
@@ -193,7 +237,6 @@ func (c *checker) check(node *ebnf.Node) {
 		c.checkNameRef(node)
 
 	default:
-		// Recurse into children for any unhandled node types
 		for _, child := range node.Children {
 			c.check(child)
 		}
@@ -201,8 +244,6 @@ func (c *checker) check(node *ebnf.Node) {
 }
 
 func (c *checker) checkLet(node *ebnf.Node) {
-	// let_stmt has children: TERMINAL:"let" NAME TERMINAL:"=" expr
-	// or shape: TERMINAL:"let" SHAPE TERMINAL:"[" fields TERMINAL:"]"
 	var name *ebnf.Node
 	isShape := false
 
@@ -217,13 +258,7 @@ func (c *checker) checkLet(node *ebnf.Node) {
 	}
 
 	if isShape {
-		// Shape definitions - define the shape name
-		for _, child := range node.Children {
-			if child.Type == "SHAPE" {
-				shapeName := strings.TrimPrefix(child.Value, "@")
-				c.define("@" + shapeName)
-			}
-		}
+		// Shape definitions — already collected in first pass
 		return
 	}
 
@@ -234,14 +269,11 @@ func (c *checker) checkLet(node *ebnf.Node) {
 				"naming: '"+name.Value+"' must be snake_case or SCREAMING_SNAKE_CASE")
 		}
 
-		// Check for shadowing
+		// Check for shadowing (name was pre-defined in first pass)
 		if c.isShadowing(name.Value) {
 			c.addWarning(name.Line, name.Column,
 				"shadow: '"+name.Value+"' shadows existing binding")
 		}
-
-		// Define the name before checking the value (for recursion)
-		c.define(name.Value)
 	}
 
 	// Check the expression (right side of =)
@@ -258,7 +290,6 @@ func (c *checker) checkLet(node *ebnf.Node) {
 }
 
 func (c *checker) checkAssign(node *ebnf.Node) {
-	// assign_stmt: NAME "=" expr  or  postfix_expr "=" expr
 	for _, child := range node.Children {
 		if child.Type == "NAME" {
 			if !c.isDefined(child.Value) {
@@ -289,7 +320,6 @@ func (c *checker) checkWhile(node *ebnf.Node) {
 }
 
 func (c *checker) checkMatch(node *ebnf.Node) {
-	// Check the expression being matched
 	for _, child := range node.Children {
 		if child.Type == "match_arm" {
 			c.checkMatchArm(child)
@@ -300,14 +330,12 @@ func (c *checker) checkMatch(node *ebnf.Node) {
 }
 
 func (c *checker) checkMatchArm(node *ebnf.Node) {
-	// match_arm: pattern block
-	// Pattern can introduce bindings in the block scope
 	c.pushScope()
 	for _, child := range node.Children {
 		if child.Type == "pattern" {
 			c.checkPattern(child)
 		} else if child.Type == "block" {
-			// Don't push another scope - we already pushed one
+			// Don't push another scope — we already pushed one
 			for _, stmt := range child.Children {
 				c.check(stmt)
 			}
@@ -321,12 +349,10 @@ func (c *checker) checkMatchArm(node *ebnf.Node) {
 func (c *checker) checkPattern(node *ebnf.Node) {
 	for _, child := range node.Children {
 		if child.Type == "NAME" {
-			// Pattern names are bindings, not references
 			c.define(child.Value)
 		} else if child.Type == "pattern" {
 			c.checkPattern(child)
 		}
-		// Wildcards (_), literals, terminals are fine
 	}
 }
 
@@ -343,7 +369,6 @@ func (c *checker) checkFunc(node *ebnf.Node) {
 	// Check body
 	for _, child := range node.Children {
 		if child.Type == "block" {
-			// Don't push another scope - func already pushed one
 			for _, stmt := range child.Children {
 				c.check(stmt)
 			}
@@ -377,7 +402,6 @@ func (c *checker) defineParams(node *ebnf.Node) {
 				}
 			}
 		case "NAME":
-			// Direct NAME child (simple params)
 			if !isValidCase(child.Value) {
 				c.addError(child.Line, child.Column,
 					"naming: '"+child.Value+"' must be snake_case or SCREAMING_SNAKE_CASE")
@@ -388,7 +412,6 @@ func (c *checker) defineParams(node *ebnf.Node) {
 }
 
 func (c *checker) checkExport(node *ebnf.Node) {
-	// export [name1, name2, ...]
 	for _, child := range node.Children {
 		if child.Type == "NAME" {
 			if !c.isDefined(child.Value) {
@@ -404,17 +427,21 @@ func (c *checker) checkExport(node *ebnf.Node) {
 }
 
 func (c *checker) checkImport(node *ebnf.Node) {
-	// from mod use [name1, name2, ...]
-	// Define imported names in current scope
-	isFirst := true
+	// Names already pre-defined in first pass — nothing more to do
+}
+
+func (c *checker) checkAccess(node *ebnf.Node) {
+	// Check the left side normally
 	for _, child := range node.Children {
 		if child.Type == "NAME" {
-			if isFirst {
-				// First NAME is the module name, skip
-				isFirst = false
-				continue
+			// Field name — check snake_case
+			if len(child.Value) > 0 && child.Value[0] >= 'a' && child.Value[0] <= 'z' {
+				if !isValidCase(child.Value) {
+					c.addError(child.Line, child.Column,
+						"naming: field '"+child.Value+"' should be snake_case")
+				}
 			}
-			c.define(child.Value)
+			// Don't check isDefined — field names are resolved at runtime
 		}
 	}
 }

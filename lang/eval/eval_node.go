@@ -74,7 +74,6 @@ func EvalNode(node *ebnf.Node, env *value.Env) value.Value {
 	case "import_stmt":
 		return evalNodeImport(node, env)
 
-
 	case "block":
 		return evalNodeBlock(node, env)
 
@@ -430,6 +429,8 @@ func matchNodePattern(pattern *ebnf.Node, subject value.Value, env *value.Env) b
 			if sym, ok := subject.(*value.Symbol); ok {
 				return sym.Value == strings.TrimPrefix(child.Value, ":")
 			}
+		case "literal":
+		    return matchNodePattern(child, subject, env)
 		}
 	}
 	return false
@@ -504,7 +505,7 @@ func evalNodePipe(node *ebnf.Node, env *value.Env) value.Value {
 		}
 
 		// Pipe: inject result as first arg to the call
-		result = evalPipeCall(child, result, env)
+		result = evalPipeCallSafe(child, result, env)
 		if isError(result) {
 			return result
 		}
@@ -512,58 +513,6 @@ func evalNodePipe(node *ebnf.Node, env *value.Env) value.Value {
 	}
 
 	return result
-}
-
-func evalPipeCall(node *ebnf.Node, pipedValue value.Value, env *value.Env) value.Value {
-	// Navigate to find the function and call
-	// node is typically postfix_expr -> primary -> NAME, then call
-	
-	var fn value.Value
-	var args []value.Value
-	args = append(args, pipedValue) // piped value is first arg
-
-	// Walk the postfix_expr to find function name and call args
-	var walk func(n *ebnf.Node)
-	walk = func(n *ebnf.Node) {
-		for _, child := range n.Children {
-			switch child.Type {
-			case "primary", "postfix_expr", "infix_expr", "unary_expr", "pipe_expr", "expr":
-				walk(child)
-			case "NAME":
-				fn = evalNodeIdent(child.Value, env)
-			case "call":
-				// Extract additional args from call
-				for _, callChild := range child.Children {
-					if callChild.Type == "TERMINAL" {
-						continue
-					}
-					val := EvalNode(callChild, env)
-					if isError(val) {
-						fn = val // store error to return later
-						return
-					}
-					args = append(args, val)
-				}
-			}
-		}
-	}
-	walk(node)
-
-	if fn == nil {
-		return value.NewError("pipe: could not find function")
-	}
-	if isError(fn) {
-		return fn
-	}
-
-	switch f := fn.(type) {
-	case *value.Builtin:
-		return f.Fn(args...)
-	case *value.Function:
-		return applyNodeFunc(f, args)
-	default:
-		return value.NewError("pipe: expected function, got %s", fn.Type())
-	}
 }
 
 func evalNodeInfix(node *ebnf.Node, env *value.Env) value.Value {
@@ -656,7 +605,7 @@ func evalNodePostfix(node *ebnf.Node, env *value.Env) value.Value {
 
 		switch child.Type {
 		case "call":
-			result = evalNodeCall(result, child, env)
+			result = evalNodeCallSafe(result, child, env)
 		case "index":
 			result = evalNodeIndex(result, child, env)
 		case "access":
@@ -761,30 +710,6 @@ func evalNodeList(node *ebnf.Node, env *value.Env) value.Value {
 		}
 	}
 	return list
-}
-
-func evalNodeCall(fn value.Value, node *ebnf.Node, env *value.Env) value.Value {
-	var args []value.Value
-
-	for _, child := range node.Children {
-		if child.Type == "TERMINAL" {
-			continue
-		}
-		val := EvalNode(child, env)
-		if isError(val) {
-			return val
-		}
-		args = append(args, val)
-	}
-
-	switch f := fn.(type) {
-	case *value.Builtin:
-		return f.Fn(args...)
-	case *value.Function:
-		return applyNodeFunc(f, args)
-	default:
-		return value.NewError("not callable: %s", fn.Type())
-	}
 }
 
 func evalNodeIndex(target value.Value, node *ebnf.Node, env *value.Env) value.Value {

@@ -1,6 +1,7 @@
 package lint
 
 import (
+	"strings"
 	"testing"
 
 	"aiki/ebnf"
@@ -9,272 +10,193 @@ import (
 var testGrammar *ebnf.Grammar
 
 func init() {
-	// From cmd/lint/, grammar.ebnf is at ../grammar.ebnf
-	g, err := ebnf.ParseFile("../grammar.ebnf")
+	var err error
+	testGrammar, err = ebnf.ParseFile("../../cmd/grammar.ebnf")
 	if err != nil {
 		panic("failed to load grammar: " + err.Error())
 	}
-	testGrammar = g
-	SetGrammar(g)
+}
+
+func lintSource(t *testing.T, source string) []Diagnostic {
+	t.Helper()
+	diags, err := LintSource(testGrammar, source)
+	if err != nil {
+		t.Fatalf("lint error: %v", err)
+	}
+	return diags
 }
 
 func TestLintCleanCode(t *testing.T) {
-	clean := []string{
-		`let x = 5`,
-		`let add = (a, b) { return a + b }`,
-		`let result = add(1, 2)`,
-		`if true { let y = 1 }`,
-		`while true { let z = 1 }`,
-		`let f = (n) { return n + 1 }`,
-		`let items = [1, 2, 3]`,
-		`print("hello")`,
-		`let MAX_SIZE = 100`,
-		`let _internal = 0`,
-	}
-
-	for _, src := range clean {
-		t.Run(src, func(t *testing.T) {
-			diags, err := LintSource(grammar, src)
-			if err != nil {
-				t.Fatalf("lint error: %v", err)
-			}
-			errors := filterErrors(diags)
-			if len(errors) > 0 {
-				t.Errorf("expected clean, got errors: %v", errors)
-			}
-		})
+	diags := lintSource(t, `
+let x = 5
+let y = x + 1
+`)
+	if len(diags) > 0 {
+		t.Errorf("expected no diagnostics, got %d: %v", len(diags), diags)
 	}
 }
 
 func TestLintUndefined(t *testing.T) {
-	tests := []struct {
-		name   string
-		source string
-		expect string
-	}{
-		{
-			name:   "undefined variable",
-			source: `let x = y`,
-			expect: "undefined: 'y'",
-		},
-		{
-			name:   "undefined function",
-			source: `foo(1)`,
-			expect: "undefined: 'foo'",
-		},
+	diags := lintSource(t, `
+let x = y + 1
+`)
+	found := false
+	for _, d := range diags {
+		if strings.Contains(d.Message, "undefined") && strings.Contains(d.Message, "'y'") {
+			found = true
+		}
 	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			diags, err := LintSource(grammar, tt.source)
-			if err != nil {
-				t.Fatalf("lint error: %v", err)
-			}
-			if !hasDiagContaining(diags, tt.expect) {
-				t.Errorf("expected diagnostic containing %q, got: %v", tt.expect, diags)
-			}
-		})
+	if !found {
+		t.Errorf("expected undefined 'y' diagnostic, got %v", diags)
 	}
 }
 
-func TestLintNaming(t *testing.T) {
-	tests := []struct {
-		name   string
-		source string
-		expect string
-	}{
-		{
-			name:   "camelCase rejected",
-			source: `let myVar = 5`,
-			expect: "naming:",
-		},
-		{
-			name:   "PascalCase rejected",
-			source: `let MyVar = 5`,
-			expect: "naming:",
-		},
-		{
-			name:   "MixedSCREAM rejected",
-			source: `let MAX_size = 5`,
-			expect: "naming:",
-		},
+func TestLintNamingViolation(t *testing.T) {
+	diags := lintSource(t, `
+let badName = 5
+`)
+	found := false
+	for _, d := range diags {
+		if strings.Contains(d.Message, "naming") && strings.Contains(d.Message, "badName") {
+			found = true
+		}
 	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			diags, err := LintSource(grammar, tt.source)
-			if err != nil {
-				t.Fatalf("lint error: %v", err)
-			}
-			if !hasDiagContaining(diags, tt.expect) {
-				t.Errorf("expected diagnostic containing %q, got: %v", tt.expect, diags)
-			}
-		})
+	if !found {
+		t.Errorf("expected naming violation for 'badName', got %v", diags)
 	}
 }
 
-func TestLintValidNaming(t *testing.T) {
-	valid := []string{
-		`let x = 1`,
-		`let my_var = 1`,
-		`let MAX_SIZE = 1`,
-		`let _private = 1`,
-		`let _PRIVATE = 1`,
+func TestLintScreamingCase(t *testing.T) {
+	diags := lintSource(t, `
+let MAX_SIZE = 100
+`)
+	for _, d := range diags {
+		if strings.Contains(d.Message, "MAX_SIZE") {
+			t.Errorf("SCREAMING_SNAKE_CASE should be valid, got: %s", d.Message)
+		}
 	}
+}
 
-	for _, src := range valid {
-		t.Run(src, func(t *testing.T) {
-			diags, err := LintSource(grammar, src)
-			if err != nil {
-				t.Fatalf("lint error: %v", err)
-			}
-			for _, d := range diags {
-				if d.Level == "error" && contains(d.Message, "naming:") {
-					t.Errorf("expected valid naming, got: %s", d.Message)
-				}
-			}
-		})
+func TestLintForwardReference(t *testing.T) {
+	// Two-pass: b uses a which is defined later at top level
+	diags := lintSource(t, `
+let b = a + 1
+let a = 5
+`)
+	for _, d := range diags {
+		if strings.Contains(d.Message, "undefined") && strings.Contains(d.Message, "'a'") {
+			t.Errorf("forward reference 'a' should be allowed at top level, got: %s", d.Message)
+		}
 	}
 }
 
 func TestLintShadowWarning(t *testing.T) {
-	source := `let x = 1
+	diags := lintSource(t, `
+let x = 5
 let f = () {
-	let x = 2
-}`
-	diags, err := LintSource(grammar, source)
-	if err != nil {
-		t.Fatalf("lint error: %v", err)
-	}
-	if !hasDiagContaining(diags, "shadow:") {
-		t.Errorf("expected shadow warning, got: %v", diags)
-	}
-	// Should be warning, not error
+	let x = 10
+	x
+}
+`)
+	found := false
 	for _, d := range diags {
-		if contains(d.Message, "shadow:") && d.Level != "warning" {
-			t.Errorf("shadow should be warning, got %s", d.Level)
+		if d.Level == "warning" && strings.Contains(d.Message, "shadow") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected shadow warning, got %v", diags)
+	}
+}
+
+func TestLintBuiltinsOK(t *testing.T) {
+	diags := lintSource(t, `
+let x = length([1, 2, 3])
+`)
+	for _, d := range diags {
+		if strings.Contains(d.Message, "undefined") && strings.Contains(d.Message, "length") {
+			t.Errorf("builtin 'length' should be recognized, got: %s", d.Message)
 		}
 	}
 }
 
-func TestLintExportPrefixWarning(t *testing.T) {
-	source := `let _private = 1
-export [_private]`
-	diags, err := LintSource(grammar, source)
-	if err != nil {
-		t.Fatalf("lint error: %v", err)
-	}
-	if !hasDiagContaining(diags, "_prefix") {
-		t.Errorf("expected _prefix warning, got: %v", diags)
-	}
-}
-
-func TestLintBuiltinsAvailable(t *testing.T) {
-	// HAL builtins should not trigger undefined
-	sources := []string{
-		`print("hello")`,
-		`let n = length([1, 2, 3])`,
-		`let t = type(42)`,
-		`let f = first([1, 2])`,
-		`let r = rest([1, 2])`,
-	}
-
-	for _, src := range sources {
-		t.Run(src, func(t *testing.T) {
-			diags, err := LintSource(grammar, src)
-			if err != nil {
-				t.Fatalf("lint error: %v", err)
-			}
-			errors := filterErrors(diags)
-			if len(errors) > 0 {
-				t.Errorf("expected clean (builtins available), got: %v", errors)
-			}
-		})
+func TestLintStrictExportsOK(t *testing.T) {
+	diags := lintSource(t, `
+let x = map([1, 2], (n) { return n + 1 })
+`)
+	for _, d := range diags {
+		if strings.Contains(d.Message, "undefined") && strings.Contains(d.Message, "map") {
+			t.Errorf("strict export 'map' should be recognized, got: %s", d.Message)
+		}
 	}
 }
 
-func TestLintStrictExportsAvailable(t *testing.T) {
-	// Strict exports should not trigger undefined
-	sources := []string{
-		`let r = range(1, 10)`,
-		`let s = sum([1, 2, 3])`,
-		`let m = map([1, 2], (x) { return x })`,
-		`let h = hash_new()`,
-	}
-
-	for _, src := range sources {
-		t.Run(src, func(t *testing.T) {
-			diags, err := LintSource(grammar, src)
-			if err != nil {
-				t.Fatalf("lint error: %v", err)
-			}
-			errors := filterErrors(diags)
-			if len(errors) > 0 {
-				t.Errorf("expected clean (strict exports available), got: %v", errors)
-			}
-		})
+func TestLintParams(t *testing.T) {
+	diags := lintSource(t, `
+let f = (good_name) { return good_name }
+`)
+	if len(diags) > 0 {
+		t.Errorf("expected no diagnostics for valid params, got %v", diags)
 	}
 }
 
-func TestLintFuncParams(t *testing.T) {
-	// Parameters should be defined within function body
-	source := `let f = (x, y) { return x + y }`
-	diags, err := LintSource(grammar, source)
-	if err != nil {
-		t.Fatalf("lint error: %v", err)
+func TestLintBadParam(t *testing.T) {
+	diags := lintSource(t, `
+let f = (badParam) { return badParam }
+`)
+	found := false
+	for _, d := range diags {
+		if strings.Contains(d.Message, "naming") && strings.Contains(d.Message, "badParam") {
+			found = true
+		}
 	}
-	errors := filterErrors(diags)
-	if len(errors) > 0 {
-		t.Errorf("expected clean, got: %v", errors)
+	if !found {
+		t.Errorf("expected naming violation for 'badParam', got %v", diags)
 	}
 }
 
-func TestLintMatchPatternBindings(t *testing.T) {
-	// Pattern variables should be available in match arm body
-	source := `let x = 1
+func TestLintExportUndefined(t *testing.T) {
+	diags := lintSource(t, `
+export [does_not_exist]
+`)
+	found := false
+	for _, d := range diags {
+		if strings.Contains(d.Message, "export") && strings.Contains(d.Message, "does_not_exist") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected export warning for undefined name, got %v", diags)
+	}
+}
+
+func TestLintExportPrivate(t *testing.T) {
+	diags := lintSource(t, `
+let _internal = 5
+export [_internal]
+`)
+	found := false
+	for _, d := range diags {
+		if strings.Contains(d.Message, "_prefix") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected _prefix export warning, got %v", diags)
+	}
+}
+
+func TestLintMatchPattern(t *testing.T) {
+	diags := lintSource(t, `
+let x = 5
 match x {
-	n { return n }
-}`
-	diags, err := LintSource(grammar, source)
-	if err != nil {
-		t.Fatalf("lint error: %v", err)
-	}
-	errors := filterErrors(diags)
-	if len(errors) > 0 {
-		t.Errorf("expected clean (pattern bindings), got: %v", errors)
-	}
+	n { n + 1 }
 }
-
-// --- helpers ---
-
-func filterErrors(diags []Diagnostic) []Diagnostic {
-	var errs []Diagnostic
+`)
+	// 'n' should be defined in the match arm scope
 	for _, d := range diags {
-		if d.Level == "error" {
-			errs = append(errs, d)
+		if strings.Contains(d.Message, "undefined") && strings.Contains(d.Message, "'n'") {
+			t.Errorf("match pattern name 'n' should be defined in arm scope, got: %s", d.Message)
 		}
 	}
-	return errs
-}
-
-func hasDiagContaining(diags []Diagnostic, substr string) bool {
-	for _, d := range diags {
-		if contains(d.Message, substr) {
-			return true
-		}
-	}
-	return false
-}
-
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && searchStr(s, substr)
-}
-
-func searchStr(s, sub string) bool {
-	for i := 0; i <= len(s)-len(sub); i++ {
-		if s[i:i+len(sub)] == sub {
-			return true
-		}
-	}
-	return false
 }

@@ -35,6 +35,16 @@ func (g *Grammar) ParseSource(source string) (*Node, error) {
 	return g.Parse(tokens)
 }
 
+// ParseSourceWithComments tokenizes and parses source, returning comments.
+func (g *Grammar) ParseSourceWithComments(source string) (*Node, []Comment, error) {
+	tokens, comments, err := g.TokenizeWithComments(source)
+	if err != nil {
+		return nil, nil, err
+	}
+	node, err := g.Parse(tokens)
+	return node, comments, err
+}
+
 // Parse parses from the start production
 func (p *Parser) Parse() (*Node, error) {
 	node, err := p.parseProduction(p.grammar.Start)

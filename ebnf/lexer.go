@@ -7,13 +7,22 @@ import (
 	"unicode/utf8"
 )
 
+// Comment represents a source comment with its line number.
+type Comment struct {
+	Line  int
+	Text  string
+	IsEOL bool // true if comment follows code on same line
+}
+
 // Lexer tokenizes source using token definitions from Grammar
 type Lexer struct {
-	defs   []TokenDef
-	source string
-	pos    int
-	line   int
-	col    int
+	defs        []TokenDef
+	source      string
+	pos         int
+	line        int
+	col         int
+	Comments    []Comment // collected comments
+	lastTokLine int       // line of last emitted token
 }
 
 // NewLexer creates a lexer from token definitions
@@ -31,6 +40,13 @@ func NewLexer(defs []TokenDef, source string) *Lexer {
 func (g *Grammar) Tokenize(source string) ([]Token, error) {
 	l := NewLexer(g.Tokens, source)
 	return l.Tokenize()
+}
+
+// TokenizeWithComments returns all tokens and collected comments from source.
+func (g *Grammar) TokenizeWithComments(source string) ([]Token, []Comment, error) {
+	l := NewLexer(g.Tokens, source)
+	tokens, err := l.Tokenize()
+	return tokens, l.Comments, err
 }
 
 // Tokenize returns all tokens
@@ -95,12 +111,24 @@ func (l *Lexer) Next() (Token, error) {
 			l.advance(bestMatch.lexeme)
 
 			if bestMatch.def.Skip {
-				// Skip this token, continue to next
+				// Collect comments instead of silently discarding
+				if strings.HasPrefix(bestMatch.lexeme, "#") {
+					text := strings.TrimRight(bestMatch.lexeme, "\n")
+					isEOL := l.lastTokLine == startLine
+					l.Comments = append(l.Comments, Comment{
+						Line:  startLine,
+						Text:  text,
+						IsEOL: isEOL,
+					})
+				}
+
 				if l.pos == startPos {
 					return Token{}, fmt.Errorf("line %d col %d: lexer stuck on skip", l.line, l.col)
 				}
 				continue
 			}
+
+			l.lastTokLine = startLine
 
 			return Token{
 				Type:   bestMatch.def.Name,

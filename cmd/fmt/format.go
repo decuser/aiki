@@ -1,28 +1,40 @@
 package fmt
 
 import (
+	"sort"
 	"strings"
 
 	"aiki/ebnf"
 )
 
-// Format takes source code and returns formatted source code.
+// FormatSource formats source code, preserving comments and blank lines.
 func FormatSource(grammar *ebnf.Grammar, source string) (string, error) {
-	node, err := grammar.ParseSource(source)
+	node, comments, err := grammar.ParseSourceWithComments(source)
 	if err != nil {
 		return "", err
 	}
-	
+
 	p := &printer{
-		indent: 0,
+		comments:    make(map[int]string),
+		eolComments: make(map[int]string),
 	}
-	p.printNode(node)
+	for _, c := range comments {
+		if c.IsEOL {
+			p.eolComments[c.Line] = c.Text
+		} else {
+			p.comments[c.Line] = c.Text
+		}
+	}
+	p.printProgram(node)
 	return p.buf.String(), nil
 }
 
 type printer struct {
-	buf    strings.Builder
-	indent int
+	buf         strings.Builder
+	indent      int
+	comments    map[int]string // line -> standalone comment text
+	eolComments map[int]string // line -> EOL comment text
+	lastLine    int
 }
 
 func (p *printer) write(s string) {
@@ -37,6 +49,106 @@ func (p *printer) writeIndent() {
 
 func (p *printer) newline() {
 	p.buf.WriteString("\n")
+}
+
+// emitCommentsBefore emits standalone comments between lastLine and line.
+func (p *printer) emitCommentsBefore(line int) {
+	var lines []int
+	for commentLine := range p.comments {
+		if commentLine < line && commentLine > p.lastLine {
+			lines = append(lines, commentLine)
+		}
+	}
+	sort.Ints(lines)
+	for _, cl := range lines {
+		p.writeIndent()
+		p.write(p.comments[cl])
+		p.newline()
+		delete(p.comments, cl)
+	}
+}
+
+// emitEOLComment emits an end-of-line comment if present.
+func (p *printer) emitEOLComment(line int) {
+	if text, ok := p.eolComments[line]; ok {
+		p.write("  ")
+		p.write(text)
+		delete(p.eolComments, line)
+	}
+}
+
+// emitTrailingComments emits any comments after all statements.
+func (p *printer) emitTrailingComments() {
+	var lines []int
+	for line := range p.comments {
+		lines = append(lines, line)
+	}
+	sort.Ints(lines)
+	for _, line := range lines {
+		p.newline()
+		p.write(p.comments[line])
+		p.newline()
+	}
+}
+
+// nodeStartLine returns the line number of a node's first token.
+func nodeStartLine(node *ebnf.Node) int {
+	if node.Line > 0 {
+		return node.Line
+	}
+	for _, child := range node.Children {
+		line := nodeStartLine(child)
+		if line > 0 {
+			return line
+		}
+	}
+	return 0
+}
+
+func (p *printer) printProgram(node *ebnf.Node) {
+	prevLine := 0
+	for i, child := range node.Children {
+		line := nodeStartLine(child)
+
+		// Preserve blank lines between statements
+		if i > 0 && line > prevLine+1 {
+			p.newline()
+		}
+
+		p.emitCommentsBefore(line)
+		p.printStatement(child)
+		p.lastLine = line
+		prevLine = line
+	}
+	p.emitTrailingComments()
+
+	// Ensure trailing newline
+	s := p.buf.String()
+	if len(s) > 0 && s[len(s)-1] != '\n' {
+		p.newline()
+	}
+}
+
+func (p *printer) printStatement(node *ebnf.Node) {
+	if len(node.Children) == 0 {
+		return
+	}
+	child := node.Children[0]
+	line := nodeStartLine(node)
+
+	switch child.Type {
+	case "if_stmt":
+		p.printIf(child)
+	case "while_stmt":
+		p.printWhile(child)
+	case "match_stmt":
+		p.printMatch(child)
+	default:
+		// Single-line statements: let, assign, return, expr, export, import
+		p.printNode(child)
+		p.emitEOLComment(line)
+		p.newline()
+	}
 }
 
 func (p *printer) printNode(node *ebnf.Node) {
@@ -96,37 +208,16 @@ func (p *printer) printNode(node *ebnf.Node) {
 	case "BINOP":
 		p.printBinop(node)
 	default:
-		// Pass through children
 		for _, child := range node.Children {
 			p.printNode(child)
 		}
 	}
 }
 
-func (p *printer) printProgram(node *ebnf.Node) {
-	for i, child := range node.Children {
-		if i > 0 {
-			p.newline()
-		}
-		p.printNode(child)
-	}
-	// Ensure trailing newline
-	if len(node.Children) > 0 {
-		p.newline()
-	}
-}
-
-func (p *printer) printStatement(node *ebnf.Node) {
-	p.writeIndent()
-	for _, child := range node.Children {
-		p.printNode(child)
-	}
-}
-
 func (p *printer) printLet(node *ebnf.Node) {
+	p.writeIndent()
 	p.write("let ")
-	
-	// Check if it's a shape definition
+
 	isShape := false
 	for _, child := range node.Children {
 		if child.Type == "SHAPE" {
@@ -134,7 +225,7 @@ func (p *printer) printLet(node *ebnf.Node) {
 			break
 		}
 	}
-	
+
 	if isShape {
 		p.printShapeDef(node)
 	} else {
@@ -143,198 +234,221 @@ func (p *printer) printLet(node *ebnf.Node) {
 }
 
 func (p *printer) printShapeDef(node *ebnf.Node) {
-	// let @shape [fields]
 	for _, child := range node.Children {
-		switch child.Type {
-		case "SHAPE":
+		if child.Type == "SHAPE" {
 			p.write(child.Value)
-		case "field":
-			// handled below
-		case "TERMINAL":
-			if child.Value == "[" {
-				p.write(" [")
-			} else if child.Value == "]" {
-				p.write("]")
-			} else if child.Value == "," {
-				p.write(", ")
-			}
+			break
 		}
 	}
-	
-	// Collect and print fields
+
+	p.write(" [")
 	first := true
 	for _, child := range node.Children {
 		if child.Type == "field" {
 			for _, f := range child.Children {
-				if !first {
-					p.write(", ")
+				if f.Type == "NAME" || f.Type == "SHAPE" {
+					if !first {
+						p.write(", ")
+					}
+					first = false
+					p.write(f.Value)
 				}
-				first = false
-				p.write(f.Value)
 			}
 		}
 	}
+	p.write("]")
 }
 
 func (p *printer) printLetBinding(node *ebnf.Node) {
-	// let name = expr
+	var name string
+	var valueNode *ebnf.Node
+
+	foundEquals := false
 	for _, child := range node.Children {
-		switch child.Type {
-		case "NAME":
-			p.write(child.Value)
-		case "TERMINAL":
-			if child.Value == "=" {
-				p.write(" = ")
-			}
-		case "expr", "pipe_expr", "infix_expr", "unary_expr", "postfix_expr", "primary", "func_literal", "list_literal":
-			p.printNode(child)
+		if child.Type == "NAME" && !foundEquals {
+			name = child.Value
 		}
+		if child.Type == "TERMINAL" && child.Value == "=" {
+			foundEquals = true
+			continue
+		}
+		if foundEquals {
+			valueNode = child
+			break
+		}
+	}
+
+	p.write(name)
+	p.write(" = ")
+	if valueNode != nil {
+		p.printNode(valueNode)
 	}
 }
 
 func (p *printer) printAssign(node *ebnf.Node) {
+	p.writeIndent()
+	foundEquals := false
 	for _, child := range node.Children {
-		switch child.Type {
-		case "NAME":
-			p.write(child.Value)
-		case "TERMINAL":
-			if child.Value == "=" {
-				p.write(" = ")
-			}
-		default:
+		if child.Type == "TERMINAL" && child.Value == "=" {
+			foundEquals = true
+			p.write(" = ")
+			continue
+		}
+		if !foundEquals {
+			p.printNode(child)
+		} else {
 			p.printNode(child)
 		}
 	}
 }
 
 func (p *printer) printIf(node *ebnf.Node) {
+	p.writeIndent()
 	p.write("if ")
-	
-	wroteCondition := false
-	for _, child := range node.Children {
-		switch child.Type {
-		case "TERMINAL":
-			if child.Value == "else" {
-				p.write(" else ")
-			}
-			// skip "if"
-		case "block":
-			p.printNode(child)
-		case "if_stmt":
-			// else if
-			p.printIfInner(child)
-		default:
-			if !wroteCondition {
-				p.printNode(child)
-				p.write(" ")
-				wroteCondition = true
-			}
-		}
-	}
-}
 
-func (p *printer) printIfInner(node *ebnf.Node) {
-	// For else-if chains, don't add indent
-	p.write("if ")
-	
-	wroteCondition := false
-	for _, child := range node.Children {
-		switch child.Type {
-		case "TERMINAL":
-			if child.Value == "else" {
-				p.write(" else ")
-			}
-		case "block":
-			p.printNode(child)
-		case "if_stmt":
-			p.printIfInner(child)
-		default:
-			if !wroteCondition {
-				p.printNode(child)
-				p.write(" ")
-				wroteCondition = true
-			}
+	children := node.Children
+	i := 0
+
+	// Skip "if" terminal
+	if i < len(children) && children[i].Type == "TERMINAL" && children[i].Value == "if" {
+		i++
+	}
+
+	// Condition
+	if i < len(children) && children[i].Type != "block" && children[i].Type != "TERMINAL" {
+		p.printNode(children[i])
+		i++
+	}
+
+	// Consequence block
+	p.write(" ")
+	if i < len(children) && children[i].Type == "block" {
+		p.printBlock(children[i])
+		i++
+	}
+
+	// else
+	if i < len(children) && children[i].Type == "TERMINAL" && children[i].Value == "else" {
+		p.write(" else ")
+		i++
+		if i < len(children) && children[i].Type == "block" {
+			p.printBlock(children[i])
+			i++
 		}
 	}
+
+	line := nodeStartLine(node)
+	p.emitEOLComment(line)
+	p.newline()
 }
 
 func (p *printer) printWhile(node *ebnf.Node) {
+	p.writeIndent()
 	p.write("while ")
-	
-	wroteCondition := false
-	for _, child := range node.Children {
-		switch child.Type {
-		case "TERMINAL":
-			// skip "while"
-		case "block":
-			p.printNode(child)
-		default:
-			if !wroteCondition {
-				p.printNode(child)
-				p.write(" ")
-				wroteCondition = true
-			}
-		}
+
+	children := node.Children
+	i := 0
+
+	// Skip "while" terminal
+	if i < len(children) && children[i].Type == "TERMINAL" && children[i].Value == "while" {
+		i++
 	}
+
+	// Condition
+	if i < len(children) && children[i].Type != "block" && children[i].Type != "TERMINAL" {
+		p.printNode(children[i])
+		i++
+	}
+
+	// Body
+	p.write(" ")
+	if i < len(children) && children[i].Type == "block" {
+		p.printBlock(children[i])
+	}
+
+	line := nodeStartLine(node)
+	p.emitEOLComment(line)
+	p.newline()
 }
 
 func (p *printer) printMatch(node *ebnf.Node) {
+	p.writeIndent()
 	p.write("match ")
-	
-	wroteValue := false
-	var patterns []*ebnf.Node
-	var blocks []*ebnf.Node
-	
-	for _, child := range node.Children {
-		switch child.Type {
-		case "TERMINAL":
-			// skip match, {, }
-		case "pattern":
-			patterns = append(patterns, child)
-		case "block":
-			blocks = append(blocks, child)
-		default:
-			if !wroteValue {
-				p.printNode(child)
-				p.write(" ")
-				wroteValue = true
-			}
-		}
+
+	children := node.Children
+	i := 0
+
+	// Skip "match" terminal
+	if i < len(children) && children[i].Type == "TERMINAL" && children[i].Value == "match" {
+		i++
 	}
-	
-	p.write("{")
-	p.newline()
+
+	// Value expression
+	if i < len(children) && children[i].Type != "TERMINAL" && children[i].Type != "match_arm" {
+		p.printNode(children[i])
+		i++
+	}
+
+	p.write(" {\n")
 	p.indent++
-	
-	for i := range patterns {
-		p.writeIndent()
-		p.printNode(patterns[i])
-		p.write(" ")
-		if i < len(blocks) {
-			p.printNode(blocks[i])
+
+	for ; i < len(children); i++ {
+		child := children[i]
+		if child.Type == "match_arm" {
+			p.printMatchArm(child)
 		}
-		p.newline()
 	}
-	
+
 	p.indent--
 	p.writeIndent()
 	p.write("}")
+
+	line := nodeStartLine(node)
+	p.emitEOLComment(line)
+	p.newline()
+}
+
+func (p *printer) printMatchArm(node *ebnf.Node) {
+	p.writeIndent()
+	for _, child := range node.Children {
+		switch child.Type {
+		case "pattern":
+			p.printPattern(child)
+		case "block":
+			p.write(" ")
+			p.printBlock(child)
+			p.newline()
+		}
+	}
 }
 
 func (p *printer) printPattern(node *ebnf.Node) {
 	for _, child := range node.Children {
 		switch child.Type {
 		case "TERMINAL":
+			if child.Value == "_" {
+				p.write("_")
+			} else if child.Value == "[" {
+				p.write("[")
+			} else if child.Value == "]" {
+				p.write("]")
+			} else if child.Value == "," {
+				p.write(", ")
+			} else {
+				p.write(child.Value)
+			}
+		case "NUMBER", "STRING", "SYMBOL", "SHAPE":
 			p.write(child.Value)
-		case "NAME", "NUMBER", "STRING", "SYMBOL":
+		case "NAME":
 			p.write(child.Value)
 		case "pattern":
-			p.printNode(child)
+			p.printPattern(child)
 		}
 	}
 }
 
 func (p *printer) printReturn(node *ebnf.Node) {
+	p.writeIndent()
 	p.write("return ")
 	for _, child := range node.Children {
 		if child.Type != "TERMINAL" {
@@ -344,6 +458,7 @@ func (p *printer) printReturn(node *ebnf.Node) {
 }
 
 func (p *printer) printExport(node *ebnf.Node) {
+	p.writeIndent()
 	p.write("export [")
 	first := true
 	for _, child := range node.Children {
@@ -359,9 +474,10 @@ func (p *printer) printExport(node *ebnf.Node) {
 }
 
 func (p *printer) printImport(node *ebnf.Node) {
+	p.writeIndent()
 	var module string
 	var names []string
-	
+
 	for _, child := range node.Children {
 		if child.Type == "NAME" {
 			if module == "" {
@@ -371,7 +487,7 @@ func (p *printer) printImport(node *ebnf.Node) {
 			}
 		}
 	}
-	
+
 	p.write("from ")
 	p.write(module)
 	p.write(" use [")
@@ -385,30 +501,31 @@ func (p *printer) printImport(node *ebnf.Node) {
 }
 
 func (p *printer) printExprStmt(node *ebnf.Node) {
+	p.writeIndent()
 	for _, child := range node.Children {
 		p.printNode(child)
 	}
 }
 
 func (p *printer) printBlock(node *ebnf.Node) {
-	p.write("{")
-	p.newline()
+	p.write("{\n")
 	p.indent++
-	
+
 	for _, child := range node.Children {
 		if child.Type == "statement" {
-			p.printNode(child)
-			p.newline()
+			line := nodeStartLine(child)
+			p.emitCommentsBefore(line)
+			p.printStatement(child)
+			p.lastLine = line
 		}
 	}
-	
+
 	p.indent--
 	p.writeIndent()
 	p.write("}")
 }
 
 func (p *printer) printExpr(node *ebnf.Node) {
-	// Check for pipe
 	hasPipe := false
 	for _, child := range node.Children {
 		if child.Type == "TERMINAL" && child.Value == "|>" {
@@ -416,7 +533,7 @@ func (p *printer) printExpr(node *ebnf.Node) {
 			break
 		}
 	}
-	
+
 	if hasPipe {
 		p.printPipeExpr(node)
 	} else {
@@ -435,9 +552,8 @@ func (p *printer) printPipeExpr(node *ebnf.Node) {
 			p.write("|> ")
 		} else {
 			if !first && child.Type != "TERMINAL" {
-				// Already handled by |>
-			}
-			if first || child.Type != "TERMINAL" {
+				// handled by |>
+			} else {
 				p.printNode(child)
 				first = false
 			}
@@ -450,15 +566,22 @@ func (p *printer) printInfix(node *ebnf.Node) {
 	for _, child := range node.Children {
 		if child.Type == "BINOP" {
 			p.write(" ")
-			p.printNode(child)
+			p.printBinop(child)
 			p.write(" ")
-		} else if child.Type == "TERMINAL" && isOperator(child.Value) {
-			p.write(" ")
-			p.write(child.Value)
-			p.write(" ")
+		} else if child.Type == "TERMINAL" {
+			if child.Value == "and" || child.Value == "or" ||
+				child.Value == "==" || child.Value == "!=" ||
+				child.Value == "<" || child.Value == ">" ||
+				child.Value == "<=" || child.Value == ">=" ||
+				child.Value == "+" || child.Value == "-" ||
+				child.Value == "*" || child.Value == "/" || child.Value == "%" {
+				p.write(" ")
+				p.write(child.Value)
+				p.write(" ")
+			}
 		} else {
 			if !first {
-				// space already added by operator
+				// already handled spacing
 			}
 			p.printNode(child)
 			first = false
@@ -521,7 +644,7 @@ func (p *printer) printFuncLiteral(node *ebnf.Node) {
 	p.write(") ")
 	for _, child := range node.Children {
 		if child.Type == "block" {
-			p.printNode(child)
+			p.printBlock(child)
 		}
 	}
 }
@@ -546,9 +669,9 @@ func (p *printer) printParams(node *ebnf.Node) {
 			}
 			first = false
 			p.write("...")
-			for _, rp := range child.Children {
-				if rp.Type == "NAME" {
-					p.write(rp.Value)
+			for _, param := range child.Children {
+				if param.Type == "NAME" {
+					p.write(param.Value)
 				}
 			}
 		case "NAME":
@@ -565,19 +688,14 @@ func (p *printer) printList(node *ebnf.Node) {
 	p.write("[")
 	first := true
 	for _, child := range node.Children {
-		switch child.Type {
-		case "TERMINAL":
-			// skip [ ] ,
-		case "SHAPE":
-			p.write(child.Value)
-			first = false
-		default:
-			if !first {
-				p.write(", ")
-			}
-			first = false
-			p.printNode(child)
+		if child.Type == "TERMINAL" {
+			continue
 		}
+		if !first {
+			p.write(", ")
+		}
+		first = false
+		p.printNode(child)
 	}
 	p.write("]")
 }
@@ -615,14 +733,4 @@ func (p *printer) printAccess(node *ebnf.Node) {
 			p.write(child.Value)
 		}
 	}
-}
-
-func isOperator(s string) bool {
-	ops := map[string]bool{
-		"+": true, "-": true, "*": true, "/": true, "%": true,
-		"<": true, ">": true, "<=": true, ">=": true,
-		"==": true, "!=": true,
-		"and": true, "or": true,
-	}
-	return ops[s]
 }
