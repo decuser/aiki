@@ -1,0 +1,61 @@
+package tests
+
+import (
+	"testing"
+
+	"aiki/ebnf"
+	"aiki/lang/eval"
+	"aiki/lang/value"
+	"aiki/strict"
+)
+
+var testGrammar *ebnf.Grammar
+
+func init() {
+	var err error
+	testGrammar, err = ebnf.ParseFile("../cmd/grammar.ebnf")
+	if err != nil {
+		panic("failed to load grammar: " + err.Error())
+	}
+}
+
+func setupIOEnv() *value.Env {
+	env := value.NewEnv(nil)
+	result := eval.RunNode(testGrammar, strict.Source, env)
+	if _, ok := result.(*value.Error); ok {
+		panic("failed to load strict: " + result.Inspect())
+	}
+	env.SnapshotStrict()
+	return env
+}
+
+func setupEnv() *value.Env {
+	return setupIOEnv()
+}
+
+func testNumberValue(t *testing.T, v value.Value, expected string) {
+	t.Helper()
+	num, ok := v.(*value.Number)
+	if !ok {
+		t.Fatalf("expected Number, got %T (%v)", v, v)
+	}
+	if num.Inspect() != expected {
+		t.Errorf("got %s, want %s", num.Inspect(), expected)
+	}
+}
+
+func testBooleanValue(t *testing.T, v value.Value, expected bool) {
+	t.Helper()
+	b, ok := v.(*value.Boolean)
+	if !ok {
+		t.Fatalf("expected Boolean, got %T (%v)", v, v)
+	}
+	if b.Value != expected {
+		t.Errorf("got %v, want %v", b.Value, expected)
+	}
+}
+
+func testEval(input string) value.Value {
+	env := value.NewEnv(nil)
+	return eval.RunNode(testGrammar, input, env)
+}

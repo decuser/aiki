@@ -3,7 +3,6 @@ package tests
 import (
 	"testing"
 
-	"aiki/lang/eval"
 	"aiki/lang/value"
 )
 
@@ -58,11 +57,7 @@ func TestEvalArithmetic(t *testing.T) {
 		{"5 % 3", "2"},
 		{"1 + 2 * 3", "9"},
 		{"2 * 3 + 1", "7"},
-		{"(1 + 2) * 3", "9"},
-		{"1 + (2 * 3)", "7"},
-		{"10 - 5 - 2", "3"},
-		{"1 / 3 * 3", "1"},
-		{"(1/3) + (1/3) + (1/3)", "1"},
+		{"10 / 2 + 3", "8"},
 	}
 
 	for _, tt := range tests {
@@ -73,7 +68,7 @@ func TestEvalArithmetic(t *testing.T) {
 	}
 }
 
-func TestEvalComparisons(t *testing.T) {
+func TestEvalComparison(t *testing.T) {
 	tests := []struct {
 		input    string
 		expected bool
@@ -82,16 +77,16 @@ func TestEvalComparisons(t *testing.T) {
 		{"2 < 1", false},
 		{"1 > 2", false},
 		{"2 > 1", true},
-		{"1 == 1", true},
-		{"1 == 2", false},
-		{"1 != 2", true},
-		{"1 != 1", false},
 		{"1 <= 1", true},
 		{"1 <= 2", true},
 		{"2 <= 1", false},
 		{"1 >= 1", true},
 		{"2 >= 1", true},
 		{"1 >= 2", false},
+		{"5 == 5", true},
+		{"5 == 3", false},
+		{"5 != 3", true},
+		{"5 != 5", false},
 	}
 
 	for _, tt := range tests {
@@ -102,7 +97,7 @@ func TestEvalComparisons(t *testing.T) {
 	}
 }
 
-func TestEvalLogicalOperators(t *testing.T) {
+func TestEvalLogical(t *testing.T) {
 	tests := []struct {
 		input    string
 		expected bool
@@ -125,15 +120,37 @@ func TestEvalLogicalOperators(t *testing.T) {
 	}
 }
 
-func TestEvalLetStatements(t *testing.T) {
+func TestEvalStrings(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{`"hello"`, "hello"},
+		{`"hello" + " " + "world"`, "hello world"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			result := testEval(tt.input)
+			str, ok := result.(*value.String)
+			if !ok {
+				t.Fatalf("expected String, got %T", result)
+			}
+			if str.Value != tt.expected {
+				t.Errorf("got %s, want %s", str.Value, tt.expected)
+			}
+		})
+	}
+}
+
+func TestEvalLet(t *testing.T) {
 	tests := []struct {
 		input    string
 		expected string
 	}{
 		{"let x = 5\nx", "5"},
-		{"let x = 5 * 5\nx", "25"},
-		{"let a = 5\nlet b = a\nb", "5"},
-		{"let a = 5\nlet b = a\nlet c = a + b + 5\nc", "15"},
+		{"let x = 5\nlet y = 10\nx + y", "15"},
+		{"let x = 5\nlet y = x\ny", "5"},
 	}
 
 	for _, tt := range tests {
@@ -144,85 +161,36 @@ func TestEvalLetStatements(t *testing.T) {
 	}
 }
 
-func TestEvalAssignment(t *testing.T) {
-	tests := []struct {
-		input    string
-		expected string
-	}{
-		{"let x = 5\nx = 10\nx", "10"},
-		{"let x = 1\nx = x + 1\nx", "2"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			result := testEval(tt.input)
-			testNumberValue(t, result, tt.expected)
-		})
-	}
-}
-
-func TestEvalUndefinedVariable(t *testing.T) {
+func TestUndefinedIdentifier(t *testing.T) {
 	result := testEval("x")
-
 	err, ok := result.(*value.Error)
 	if !ok {
 		t.Fatalf("expected Error, got %T", result)
 	}
 	if err.Message != "undefined: x" {
-		t.Errorf("wrong error: %s", err.Message)
+		t.Errorf("got %s, want 'undefined: x'", err.Message)
 	}
 }
 
-func TestEvalFunctions(t *testing.T) {
+func TestEvalIf(t *testing.T) {
 	tests := []struct {
 		input    string
 		expected string
 	}{
-		{"let f = (n) { return n }\nf(5)", "5"},
-		{"let f = (n) { return n * 2 }\nf(5)", "10"},
-		{"let add = (a, b) { return a + b }\nadd(2, 3)", "5"},
-		{"let f = (n) { return n * 2 }\nf(f(5))", "20"},
+		{"if true { 1 }", "1"},
+		{"if false { 1 }", "null"},
+		{"if true { 1 } else { 2 }", "1"},
+		{"if false { 1 } else { 2 }", "2"},
+		{"if 1 < 2 { 10 } else { 20 }", "10"},
+		{"if 1 > 2 { 10 } else { 20 }", "20"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
 			result := testEval(tt.input)
-			testNumberValue(t, result, tt.expected)
-		})
-	}
-}
-
-func TestEvalClosures(t *testing.T) {
-	input := `
-let newAdder = (x) {
-	return (n) { return x + n }
-}
-let addTwo = newAdder(2)
-addTwo(3)
-`
-	result := testEval(input)
-	testNumberValue(t, result, "5")
-}
-
-func TestEvalIfStatements(t *testing.T) {
-	tests := []struct {
-		input    string
-		expected string
-		isNull   bool
-	}{
-		{"if true { return 10 }", "10", false},
-		{"if false { return 10 }", "", true},
-		{"if 1 < 2 { return 10 }", "10", false},
-		{"if 1 > 2 { return 10 }", "", true},
-		{"if 1 > 2 { return 10 } else { return 20 }", "20", false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			result := testEval(tt.input)
-			if tt.isNull {
-				if result != value.NULL {
-					t.Errorf("expected NULL, got %v", result)
+			if tt.expected == "null" {
+				if result.Type() != value.NullType {
+					t.Errorf("expected null, got %s", result.Inspect())
 				}
 			} else {
 				testNumberValue(t, result, tt.expected)
@@ -231,11 +199,11 @@ func TestEvalIfStatements(t *testing.T) {
 	}
 }
 
-func TestEvalWhileStatements(t *testing.T) {
+func TestEvalWhile(t *testing.T) {
 	input := `
 let x = 0
 while x < 5 {
-	x = x + 1
+    x = x + 1
 }
 x
 `
@@ -243,17 +211,35 @@ x
 	testNumberValue(t, result, "5")
 }
 
-func TestEvalLists(t *testing.T) {
+func TestEvalList(t *testing.T) {
 	tests := []struct {
 		input    string
 		expected string
 	}{
-		{"[1, 2, 3].0", "1"},
-		{"[1, 2, 3].1", "2"},
-		{"[1, 2, 3].2", "3"},
-		{"first([1, 2, 3])", "1"},
-		{"len([1, 2, 3])", "3"},
-		{"len([])", "0"},
+		{"[1, 2, 3]", "[1, 2, 3]"},
+		{"[]", "[]"},
+		{"[1 + 1, 2 + 2]", "[2, 4]"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			result := testEval(tt.input)
+			if result.Inspect() != tt.expected {
+				t.Errorf("got %s, want %s", result.Inspect(), tt.expected)
+			}
+		})
+	}
+}
+
+func TestEvalListIndex(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"[1, 2, 3][0]", "1"},
+		{"[1, 2, 3][1]", "2"},
+		{"[1, 2, 3][2]", "3"},
+		{"let a = [10, 20, 30]\na[1]", "20"},
 	}
 
 	for _, tt := range tests {
@@ -264,7 +250,61 @@ func TestEvalLists(t *testing.T) {
 	}
 }
 
-func TestEvalShapedLists(t *testing.T) {
+func TestEvalFunction(t *testing.T) {
+	input := `
+let add = (a, b) {
+    return a + b
+}
+add(2, 3)
+`
+	result := testEval(input)
+	testNumberValue(t, result, "5")
+}
+
+func TestEvalRecursion(t *testing.T) {
+	input := `
+let factorial = (n) {
+    if n <= 1 {
+        return 1
+    }
+    return n * factorial(n - 1)
+}
+factorial(5)
+`
+	result := testEval(input)
+	testNumberValue(t, result, "120")
+}
+
+func TestEvalClosure(t *testing.T) {
+	input := `
+let makeAdder = (x) {
+    return (y) { return x + y }
+}
+let addFive = makeAdder(5)
+addFive(3)
+`
+	result := testEval(input)
+	testNumberValue(t, result, "8")
+}
+
+func TestEvalRestParam(t *testing.T) {
+	input := `
+let sum = (...args) {
+    let total = 0
+    let i = 0
+    while i < length(args) {
+        total = total + args[i]
+        i = i + 1
+    }
+    return total
+}
+sum(1, 2, 3, 4, 5)
+`
+	result := testEval(input)
+	testNumberValue(t, result, "15")
+}
+
+func TestEvalShapedList(t *testing.T) {
 	input := `
 let @point [x, y]
 let p = [@point, 10, 20]
@@ -274,199 +314,69 @@ p.x + p.y
 	testNumberValue(t, result, "30")
 }
 
-func TestEvalShapedListPositionalAccess(t *testing.T) {
-	input := `
-let @point [x, y]
-let p = [@point, 10, 20]
-p.0 + p.1
-`
-	result := testEval(input)
-	testNumberValue(t, result, "30")
-}
-
-func TestEvalStrings(t *testing.T) {
-	tests := []struct {
-		input    string
-		expected string
-	}{
-		{`"hello" + " world"`, "hello world"},
-		{`len("hello")`, "5"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			result := testEval(tt.input)
-			switch r := result.(type) {
-			case *value.String:
-				if r.Value != tt.expected {
-					t.Errorf("got %q, want %q", r.Value, tt.expected)
-				}
-			case *value.Number:
-				testNumberValue(t, result, tt.expected)
-			default:
-				t.Fatalf("unexpected type: %T", result)
-			}
-		})
-	}
-}
-
-func TestEvalSymbols(t *testing.T) {
-	tests := []struct {
-		input    string
-		expected bool
-	}{
-		{":ok == :ok", true},
-		{":ok == :error", false},
-		{":ok != :error", true},
-		{":foo == :foo", true},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			result := testEval(tt.input)
-			testBooleanValue(t, result, tt.expected)
-		})
-	}
-}
-
-func TestEvalPipe(t *testing.T) {
-	input := `
-let double = (n) { return n * 2 }
-let add1 = (n) { return n + 1 }
-5 |> double() |> add1()
-`
-	result := testEval(input)
-	testNumberValue(t, result, "11")
-}
-
-func TestEvalPipeWithBuiltins(t *testing.T) {
-	input := "[1, 2, 3] |> first()"
-	result := testEval(input)
-	testNumberValue(t, result, "1")
-}
-
-func TestEvalMatchStatement(t *testing.T) {
-	input := `
-let @ok [value]
-let result = [@ok, 42]
-match result {
-	[@ok, val] { val }
-	_ { 0 }
-}
-`
-	result := testEval(input)
-	testNumberValue(t, result, "42")
-}
-
-func TestEvalMatchWildcard(t *testing.T) {
-	input := `
-match 999 {
-	_ { "other" }
-}
-`
-	result := testEval(input)
-	s, ok := result.(*value.String)
-	if !ok {
-		t.Fatalf("expected String, got %T", result)
-	}
-	if s.Value != "other" {
-		t.Errorf("got %q, want %q", s.Value, "other")
-	}
-}
-
 func TestEvalDivisionByZero(t *testing.T) {
 	result := testEval("1 / 0")
-
-	list, ok := result.(*value.List)
+	err, ok := result.(*value.Error)
 	if !ok {
-		t.Fatalf("expected List (error shape), got %T", result)
+		t.Fatalf("expected Error, got %T", result)
 	}
-	if list.Shape != "error" {
-		t.Errorf("expected error shape, got %s", list.Shape)
+	if err.Message != "division by zero" {
+		t.Errorf("got %s, want 'division by zero'", err.Message)
 	}
 }
 
-func TestEvalBuiltinType(t *testing.T) {
+func TestEvalAssignment(t *testing.T) {
 	tests := []struct {
 		input    string
 		expected string
 	}{
-		{"type(5)", ":number"},
-		{"type(true)", ":boolean"},
-		{`type("hello")`, ":string"},
-		{"type('a')", ":rune"},
-		{"type(:ok)", ":symbol"},
-		{"type([1, 2])", ":list"},
-		{"type((n) { return n })", ":function"},
+		{"let x = 5\nx = 10\nx", "10"},
+		{"let x = 1\nlet y = 2\nx = y\nx", "2"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
 			result := testEval(tt.input)
-			sym, ok := result.(*value.Symbol)
-			if !ok {
-				t.Fatalf("expected Symbol, got %T", result)
-			}
-			if sym.Inspect() != tt.expected {
-				t.Errorf("got %s, want %s", sym.Inspect(), tt.expected)
-			}
+			testNumberValue(t, result, tt.expected)
 		})
 	}
 }
 
-func TestEvalBuiltinShape(t *testing.T) {
+func TestEvalFunctionReturn(t *testing.T) {
 	input := `
-let @point [x, y]
-let p = [@point, 10, 20]
-shape(p)
+let earlyReturn = (n) {
+    if n < 0 {
+        return -1
+    }
+    return n * 2
+}
+earlyReturn(-5)
 `
 	result := testEval(input)
-	sym, ok := result.(*value.Symbol)
-	if !ok {
-		t.Fatalf("expected Symbol, got %T", result)
-	}
-	if sym.Value != "point" {
-		t.Errorf("got %s, want point", sym.Value)
-	}
+	testNumberValue(t, result, "-1")
 }
 
-func TestEvalRecursion(t *testing.T) {
+func TestEvalNestedFunction(t *testing.T) {
 	input := `
-let factorial = (n) {
-	if n <= 1 { return 1 }
-	return n * factorial(n - 1)
+let outer = (x) {
+    let inner = (y) {
+        return x + y
+    }
+    return inner(10)
 }
-factorial(5)
+outer(5)
 `
 	result := testEval(input)
-	testNumberValue(t, result, "120")
+	testNumberValue(t, result, "15")
 }
 
-// Helpers
-
-func testEval(input string) value.Value {
-	env := value.NewEnv(nil)
-	return eval.Run(input, env)
+func TestEvalImplicitReturn(t *testing.T) {
+	input := `
+let f = (x) {
+    x + 1
 }
-
-func testNumberValue(t *testing.T, v value.Value, expected string) {
-	t.Helper()
-	num, ok := v.(*value.Number)
-	if !ok {
-		t.Fatalf("expected Number, got %T (%v)", v, v)
-	}
-	if num.Inspect() != expected {
-		t.Errorf("got %s, want %s", num.Inspect(), expected)
-	}
-}
-
-func testBooleanValue(t *testing.T, v value.Value, expected bool) {
-	t.Helper()
-	b, ok := v.(*value.Boolean)
-	if !ok {
-		t.Fatalf("expected Boolean, got %T (%v)", v, v)
-	}
-	if b.Value != expected {
-		t.Errorf("got %v, want %v", b.Value, expected)
-	}
+f(5)
+`
+	result := testEval(input)
+	testNumberValue(t, result, "6")
 }

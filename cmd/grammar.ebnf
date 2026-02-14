@@ -48,7 +48,7 @@ pipe_expr = infix_expr { "|>" postfix_expr }
 
 infix_expr = unary_expr { BINOP unary_expr }
 
-unary_expr = [ "not" | "-" ] postfix_expr
+unary_expr = { "not" | "-" } postfix_expr
 
 postfix_expr = primary { call | index | access }
 

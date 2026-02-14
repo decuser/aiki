@@ -562,34 +562,41 @@ func evalNodeInfix(node *ebnf.Node, env *value.Env) value.Value {
 }
 
 func evalNodeUnary(node *ebnf.Node, env *value.Env) value.Value {
-	var prefix string
+	var prefixes []string
+	var operand value.Value
 
 	for _, child := range node.Children {
 		if child.Type == "TERMINAL" {
 			if child.Value == "not" || child.Value == "-" {
-				prefix = child.Value
+				prefixes = append(prefixes, child.Value)
 				continue
 			}
 		}
-
-		val := EvalNode(child, env)
-		if isError(val) {
-			return val
+		operand = EvalNode(child, env)
+		if isError(operand) {
+			return operand
 		}
-
-		if prefix == "not" {
-			return value.NativeBoolToBoolean(!isTruthy(val))
-		} else if prefix == "-" {
-			if num, ok := val.(*value.Number); ok {
-				return &value.Number{Value: new(big.Rat).Neg(num.Value)}
-			}
-			return value.NewError("cannot negate %s", val.Type())
-		}
-
-		return val
 	}
 
-	return value.NULL
+	if operand == nil {
+		return value.NULL
+	}
+
+	// Apply prefixes in reverse order (innermost first)
+	for i := len(prefixes) - 1; i >= 0; i-- {
+		switch prefixes[i] {
+		case "not":
+			operand = value.NativeBoolToBoolean(!isTruthy(operand))
+		case "-":
+			if num, ok := operand.(*value.Number); ok {
+				operand = &value.Number{Value: new(big.Rat).Neg(num.Value)}
+			} else {
+				return value.NewError("cannot negate %s", operand.Type())
+			}
+		}
+	}
+
+	return operand
 }
 
 func evalNodePostfix(node *ebnf.Node, env *value.Env) value.Value {
