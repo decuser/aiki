@@ -169,10 +169,6 @@ func (p *printer) printNode(node *ebnf.Node) {
 		p.printMatch(node)
 	case "return_stmt":
 		p.printReturn(node)
-	case "export_stmt":
-		p.printExport(node)
-	case "import_stmt":
-		p.printImport(node)
 	case "expr_stmt":
 		p.printExprStmt(node)
 	case "block":
@@ -480,49 +476,6 @@ func (p *printer) printReturn(node *ebnf.Node) {
 			p.printNode(child)
 		}
 	}
-}
-
-func (p *printer) printExport(node *ebnf.Node) {
-	p.writeIndent()
-	p.write("export [")
-	first := true
-	for _, child := range node.Children {
-		if child.Type == "NAME" {
-			if !first {
-				p.write(", ")
-			}
-			first = false
-			p.write(child.Value)
-		}
-	}
-	p.write("]")
-}
-
-func (p *printer) printImport(node *ebnf.Node) {
-	p.writeIndent()
-	var module string
-	var names []string
-
-	for _, child := range node.Children {
-		if child.Type == "NAME" {
-			if module == "" {
-				module = child.Value
-			} else {
-				names = append(names, child.Value)
-			}
-		}
-	}
-
-	p.write("from ")
-	p.write(module)
-	p.write(" use [")
-	for i, name := range names {
-		if i > 0 {
-			p.write(", ")
-		}
-		p.write(name)
-	}
-	p.write("]")
 }
 
 func (p *printer) printExprStmt(node *ebnf.Node) {

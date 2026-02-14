@@ -80,12 +80,6 @@ func EvalNode(node *ebnf.Node, env *value.Env) value.Value {
 	case "match_stmt":
 		return evalNodeMatch(node, env)
 
-	case "export_stmt":
-		return evalNodeExport(node, env)
-
-	case "import_stmt":
-		return evalNodeImport(node, env)
-
 	case "block":
 		return evalNodeBlock(node, env)
 
@@ -812,6 +806,9 @@ func evalNodeIdentWithNode(node *ebnf.Node, env *value.Env) value.Value {
 	if builtin, ok := HAL[name]; ok {
 		return builtin
 	}
+	if intrinsic, ok := value.Intrinsics[name]; ok {
+	       return intrinsic
+	}
 	return makeError(env, node, "undefined: %s", name)
 }
 
@@ -822,6 +819,9 @@ func evalNodeIdent(name string, env *value.Env) value.Value {
 	}
 	if builtin, ok := HAL[name]; ok {
 		return builtin
+	}
+	if intrinsic, ok := value.Intrinsics[name]; ok {
+	       return intrinsic
 	}
 	return value.NewError("undefined: %s", name)
 }

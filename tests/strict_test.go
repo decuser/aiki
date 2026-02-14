@@ -113,84 +113,60 @@ length(hash_keys(h))
 	}
 }
 
-// TestStrictExportsMatch verifies that strict.Exports() matches
-// the export [...] line in strict.ai source.
-func TestStrictExportsMatch(t *testing.T) {
-	source := strict.Source
-	goExports := strict.Exports()
+// TestStrictExportsAreDefined verifies every exported name is defined and accessible.
+func TestStrictExportsAreDefined(t *testing.T) {
+	// Evaluate strict.ai and get exports from env
+	env := setupEnv()
+	exports := env.GetExports()
 
-	sourceExports := extractExportNames(source)
-	if len(sourceExports) == 0 {
-		t.Fatal("no export statement found in strict.ai")
+	if len(exports) == 0 {
+		t.Fatal("strict.ai has no exports")
 	}
 
-	goSet := make(map[string]bool)
-	for _, name := range goExports {
-		goSet[name] = true
-	}
-
-	sourceSet := make(map[string]bool)
-	for _, name := range sourceExports {
-		sourceSet[name] = true
-	}
-
-	for _, name := range goExports {
-		if !sourceSet[name] {
-			t.Errorf("Exports() has '%s' but strict.ai export does not", name)
+	// Verify each export is actually defined
+	for _, name := range exports {
+		if _, ok := env.Get(name); !ok {
+			t.Errorf("exported name '%s' is not defined in strict.ai", name)
 		}
-	}
-
-	for _, name := range sourceExports {
-		if !goSet[name] {
-			t.Errorf("strict.ai exports '%s' but Exports() does not", name)
-		}
-	}
-
-	if len(goExports) != len(sourceExports) {
-		t.Errorf("count mismatch: Exports() has %d, strict.ai has %d",
-			len(goExports), len(sourceExports))
 	}
 }
 
-// TestStrictExportsAreDefined verifies every exported name has a let binding.
-func TestStrictExportsAreDefined(t *testing.T) {
+// TestStrictExportsComplete verifies all expected functions are exported.
+func TestStrictExportsComplete(t *testing.T) {
+	env := setupEnv()
+	exports := env.GetExports()
+
+	// Expected exports
+	expected := []string{
+		"each", "map", "filter", "reduce", "range", "reverse",
+		"find", "any", "all", "sum", "max", "min",
+		"hash_new", "hash_get", "hash_put", "hash_has",
+		"hash_del", "hash_keys", "hash_values", "hash_code",
+		"println",
+	}
+
+	exportSet := make(map[string]bool)
+	for _, name := range exports {
+		exportSet[name] = true
+	}
+
+	for _, name := range expected {
+		if !exportSet[name] {
+			t.Errorf("expected export '%s' not found", name)
+		}
+	}
+}
+
+// TestStrictSourceHasLetBindings verifies every export has a let binding in source.
+func TestStrictSourceHasLetBindings(t *testing.T) {
 	source := strict.Source
-	exports := strict.Exports()
+	env := setupEnv()
+	exports := env.GetExports()
 
 	for _, name := range exports {
 		pattern := "let " + name + " ="
 		if !strings.Contains(source, pattern) {
-			// Also check for "let name = " with space before =
-			pattern2 := "let " + name + " ="
-			if !strings.Contains(source, pattern2) {
-				t.Errorf("exported name '%s' has no 'let %s = ...' in strict.ai", name, name)
-			}
+			t.Errorf("exported name '%s' has no 'let %s = ...' in strict.ai", name, name)
 		}
 	}
-}
-
-func extractExportNames(source string) []string {
-	lines := strings.Split(source, "\n")
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if !strings.HasPrefix(line, "export [") {
-			continue
-		}
-		start := strings.Index(line, "[")
-		end := strings.Index(line, "]")
-		if start < 0 || end < 0 || end <= start {
-			continue
-		}
-		inner := line[start+1 : end]
-		parts := strings.Split(inner, ",")
-		var names []string
-		for _, p := range parts {
-			name := strings.TrimSpace(p)
-			if name != "" {
-				names = append(names, name)
-			}
-		}
-		return names
-	}
-	return nil
 }

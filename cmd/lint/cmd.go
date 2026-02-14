@@ -7,13 +7,24 @@ import (
 	"strings"
 
 	"aiki/ebnf"
+	"aiki/lang/eval"
+	"aiki/lang/value"
+	"aiki/strict"
 )
 
 var grammar *ebnf.Grammar
+var strictExports []string
 
-// SetGrammar sets the grammar for linting.
+// SetGrammar sets the grammar for linting and evaluates strict to get exports.
 func SetGrammar(g *ebnf.Grammar) {
 	grammar = g
+
+	// Evaluate strict.ai to get exports
+	env := value.NewEnv(nil)
+	result := eval.RunNode(g, strict.Source, env)
+	if _, ok := result.(*value.Error); !ok {
+		strictExports = env.GetExports()
+	}
 }
 
 // Run executes the lint subcommand.

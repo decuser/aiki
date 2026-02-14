@@ -25,22 +25,13 @@ func evalNodeCallSafe(fn value.Value, node *ebnf.Node, env *value.Env) value.Val
 }
 
 // dispatchCall applies a function to evaluated arguments.
-// Handles specials (apply, load), builtin nil-Fn guard, and normal dispatch.
-// The node parameter is the call site, used to annotate errors from builtins.
+// Handles intrinsics, builtins, and user functions.
+// The node parameter is the call site, used to annotate errors.
 func dispatchCall(fn value.Value, args []value.Value, env *value.Env, node *ebnf.Node) value.Value {
 	switch f := fn.(type) {
+	case *value.Intrinsic:
+		return evalIntrinsic(f.Name, args, env, node)
 	case *value.Builtin:
-		// Intercept specials by name before calling Fn
-		switch f.Name {
-		case "apply":
-			return evalApply(args, env, node)
-		case "load":
-			return evalLoad(args, env, node)
-		}
-		// Guard: Fn: nil means special-only, shouldn't reach here
-		if f.Fn == nil {
-			return makeError(env, node, "cannot call %s directly", f.Name)
-		}
 		result := f.Fn(args...)
 		// Annotate bare errors from builtins with call-site position
 		if err, ok := result.(*value.Error); ok && err.Line == 0 {
@@ -58,6 +49,23 @@ func dispatchCall(fn value.Value, args []value.Value, env *value.Env, node *ebnf
 		return makeError(env, node, "not callable: %s", fn.Type())
 	}
 }
+
+// evalIntrinsic dispatches to the appropriate intrinsic implementation.
+func evalIntrinsic(name string, args []value.Value, env *value.Env, node *ebnf.Node) value.Value {
+	switch name {
+	case "apply":
+		return evalApply(args, env, node)
+	case "load":
+		return evalLoad(args, env, node)
+	case "import":
+		return evalImport(args, env, node)
+	case "export":
+		return evalExport(args, env, node)
+	default:
+		return makeError(env, node, "unknown intrinsic: %s", name)
+	}
+}
+
 
 // evalApply implements apply(fn, list) — spreads list as args.
 func evalApply(args []value.Value, env *value.Env, node *ebnf.Node) value.Value {

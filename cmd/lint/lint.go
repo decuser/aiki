@@ -2,11 +2,9 @@ package lint
 
 import (
 	"regexp"
-	"strings"
 
 	"aiki/ebnf"
 	"aiki/hal/core"
-	"aiki/strict"
 )
 
 // Diagnostic represents a lint finding.
@@ -55,7 +53,7 @@ func makeGlobals() map[string]bool {
 	for name := range core.HAL {
 		globals[name] = true
 	}
-	for _, name := range strict.Exports() {
+	for _, name := range strictExports {
 		globals[name] = true
 	}
 	// Keywords that appear as identifiers
@@ -86,18 +84,6 @@ func (c *checker) collectTopLevel(node *ebnf.Node) {
 					if ch.Type == "SHAPE" {
 						c.define(ch.Value) // @shape
 						break
-					}
-				}
-			case "import_stmt":
-				// Pre-define imported names
-				isFirst := true
-				for _, ch := range stmt.Children {
-					if ch.Type == "NAME" {
-						if isFirst {
-							isFirst = false
-							continue
-						}
-						c.define(ch.Value)
 					}
 				}
 			}
@@ -188,12 +174,6 @@ func (c *checker) check(node *ebnf.Node) {
 				c.check(child)
 			}
 		}
-
-	case "export_stmt":
-		c.checkExport(node)
-
-	case "import_stmt":
-		c.checkImport(node)
 
 	case "expr_stmt":
 		for _, child := range node.Children {
@@ -432,25 +412,6 @@ func (c *checker) defineParams(node *ebnf.Node) {
 			c.define(child.Value)
 		}
 	}
-}
-
-func (c *checker) checkExport(node *ebnf.Node) {
-	for _, child := range node.Children {
-		if child.Type == "NAME" {
-			if !c.isDefined(child.Value) {
-				c.addWarning(child.Line, child.Column,
-					"export: '"+child.Value+"' not defined at export point")
-			}
-			if strings.HasPrefix(child.Value, "_") {
-				c.addWarning(child.Line, child.Column,
-					"export: '"+child.Value+"' has _prefix (internal convention)")
-			}
-		}
-	}
-}
-
-func (c *checker) checkImport(node *ebnf.Node) {
-	// Names already pre-defined in first pass — nothing more to do
 }
 
 func (c *checker) checkAccess(node *ebnf.Node) {

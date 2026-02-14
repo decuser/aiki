@@ -18,6 +18,7 @@ const (
 	SymbolType   Type = "symbol"
 	ListType     Type = "list"
 	FunctionType Type = "function"
+	IntrinsicType Type = "intrinsic"
 	HandleType   Type = "handle"
 	ChannelType  Type = "channel"
 	ErrorType    Type = "error"

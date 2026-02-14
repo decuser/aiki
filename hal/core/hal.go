@@ -550,17 +550,6 @@ Fields: point.x (shaped lists only)
 		},
 	},
 
-	// Load - placeholder, handled specially in eval
-	"load": {
-		Name: "load",
-		Fn:   nil,
-	},
-
-	"apply": {
-		Name: "apply",
-		Fn:   nil, // handled specially in eval
-	},
-
 	"sleep": {
 		Name: "sleep",
 		Fn: func(args ...value.Value) value.Value {
