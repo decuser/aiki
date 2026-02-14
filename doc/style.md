@@ -13,7 +13,28 @@
 
 Full words preferred. Exceptions: `x`, `y`, `i`, `n`, `fn`, loop counters.
 
-Fixed values: convention, not enforcement. The name is the warning.
+## Naming Rules (Enforced)
+
+- **snake_case only.** Mixed case (`firstName`, `FirstName`) is a syntax error.
+- **Case locked on first use.** `MAX_SIZE` stays `MAX_SIZE`. Inconsistency is an error.
+- **SCREAMING is all-or-nothing.** No `MAX_size`. If you scream, scream the whole thing.
+- **`_prefix` is distinct.** `_name` and `name` are different identifiers. You can't have both.
+- **Case propagates through imports.** If a module exports `MAX_INT`, you reference `MAX_INT`.
+
+## Shadowing
+
+- **Allowed, always warned.** You can shadow imports, library functions, operators.
+- **Export `_name` warned.** Exporting internal-marked names triggers a warning.
+- **You own the consequences.** The tools witness your choices, don't prevent them.
+
+## Formatting (Enforced by `aiki fmt`)
+
+- **Tabs for indentation.** Not spaces.
+- **One statement per line.** Semicolons normalized away.
+- **Control structures expanded.** `if x { y }` becomes multiline.
+- **Trailing comma iff multiline.** `[1, 2, 3]` but `[\n  a,\n  b,\n]`.
+- **Braces same line as keyword.** `if x {` not `if x\n{`.
+- **`#` for comments.** No block comments.
 
 ## Conventions
 
@@ -23,9 +44,16 @@ Fixed values: convention, not enforcement. The name is the warning.
 - **Comments.** Never required, never forbidden. File header if helpful.
 - **Strict vs pragmatic.** Strict by default. Pragmatic when profiling says so.
 
-## Formatting
+## Command Strictness
 
-Run `aiki fmt`. One style. No debates.
+| Command | Behavior |
+|---------|----------|
+| `aiki` | REPL. No rules. Workbench. |
+| `aiki file` | Strict. Lint errors bail. Unused = error. |
+| `aiki --proto file` | Loose. Warnings only. Runs anyway. TDD mode. |
+| `aiki validate file` | Strict check. No execution. |
+
+Default is strict. Opt into looseness with `--proto`.
 
 ## Examples
 

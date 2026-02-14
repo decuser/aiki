@@ -3,7 +3,7 @@
 ## Tokens
 
 ```
-KEYWORD     let if else while match return true false and or not export from
+KEYWORD     let if else while match return true false and or not
 NUMBER      42  3.14  1/3
 STRING      "hello"
 RUNE        'a'
@@ -16,8 +16,8 @@ COMMENT     # to end of line
 ## Operators
 
 ```
-+  -  *  /  %
-<  >  <=  >=  ==  !=
++  -  *  /
+<  >  <=  >=
 and  or  not
 |>
 .
@@ -36,8 +36,7 @@ and  or  not
 program     = { statement [ ";" ] }
 
 statement   = let_stmt | assign_stmt | if_stmt | while_stmt
-            | match_stmt | return_stmt | export_stmt | import_stmt
-            | expr_stmt
+            | match_stmt | return_stmt | expr_stmt
 
 let_stmt    = "let" NAME "=" expr
             | "let" SHAPE "[" [ field { "," field } ] "]"
@@ -56,10 +55,6 @@ pattern     = "_" | NAME | literal
             | "[" SHAPE { "," pattern } "]"
 
 return_stmt = "return" expr
-
-export_stmt = "export" "[" NAME { "," NAME } "]"
-
-import_stmt = "from" STRING "import" "[" NAME { "," NAME } "]"
 
 expr_stmt   = expr
 
@@ -101,8 +96,8 @@ block       = "{" { statement [ ";" ] } "}"
 
 literal     = NUMBER | STRING | RUNE | SYMBOL | "true" | "false"
 
-BINOP       = "+" | "-" | "*" | "/" | "%"
-            | "<" | ">" | "<=" | ">=" | "==" | "!="
+BINOP       = "+" | "-" | "*" | "/"
+            | "<" | ">" | "<=" | ">="
             | "and" | "or"
 ```
 
@@ -116,3 +111,5 @@ BINOP       = "+" | "-" | "*" | "/" | "%"
 - Rest parameters (`...name`) collect remaining arguments into a list.
 - Bracket indexing works on lists, strings, and call results: `list[i]`, `s[0]`, `f()[0]`.
 - Dot access is field-only (NAME), not numeric.
+- Comments use `#` to end of line. No block comments.
+- Modules use `import()` and `export()` functions, not keywords.

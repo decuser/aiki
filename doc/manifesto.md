@@ -54,6 +54,10 @@ Strict is the default. Pragmatic is opt-in. Same API, different physics.
 
 One formatter. One style. Errors point to source. The REPL is the workbench.
 
+Subcommands are pure Aiki. The tools prove the language works by using it.
+
+Help is projection, not explanation. Derived from grammar, not written as prose.
+
 ## Lineage
 
 **Syntax.** BCPL, C, Go. Braces, simplicity, small language philosophy. Familiar costume, different skeleton.
@@ -69,3 +73,11 @@ One formatter. One style. Errors point to source. The REPL is the workbench.
 **Feedback.** BASIC, Logo. Immediate. Drawing as primitive.
 
 **Host.** Go. Goroutines, channels, fmt. We accept the host's physics to enforce our own chemistry.
+
+## Infrastructure
+
+Aiki-grammar is the kernel. Aiki-lang is the first client.
+
+The grammar defines the structural space. Languages are points in that space. The grammar is frozen. Languages can evolve.
+
+Don't build in capabilities you won't surface. If the grammar can express something, users can express it too.

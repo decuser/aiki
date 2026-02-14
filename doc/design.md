@@ -30,7 +30,7 @@ A minimal, composable language. The language is complete; the system layer is fu
 
 **Keep:** `+` `-` `*` `/` `<` `>` `<=` `>=` `|>` `.` `[]`
 
-**Cut:** `!` → `not`, `==` → `equal()`, `!=` → `not(equal())`, `%` → `modulo()`
+**Cut:** `!` -> `not`, `==` -> `equal()`, `!=` -> `not(equal())`, `%` -> `modulo()`
 
 ## Layers
 
@@ -91,3 +91,4 @@ Principle: impurity pushed to edges, purity at center.
 | Exceptions | Errors are values |
 | Macros | Language is closed |
 | Floats as default | Rationals are exact |
+| Block comments | Prevents dead code hiding |
