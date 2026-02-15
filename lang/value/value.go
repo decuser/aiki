@@ -10,21 +10,21 @@ import (
 type Type string
 
 const (
-	NumberType   Type = "number"
-	BooleanType  Type = "boolean"
-	RuneType     Type = "rune"
-	StringType   Type = "string"
-	BytesType    Type = "bytes"
-	SymbolType   Type = "symbol"
-	ListType     Type = "list"
-	FunctionType Type = "function"
+	NumberType    Type = "number"
+	BooleanType   Type = "boolean"
+	RuneType      Type = "rune"
+	StringType    Type = "string"
+	BytesType     Type = "bytes"
+	SymbolType    Type = "symbol"
+	ListType      Type = "list"
+	FunctionType  Type = "function"
 	IntrinsicType Type = "intrinsic"
-	HandleType   Type = "handle"
-	ChannelType  Type = "channel"
-	ErrorType    Type = "error"
-	NullType     Type = "null"
-	ReturnType   Type = "return"
-	CanvasType   Type = "canvas"
+	HandleType    Type = "handle"
+	ChannelType   Type = "channel"
+	ErrorType     Type = "error"
+	NullType      Type = "null"
+	ReturnType    Type = "return"
+	CanvasType    Type = "canvas"
 )
 
 // Layer identifies where a function is defined.

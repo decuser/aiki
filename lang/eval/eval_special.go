@@ -66,7 +66,6 @@ func evalIntrinsic(name string, args []value.Value, env *value.Env, node *ebnf.N
 	}
 }
 
-
 // evalApply implements apply(fn, list) — spreads list as args.
 func evalApply(args []value.Value, env *value.Env, node *ebnf.Node) value.Value {
 	if len(args) != 2 {

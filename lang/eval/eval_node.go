@@ -807,7 +807,7 @@ func evalNodeIdentWithNode(node *ebnf.Node, env *value.Env) value.Value {
 		return builtin
 	}
 	if intrinsic, ok := value.Intrinsics[name]; ok {
-	       return intrinsic
+		return intrinsic
 	}
 	return makeError(env, node, "undefined: %s", name)
 }
@@ -821,7 +821,7 @@ func evalNodeIdent(name string, env *value.Env) value.Value {
 		return builtin
 	}
 	if intrinsic, ok := value.Intrinsics[name]; ok {
-	       return intrinsic
+		return intrinsic
 	}
 	return value.NewError("undefined: %s", name)
 }
