@@ -8,7 +8,7 @@
     SHAPE       /@[a-zA-Z_][a-zA-Z0-9_]*/
     NAME        /[a-zA-Z_][a-zA-Z0-9_]*/
     KEYWORD     let if else while match return true false and or not
-    OPERATOR    + - * / % < > <= >= == != |> . =
+    OPERATOR    + - * / < > <= >= |> . =
     DELIMITER   ( ) [ ] { } , ; ...
 }
 
@@ -76,6 +76,6 @@ block = "{" { statement } "}"
 
 literal = NUMBER | STRING | RUNE | SYMBOL | "true" | "false"
 
-BINOP = "+" | "-" | "*" | "/" | "%"
-      | "<" | ">" | "<=" | ">=" | "==" | "!="
+BINOP = "+" | "-" | "*" | "/"
+      | "<" | ">" | "<=" | ">="
       | "and" | "or"

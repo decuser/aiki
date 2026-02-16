@@ -333,6 +333,30 @@ var HAL = map[string]*value.Builtin{
 		},
 	},
 
+	"modulo": {
+		Name: "modulo",
+		Fn: func(args ...value.Value) value.Value {
+			if len(args) != 2 {
+				return value.NewError("modulo: want 2 arguments, got %d", len(args))
+			}
+			left, ok1 := args[0].(*value.Number)
+			right, ok2 := args[1].(*value.Number)
+			if !ok1 || !ok2 {
+				return value.NewError("modulo: expected numbers")
+			}
+			if !left.Value.IsInt() || !right.Value.IsInt() {
+				return value.NewError("modulo: requires integers")
+			}
+			if right.Value.Sign() == 0 {
+				return value.NewError("modulo: division by zero")
+			}
+			l := left.Value.Num()
+			r := right.Value.Num()
+			result := new(big.Int).Mod(l, r)
+			return &value.Number{Value: new(big.Rat).SetInt(result)}
+		},
+	},
+
 	// Math
 	"sqrt": {
 		Name: "sqrt",

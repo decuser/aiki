@@ -54,7 +54,7 @@ func TestEvalArithmetic(t *testing.T) {
 		{"5 - 3", "2"},
 		{"2 * 3", "6"},
 		{"8 / 2", "4"},
-		{"5 % 3", "2"},
+		{"modulo(5, 3)", "2"},
 		{"1 + 2 * 3", "9"},
 		{"2 * 3 + 1", "7"},
 		{"10 / 2 + 3", "8"},
@@ -83,10 +83,10 @@ func TestEvalComparison(t *testing.T) {
 		{"1 >= 1", true},
 		{"2 >= 1", true},
 		{"1 >= 2", false},
-		{"5 == 5", true},
-		{"5 == 3", false},
-		{"5 != 3", true},
-		{"5 != 5", false},
+		{"equal(5, 5)", true},
+		{"equal(5, 3)", false},
+		{"not(equal(5, 3))", true},
+		{"not equal(5, 5)", false},
 	}
 
 	for _, tt := range tests {
