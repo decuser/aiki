@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	g, err := ebnf.ParseFile("../cmd/grammar.ebnf")
+	g, err := ebnf.ParseFile("../cmd/aiki/grammar.ebnf")
 	if err != nil {
 		panic("failed to load grammar: " + err.Error())
 	}

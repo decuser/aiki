@@ -19,9 +19,9 @@ var strictExports []string
 func SetGrammar(g *ebnf.Grammar) {
 	grammar = g
 
-	// Evaluate strict.ai to get exports
+	// Evaluate prelude.ai to get exports
 	env := value.NewEnv(nil)
-	result := eval.RunNode(g, strict.Source, env)
+	result := eval.RunNode(g, prelude.Source, env)
 	if _, ok := result.(*value.Error); !ok {
 		strictExports = env.GetExports()
 	}

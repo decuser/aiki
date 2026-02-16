@@ -3,8 +3,8 @@ package repl
 import (
 	"fmt"
 
-	"aiki/layers/hal"
 	"aiki/lang/value"
+	"aiki/layers/hal"
 	"aiki/version"
 )
 

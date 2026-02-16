@@ -11,7 +11,7 @@ var testGrammar *ebnf.Grammar
 
 func init() {
 	var err error
-	testGrammar, err = ebnf.ParseFile("../../cmd/grammar.ebnf")
+	testGrammar, err = ebnf.ParseFile("../../cmd/aiki/grammar.ebnf")
 	if err != nil {
 		panic("failed to load grammar: " + err.Error())
 	}

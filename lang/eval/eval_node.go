@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"aiki/ebnf"
-	"aiki/layers/hal"
 	"aiki/lang/value"
+	"aiki/layers/hal"
 )
 
 // HAL is the single source of truth for all builtins.

@@ -107,7 +107,7 @@ expr = NUMBER
 }
 
 func TestParseAikiGrammar(t *testing.T) {
-	g, err := ParseFile("../cmd/grammar.ebnf")
+	g, err := ParseFile("../cmd/aiki/grammar.ebnf")
 	if err != nil {
 		t.Fatalf("parse error: %v", err)
 	}
@@ -132,7 +132,7 @@ func TestParseAikiGrammar(t *testing.T) {
 }
 
 func TestTokenizeAiki(t *testing.T) {
-	g, err := ParseFile("../cmd/grammar.ebnf")
+	g, err := ParseFile("../cmd/aiki/grammar.ebnf")
 	if err != nil {
 		t.Fatalf("parse grammar error: %v", err)
 	}
@@ -169,7 +169,7 @@ func TestTokenizeAiki(t *testing.T) {
 }
 
 func TestParseSimpleAiki(t *testing.T) {
-	g, err := ParseFile("../cmd/grammar.ebnf")
+	g, err := ParseFile("../cmd/aiki/grammar.ebnf")
 	if err != nil {
 		t.Fatalf("parse grammar error: %v", err)
 	}
@@ -185,7 +185,7 @@ func TestParseSimpleAiki(t *testing.T) {
 }
 
 func TestParseLetStatement(t *testing.T) {
-	g, err := ParseFile("../cmd/grammar.ebnf")
+	g, err := ParseFile("../cmd/aiki/grammar.ebnf")
 	if err != nil {
 		t.Fatalf("parse grammar error: %v", err)
 	}
@@ -201,7 +201,7 @@ func TestParseLetStatement(t *testing.T) {
 }
 
 func TestParseFunctionLiteral(t *testing.T) {
-	g, err := ParseFile("../cmd/grammar.ebnf")
+	g, err := ParseFile("../cmd/aiki/grammar.ebnf")
 	if err != nil {
 		t.Fatalf("parse grammar error: %v", err)
 	}
@@ -217,7 +217,7 @@ func TestParseFunctionLiteral(t *testing.T) {
 }
 
 func TestParseFunctionWithParams(t *testing.T) {
-	g, err := ParseFile("../cmd/grammar.ebnf")
+	g, err := ParseFile("../cmd/aiki/grammar.ebnf")
 	if err != nil {
 		t.Fatalf("parse grammar error: %v", err)
 	}
@@ -233,7 +233,7 @@ func TestParseFunctionWithParams(t *testing.T) {
 }
 
 func TestParseInfixExpression(t *testing.T) {
-	g, err := ParseFile("../cmd/grammar.ebnf")
+	g, err := ParseFile("../cmd/aiki/grammar.ebnf")
 	if err != nil {
 		t.Fatalf("parse grammar error: %v", err)
 	}
@@ -249,7 +249,7 @@ func TestParseInfixExpression(t *testing.T) {
 }
 
 func TestParseFunctionWithInfix(t *testing.T) {
-	g, err := ParseFile("../cmd/grammar.ebnf")
+	g, err := ParseFile("../cmd/aiki/grammar.ebnf")
 	if err != nil {
 		t.Fatalf("parse grammar error: %v", err)
 	}
@@ -265,7 +265,7 @@ func TestParseFunctionWithInfix(t *testing.T) {
 }
 
 func TestParseIfStatement(t *testing.T) {
-	g, err := ParseFile("../cmd/grammar.ebnf")
+	g, err := ParseFile("../cmd/aiki/grammar.ebnf")
 	if err != nil {
 		t.Fatalf("parse grammar error: %v", err)
 	}
@@ -281,7 +281,7 @@ func TestParseIfStatement(t *testing.T) {
 }
 
 func TestParseIfElse(t *testing.T) {
-	g, err := ParseFile("../cmd/grammar.ebnf")
+	g, err := ParseFile("../cmd/aiki/grammar.ebnf")
 	if err != nil {
 		t.Fatalf("parse grammar error: %v", err)
 	}
@@ -297,7 +297,7 @@ func TestParseIfElse(t *testing.T) {
 }
 
 func TestParseWhile(t *testing.T) {
-	g, err := ParseFile("../cmd/grammar.ebnf")
+	g, err := ParseFile("../cmd/aiki/grammar.ebnf")
 	if err != nil {
 		t.Fatalf("parse grammar error: %v", err)
 	}
@@ -313,7 +313,7 @@ func TestParseWhile(t *testing.T) {
 }
 
 func TestParsePipe(t *testing.T) {
-	g, err := ParseFile("../cmd/grammar.ebnf")
+	g, err := ParseFile("../cmd/aiki/grammar.ebnf")
 	if err != nil {
 		t.Fatalf("parse grammar error: %v", err)
 	}
@@ -329,7 +329,7 @@ func TestParsePipe(t *testing.T) {
 }
 
 func TestParseList(t *testing.T) {
-	g, err := ParseFile("../cmd/grammar.ebnf")
+	g, err := ParseFile("../cmd/aiki/grammar.ebnf")
 	if err != nil {
 		t.Fatalf("parse grammar error: %v", err)
 	}
@@ -345,7 +345,7 @@ func TestParseList(t *testing.T) {
 }
 
 func TestParseShapedList(t *testing.T) {
-	g, err := ParseFile("../cmd/grammar.ebnf")
+	g, err := ParseFile("../cmd/aiki/grammar.ebnf")
 	if err != nil {
 		t.Fatalf("parse grammar error: %v", err)
 	}
@@ -361,7 +361,7 @@ func TestParseShapedList(t *testing.T) {
 }
 
 func TestParseCall(t *testing.T) {
-	g, err := ParseFile("../cmd/grammar.ebnf")
+	g, err := ParseFile("../cmd/aiki/grammar.ebnf")
 	if err != nil {
 		t.Fatalf("parse grammar error: %v", err)
 	}
@@ -377,7 +377,7 @@ func TestParseCall(t *testing.T) {
 }
 
 func TestParseIndex(t *testing.T) {
-	g, err := ParseFile("../cmd/grammar.ebnf")
+	g, err := ParseFile("../cmd/aiki/grammar.ebnf")
 	if err != nil {
 		t.Fatalf("parse grammar error: %v", err)
 	}
@@ -393,7 +393,7 @@ func TestParseIndex(t *testing.T) {
 }
 
 func TestParseAccess(t *testing.T) {
-	g, err := ParseFile("../cmd/grammar.ebnf")
+	g, err := ParseFile("../cmd/aiki/grammar.ebnf")
 	if err != nil {
 		t.Fatalf("parse grammar error: %v", err)
 	}
@@ -409,7 +409,7 @@ func TestParseAccess(t *testing.T) {
 }
 
 func TestParseMultipleStatements(t *testing.T) {
-	g, err := ParseFile("../cmd/grammar.ebnf")
+	g, err := ParseFile("../cmd/aiki/grammar.ebnf")
 	if err != nil {
 		t.Fatalf("parse grammar error: %v", err)
 	}

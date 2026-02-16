@@ -1,8 +1,8 @@
-package strict
+package prelude
 
 import (
 	_ "embed"
 )
 
-//go:embed strict.ai
+//go:embed prelude.ai
 var Source string

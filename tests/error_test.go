@@ -164,7 +164,7 @@ func TestInspectAtLayerUser(t *testing.T) {
 	stack := []value.StackFrame{
 		{Name: "main", File: "test.ai", Line: 1, Layer: value.LayerUser},
 		{Name: "helper", File: "test.ai", Line: 5, Layer: value.LayerUser},
-		{Name: "hash_get", File: "strict.ai", Line: 100, Layer: value.LayerStrict},
+		{Name: "hash_get", File: "prelude.ai", Line: 100, Layer: value.LayerStrict},
 		{Name: "first", File: "", Line: 0, Layer: value.LayerHal},
 	}
 
@@ -201,13 +201,13 @@ func TestInspectAtLayerStrict(t *testing.T) {
 	stack := []value.StackFrame{
 		{Name: "main", File: "test.ai", Line: 1, Layer: value.LayerUser},
 		{Name: "helper", File: "test.ai", Line: 5, Layer: value.LayerUser},
-		{Name: "hash_get", File: "strict.ai", Line: 100, Layer: value.LayerStrict},
+		{Name: "hash_get", File: "prelude.ai", Line: 100, Layer: value.LayerStrict},
 		{Name: "first", File: "", Line: 0, Layer: value.LayerHal},
 	}
 
 	err := &value.Error{
 		Message: "empty list",
-		File:    "strict.ai",
+		File:    "prelude.ai",
 		Line:    100,
 		Source:  "first(bucket)",
 		Stack:   stack,
@@ -229,7 +229,7 @@ func TestInspectAtLayerStrict(t *testing.T) {
 func TestInspectAtLayerHal(t *testing.T) {
 	stack := []value.StackFrame{
 		{Name: "main", File: "test.ai", Line: 1, Layer: value.LayerUser},
-		{Name: "hash_get", File: "strict.ai", Line: 100, Layer: value.LayerStrict},
+		{Name: "hash_get", File: "prelude.ai", Line: 100, Layer: value.LayerStrict},
 		{Name: "first", File: "hal", Line: 0, Layer: value.LayerHal},
 	}
 

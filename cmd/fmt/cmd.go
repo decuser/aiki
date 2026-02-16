@@ -17,15 +17,14 @@ func SetGrammar(g *ebnf.Grammar) {
 	grammar = g
 }
 
-// Run executes the fmt subcommand.
+// Run executes the fmt subcommand to mirror 'go fmt' behavior.
 func Run(args []string) {
 	fs := flag.NewFlagSet("fmt", flag.ExitOnError)
-	writeFlag := fs.Bool("w", false, "write result to file instead of stdout")
 	fs.Parse(args)
 
 	if fs.NArg() == 0 {
-		gofmt.Fprintln(os.Stderr, "usage: aiki fmt [-w] <file.ai>")
-		gofmt.Fprintln(os.Stderr, "       aiki fmt [-w] ./...")
+		gofmt.Fprintln(os.Stderr, "usage: aiki fmt <file.ai>")
+		gofmt.Fprintln(os.Stderr, "       aiki fmt ./...")
 		os.Exit(1)
 	}
 
@@ -35,7 +34,8 @@ func Run(args []string) {
 	}
 
 	for _, path := range fs.Args() {
-		if err := formatPath(path, *writeFlag); err != nil {
+		// In 'go fmt' style, we always write changes back to the file
+		if err := formatPath(path, true); err != nil {
 			gofmt.Fprintf(os.Stderr, "fmt: %s\n", err)
 			os.Exit(1)
 		}

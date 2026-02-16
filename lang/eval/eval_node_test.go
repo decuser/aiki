@@ -9,7 +9,7 @@ import (
 )
 
 func TestEvalNodeBasic(t *testing.T) {
-	g, err := ebnf.ParseFile("../../cmd/grammar.ebnf")
+	g, err := ebnf.ParseFile("../../cmd/aiki/grammar.ebnf")
 	if err != nil {
 		t.Fatalf("parse grammar: %v", err)
 	}
@@ -66,7 +66,7 @@ func TestEvalNodeBasic(t *testing.T) {
 			}
 
 			env := value.NewEnv(nil)
-			RunNode(g, strict.Source, env)
+			RunNode(g, prelude.Source, env)
 			env.SnapshotStrict()
 
 			result := EvalNode(ast, env)

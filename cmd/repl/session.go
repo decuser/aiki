@@ -7,8 +7,8 @@ import (
 	"aiki/ebnf"
 	"aiki/lang/eval"
 	"aiki/lang/value"
-	"aiki/layers/prelude"
 	"aiki/layers/hal"
+	"aiki/layers/prelude"
 )
 
 const (
@@ -88,7 +88,7 @@ func (s *Session) Run() {
 		// Check for reset signal
 		if _, ok := result.(*hal.ResetSignal); ok {
 			s.env = value.NewEnv(nil)
-			eval.RunNode(s.grammar, strict.Source, s.env)
+			eval.RunNode(s.grammar, prelude.Source, s.env)
 			s.env.SnapshotStrict()
 			fmt.Fprintln(s.out, "Environment reset.")
 			continue

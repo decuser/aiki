@@ -4,6 +4,7 @@ import (
 	"regexp"
 
 	"aiki/ebnf"
+	"aiki/lang/value"
 	"aiki/layers/hal"
 )
 
@@ -47,10 +48,14 @@ func isValidCase(name string) bool {
 	return snakeRe.MatchString(name) || screamRe.MatchString(name)
 }
 
-// makeGlobals returns a scope containing all HAL builtins and strict exports.
+// makeGlobals returns a scope containing all HAL builtins, intrinsics, and prelude exports.
 func makeGlobals() map[string]bool {
 	globals := make(map[string]bool)
 	for name := range hal.HAL {
+		globals[name] = true
+	}
+	// Add language intrinsics (apply, load, import, export)
+	for name := range value.Intrinsics {
 		globals[name] = true
 	}
 	for _, name := range strictExports {

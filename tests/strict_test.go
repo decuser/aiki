@@ -115,18 +115,18 @@ length(hash_keys(h))
 
 // TestStrictExportsAreDefined verifies every exported name is defined and accessible.
 func TestStrictExportsAreDefined(t *testing.T) {
-	// Evaluate strict.ai and get exports from env
+	// Evaluate prelude.ai and get exports from env
 	env := setupEnv()
 	exports := env.GetExports()
 
 	if len(exports) == 0 {
-		t.Fatal("strict.ai has no exports")
+		t.Fatal("prelude.ai has no exports")
 	}
 
 	// Verify each export is actually defined
 	for _, name := range exports {
 		if _, ok := env.Get(name); !ok {
-			t.Errorf("exported name '%s' is not defined in strict.ai", name)
+			t.Errorf("exported name '%s' is not defined in prelude.ai", name)
 		}
 	}
 }
@@ -159,14 +159,14 @@ func TestStrictExportsComplete(t *testing.T) {
 
 // TestStrictSourceHasLetBindings verifies every export has a let binding in source.
 func TestStrictSourceHasLetBindings(t *testing.T) {
-	source := strict.Source
+	source := prelude.Source
 	env := setupEnv()
 	exports := env.GetExports()
 
 	for _, name := range exports {
 		pattern := "let " + name + " ="
 		if !strings.Contains(source, pattern) {
-			t.Errorf("exported name '%s' has no 'let %s = ...' in strict.ai", name, name)
+			t.Errorf("exported name '%s' has no 'let %s = ...' in prelude.ai", name, name)
 		}
 	}
 }

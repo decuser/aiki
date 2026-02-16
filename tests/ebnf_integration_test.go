@@ -11,7 +11,7 @@ import (
 // This is a standalone test - for real integration, eval.go needs lang/value
 
 func TestIntegrationPrintAST(t *testing.T) {
-	g, err := ebnf.ParseFile("../cmd/grammar.ebnf")
+	g, err := ebnf.ParseFile("../cmd/aiki/grammar.ebnf")
 	if err != nil {
 		t.Fatalf("parse grammar error: %v", err)
 	}

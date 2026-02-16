@@ -13,7 +13,7 @@ var testGrammar *ebnf.Grammar
 
 func init() {
 	var err error
-	testGrammar, err = ebnf.ParseFile("../cmd/grammar.ebnf")
+	testGrammar, err = ebnf.ParseFile("../cmd/aiki/grammar.ebnf")
 	if err != nil {
 		panic("failed to load grammar: " + err.Error())
 	}
@@ -23,7 +23,7 @@ func init() {
 // setupEnv creates an env with strict loaded.
 func setupEnv() *value.Env {
 	env := value.NewEnv(nil)
-	result := eval.RunNode(testGrammar, strict.Source, env)
+	result := eval.RunNode(testGrammar, prelude.Source, env)
 	if _, ok := result.(*value.Error); ok {
 		panic("failed to load strict: " + result.Inspect())
 	}
