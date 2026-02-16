@@ -13,6 +13,7 @@ go test ./...
 ### 1. Cleanup: Terminology + Dead Code
 - [x] Delete `pragmatic/` directory
 - [x] Remove `LayerPragmatic` constant
+- [ ] REPL continuation: detect incomplete input (trailing |>, open delimiters) and prompt for more instead of parsing
 - [ ] `LayerStrict` → `LayerPrelude`
 - [ ] `SnapshotStrict()` → `SnapshotPrelude()`
 - [ ] `shadowed = "strict"` → `shadowed = "prelude"`
