@@ -42,7 +42,7 @@ Full words preferred. Exceptions: `x`, `y`, `i`, `n`, `fn`, loop counters.
 - **Nesting depth.** Shallow is better. Extract, early return, pipeline.
 - **Error handling.** Return `[@error, reason]` on failure. Return value on success.
 - **Comments.** Never required, never forbidden. File header if helpful.
-- **Strict vs pragmatic.** Strict by default. Pragmatic when profiling says so.
+- **Exact vs precise.** Exact by default. Precise when profiling says so.
 
 ## Command Strictness
 

@@ -33,7 +33,7 @@ go test ./...
 - [x] Rename `strict/` directory to `prelude/`
 - [x] Rename `strict.ai` to `prelude.ai`
 - [ ] Update terminology (prelude not strict, no pragmatic)
-- [ ] Delete `pragmatic/` directory
+-
 
 ### 4. Type Cleanup
 - [ ] `Handle` struct → `[@handle, id]` shaped list

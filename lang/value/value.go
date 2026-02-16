@@ -33,7 +33,6 @@ type Layer string
 const (
 	LayerHal       Layer = "hal"
 	LayerStrict    Layer = "strict"
-	LayerPragmatic Layer = "pragmatic"
 	LayerUser      Layer = "user"
 )
 

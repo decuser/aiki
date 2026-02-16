@@ -17,6 +17,8 @@
 - `module.go` — SetNodeGrammar, import/export ✔
 - `intrinsics.go` — call dispatch, apply, load ✔
 - Dead code removed (evalNodeImport, evalNodeExport) ✔
+- Delete `pragmatic/` directory ✓
+- Remove `LayerPragmatic` constant ✓
 
 ## v0.2.6 (Parity)
 
