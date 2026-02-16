@@ -5,17 +5,13 @@ import (
 	"testing"
 
 	"aiki/internal/ebnf"
+	"aiki/lang"
 )
 
 var commentTestGrammar *ebnf.Grammar
 
 func init() {
-	var err error
-	commentTestGrammar, err = ebnf.ParseFile("../../cmd/aiki/grammar.ebnf")
-	if err != nil {
-		panic("failed to load grammar for comment tests: " + err.Error())
-	}
-	SetGrammar(commentTestGrammar)
+	SetGrammar(lang.Grammar())
 }
 
 func TestFmtCommentOrder(t *testing.T) {

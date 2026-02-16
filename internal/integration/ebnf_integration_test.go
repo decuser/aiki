@@ -1,16 +1,17 @@
-package ebnf
+package integration
 
 import (
 	"fmt"
 	"testing"
 
+	"aiki/internal/ebnf"
 )
 
 // TestIntegration tests the full pipeline without depending on lang/value
 // This is a standalone test - for real integration, eval.go needs lang/value
 
 func TestIntegrationPrintAST(t *testing.T) {
-	g, err := ebnf.ParseFile("../cmd/aiki/grammar.ebnf")
+	g, err := ebnf.ParseFile("../../lang/grammar.ebnf")
 	if err != nil {
 		t.Fatalf("parse grammar error: %v", err)
 	}

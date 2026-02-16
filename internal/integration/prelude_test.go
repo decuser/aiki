@@ -1,71 +1,72 @@
-package prelude
+package integration
 
 import (
+	"aiki/runtime/prelude"
+	"aiki/internal/testutil"
 	"strings"
 	"testing"
-
 )
 
 func TestRange(t *testing.T) {
-	result := testEvalStrict(`range(1, 5)`)
+	result := testutil.EvalStrict(`range(1, 5)`)
 	if result.Inspect() != "[1, 2, 3, 4]" {
 		t.Errorf("got %s, want [1, 2, 3, 4]", result.Inspect())
 	}
 }
 
 func TestSum(t *testing.T) {
-	result := testEvalStrict(`sum([1, 2, 3, 4, 5])`)
-	testNumberValue(t, result, "15")
+	result := testutil.EvalStrict(`sum([1, 2, 3, 4, 5])`)
+	testutil.TestNumberValue(t, result, "15")
 }
 
 func TestMap(t *testing.T) {
-	result := testEvalStrict(`map([1, 2, 3], (x) { return x * 2 })`)
+	result := testutil.EvalStrict(`map([1, 2, 3], (x) { return x * 2 })`)
 	if result.Inspect() != "[2, 4, 6]" {
 		t.Errorf("got %s, want [2, 4, 6]", result.Inspect())
 	}
 }
 
 func TestFilter(t *testing.T) {
-	result := testEvalStrict(`filter([1, 2, 3, 4, 5], (x) { return x > 3 })`)
+	result := testutil.EvalStrict(`filter([1, 2, 3, 4, 5], (x) { return x > 3 })`)
 	if result.Inspect() != "[4, 5]" {
 		t.Errorf("got %s, want [4, 5]", result.Inspect())
 	}
 }
 
 func TestReduce(t *testing.T) {
-	result := testEvalStrict(`reduce([1, 2, 3, 4], 0, (acc, x) { return acc + x })`)
-	testNumberValue(t, result, "10")
+	result := testutil.EvalStrict(`reduce([1, 2, 3, 4], 0, (acc, x) { return acc + x })`)
+	testutil.TestNumberValue(t, result, "10")
 }
 
 func TestReverse(t *testing.T) {
-	result := testEvalStrict(`reverse([1, 2, 3])`)
+	result := testutil.EvalStrict(`reverse([1, 2, 3])`)
 	if result.Inspect() != "[3, 2, 1]" {
 		t.Errorf("got %s, want [3, 2, 1]", result.Inspect())
 	}
 }
 
 func TestFind(t *testing.T) {
-	result := testEvalStrict(`find([10, 20, 30], (x) { return x > 15 })`)
-	testNumberValue(t, result, "20")
+	result := testutil.EvalStrict(`find([10, 20, 30], (x) { return x > 15 })`)
+	testutil.TestNumberValue(t, result, "20")
 }
 
 func TestAnyAll(t *testing.T) {
-	result := testEvalStrict(`any([1, 2, 3], (x) { return x > 2 })`)
-	testBooleanValue(t, result, true)
+	result := testutil.EvalStrict(`any([1, 2, 3], (x) { return x > 2 })`)
+	testutil.TestBooleanValue(t, result, true)
 
-	result = testEvalStrict(`all([1, 2, 3], (x) { return x > 0 })`)
-	testBooleanValue(t, result, true)
+	result = testutil.EvalStrict(`all([1, 2, 3], (x) { return x > 0 })`)
+	testutil.TestBooleanValue(t, result, true)
 
-	result = testEvalStrict(`all([1, 2, 3], (x) { return x > 2 })`)
-	testBooleanValue(t, result, false)
+	result = testutil.EvalStrict(`all([1, 2, 3], (x) { return x > 2 })`)
+	testutil.TestBooleanValue(t, result, false)
 }
 
 func TestMinMax(t *testing.T) {
-	result := testEvalStrict(`min([3, 1, 4, 1, 5])`)
-	testNumberValue(t, result, "1")
+	result := testutil.EvalStrict(`min([3, 1, 4, 1, 5])`)
+	testutil.TestNumberValue(t, result, "1")
 
-	result = testEvalStrict(`max([3, 1, 4, 1, 5])`)
-	testNumberValue(t, result, "5")
+	result = testutil.EvalStrict(`max([3, 1, 4, 1, 5])`)
+	testutil.TestNumberValue(t, result, "5")
 }
 
 func TestHashMap(t *testing.T) {
@@ -104,7 +105,7 @@ length(hash_keys(h))
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := testEvalStrict(tt.input)
+			result := testutil.EvalStrict(tt.input)
 			if result.Inspect() != tt.expected {
 				t.Errorf("got %s, want %s", result.Inspect(), tt.expected)
 			}
@@ -115,7 +116,7 @@ length(hash_keys(h))
 // TestStrictExportsAreDefined verifies every exported name is defined and accessible.
 func TestStrictExportsAreDefined(t *testing.T) {
 	// Evaluate prelude.ai and get exports from env
-	env := setupEnv()
+	env := testutil.SetupEnv()
 	exports := env.GetExports()
 
 	if len(exports) == 0 {
@@ -132,7 +133,7 @@ func TestStrictExportsAreDefined(t *testing.T) {
 
 // TestStrictExportsComplete verifies all expected functions are exported.
 func TestStrictExportsComplete(t *testing.T) {
-	env := setupEnv()
+	env := testutil.SetupEnv()
 	exports := env.GetExports()
 
 	// Expected exports
@@ -159,7 +160,7 @@ func TestStrictExportsComplete(t *testing.T) {
 // TestStrictSourceHasLetBindings verifies every export has a let binding in source.
 func TestStrictSourceHasLetBindings(t *testing.T) {
 	source := prelude.Source
-	env := setupEnv()
+	env := testutil.SetupEnv()
 	exports := env.GetExports()
 
 	for _, name := range exports {

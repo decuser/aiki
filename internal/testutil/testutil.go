@@ -1,9 +1,10 @@
-package tests
+package testutil
 
 import (
 	"testing"
 
 	"aiki/internal/ebnf"
+	"aiki/lang"
 	"aiki/lang/eval"
 	"aiki/lang/value"
 	"aiki/runtime/prelude"
@@ -12,16 +13,12 @@ import (
 var testGrammar *ebnf.Grammar
 
 func init() {
-	var err error
-	testGrammar, err = ebnf.ParseFile("../cmd/aiki/grammar.ebnf")
-	if err != nil {
-		panic("failed to load grammar: " + err.Error())
-	}
+	testGrammar = lang.Grammar()
 	eval.SetNodeGrammar(testGrammar)
 }
 
 // setupEnv creates an env with strict loaded.
-func setupEnv() *value.Env {
+func SetupEnv() *value.Env {
 	env := value.NewEnv(nil)
 	result := eval.RunNode(testGrammar, prelude.Source, env)
 	if _, ok := result.(*value.Error); ok {
@@ -32,18 +29,18 @@ func setupEnv() *value.Env {
 }
 
 // testEval evaluates without strict (bare env).
-func testEval(input string) value.Value {
+func TestEval(input string) value.Value {
 	env := value.NewEnv(nil)
 	return eval.RunNode(testGrammar, input, env)
 }
 
 // testEvalStrict evaluates with strict loaded.
 func EvalStrict(input string) value.Value {
-	env := setupEnv()
+	env := SetupEnv()
 	return eval.RunNode(testGrammar, input, env)
 }
 
-func testNumberValue(t *testing.T, v value.Value, expected string) {
+func TestNumberValue(t *testing.T, v value.Value, expected string) {
 	t.Helper()
 	num, ok := v.(*value.Number)
 	if !ok {
@@ -54,7 +51,7 @@ func testNumberValue(t *testing.T, v value.Value, expected string) {
 	}
 }
 
-func testBooleanValue(t *testing.T, v value.Value, expected bool) {
+func TestBooleanValue(t *testing.T, v value.Value, expected bool) {
 	t.Helper()
 	b, ok := v.(*value.Boolean)
 	if !ok {

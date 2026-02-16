@@ -4,17 +4,13 @@ import (
 	"strings"
 	"testing"
 
-	"aiki/internal/ebnf"
-
 	aikifmt "aiki/cmd/fmt"
+	"aiki/lang"
 )
 
 func init() {
-	g, err := ebnf.ParseFile("../../cmd/aiki/grammar.ebnf")
-	if err != nil {
-		panic("failed to load grammar: " + err.Error())
-	}
-	aikifmt.SetGrammar(g)
+
+	aikifmt.SetGrammar(lang.Grammar())
 }
 
 // TestFmtRoundTrip verifies that parsing formatted output produces equivalent AST

@@ -1,13 +1,14 @@
-package hal
+package integration
 
 import (
+	"aiki/internal/testutil"
 	"testing"
 
 	"aiki/lang/value"
 )
 
 func TestChannel(t *testing.T) {
-	result := testEvalStrict(`type(channel())`)
+	result := testutil.EvalStrict(`type(channel())`)
 	if result.Inspect() != ":channel" {
 		t.Errorf("got %s, want :channel", result.Inspect())
 	}
@@ -15,18 +16,18 @@ func TestChannel(t *testing.T) {
 
 func TestSendRecv(t *testing.T) {
 	// FIXED: Spawn a thread to send, so the main thread can receive.
-	result := testEvalStrict(`
+	result := testutil.EvalStrict(`
 let ch = channel()
 spawn((c) {
 	send(c, 42)
 }, ch)
 recv(ch)
 `)
-	testNumberValue(t, result, "42")
+	testutil.TestNumberValue(t, result, "42")
 }
 
 func TestSpawnReturnsTrue(t *testing.T) {
-	result := testEvalStrict(`
+	result := testutil.EvalStrict(`
 let ch = channel()
 spawn((ch) {
 	send(ch, 1)
@@ -42,7 +43,7 @@ spawn((ch) {
 }
 
 func TestSpawnNonFunction(t *testing.T) {
-	result := testEvalStrict(`spawn(42)`)
+	result := testutil.EvalStrict(`spawn(42)`)
 	_, ok := result.(*value.Error)
 	if !ok {
 		t.Errorf("expected error for spawn(42), got %T", result)
@@ -50,7 +51,7 @@ func TestSpawnNonFunction(t *testing.T) {
 }
 
 func TestChannelMultipleValues(t *testing.T) {
-	result := testEvalStrict(`
+	result := testutil.EvalStrict(`
 let ch = channel()
 
 # Spawn a thread to send the values
@@ -66,5 +67,5 @@ let b = recv(ch)
 let c = recv(ch)
 a + b + c
 `)
-	testNumberValue(t, result, "6")
+	testutil.TestNumberValue(t, result, "6")
 }

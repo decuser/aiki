@@ -4,24 +4,18 @@ import (
 	"strings"
 	"testing"
 
-	"aiki/internal/ebnf"
+	"aiki/lang"
 )
 
-var testGrammar *ebnf.Grammar
 
 func init() {
-	var err error
-	testGrammar, err = ebnf.ParseFile("../../cmd/aiki/grammar.ebnf")
-	if err != nil {
-		panic("failed to load grammar: " + err.Error())
-	}
 	// Initialize strictExports by calling SetGrammar
-	SetGrammar(testGrammar)
+	SetGrammar(lang.Grammar())
 }
 
 func lintSource(t *testing.T, source string) []Diagnostic {
 	t.Helper()
-	diags, err := LintSource(testGrammar, source)
+	diags, err := LintSource(lang.Grammar(), source)
 	if err != nil {
 		t.Fatalf("lint error: %v", err)
 	}

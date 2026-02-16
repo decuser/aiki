@@ -1,29 +1,30 @@
-package eval
+package integration
 
 import (
+	"aiki/internal/testutil"
 	"testing"
 
 	"aiki/lang/value"
 )
 
 func TestEvalPipe(t *testing.T) {
-	result := testEvalStrict(`
+	result := testutil.EvalStrict(`
 let add_one = (x) { return x + 1 }
 let double = (x) { return x * 2 }
 5 |> add_one() |> double()
 `)
-	testNumberValue(t, result, "12")
+	testutil.TestNumberValue(t, result, "12")
 }
 
 func TestEvalPipeWithBuiltins(t *testing.T) {
-	result := testEvalStrict(`
+	result := testutil.EvalStrict(`
 range(1, 6) |> sum()
 `)
-	testNumberValue(t, result, "15")
+	testutil.TestNumberValue(t, result, "15")
 }
 
 func TestEvalMatchStatement(t *testing.T) {
-	result := testEvalStrict(`
+	result := testutil.EvalStrict(`
 let x = 2
 match x {
 	1 { "one" }
@@ -41,7 +42,7 @@ match x {
 }
 
 func TestEvalMatchWildcard(t *testing.T) {
-	result := testEvalStrict(`
+	result := testutil.EvalStrict(`
 let x = 99
 match x {
 	1 { "one" }
@@ -69,7 +70,7 @@ x`, ":hello"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			result := testEval(tt.input)
+			result := testutil.TestEval(tt.input)
 			if result.Inspect() != tt.expected {
 				t.Errorf("got %s, want %s", result.Inspect(), tt.expected)
 			}
@@ -90,7 +91,7 @@ func TestEvalBuiltinType(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			result := testEvalStrict(tt.input)
+			result := testutil.EvalStrict(tt.input)
 			if result.Inspect() != tt.expected {
 				t.Errorf("got %s, want %s", result.Inspect(), tt.expected)
 			}
@@ -99,7 +100,7 @@ func TestEvalBuiltinType(t *testing.T) {
 }
 
 func TestEvalBuiltinShape(t *testing.T) {
-	result := testEvalStrict(`
+	result := testutil.EvalStrict(`
 let @point [x, y]
 let p = [@point, 1, 2]
 shape(p)
@@ -110,16 +111,16 @@ shape(p)
 }
 
 func TestEvalShapedListPositionalAccess(t *testing.T) {
-	result := testEvalStrict(`
+	result := testutil.EvalStrict(`
 let @point [x, y]
 let p = [@point, 10, 20]
 p[0]
 `)
-	testNumberValue(t, result, "10")
+	testutil.TestNumberValue(t, result, "10")
 }
 
 func TestEvalRune(t *testing.T) {
-	result := testEval(`'a'`)
+	result := testutil.TestEval(`'a'`)
 	r, ok := result.(*value.Rune)
 	if !ok {
 		t.Fatalf("expected Rune, got %T", result)
@@ -130,6 +131,6 @@ func TestEvalRune(t *testing.T) {
 }
 
 func TestEvalGroupExpression(t *testing.T) {
-	result := testEval(`(1 + 2) * 3`)
-	testNumberValue(t, result, "9")
+	result := testutil.TestEval(`(1 + 2) * 3`)
+	testutil.TestNumberValue(t, result, "9")
 }

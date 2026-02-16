@@ -1,6 +1,7 @@
-package hal
+package integration
 
 import (
+	"aiki/internal/testutil"
 	"os"
 	"strings"
 	"testing"
@@ -12,7 +13,7 @@ func TestFileRoundTrip(t *testing.T) {
 	tmpFile := "/tmp/aiki_test_io.txt"
 	defer os.Remove(tmpFile)
 
-	result := testEvalStrict(`
+	result := testutil.EvalStrict(`
 let h = create("` + tmpFile + `")
 fwrite(h, "hello world")
 fclose(h)
@@ -35,7 +36,7 @@ data
 }
 
 func TestFileOpenError(t *testing.T) {
-	result := testEvalStrict(`open("/nonexistent/path/file.txt")`)
+	result := testutil.EvalStrict(`open("/nonexistent/path/file.txt")`)
 	// Builtin errors are [@error, "reason"] shaped lists
 	list, ok := result.(*value.List)
 	if !ok || list.Shape != "error" {
@@ -45,7 +46,7 @@ func TestFileOpenError(t *testing.T) {
 
 func TestPipeErrorShortCircuit(t *testing.T) {
 	// Pipe should stop on error and propagate it
-	result := testEvalStrict(`
+	result := testutil.EvalStrict(`
 let fail = () { return [@error, "boom"] }
 let double = (x) { return x * 2 }
 fail() |> double()
@@ -64,10 +65,10 @@ fail() |> double()
 }
 
 func TestPipePassthrough(t *testing.T) {
-	result := testEvalStrict(`
+	result := testutil.EvalStrict(`
 let add_one = (x) { return x + 1 }
 let double = (x) { return x * 2 }
 5 |> add_one() |> double()
 `)
-	testNumberValue(t, result, "12")
+	testutil.TestNumberValue(t, result, "12")
 }

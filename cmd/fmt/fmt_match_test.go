@@ -5,17 +5,13 @@ import (
 	"testing"
 
 	"aiki/internal/ebnf"
+	"aiki/lang"
 )
 
 var testGrammar *ebnf.Grammar
 
 func init() {
-	var err error
-	testGrammar, err = ebnf.ParseFile("../../cmd/aiki/grammar.ebnf")
-	if err != nil {
-		panic("failed to load grammar: " + err.Error())
-	}
-	SetGrammar(testGrammar)
+	SetGrammar(lang.Grammar())
 }
 
 func TestFmtMatchPreservesArms(t *testing.T) {

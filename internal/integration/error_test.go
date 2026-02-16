@@ -1,23 +1,25 @@
-package eval
+package integration
 
 import (
+"aiki/lang"
+	"aiki/internal/testutil"
 	"strings"
 	"testing"
-
+	"aiki/lang/eval"
 	"aiki/lang/value"
 )
 
 // testEvalStrictMultiline evaluates multiline input with source tracking.
 func testEvalStrictMultiline(input string) value.Value {
-	env := setupEnv()
+	env := testutil.SetupEnv()
 	env.SetSource(input)
 	env.SetFile("test.ai")
-	return eval.RunNode(testGrammar, input, env)
+	return eval.RunNode(lang.Grammar(), input, env)
 }
 
 func TestErrorHasPosition(t *testing.T) {
 	// HAL error should get annotated with call site position
-	result := testEvalStrict(`first([])`)
+	result := testutil.EvalStrict(`first([])`)
 
 	err, ok := result.(*value.Error)
 	if !ok {
@@ -145,7 +147,7 @@ list[10]`
 }
 
 func TestErrorCannotShadowBuiltin(t *testing.T) {
-	result := testEvalStrict(`let first = 42`)
+	result := testutil.EvalStrict(`let first = 42`)
 
 	err, ok := result.(*value.Error)
 	if !ok {

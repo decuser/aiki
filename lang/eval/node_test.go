@@ -9,7 +9,7 @@ import (
 )
 
 func TestEvalNodeBasic(t *testing.T) {
-	g, err := ebnf.ParseFile("../../cmd/aiki/grammar.ebnf")
+	g, err := ebnf.ParseFile("../../lang/grammar.ebnf")
 	if err != nil {
 		t.Fatalf("parse grammar: %v", err)
 	}

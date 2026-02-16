@@ -1,6 +1,7 @@
-package eval
+package integration
 
 import (
+	"aiki/internal/testutil"
 	"testing"
 
 	"aiki/lang/value"
@@ -19,8 +20,8 @@ func TestEvalNumbers(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			result := testEval(tt.input)
-			testNumberValue(t, result, tt.expected)
+			result := testutil.TestEval(tt.input)
+			testutil.TestNumberValue(t, result, tt.expected)
 		})
 	}
 }
@@ -39,8 +40,8 @@ func TestEvalBooleans(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			result := testEval(tt.input)
-			testBooleanValue(t, result, tt.expected)
+			result := testutil.TestEval(tt.input)
+			testutil.TestBooleanValue(t, result, tt.expected)
 		})
 	}
 }
@@ -62,8 +63,8 @@ func TestEvalArithmetic(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			result := testEval(tt.input)
-			testNumberValue(t, result, tt.expected)
+			result := testutil.TestEval(tt.input)
+			testutil.TestNumberValue(t, result, tt.expected)
 		})
 	}
 }
@@ -91,8 +92,8 @@ func TestEvalComparison(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			result := testEval(tt.input)
-			testBooleanValue(t, result, tt.expected)
+			result := testutil.TestEval(tt.input)
+			testutil.TestBooleanValue(t, result, tt.expected)
 		})
 	}
 }
@@ -114,8 +115,8 @@ func TestEvalLogical(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			result := testEval(tt.input)
-			testBooleanValue(t, result, tt.expected)
+			result := testutil.TestEval(tt.input)
+			testutil.TestBooleanValue(t, result, tt.expected)
 		})
 	}
 }
@@ -131,7 +132,7 @@ func TestEvalStrings(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			result := testEval(tt.input)
+			result := testutil.TestEval(tt.input)
 			str, ok := result.(*value.String)
 			if !ok {
 				t.Fatalf("expected String, got %T", result)
@@ -155,14 +156,14 @@ func TestEvalLet(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			result := testEval(tt.input)
-			testNumberValue(t, result, tt.expected)
+			result := testutil.TestEval(tt.input)
+			testutil.TestNumberValue(t, result, tt.expected)
 		})
 	}
 }
 
 func TestUndefinedIdentifier(t *testing.T) {
-	result := testEval("x")
+	result := testutil.TestEval("x")
 	err, ok := result.(*value.Error)
 	if !ok {
 		t.Fatalf("expected Error, got %T", result)
@@ -187,13 +188,13 @@ func TestEvalIf(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			result := testEval(tt.input)
+			result := testutil.TestEval(tt.input)
 			if tt.expected == "null" {
 				if result.Type() != value.NullType {
 					t.Errorf("expected null, got %s", result.Inspect())
 				}
 			} else {
-				testNumberValue(t, result, tt.expected)
+				testutil.TestNumberValue(t, result, tt.expected)
 			}
 		})
 	}
@@ -207,8 +208,8 @@ while x < 5 {
 }
 x
 `
-	result := testEval(input)
-	testNumberValue(t, result, "5")
+	result := testutil.TestEval(input)
+	testutil.TestNumberValue(t, result, "5")
 }
 
 func TestEvalList(t *testing.T) {
@@ -223,7 +224,7 @@ func TestEvalList(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			result := testEval(tt.input)
+			result := testutil.TestEval(tt.input)
 			if result.Inspect() != tt.expected {
 				t.Errorf("got %s, want %s", result.Inspect(), tt.expected)
 			}
@@ -244,8 +245,8 @@ func TestEvalListIndex(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			result := testEval(tt.input)
-			testNumberValue(t, result, tt.expected)
+			result := testutil.TestEval(tt.input)
+			testutil.TestNumberValue(t, result, tt.expected)
 		})
 	}
 }
@@ -257,8 +258,8 @@ let add = (a, b) {
 }
 add(2, 3)
 `
-	result := testEval(input)
-	testNumberValue(t, result, "5")
+	result := testutil.TestEval(input)
+	testutil.TestNumberValue(t, result, "5")
 }
 
 func TestEvalRecursion(t *testing.T) {
@@ -271,8 +272,8 @@ let factorial = (n) {
 }
 factorial(5)
 `
-	result := testEval(input)
-	testNumberValue(t, result, "120")
+	result := testutil.TestEval(input)
+	testutil.TestNumberValue(t, result, "120")
 }
 
 func TestEvalClosure(t *testing.T) {
@@ -283,8 +284,8 @@ let makeAdder = (x) {
 let addFive = makeAdder(5)
 addFive(3)
 `
-	result := testEval(input)
-	testNumberValue(t, result, "8")
+	result := testutil.TestEval(input)
+	testutil.TestNumberValue(t, result, "8")
 }
 
 func TestEvalRestParam(t *testing.T) {
@@ -300,8 +301,8 @@ let sum = (...args) {
 }
 sum(1, 2, 3, 4, 5)
 `
-	result := testEval(input)
-	testNumberValue(t, result, "15")
+	result := testutil.TestEval(input)
+	testutil.TestNumberValue(t, result, "15")
 }
 
 func TestEvalShapedList(t *testing.T) {
@@ -310,12 +311,12 @@ let @point [x, y]
 let p = [@point, 10, 20]
 p.x + p.y
 `
-	result := testEval(input)
-	testNumberValue(t, result, "30")
+	result := testutil.TestEval(input)
+	testutil.TestNumberValue(t, result, "30")
 }
 
 func TestEvalDivisionByZero(t *testing.T) {
-	result := testEval("1 / 0")
+	result := testutil.TestEval("1 / 0")
 	err, ok := result.(*value.Error)
 	if !ok {
 		t.Fatalf("expected Error, got %T", result)
@@ -336,8 +337,8 @@ func TestEvalAssignment(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			result := testEval(tt.input)
-			testNumberValue(t, result, tt.expected)
+			result := testutil.TestEval(tt.input)
+			testutil.TestNumberValue(t, result, tt.expected)
 		})
 	}
 }
@@ -352,8 +353,8 @@ let earlyReturn = (n) {
 }
 earlyReturn(-5)
 `
-	result := testEval(input)
-	testNumberValue(t, result, "-1")
+	result := testutil.TestEval(input)
+	testutil.TestNumberValue(t, result, "-1")
 }
 
 func TestEvalNestedFunction(t *testing.T) {
@@ -366,8 +367,8 @@ let outer = (x) {
 }
 outer(5)
 `
-	result := testEval(input)
-	testNumberValue(t, result, "15")
+	result := testutil.TestEval(input)
+	testutil.TestNumberValue(t, result, "15")
 }
 
 func TestEvalImplicitReturn(t *testing.T) {
@@ -377,6 +378,6 @@ let f = (x) {
 }
 f(5)
 `
-	result := testEval(input)
-	testNumberValue(t, result, "6")
+	result := testutil.TestEval(input)
+	testutil.TestNumberValue(t, result, "6")
 }

@@ -1,6 +1,7 @@
-package hal
+package integration
 
 import (
+	"aiki/internal/testutil"
 	"testing"
 
 	"aiki/lang/value"
@@ -8,7 +9,7 @@ import (
 
 func TestCanvasCreate(t *testing.T) {
 	// canvas_create returns a canvas value
-	result := testEvalStrict(`canvas_create(200, 200)`)
+	result := testutil.EvalStrict(`canvas_create(200, 200)`)
 	if result == nil {
 		t.Fatal("expected canvas, got nil")
 	}
@@ -24,7 +25,7 @@ func TestCanvasCreate(t *testing.T) {
 
 func TestCanvasColors(t *testing.T) {
 	// Color symbols should resolve
-	result := testEvalStrict(`:red`)
+	result := testutil.EvalStrict(`:red`)
 	if result.Inspect() != ":red" {
 		t.Errorf("got %s, want :red", result.Inspect())
 	}
