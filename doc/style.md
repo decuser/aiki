@@ -60,11 +60,11 @@ Default is strict. Opt into looseness with `--proto`.
 | Flag | Shows |
 |------|-------|
 | `--errors=user` | Your code only. Default. |
-| `--errors=strict` | Your code + strict library. |
+| `--errors=prelude` | Your code + standard library. |
 | `--errors=hal` | Everything. Full stack to primitives. |
 
 Stack traces filter by layer. Deeper = more detail.
 
 ## Examples
 
-See `strict.ai`.
+See `prelude.ai`.
