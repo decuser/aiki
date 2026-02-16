@@ -51,11 +51,4 @@ func init() {
 		},
 	}
 
-	// spawn is a marker - actual handling is in evalCallExpression
-	HAL["spawn"] = &value.Builtin{
-		Name: "spawn",
-		Fn: func(args ...value.Value) value.Value {
-			return value.NewError("spawn: internal error")
-		},
-	}
 }

@@ -20,4 +20,5 @@ var Intrinsics = map[string]*Intrinsic{
 	"apply":  {Name: "apply"},
 	"import": {Name: "import"},
 	"export": {Name: "export"},
+	"spawn":  {Name: "spawn"},
 }

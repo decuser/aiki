@@ -25,9 +25,7 @@ func init() {
 			if len(args) != 0 {
 				return value.NewError("reset: want 0 arguments, got %d", len(args))
 			}
-			if CloseAllCanvases != nil {
-				CloseAllCanvases()
-			}
+			CloseAllCanvases()
 			return Reset
 		},
 	}
@@ -35,9 +33,7 @@ func init() {
 	HAL["quit"] = &value.Builtin{
 		Name: "quit",
 		Fn: func(args ...value.Value) value.Value {
-			if CloseAllCanvases != nil {
-				CloseAllCanvases()
-			}
+			CloseAllCanvases()
 			return Exit
 		},
 	}

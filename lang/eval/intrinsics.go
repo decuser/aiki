@@ -3,6 +3,9 @@ package eval
 import (
 	"aiki/ebnf"
 	"aiki/lang/value"
+	"aiki/layers/hal"
+	"fmt"
+	"os"
 )
 
 // evalNodeCallSafe dispatches a function call, handling Fn: nil specials.
@@ -61,6 +64,8 @@ func evalIntrinsic(name string, args []value.Value, env *value.Env, node *ebnf.N
 		return evalImport(args, env, node)
 	case "export":
 		return evalExport(args, env, node)
+	case "spawn":
+		return evalSpawn(args, env, node)
 	default:
 		return makeError(env, node, "unknown intrinsic: %s", name)
 	}
@@ -146,4 +151,30 @@ func evalPipeCallSafe(node *ebnf.Node, pipedValue value.Value, env *value.Env) v
 		callNode = node
 	}
 	return dispatchCall(fn, args, env, callNode)
+}
+
+func evalSpawn(args []value.Value, env *value.Env, node *ebnf.Node) value.Value {
+	if len(args) < 1 {
+		return makeError(env, node, "spawn: want at least 1 argument (function)")
+	}
+
+	fn, ok := args[0].(*value.Function)
+	if !ok {
+		return makeError(env, node, "spawn: expected function as first argument")
+	}
+
+	// Capture arguments passed to spawn: spawn(fn, arg1, arg2)
+	fnArgs := args[1:]
+
+	// Use the HAL scheduler to launch a goroutine
+	hal.DefaultScheduler.Spawn(func() {
+		result := applyNodeFunc(fn, fnArgs, node.Line)
+		// Log errors from spawned functions (they can't propagate)
+		if err, ok := result.(*value.Error); ok {
+			// TODO: Consider a proper error channel or logger
+			fmt.Fprintf(os.Stderr, "spawn: %s\n", err.Message)
+		}
+	})
+
+	return value.True
 }

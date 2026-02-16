@@ -14,9 +14,12 @@ func TestChannel(t *testing.T) {
 }
 
 func TestSendRecv(t *testing.T) {
+	// FIXED: Spawn a thread to send, so the main thread can receive.
 	result := testEvalStrict(`
 let ch = channel()
-send(ch, 42)
+spawn((c) {
+	send(c, 42)
+}, ch)
 recv(ch)
 `)
 	testNumberValue(t, result, "42")
@@ -49,9 +52,15 @@ func TestSpawnNonFunction(t *testing.T) {
 func TestChannelMultipleValues(t *testing.T) {
 	result := testEvalStrict(`
 let ch = channel()
-send(ch, 1)
-send(ch, 2)
-send(ch, 3)
+
+# Spawn a thread to send the values
+spawn((c) {
+	send(c, 1)
+	send(c, 2)
+	send(c, 3)
+}, ch)
+
+# Main thread receives them
 let a = recv(ch)
 let b = recv(ch)
 let c = recv(ch)

@@ -11,15 +11,15 @@ while not guessed {
 	let guess = to_number(input)
 	attempts = attempts + 1
 	if equal(guess, secret) {
-		print("Correct! You found it in")
+		print("Correct! You found it in ")
 		print(attempts)
-		print("attempts.")
+		print(" attempts.")
 		guessed = true
 	} else {
 		if guess < secret {
-			print("Too low, try again.")
+			print("Too low, try again.\n")
 		} else {
-			print("Too high, try again.")
+			print("Too high, try again.\n")
 		}
 	}
 }

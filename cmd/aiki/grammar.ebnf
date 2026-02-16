@@ -65,8 +65,7 @@ list_literal = "[" [ expr { "," expr } ] "]"
 
 func_literal = "(" params ")" block
 
-params = [ param_list ] [ rest_param ]
-       | rest_param
+params = [ param_list [ "," rest_param ] | rest_param ]
 
 param_list = NAME { "," NAME }
 

@@ -16,7 +16,7 @@ run: build
 	./aiki
 
 test:
-	go test ./tests
+	go test ./...
 
 fmt:
 	go fmt ./...
