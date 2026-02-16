@@ -10,9 +10,9 @@
 
 **Simplicity over ease.** Simple removes complexity. Easy hides it.
 
-**Exactness by default.** Rational arithmetic in the core. `1/3 * 3 = 1`. Floats are opt-in, in a separate layer.
+**Exactness by default.** Rational arithmetic in the core. `1/3 * 3 = 1`. Floats are opt-in.
 
-**Inspection over abstraction.** The hash map is written in Aiki. The strict layer proves the language works by using it.
+**Inspection over abstraction.** The hash map is written in Aiki. The prelude proves the language works by using it.
 
 ## Paradigm
 
@@ -40,17 +40,18 @@ The language provides the atoms. You choose the chemistry.
 
 ## Architecture
 
-Three layers acknowledge that principles and pragmatism coexist:
+Two layers:
 
-| Layer | What | Tradeoff |
-|-------|------|----------|
-| hal | Go primitives | Speed, OS access |
-| strict | Pure Aiki | Inspectable, slower |
-| pragmatic | Fast Aiki | Speed, less transparent |
+| Layer | What | Visible |
+|-------|------|---------|
+| HAL | Go primitives | No |
+| Prelude | Aiki wrappers | Yes |
 
-Strict is the default. Pragmatic is opt-in. Same API, different physics.
+HAL is the membrane to Go — effects, I/O, OS. Invisible, `_`-prefixed.
 
-Strict may be slow. That's the price of transparency. Pragmatic is fast. That's the reward for proving correctness first.
+Prelude wraps HAL, written in Aiki. The dictionary you start with.
+
+Principle: impurity at edges, purity at center.
 
 ## Tooling
 

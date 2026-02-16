@@ -256,7 +256,7 @@ let hash_put = (h, key, val) {
 
 let hash_has = (h, key) {
 	let result = hash_get(h, key)
-	return not(equal(shape(result), :error))
+	return not (equal(shape(result), :error))
 }
 
 let hash_del = (h, key) {

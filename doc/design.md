@@ -13,7 +13,7 @@ A minimal, composable language. The language is complete; the system layer is fu
 
 `let` `if` `else` `while` `match` `return` `true` `false` `not`
 
-Note: `and`, `or` are operators. `from`, `use`, `export` become functions.
+Note: `and`, `or` are operators.
 
 ## Types (8)
 
@@ -36,42 +36,30 @@ Note: `and`, `or` are operators. `from`, `use`, `export` become functions.
 
 ## Modules
 
-**`import(module, [names])`** — load module, bind names in current scope.
+**`import("module", :name1, :name2)`** — load module, bind names in current scope.
 
-**`export([names])`** — mark names for external use.
+**`export(:name1, :name2)`** — mark names for external use.
 
 Functions, not keywords. Modules are values.
 
 ## Layers
 
-| Layer | What | Auto-load |
-|-------|------|-----------|
-| `hal` | Go primitives — memory, I/O, concurrency, OS | Always |
-| `strict` | Pure Aiki — lists, rationals, inspectable | Yes |
-| `pragmatic` | Fast Aiki — arrays, floats, hardware speed | Opt-in |
+| Layer | What | Visible |
+|-------|------|---------|
+| **HAL** | Go primitives — `_add`, `_first`, `_print` | No |
+| **Prelude** | Aiki wrappers — `+`, `first`, `print` | Yes |
 
-**Strict is specification, not performance.** O(N) hash lookup in strict is correct—it proves the algorithm using inspectable lists. Pragmatic provides O(1) using Go maps. "Observationally equivalent" means same results, not same speed.
+**HAL** is the narrow membrane to Go. Effects live here: canvas, channels, spawn, file I/O. Prefixed with `_`, invisible to user code.
 
-
-### Runtime Strata
-
-Three layers with distinct responsibilities:
-
-**HAL (Host Abstraction Layer)** - Narrow membrane to Go. Effects live here: canvas, channels, spawn, file I/O. Minimal surface. Everything that touches the outside world.
-
-**Strict** - Pure semantic core. Deterministic evaluation. The canonical specification. All behavior defined here first.
-
-**Pragmatic** - Performance-oriented shadow of Strict. Must be observationally equivalent. Never defines behavior, only optimizes it.
+**Prelude** wraps HAL, is the user-facing API. Written in Aiki. The dictionary you start with.
 
 Principle: impurity pushed to edges, purity at center.
-
-**The Twin Pattern:** `strict.X` is pure and inspectable. `pragmatic.X` is fast with same API. No shadowing — namespace separation.
 
 ## Decisions
 
 **Rational numbers.** No floating point surprises. `1/3 * 3 = 1`.
 
-**Shaped lists.** `[@point, 10, 20]` enforces structure. Resources are shaped lists with hal registries.
+**Shaped lists.** `[@point, 10, 20]` enforces structure. Resources are shaped lists with HAL registries.
 
 **Left-to-right evaluation.** No precedence. `1 + 2 * 3` is `9`. Use parens.
 
@@ -116,3 +104,4 @@ One source, multiple views.
 | Floats as default | Rationals are exact |
 | Block comments | Prevents dead code hiding |
 | `from`/`export` keywords | Functions are uniform |
+| `%`, `==`, `!=` operators | Functions: `modulo()`, `equal()` |

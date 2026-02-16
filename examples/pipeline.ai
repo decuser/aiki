@@ -4,7 +4,7 @@ let square = (x) {
 }
 
 let is_even = (x) {
-	return x % 2 == 0
+	return equal(modulo(x, 2), 0)
 }
 
 # 2. The Pipeline

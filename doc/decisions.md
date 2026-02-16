@@ -48,19 +48,21 @@ Not a layer. Evaluator internals that are callable values. User sees them as pri
 - Module declaration controls realization
 - Canvas/HAL is always fast (it's Go)
 
-### Grammar Cleanup
+### Grammar Cleanup ✔
 
-Remove:
+Removed:
 - `%` → `modulo()` function
 - `==` → `equal()` function  
 - `!=` → `not(equal())`
 
-Add:
+To add (with precise mode):
 - `module` keyword
 - `module_decl = "module" NAME [ "precise" ]`
 - `precise` is contextual, not a keyword
 
-Keywords: 12 (`let if else while match return true false and or not module`)
+Keywords: 9 currently (`let if else while match return true false not`)
+- `and`, `or` are operators
+- `module` added when precise mode lands
 
 ### Type Cleanup
 
@@ -74,11 +76,11 @@ Resources become shaped lists:
 
 HAL maintains registries. Shape is claim, registry is authority.
 
-### Grammar-Evaluator Coupling
+### Grammar-Evaluator Coupling ✔
 
 - Handler map, not switch statement
-- `init()` panics on missing handler
-- Test verifies all productions have handlers
+- `ValidateHandlers()` panics on missing handler
+- Called from `SetNodeGrammar()` at startup
 - Grammar changes → immediate failure until handler added
 - No drift
 
@@ -109,7 +111,7 @@ HAL maintains registries. Shape is claim, registry is authority.
 ## Invariants
 
 - Grammar is source of truth
-- Evaluator must handle all productions or panic
+- Evaluator must handle all productions or panic ✔
 - Shape is claim, registry is authority
 - HAL is invisible — prelude is the API
 - Exact is default — precise is opt-in
@@ -140,3 +142,8 @@ HAL maintains registries. Shape is claim, registry is authority.
 - Exact/precise terminology
 - Grammar-evaluator coupling
 - Canvas fork-on-start design
+
+### v0.2.6 → v0.2.7
+- Grammar cleanup: `%`, `==`, `!=` removed
+- Grammar-evaluator coupling implemented
+- Eval package reorganized (node.go, module.go, intrinsics.go)

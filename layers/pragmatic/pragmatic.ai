@@ -18,7 +18,7 @@ let hash_new = () {
 }
 
 let _bucket_index = (key) {
-	return hash_code(key) % _HASH_SIZE
+	return modulo(hash_code(key), _HASH_SIZE)
 }
 
 let hash_get = (h, key) {
@@ -58,7 +58,7 @@ let hash_put = (h, key, val) {
 	let new_h = []
 	let j = 0
 	while j < _HASH_SIZE {
-		if j == idx {
+		if equal(j, idx) {
 			new_h = append(new_h, new_bucket)
 		} else {
 			new_h = append(new_h, h[j])
@@ -70,7 +70,7 @@ let hash_put = (h, key, val) {
 
 let hash_has = (h, key) {
 	let result = hash_get(h, key)
-	return shape(result) != :error
+	return not equal(shape(result), :error)
 }
 
 let hash_del = (h, key) {
@@ -89,7 +89,7 @@ let hash_del = (h, key) {
 	let new_h = []
 	let j = 0
 	while j < _HASH_SIZE {
-		if j == idx {
+		if equal(j, idx) {
 			new_h = append(new_h, new_bucket)
 		} else {
 			new_h = append(new_h, h[j])

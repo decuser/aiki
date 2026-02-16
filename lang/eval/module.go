@@ -2,10 +2,22 @@ package eval
 
 import (
 	"os"
+	"path/filepath"
 
 	"aiki/ebnf"
 	"aiki/lang/value"
 )
+
+// nodeGrammar holds a reference to the grammar for import/load parsing.
+// Set by SetNodeGrammar during initialization.
+var nodeGrammar *ebnf.Grammar
+
+// SetNodeGrammar stores the grammar for use by import and load.
+// Validates that all grammar productions have handlers.
+func SetNodeGrammar(g *ebnf.Grammar) {
+	nodeGrammar = g
+	ValidateHandlers(g)
+}
 
 // evalExport implements export(:name1, :name2, ...)
 // Records exported names on the environment.
@@ -94,4 +106,38 @@ func evalImport(args []value.Value, env *value.Env, node *ebnf.Node) value.Value
 	}
 
 	return value.NULL
+}
+
+func resolveModulePath(name string, env *value.Env) string {
+	// Try relative to current file
+	currentFile := env.GetFile()
+	if currentFile != "" {
+		dir := filepath.Dir(currentFile)
+		candidate := filepath.Join(dir, name+".ai")
+		if _, err := os.Stat(candidate); err == nil {
+			return candidate
+		}
+	}
+
+	// Try as-is with .ai extension
+	candidate := name + ".ai"
+	if _, err := os.Stat(candidate); err == nil {
+		return candidate
+	}
+
+	// Try without extension
+	if _, err := os.Stat(name); err == nil {
+		return name
+	}
+
+	return ""
+}
+
+func containsStr(slice []string, s string) bool {
+	for _, item := range slice {
+		if item == s {
+			return true
+		}
+	}
+	return false
 }

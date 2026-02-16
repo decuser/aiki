@@ -10,7 +10,7 @@ while not guessed {
 	let input = read()
 	let guess = to_number(input)
 	attempts = attempts + 1
-	if guess == secret {
+	if equal(guess, secret) {
 		print("Correct! You found it in")
 		print(attempts)
 		print("attempts.")

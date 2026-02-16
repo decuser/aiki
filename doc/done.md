@@ -1,12 +1,30 @@
 # Aiki Done
 
+## v0.2.7 (Architecture)
+
+### Grammar Cleanup
+- Remove `%`, `==`, `!=` from OPERATOR and BINOP ✔
+- `modulo()`, `equal()`, `not equal()` replace operators ✔
+
+### Grammar-Evaluator Coupling
+- Handler map replaces switch statement ✔
+- `ValidateHandlers()` panics on missing handler ✔
+- Called from `SetNodeGrammar()` at startup ✔
+- No drift possible — grammar change forces handler update ✔
+
+### Eval Package Reorganization
+- `node.go` — handler map, EvalNode, all eval logic ✔
+- `module.go` — SetNodeGrammar, import/export ✔
+- `intrinsics.go` — call dispatch, apply, load ✔
+- Dead code removed (evalNodeImport, evalNodeExport) ✔
+
 ## v0.2.6 (Parity)
 
 ### EBNF Migration
-- Lint rewritten with EBNF AST ✓
-- Export statement verified ✓
-- Import statement verified ✓
-- Strict exports parses from strict.ai ✓
+- Lint rewritten with EBNF AST ✔
+- Export statement verified ✔
+- Import statement verified ✔
+- Strict exports parses from strict.ai ✔
 
 ### Rich Errors: Phase 1
 - `makeError(env, node, ...)` with file:line:source

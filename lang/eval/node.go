@@ -1,6 +1,7 @@
 package eval
 
 import (
+	"fmt"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -14,6 +15,68 @@ import (
 
 // HAL is the single source of truth for all builtins.
 var HAL = hal.HAL
+
+// Handler is a function that evaluates a node type.
+type Handler func(*ebnf.Node, *value.Env) value.Value
+
+// handlers maps node types to their evaluation functions.
+var handlers map[string]Handler
+
+func init() {
+	handlers = map[string]Handler{
+		"program":      evalNodeProgram,
+		"statement":    evalNodeStatement,
+		"let_stmt":     evalNodeLet,
+		"assign_stmt":  evalNodeAssign,
+		"return_stmt":  evalNodeReturn,
+		"expr_stmt":    evalNodeExprStmt,
+		"if_stmt":      evalNodeIf,
+		"while_stmt":   evalNodeWhile,
+		"match_stmt":   evalNodeMatch,
+		"block":        evalNodeBlock,
+		"expr":         evalNodeExpr,
+		"pipe_expr":    evalNodeExpr,
+		"infix_expr":   evalNodeExpr,
+		"unary_expr":   evalNodeExpr,
+		"postfix_expr": evalNodeExpr,
+		"primary":      evalNodePrimary,
+		"func_literal": evalNodeFunc,
+		"list_literal": evalNodeList,
+		"NUMBER":       evalNodeNumber,
+		"STRING":       evalNodeString,
+		"RUNE":         evalNodeRune,
+		"SYMBOL":       evalNodeSymbol,
+		"NAME":         evalNodeName,
+		"TERMINAL":     evalNodeTerminal,
+		"field":        evalNodePassthrough,
+		"pattern":      evalNodePassthrough,
+		"literal":      evalNodePassthrough,
+		"call":         evalNodePassthrough,
+		"index":        evalNodePassthrough,
+		"access":       evalNodePassthrough,
+		"params":       evalNodePassthrough,
+		"param_list":   evalNodePassthrough,
+		"rest_param":   evalNodePassthrough,
+		"BINOP":        evalNodePassthrough,
+	}
+}
+
+// ValidateHandlers checks that all grammar productions have handlers.
+// Panics if any production lacks a handler.
+func ValidateHandlers(grammar *ebnf.Grammar) {
+	if grammar == nil {
+		return
+	}
+	var missing []string
+	for name := range grammar.Productions {
+		if _, ok := handlers[name]; !ok {
+			missing = append(missing, name)
+		}
+	}
+	if len(missing) > 0 {
+		panic(fmt.Sprintf("eval: missing handlers for grammar productions: %v", missing))
+	}
+}
 
 // makeError creates a rich error with file, line, source context, and stack trace.
 func makeError(env *value.Env, node *ebnf.Node, format string, args ...interface{}) *value.Error {
@@ -46,112 +109,86 @@ func isTruthy(val value.Value) bool {
 
 // EvalNode evaluates a generic AST node from the ebnf parser.
 func EvalNode(node *ebnf.Node, env *value.Env) value.Value {
-	switch node.Type {
-	case "program":
-		return evalNodeProgram(node, env)
-
-	case "statement":
-		if len(node.Children) > 0 {
-			return EvalNode(node.Children[0], env)
-		}
-		return value.NULL
-
-	case "let_stmt":
-		return evalNodeLet(node, env)
-
-	case "assign_stmt":
-		return evalNodeAssign(node, env)
-
-	case "return_stmt":
-		return evalNodeReturn(node, env)
-
-	case "expr_stmt":
-		if len(node.Children) > 0 {
-			return EvalNode(node.Children[0], env)
-		}
-		return value.NULL
-
-	case "if_stmt":
-		return evalNodeIf(node, env)
-
-	case "while_stmt":
-		return evalNodeWhile(node, env)
-
-	case "match_stmt":
-		return evalNodeMatch(node, env)
-
-	case "block":
-		return evalNodeBlock(node, env)
-
-	case "expr", "pipe_expr", "infix_expr", "unary_expr", "postfix_expr":
-		return evalNodeExpr(node, env)
-
-	case "primary":
-		return evalNodePrimary(node, env)
-
-	case "func_literal":
-		return evalNodeFunc(node, env)
-
-	case "list_literal":
-		return evalNodeList(node, env)
-
-	case "NUMBER":
-		return evalNodeNumber(node, env)
-
-	case "STRING":
-		s, err := strconv.Unquote(node.Value)
-		if err != nil {
-			return makeError(env, node, "invalid string: %s", node.Value)
-		}
-		return &value.String{Value: s}
-
-	case "RUNE":
-		s := node.Value
-		if len(s) >= 2 {
-			s = s[1 : len(s)-1]
-		}
-		// Handle escape sequences
-		if len(s) == 2 && s[0] == '\\' {
-			switch s[1] {
-			case 'n':
-				return &value.Rune{Value: '\n'}
-			case 't':
-				return &value.Rune{Value: '\t'}
-			case 'r':
-				return &value.Rune{Value: '\r'}
-			case '\\':
-				return &value.Rune{Value: '\\'}
-			case '\'':
-				return &value.Rune{Value: '\''}
-			}
-		}
-		runes := []rune(s)
-		if len(runes) > 0 {
-			return &value.Rune{Value: runes[0]}
-		}
-		return value.NULL
-
-	case "SYMBOL":
-		return &value.Symbol{Value: strings.TrimPrefix(node.Value, ":")}
-
-	case "NAME":
-		return evalNodeIdentWithNode(node, env)
-
-	case "TERMINAL":
-		switch node.Value {
-		case "true":
-			return value.True
-		case "false":
-			return value.False
-		}
-		return value.NULL
-
-	default:
-		if len(node.Children) == 1 {
-			return EvalNode(node.Children[0], env)
-		}
-		return value.NULL
+	if handler, ok := handlers[node.Type]; ok {
+		return handler(node, env)
 	}
+	if len(node.Children) == 1 {
+		return EvalNode(node.Children[0], env)
+	}
+	return value.NULL
+}
+
+func evalNodePassthrough(node *ebnf.Node, env *value.Env) value.Value {
+	if len(node.Children) == 1 {
+		return EvalNode(node.Children[0], env)
+	}
+	return value.NULL
+}
+
+func evalNodeStatement(node *ebnf.Node, env *value.Env) value.Value {
+	if len(node.Children) > 0 {
+		return EvalNode(node.Children[0], env)
+	}
+	return value.NULL
+}
+
+func evalNodeExprStmt(node *ebnf.Node, env *value.Env) value.Value {
+	if len(node.Children) > 0 {
+		return EvalNode(node.Children[0], env)
+	}
+	return value.NULL
+}
+
+func evalNodeString(node *ebnf.Node, env *value.Env) value.Value {
+	s, err := strconv.Unquote(node.Value)
+	if err != nil {
+		return makeError(env, node, "invalid string: %s", node.Value)
+	}
+	return &value.String{Value: s}
+}
+
+func evalNodeRune(node *ebnf.Node, env *value.Env) value.Value {
+	s := node.Value
+	if len(s) >= 2 {
+		s = s[1 : len(s)-1]
+	}
+	if len(s) == 2 && s[0] == '\\' {
+		switch s[1] {
+		case 'n':
+			return &value.Rune{Value: '\n'}
+		case 't':
+			return &value.Rune{Value: '\t'}
+		case 'r':
+			return &value.Rune{Value: '\r'}
+		case '\\':
+			return &value.Rune{Value: '\\'}
+		case '\'':
+			return &value.Rune{Value: '\''}
+		}
+	}
+	runes := []rune(s)
+	if len(runes) > 0 {
+		return &value.Rune{Value: runes[0]}
+	}
+	return value.NULL
+}
+
+func evalNodeSymbol(node *ebnf.Node, env *value.Env) value.Value {
+	return &value.Symbol{Value: strings.TrimPrefix(node.Value, ":")}
+}
+
+func evalNodeName(node *ebnf.Node, env *value.Env) value.Value {
+	return evalNodeIdentWithNode(node, env)
+}
+
+func evalNodeTerminal(node *ebnf.Node, env *value.Env) value.Value {
+	switch node.Value {
+	case "true":
+		return value.True
+	case "false":
+		return value.False
+	}
+	return value.NULL
 }
 
 func evalNodeProgram(node *ebnf.Node, env *value.Env) value.Value {
@@ -172,9 +209,6 @@ func evalNodeProgram(node *ebnf.Node, env *value.Env) value.Value {
 }
 
 func evalNodeLet(node *ebnf.Node, env *value.Env) value.Value {
-	// let_stmt: TERMINAL:"let" NAME TERMINAL:"=" expr
-	// Or shape: TERMINAL:"let" SHAPE TERMINAL:"[" fields TERMINAL:"]"
-
 	var name string
 	var nameNode *ebnf.Node
 	var valNode *ebnf.Node
@@ -200,7 +234,6 @@ func evalNodeLet(node *ebnf.Node, env *value.Env) value.Value {
 					shapeFields = append(shapeFields, f.Value)
 				}
 			}
-			// Also handle direct NAME/SHAPE in field
 			if len(child.Children) == 0 {
 				if child.Type == "NAME" {
 					shapeFields = append(shapeFields, child.Value)
@@ -213,7 +246,6 @@ func evalNodeLet(node *ebnf.Node, env *value.Env) value.Value {
 	}
 
 	if isShape {
-		// Shape definition
 		def := &value.ShapeDef{
 			Name:   name,
 			Fields: shapeFields,
@@ -375,10 +407,8 @@ func evalNodeWhile(node *ebnf.Node, env *value.Env) value.Value {
 }
 
 func evalNodeMatch(node *ebnf.Node, env *value.Env) value.Value {
-	// match_stmt = "match" expr "{" { pattern block } "}"
 	var subject value.Value
 
-	// Find the expression to match
 	for _, child := range node.Children {
 		if child.Type == "TERMINAL" {
 			continue
@@ -392,7 +422,6 @@ func evalNodeMatch(node *ebnf.Node, env *value.Env) value.Value {
 		}
 	}
 
-	// Find and evaluate arms
 	var currentPattern *ebnf.Node
 	for _, child := range node.Children {
 		if child.Type == "pattern" {
@@ -411,14 +440,12 @@ func evalNodeMatch(node *ebnf.Node, env *value.Env) value.Value {
 }
 
 func matchNodePattern(pattern *ebnf.Node, subject value.Value, env *value.Env) bool {
-	// Simple pattern matching
 	for _, child := range pattern.Children {
 		switch child.Type {
 		case "TERMINAL":
 			if child.Value == "_" {
-				return true // wildcard
+				return true
 			}
-			// Literal match
 			if child.Value == "true" && isTruthy(subject) {
 				return true
 			}
@@ -426,7 +453,6 @@ func matchNodePattern(pattern *ebnf.Node, subject value.Value, env *value.Env) b
 				return true
 			}
 		case "NAME":
-			// Bind name to subject
 			env.Set(child.Value, subject)
 			return true
 		case "NUMBER":
@@ -515,7 +541,6 @@ func evalNodePipe(node *ebnf.Node, env *value.Env) value.Value {
 			continue
 		}
 
-		// Pipe: inject result as first arg to the call
 		result = evalPipeCallSafe(child, result, env)
 		if isError(result) {
 			return result
@@ -532,7 +557,6 @@ func evalNodeInfix(node *ebnf.Node, env *value.Env) value.Value {
 	var opNode *ebnf.Node
 
 	for _, child := range node.Children {
-		// Check for operator in BINOP production or as terminal
 		if child.Type == "BINOP" {
 			for _, c := range child.Children {
 				if c.Type == "TERMINAL" {
@@ -591,7 +615,6 @@ func evalNodeUnary(node *ebnf.Node, env *value.Env) value.Value {
 		return value.NULL
 	}
 
-	// Apply prefixes in reverse order (innermost first)
 	for i := len(prefixes) - 1; i >= 0; i-- {
 		switch prefixes[i] {
 		case "not":
@@ -797,7 +820,6 @@ func evalNodeAccess(target value.Value, node *ebnf.Node, env *value.Env) value.V
 	return makeError(env, node, "unknown field: %s", fieldName)
 }
 
-// evalNodeIdentWithNode looks up an identifier, returning rich error if undefined.
 func evalNodeIdentWithNode(node *ebnf.Node, env *value.Env) value.Value {
 	name := node.Value
 	if val, ok := env.Get(name); ok {
@@ -812,7 +834,6 @@ func evalNodeIdentWithNode(node *ebnf.Node, env *value.Env) value.Value {
 	return makeError(env, node, "undefined: %s", name)
 }
 
-// evalNodeIdent looks up an identifier (legacy, for internal use without node).
 func evalNodeIdent(name string, env *value.Env) value.Value {
 	if val, ok := env.Get(name); ok {
 		return val
@@ -838,13 +859,11 @@ func evalNodeNumber(node *ebnf.Node, env *value.Env) value.Value {
 func applyNodeFunc(fn *value.Function, args []value.Value, callLine int) value.Value {
 	funcEnv := value.NewEnv(fn.Env)
 
-	// Determine layer from function
 	layer := fn.Layer
 	if layer == "" {
 		layer = value.LayerUser
 	}
 
-	// Push stack frame for this call
 	funcEnv.PushFrame(fn.Name, callLine, layer)
 
 	for i, param := range fn.Parameters {
@@ -869,7 +888,6 @@ func applyNodeFunc(fn *value.Function, args []value.Value, callLine int) value.V
 		result = EvalNode(fn.BodyNode.(*ebnf.Node), funcEnv)
 	}
 
-	// Pop stack frame
 	funcEnv.PopFrame()
 
 	if ret, ok := result.(*value.Return); ok {
@@ -895,17 +913,6 @@ func applyOp(op string, left, right value.Value, env *value.Env, node *ebnf.Node
 				return makeError(env, node, "division by zero")
 			}
 			return &value.Number{Value: new(big.Rat).Quo(leftNum.Value, rightNum.Value)}
-		case "%":
-			if !leftNum.Value.IsInt() || !rightNum.Value.IsInt() {
-				return makeError(env, node, "modulo requires integers")
-			}
-			if rightNum.Value.Sign() == 0 {
-				return makeError(env, node, "modulo by zero")
-			}
-			l := leftNum.Value.Num()
-			r := rightNum.Value.Num()
-			result := new(big.Int).Mod(l, r)
-			return &value.Number{Value: new(big.Rat).SetInt(result)}
 		case "<":
 			return value.NativeBoolToBoolean(leftNum.Value.Cmp(rightNum.Value) < 0)
 		case ">":
@@ -914,19 +921,7 @@ func applyOp(op string, left, right value.Value, env *value.Env, node *ebnf.Node
 			return value.NativeBoolToBoolean(leftNum.Value.Cmp(rightNum.Value) <= 0)
 		case ">=":
 			return value.NativeBoolToBoolean(leftNum.Value.Cmp(rightNum.Value) >= 0)
-		case "==":
-			return value.NativeBoolToBoolean(leftNum.Value.Cmp(rightNum.Value) == 0)
-		case "!=":
-			return value.NativeBoolToBoolean(leftNum.Value.Cmp(rightNum.Value) != 0)
 		}
-	}
-
-	// == and != for non-numbers (use equal function logic)
-	switch op {
-	case "==":
-		return value.NativeBoolToBoolean(nodeValuesEqual(left, right))
-	case "!=":
-		return value.NativeBoolToBoolean(!nodeValuesEqual(left, right))
 	}
 
 	if op == "+" {
@@ -982,28 +977,24 @@ func nodeValuesEqual(a, b value.Value) bool {
 
 func isOp(s string) bool {
 	ops := map[string]bool{
-		"+": true, "-": true, "*": true, "/": true, "%": true,
+		"+": true, "-": true, "*": true, "/": true,
 		"<": true, ">": true, "<=": true, ">=": true,
-		"==": true, "!=": true,
 		"and": true, "or": true,
 	}
 	return ops[s]
 }
 
-// RunNode parses and evaluates code using the EBNF grammar.
 func RunNode(grammar *ebnf.Grammar, input string, env *value.Env) value.Value {
 	ast, err := grammar.ParseSource(input)
 	if err != nil {
 		return value.NewError("parse error: %s", err)
 	}
-	// Push <main> frame for top-level execution
 	env.PushFrame("<main>", 1, value.LayerUser)
 	result := EvalNode(ast, env)
 	env.PopFrame()
 	return result
 }
 
-// RunFileNode parses and evaluates a file using the EBNF grammar.
 func RunFileNode(grammar *ebnf.Grammar, filename string, env *value.Env) value.Value {
 	data, err := os.ReadFile(filename)
 	if err != nil {
@@ -1017,7 +1008,6 @@ func RunFileNode(grammar *ebnf.Grammar, filename string, env *value.Env) value.V
 	if err != nil {
 		return value.NewError("parse error: %s", err)
 	}
-	// Push <main> frame for top-level execution
 	env.PushFrame("<main>", 1, value.LayerUser)
 	result := EvalNode(ast, env)
 	env.PopFrame()

@@ -11,18 +11,18 @@ go test ./...
 ## Alpha Blockers (Ordered)
 
 ### 1. Grammar Cleanup
-- [ ] Remove `%` from OPERATOR and BINOP
-- [ ] Remove `==` from OPERATOR and BINOP
-- [ ] Remove `!=` from OPERATOR and BINOP
+- [x] Remove `%` from OPERATOR and BINOP
+- [x] Remove `==` from OPERATOR and BINOP
+- [x] Remove `!=` from OPERATOR and BINOP
 - [ ] Add `module` to KEYWORD
 - [ ] Add `module_decl = "module" NAME [ "precise" ]` to grammar
 - [ ] `precise` is contextual, not a keyword
 
 ### 2. Grammar-Evaluator Coupling
-- [ ] Replace switch statement with handler map
-- [ ] `init()` panics on missing handler for any production
-- [ ] Test verifies all grammar productions have handlers
-- [ ] No drift possible — grammar change forces handler update
+- [x] Replace switch statement with handler map
+- [x] `init()` panics on missing handler for any production
+- [x] Test verifies all grammar productions have handlers
+- [x] No drift possible — grammar change forces handler update
 
 ### 3. HAL/Prelude + Operators
 - [ ] Rename HAL primitives to `_` prefix (`_add`, `_first`, `_print`, etc.)
@@ -30,8 +30,8 @@ go test ./...
 - [ ] Prelude wraps HAL (`let + = _add`, `let first = _first`, etc.)
 - [ ] Operators become function lookups in exact mode
 - [ ] Intrinsics (`apply`, `load`, `import`, `export`) unshadowable — error on attempt
-- [ ] Rename `strict/` directory to `prelude/`
-- [ ] Rename `strict.ai` to `prelude.ai`
+- [x] Rename `strict/` directory to `prelude/`
+- [x] Rename `strict.ai` to `prelude.ai`
 - [ ] Update terminology (prelude not strict, no pragmatic)
 - [ ] Delete `pragmatic/` directory
 
@@ -65,7 +65,6 @@ go test ./...
 
 ### Documentation
 - [ ] Update design.md with new layers (HAL/Prelude)
-
 - [ ] Document shadowing rules
 - [ ] Document exact vs precise modes
 
