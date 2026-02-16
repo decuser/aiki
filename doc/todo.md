@@ -1,123 +1,123 @@
 # Aiki TODO
 
-## Parity: COMPLETE
+## Validation (Do First)
 
-1. ~~**lint** — rewrite with EBNF AST~~ ✓
-2. ~~**export statement** — verified~~ ✓
-3. ~~**import statement** — verified~~ ✓
-4. ~~**strict exports** — parses from strict.ai~~ ✓
-5. **tests** — run full suite to confirm
-   ```bash
-   go test ./...
-   ./aiki examples/canvas.ai
-   ./aiki -e 'print(sum(range(1, 10)))'
-   ```
+```bash
+go test ./...
+./aiki examples/canvas.ai
+./aiki -e 'print(sum(range(1, 10)))'
+```
 
-## Rich Errors: Phase 1 COMPLETE
+## Alpha Blockers (Ordered)
 
-- ✓ `makeError(env, node, ...)` throughout eval
-- ✓ HAL errors annotated with call-site position
-- ✓ Stack traces with `from` lines
-- ✓ Layer system (user/strict/pragmatic/hal)
-- ✓ `InspectAtLayer()` for filtered display
-- ✓ Tests in `tests/error_test.go`
+### 1. Grammar Cleanup
+- [ ] Remove `%` from OPERATOR and BINOP
+- [ ] Remove `==` from OPERATOR and BINOP
+- [ ] Remove `!=` from OPERATOR and BINOP
+- [ ] Add `module` to KEYWORD
+- [ ] Add `module_decl = "module" NAME [ "precise" ]` to grammar
+- [ ] `precise` is contextual, not a keyword
 
-## Rich Errors: Phase 2 (Future)
+### 2. Grammar-Evaluator Coupling
+- [ ] Replace switch statement with handler map
+- [ ] `init()` panics on missing handler for any production
+- [ ] Test verifies all grammar productions have handlers
+- [ ] No drift possible — grammar change forces handler update
 
-- [ ] Error template registry (fn + code → template)
-- [ ] HAL registers templates at init
-- [ ] `@error` shape in grammar for strict/user layers
-- [ ] Template interpolation (`{key}` → value)
+### 3. HAL/Prelude + Operators
+- [ ] Rename HAL primitives to `_` prefix (`_add`, `_first`, `_print`, etc.)
+- [ ] HAL invisible to user (not in scope)
+- [ ] Prelude wraps HAL (`let + = _add`, `let first = _first`, etc.)
+- [ ] Operators become function lookups in exact mode
+- [ ] Intrinsics (`apply`, `load`, `import`, `export`) unshadowable — error on attempt
+- [ ] Rename `strict/` directory to `prelude/`
+- [ ] Rename `strict.ai` to `prelude.ai`
+- [ ] Update terminology (prelude not strict, no pragmatic)
+- [ ] Delete `pragmatic/` directory
 
-## Invariants
+### 4. Type Cleanup
+- [ ] `Handle` struct → `[@handle, id]` shaped list
+- [ ] `Canvas` struct → `[@canvas, id]` shaped list
+- [ ] `Channel` struct → `[@channel, id]` shaped list
+- [ ] HAL registries map ids to Go resources
+- [ ] Remove `HandleType`, `CanvasType`, `ChannelType` from value types
+- [ ] Shape is claim, registry is authority
 
-- Shape is claim, registry is authority
-- Canonical (strict) is specification
-- Help is projection, not explanation — derived from grammar
-- Grammar is infrastructure, language is client
-- Errors are projection — templates from grammar/layers
+### 5. Precise Mode
+- [ ] `module X precise` parsed from grammar
+- [ ] Precise mode skips operator lookup — hardcoded float ops
+- [ ] `sin`, `cos`, `sqrt`, `random` only available in precise modules
+- [ ] Fast path for numeric-heavy code
 
-### Error System (add after Invariants, before Alpha Checklist)
-- [ ] Error template registry (fn + code → template)
-- [ ] HAL registers templates at init
-- [ ] `@error` shape in grammar for strict/user layers
-- [ ] Template interpolation (`{key}` → value)
-- [ ] `--errors=user|strict|hal` flag for error depth
+### 6. Canvas/Ebiten
+- [ ] Fork-on-start for Linux/Mac
+- [ ] Parent shepherds child process
+- [ ] Child runs REPL with normal terminal I/O
+- [ ] `canvas()` opens Ebiten window
+- [ ] `destroy()` or window close exits child
+- [ ] Parent forks new child — fresh env, no state handoff
+- [ ] Windows: warn "canvas limited to one per session", exec normally
 
-## Alpha Checklist
+### 7. Tail Call Optimization
+- [ ] TCO (tail call optimization) — trampoline pattern
 
-### Core Cleanup
-- [ ] Remove `==`, `!=`, `%` from lexer/parser
-- [ ] Remove `from`, `export` keywords (use functions)
-- [ ] Add `modulo`, `trunc`, `eq` (atoms only) to hal
-- [ ] Add `import()`, `export()` functions to hal
+## Alpha Polish
 
-### Type Consolidation
-- [ ] Resources as shaped lists: `[@handle, id]`, `[@canvas, id]`, `[@channel, id]`
-- [ ] Hal registries mapping ids to Go resources
+### Documentation
+- [ ] Update design.md with new layers (HAL/Prelude)
 
-### Layers
-- [ ] Move `equal` to strict (uses `hal.eq`)
-- [ ] Move drawing algorithms to strict (Bresenham, midpoint, scanline)
-- [ ] Move `sin`, `cos`, `sqrt`, `random` to pragmatic
-- [ ] Create pragmatic module (float, array, vectorized ops)
-
-### Concurrency
-- [ ] Enforce spawn isolation (no closure capture)
+- [ ] Document shadowing rules
+- [ ] Document exact vs precise modes
 
 ### Tooling
-- [ ] `aiki version` as subcommand (not `-v` flag)
+- [ ] `aiki version` as subcommand
 - [ ] `aiki validate` — strict check, no execution
 - [ ] `aiki --proto` flag for loose mode
-- [ ] `aiki clean` — remove generated cruft
-- [ ] `aiki help [topic]` — help system entry point
-- [ ] Auto-fmt in memory on `aiki run` (original positions for errors)
 - [ ] `--errors=user|strict|hal` flag for error depth
 
-### Subcommands as Pure Aiki
-- [ ] Move fmt to pure Aiki (register as subcommand)
-- [ ] Move lint to pure Aiki (register as subcommand)
-- [ ] Move validate to pure Aiki
-- [ ] Move test to pure Aiki
-- [ ] Move help to pure Aiki
-- [ ] Plugin architecture: drop .ai file in, it registers
+### Lint Rules
+- [ ] Warn on shadowing prelude
+- [ ] Error on shadowing intrinsics
+- [ ] Case locked on first use
+- [ ] `_prefix` export warning
+
+## Post-Alpha
+
+### Error System (Phase 2)
+- [ ] Error template registry
+- [ ] HAL registers templates at init
+- [ ] Template interpolation
 
 ### Help System
-- [ ] Help derived from grammar (mechanically)
+- [ ] Help derived from grammar
 - [ ] Help indexed by syntactic unit
-- [ ] Paradigm contexts as source truth (recursive, iterative, functional, immediate)
-- [ ] Paradigm contexts shadowable by user
-- [ ] fmt --rules and lint --rules to print enforced rules
 
-### Lint Rules
-- [ ] Case locked on first use
-- [ ] SCREAMING all-or-nothing
-- [ ] `_prefix` export warning
-- [ ] Shadow warning
-- [ ] Unused = error (strict), warn (proto)
-- [ ] Case propagates through imports
-
-### Loose Ends
-- [ ] Update help() text with new primitives
-- [ ] Run full test suite
-- [ ] Test all examples
-
-### Validation
-- [ ] `make build && make test && make fmt && make lint`
-- [ ] `./aiki -v`
-- [ ] `./aiki` (REPL starts)
-- [ ] `./aiki examples/canvas.ai`
-- [ ] `./aiki examples/pipeline.ai`
-
+### Subcommands as Pure Aiki
+- [ ] Move fmt to pure Aiki
+- [ ] Move lint to pure Aiki
+- [ ] Plugin architecture
 
 ## Future
-- [ ] Match pinning (`^name` to match against existing variable's value)
-- [ ] Match guards (`pattern if condition { ... }`)
-- [ ] Regex module
+
+### Language
+- [ ] Match pinning (`^name`)
+- [ ] Match guards (`pattern if condition`)
+- [ ] `inexact` numeric regime — symbolic irrationals
+
+### Tooling
 - [ ] Multi-line REPL
 - [ ] Debugger
-- [ ] Bytecode VM
 - [ ] LSP
+
+### Runtime
+- [ ] Bytecode VM
 - [ ] WASM target
-- [ ] `aiki build` — validate + produce artifact
-- [ ] `aiki profile` — performance analysis
+
+### Homoiconicity
+
+- [ ] `parse(string)` — returns AST as shaped lists
+- [ ] Shape names match grammar production names (e.g., `[@if_stmt, ...]`, `[@let_stmt, ...]`)
+- [ ] `unparse(ast)` — returns source string from shaped AST
+- [ ] `eval(ast)` — executes shaped AST
+- [ ] Quote mechanism (`quote(expr)` returns shape, not value)
+- [ ] AST manipulation in pure Aiki — tooling writes itself

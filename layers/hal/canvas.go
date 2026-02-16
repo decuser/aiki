@@ -1,9 +1,8 @@
-package canvas
+package hal
 
 import (
 	"sync"
 
-	"aiki/hal/core"
 	"aiki/lang/value"
 )
 
@@ -11,10 +10,6 @@ var (
 	openCanvases   []*value.Canvas
 	openCanvasesMu sync.Mutex
 )
-
-func init() {
-	core.CloseAllCanvases = CloseAllCanvases
-}
 
 func trackCanvas(c *value.Canvas) {
 	openCanvasesMu.Lock()

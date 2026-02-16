@@ -5,7 +5,7 @@ import (
 
 	"aiki/ebnf"
 	"aiki/lang/value"
-	"aiki/strict"
+	"aiki/layers/prelude"
 )
 
 func TestEvalNodeBasic(t *testing.T) {

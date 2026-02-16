@@ -8,12 +8,12 @@ import (
 	"strings"
 
 	"aiki/ebnf"
-	"aiki/hal/core"
+	"aiki/layers/hal"
 	"aiki/lang/value"
 )
 
 // HAL is the single source of truth for all builtins.
-var HAL = core.HAL
+var HAL = hal.HAL
 
 // makeError creates a rich error with file, line, source context, and stack trace.
 func makeError(env *value.Env, node *ebnf.Node, format string, args ...interface{}) *value.Error {

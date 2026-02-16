@@ -1,8 +1,8 @@
-package core
+package hal
 
 import "aiki/lang/value"
 
-var CloseAllCanvases func() // set by canvas package at init
+// var CloseAllCanvases func() // set by canvas package at init
 
 type ResetSignal struct{}
 

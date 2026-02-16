@@ -7,7 +7,7 @@ import (
 	"aiki/ebnf"
 	"aiki/lang/eval"
 	"aiki/lang/value"
-	"aiki/strict"
+	"aiki/layers/prelude"
 )
 
 func loadStrict(grammar *ebnf.Grammar, env *value.Env) error {

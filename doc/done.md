@@ -1,18 +1,27 @@
 # Aiki Done
 
-## v0.2.5
+## v0.2.6 (Parity)
 
-### Architecture
-- EBNF grammar-driven parser (grammar.ebnf is source of truth)
-- Lexer/parser/fmt/lint all derive from grammar
-- Three-layer error system (user/strict/pragmatic/hal)
+### EBNF Migration
+- Lint rewritten with EBNF AST ✓
+- Export statement verified ✓
+- Import statement verified ✓
+- Strict exports parses from strict.ai ✓
 
-### Rich Errors
+### Rich Errors: Phase 1
 - `makeError(env, node, ...)` with file:line:source
 - Stack traces with `from` lines
 - HAL errors annotated with call-site position
 - `InspectAtLayer()` for filtered display by layer
 - `<main>` frame pushed at entry points
+- Layer system (user/strict/hal)
+- Tests in `tests/error_test.go`
+
+## v0.2.5
+
+### Architecture
+- EBNF grammar-driven parser (grammar.ebnf is source of truth)
+- Lexer/parser/fmt/lint all derive from grammar
 
 ### Internals
 - `Layer` type on StackFrame and Function

@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "embed"
 	"flag"
 	"fmt"
 	"os"
@@ -8,13 +9,11 @@ import (
 
 	"aiki/cmd/repl"
 	"aiki/ebnf"
-	_ "aiki/hal/canvas"
-	"aiki/hal/core"
 	"aiki/lang/eval"
 	"aiki/lang/value"
-	"aiki/strict"
+	"aiki/layers/hal"
+	"aiki/layers/prelude"
 	"aiki/version"
-	_ "embed"
 
 	aikifmt "aiki/cmd/fmt"
 	aikilint "aiki/cmd/lint"
@@ -100,7 +99,7 @@ func runFile(filename string, env *value.Env, opts Options) {
 func runExpr(expr string, env *value.Env, opts Options) {
 	result := eval.RunNode(grammar, expr, env)
 
-	if _, ok := result.(*core.ExitSignal); ok {
+	if _, ok := result.(*hal.ExitSignal); ok {
 		return
 	}
 

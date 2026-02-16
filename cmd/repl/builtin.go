@@ -3,16 +3,16 @@ package repl
 import (
 	"fmt"
 
-	"aiki/hal/core"
+	"aiki/layers/hal"
 	"aiki/lang/value"
 	"aiki/version"
 )
 
 func init() {
-	core.HAL["help"] = &value.Builtin{
+	hal.HAL["help"] = &value.Builtin{
 		Name: "help",
 		Fn: func(args ...value.Value) value.Value {
-			fmt.Fprintf(core.Stdout, `Aiki %s
+			fmt.Fprintf(hal.Stdout, `Aiki %s
 
 Primitives:
   first(list)         - first element

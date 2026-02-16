@@ -6,7 +6,7 @@ import (
 	"aiki/ebnf"
 	"aiki/lang/eval"
 	"aiki/lang/value"
-	"aiki/strict"
+	"aiki/layers/prelude"
 )
 
 var testGrammar *ebnf.Grammar

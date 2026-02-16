@@ -4,7 +4,7 @@ import (
 	"regexp"
 
 	"aiki/ebnf"
-	"aiki/hal/core"
+	"aiki/layers/hal"
 )
 
 // Diagnostic represents a lint finding.
@@ -50,7 +50,7 @@ func isValidCase(name string) bool {
 // makeGlobals returns a scope containing all HAL builtins and strict exports.
 func makeGlobals() map[string]bool {
 	globals := make(map[string]bool)
-	for name := range core.HAL {
+	for name := range hal.HAL {
 		globals[name] = true
 	}
 	for _, name := range strictExports {

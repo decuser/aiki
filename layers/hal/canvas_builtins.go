@@ -1,36 +1,35 @@
-package canvas
+package hal
 
 import (
 	"image/color"
 
-	"aiki/hal/core"
 	"aiki/lang/value"
 )
 
 func init() {
-	core.HAL["canvas"] = &value.Builtin{Name: "canvas", Fn: builtinCanvas}
-	core.HAL["get_bg"] = &value.Builtin{Name: "get_bg", Fn: builtinGetBG}
-	core.HAL["set_bg"] = &value.Builtin{Name: "set_bg", Fn: builtinSetBG}
-	core.HAL["get_fg"] = &value.Builtin{Name: "get_fg", Fn: builtinGetFG}
-	core.HAL["set_fg"] = &value.Builtin{Name: "set_fg", Fn: builtinSetFG}
-	core.HAL["pen_size"] = &value.Builtin{Name: "pen_size", Fn: builtinPenSize}
-	core.HAL["get_pen_size"] = &value.Builtin{Name: "get_pen_size", Fn: builtinGetPenSize}
-	core.HAL["line"] = &value.Builtin{Name: "line", Fn: builtinLine}
-	core.HAL["rect"] = &value.Builtin{Name: "rect", Fn: builtinRect}
-	core.HAL["fill_rect"] = &value.Builtin{Name: "fill_rect", Fn: builtinFillRect}
-	core.HAL["circle"] = &value.Builtin{Name: "circle", Fn: builtinCircle}
-	core.HAL["fill_circle"] = &value.Builtin{Name: "fill_circle", Fn: builtinFillCircle}
-	core.HAL["oval"] = &value.Builtin{Name: "oval", Fn: builtinOval}
-	core.HAL["fill_oval"] = &value.Builtin{Name: "fill_oval", Fn: builtinFillOval}
-	core.HAL["dot"] = &value.Builtin{Name: "dot", Fn: builtinDot}
-	core.HAL["text"] = &value.Builtin{Name: "text", Fn: builtinText}
-	core.HAL["clear"] = &value.Builtin{Name: "clear", Fn: builtinClear}
-	core.HAL["undo"] = &value.Builtin{Name: "undo", Fn: builtinUndo}
-	core.HAL["redo"] = &value.Builtin{Name: "redo", Fn: builtinRedo}
-	core.HAL["get_width"] = &value.Builtin{Name: "get_width", Fn: builtinGetWidth}
-	core.HAL["get_height"] = &value.Builtin{Name: "get_height", Fn: builtinGetHeight}
-	core.HAL["save"] = &value.Builtin{Name: "save", Fn: builtinSave}
-	core.HAL["destroy"] = &value.Builtin{Name: "destroy", Fn: builtinDestroy}
+	HAL["canvas"] = &value.Builtin{Name: "canvas", Fn: builtinCanvas}
+	HAL["get_bg"] = &value.Builtin{Name: "get_bg", Fn: builtinGetBG}
+	HAL["set_bg"] = &value.Builtin{Name: "set_bg", Fn: builtinSetBG}
+	HAL["get_fg"] = &value.Builtin{Name: "get_fg", Fn: builtinGetFG}
+	HAL["set_fg"] = &value.Builtin{Name: "set_fg", Fn: builtinSetFG}
+	HAL["pen_size"] = &value.Builtin{Name: "pen_size", Fn: builtinPenSize}
+	HAL["get_pen_size"] = &value.Builtin{Name: "get_pen_size", Fn: builtinGetPenSize}
+	HAL["line"] = &value.Builtin{Name: "line", Fn: builtinLine}
+	HAL["rect"] = &value.Builtin{Name: "rect", Fn: builtinRect}
+	HAL["fill_rect"] = &value.Builtin{Name: "fill_rect", Fn: builtinFillRect}
+	HAL["circle"] = &value.Builtin{Name: "circle", Fn: builtinCircle}
+	HAL["fill_circle"] = &value.Builtin{Name: "fill_circle", Fn: builtinFillCircle}
+	HAL["oval"] = &value.Builtin{Name: "oval", Fn: builtinOval}
+	HAL["fill_oval"] = &value.Builtin{Name: "fill_oval", Fn: builtinFillOval}
+	HAL["dot"] = &value.Builtin{Name: "dot", Fn: builtinDot}
+	HAL["text"] = &value.Builtin{Name: "text", Fn: builtinText}
+	HAL["clear"] = &value.Builtin{Name: "clear", Fn: builtinClear}
+	HAL["undo"] = &value.Builtin{Name: "undo", Fn: builtinUndo}
+	HAL["redo"] = &value.Builtin{Name: "redo", Fn: builtinRedo}
+	HAL["get_width"] = &value.Builtin{Name: "get_width", Fn: builtinGetWidth}
+	HAL["get_height"] = &value.Builtin{Name: "get_height", Fn: builtinGetHeight}
+	HAL["save"] = &value.Builtin{Name: "save", Fn: builtinSave}
+	HAL["destroy"] = &value.Builtin{Name: "destroy", Fn: builtinDestroy}
 }
 
 func builtinCanvas(args ...value.Value) value.Value {

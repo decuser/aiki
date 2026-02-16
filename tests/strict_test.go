@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"aiki/strict"
+	"aiki/layers/prelude"
 )
 
 func TestRange(t *testing.T) {

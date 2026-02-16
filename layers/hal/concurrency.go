@@ -1,4 +1,4 @@
-package core
+package hal
 
 import "aiki/lang/value"
 

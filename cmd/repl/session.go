@@ -5,10 +5,10 @@ import (
 	"io"
 
 	"aiki/ebnf"
-	"aiki/hal/core"
 	"aiki/lang/eval"
 	"aiki/lang/value"
-	"aiki/strict"
+	"aiki/layers/prelude"
+	"aiki/layers/hal"
 )
 
 const (
@@ -33,7 +33,7 @@ func NewSession(grammar *ebnf.Grammar, out io.Writer, env *value.Env, debug bool
 		reader = NewSimpleReader()
 	}
 	tracker := &TrackingWriter{Out: out, EndedWithNewline: true}
-	core.Stdout = tracker
+	hal.Stdout = tracker
 	return &Session{
 		grammar: grammar,
 		out:     out,
@@ -86,7 +86,7 @@ func (s *Session) Run() {
 		prompt = promptMain
 
 		// Check for reset signal
-		if _, ok := result.(*core.ResetSignal); ok {
+		if _, ok := result.(*hal.ResetSignal); ok {
 			s.env = value.NewEnv(nil)
 			eval.RunNode(s.grammar, strict.Source, s.env)
 			s.env.SnapshotStrict()
@@ -94,7 +94,7 @@ func (s *Session) Run() {
 			continue
 		}
 
-		if _, ok := result.(*core.ExitSignal); ok {
+		if _, ok := result.(*hal.ExitSignal); ok {
 			fmt.Fprintln(s.out, "Goodbye!")
 			return
 		}
