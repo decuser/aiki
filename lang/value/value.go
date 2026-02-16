@@ -269,9 +269,8 @@ func (e *Error) InspectAtLayer(maxLayer Layer) string {
 func layerVisible(frameLayer, maxLayer Layer) bool {
 	order := map[Layer]int{
 		LayerUser:      0,
-		LayerPragmatic: 1,
-		LayerStrict:    2,
-		LayerHal:       3,
+		LayerStrict:    1,
+		LayerHal:       2,
 	}
 	// Empty layer treated as user
 	if frameLayer == "" {
