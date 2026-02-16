@@ -3,10 +3,10 @@ package tests
 import (
 	"testing"
 
-	"aiki/ebnf"
+	"aiki/internal/ebnf"
 	"aiki/lang/eval"
 	"aiki/lang/value"
-	"aiki/layers/prelude"
+	"aiki/runtime/prelude"
 )
 
 var testGrammar *ebnf.Grammar

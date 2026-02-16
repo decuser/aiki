@@ -1,4 +1,4 @@
-package tests
+package hal
 
 import (
 	"os"

@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"aiki/ebnf"
+	"aiki/internal/ebnf"
 )
 
 var grammar *ebnf.Grammar

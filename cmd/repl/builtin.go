@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"aiki/lang/value"
-	"aiki/layers/hal"
+	"aiki/runtime/hal"
 	"aiki/version"
 )
 

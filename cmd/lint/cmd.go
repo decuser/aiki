@@ -6,10 +6,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"aiki/ebnf"
+	"aiki/internal/ebnf"
 	"aiki/lang/eval"
 	"aiki/lang/value"
-	"aiki/layers/prelude"
+	"aiki/runtime/prelude"
 )
 
 var grammar *ebnf.Grammar

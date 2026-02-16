@@ -1,9 +1,9 @@
 package eval
 
 import (
-	"aiki/ebnf"
+	"aiki/internal/ebnf"
 	"aiki/lang/value"
-	"aiki/layers/hal"
+	"aiki/runtime/hal"
 	"fmt"
 	"os"
 )

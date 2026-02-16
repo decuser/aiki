@@ -1,10 +1,10 @@
-package tests
+package ebnf
 
 import (
 	"fmt"
 	"testing"
 
-	"aiki/ebnf"
+	"aiki/internal/ebnf"
 )
 
 // TestIntegration tests the full pipeline without depending on lang/value

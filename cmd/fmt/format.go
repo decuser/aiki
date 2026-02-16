@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	"aiki/ebnf"
+	"aiki/internal/ebnf"
 )
 
 // FormatSource formats source code, preserving comments and blank lines.

@@ -1,10 +1,10 @@
-package tests
+package prelude
 
 import (
 	"strings"
 	"testing"
 
-	"aiki/layers/prelude"
+	"aiki/runtime/prelude"
 )
 
 func TestRange(t *testing.T) {

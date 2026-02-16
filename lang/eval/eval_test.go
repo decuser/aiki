@@ -1,4 +1,4 @@
-package tests
+package eval
 
 import (
 	"testing"

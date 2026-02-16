@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"io"
 
-	"aiki/ebnf"
+	"aiki/internal/ebnf"
 	"aiki/lang/eval"
 	"aiki/lang/value"
-	"aiki/layers/hal"
-	"aiki/layers/prelude"
+	"aiki/runtime/hal"
+	"aiki/runtime/prelude"
 )
 
 const (

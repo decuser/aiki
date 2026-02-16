@@ -3,7 +3,7 @@ package repl
 import (
 	"io"
 
-	"aiki/ebnf"
+	"aiki/internal/ebnf"
 	"aiki/lang/value"
 )
 

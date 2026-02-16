@@ -3,9 +3,9 @@ package eval
 import (
 	"testing"
 
-	"aiki/ebnf"
+	"aiki/internal/ebnf"
 	"aiki/lang/value"
-	"aiki/layers/prelude"
+	"aiki/runtime/prelude"
 )
 
 func TestEvalNodeBasic(t *testing.T) {

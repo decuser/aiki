@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"strings"
 
-	"aiki/ebnf"
+	"aiki/internal/ebnf"
 	"aiki/lang/value"
-	"aiki/layers/hal"
+	"aiki/runtime/hal"
 )
 
 // HAL is the single source of truth for all builtins.

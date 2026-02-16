@@ -4,7 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"aiki/ebnf"
+	"aiki/internal/ebnf"
 	"aiki/lang/value"
 )
 

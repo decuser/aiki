@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"aiki/ebnf"
+	"aiki/internal/ebnf"
 )
 
 var testGrammar *ebnf.Grammar
