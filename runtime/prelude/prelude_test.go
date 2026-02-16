@@ -4,7 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	"aiki/runtime/prelude"
 )
 
 func TestRange(t *testing.T) {

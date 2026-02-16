@@ -38,7 +38,7 @@ func testEval(input string) value.Value {
 }
 
 // testEvalStrict evaluates with strict loaded.
-func testEvalStrict(input string) value.Value {
+func EvalStrict(input string) value.Value {
 	env := setupEnv()
 	return eval.RunNode(testGrammar, input, env)
 }

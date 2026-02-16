@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"aiki/internal/ebnf"
 )
 
 // TestIntegration tests the full pipeline without depending on lang/value

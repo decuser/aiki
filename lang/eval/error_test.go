@@ -4,7 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	"aiki/lang/eval"
 	"aiki/lang/value"
 )
 
