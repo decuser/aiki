@@ -7,7 +7,6 @@ import (
 	"aiki/lang"
 )
 
-
 func init() {
 	// Initialize strictExports by calling SetGrammar
 	SetGrammar(lang.Grammar())

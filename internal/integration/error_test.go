@@ -1,12 +1,12 @@
 package integration
 
 import (
-"aiki/lang"
 	"aiki/internal/testutil"
-	"strings"
-	"testing"
+	"aiki/lang"
 	"aiki/lang/eval"
 	"aiki/lang/value"
+	"strings"
+	"testing"
 )
 
 // testEvalStrictMultiline evaluates multiline input with source tracking.

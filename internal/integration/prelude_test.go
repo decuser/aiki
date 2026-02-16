@@ -1,8 +1,8 @@
 package integration
 
 import (
-	"aiki/runtime/prelude"
 	"aiki/internal/testutil"
+	"aiki/runtime/prelude"
 	"strings"
 	"testing"
 )
