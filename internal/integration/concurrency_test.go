@@ -8,7 +8,7 @@ import (
 )
 
 func TestChannel(t *testing.T) {
-	result := testutil.EvalStrict(`type(channel())`)
+	result := testutil.EvalPrelude(`type(channel())`)
 	if result.Inspect() != ":channel" {
 		t.Errorf("got %s, want :channel", result.Inspect())
 	}
@@ -16,7 +16,7 @@ func TestChannel(t *testing.T) {
 
 func TestSendRecv(t *testing.T) {
 	// FIXED: Spawn a thread to send, so the main thread can receive.
-	result := testutil.EvalStrict(`
+	result := testutil.EvalPrelude(`
 let ch = channel()
 spawn((c) {
 	send(c, 42)
@@ -27,7 +27,7 @@ recv(ch)
 }
 
 func TestSpawnReturnsTrue(t *testing.T) {
-	result := testutil.EvalStrict(`
+	result := testutil.EvalPrelude(`
 let ch = channel()
 spawn((ch) {
 	send(ch, 1)
@@ -43,7 +43,7 @@ spawn((ch) {
 }
 
 func TestSpawnNonFunction(t *testing.T) {
-	result := testutil.EvalStrict(`spawn(42)`)
+	result := testutil.EvalPrelude(`spawn(42)`)
 	_, ok := result.(*value.Error)
 	if !ok {
 		t.Errorf("expected error for spawn(42), got %T", result)
@@ -51,7 +51,7 @@ func TestSpawnNonFunction(t *testing.T) {
 }
 
 func TestChannelMultipleValues(t *testing.T) {
-	result := testutil.EvalStrict(`
+	result := testutil.EvalPrelude(`
 let ch = channel()
 
 # Spawn a thread to send the values

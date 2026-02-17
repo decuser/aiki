@@ -90,8 +90,8 @@ func (e *Env) CopyStack() []StackFrame {
 	return cp
 }
 
-// SnapshotStrict saves current bindings for later restore.
-func (e *Env) SnapshotStrict() {
+// SnapshotPrelude saves current bindings for later restore.
+func (e *Env) SnapshotPrelude() {
 	e.snapshot = make(map[string]Value)
 	for name, val := range e.store {
 		e.snapshot[name] = val

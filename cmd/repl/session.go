@@ -89,7 +89,7 @@ func (s *Session) Run() {
 		if _, ok := result.(*hal.ResetSignal); ok {
 			s.env = value.NewEnv(nil)
 			eval.RunNode(s.grammar, prelude.Source, s.env)
-			s.env.SnapshotStrict()
+			s.env.SnapshotPrelude()
 			fmt.Fprintln(s.out, "Environment reset.")
 			continue
 		}

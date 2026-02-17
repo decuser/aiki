@@ -9,8 +9,8 @@ import (
 	"testing"
 )
 
-// testEvalStrictMultiline evaluates multiline input with source tracking.
-func testEvalStrictMultiline(input string) value.Value {
+// testEvalPreludeMultiline evaluates multiline input with source tracking.
+func testEvalPreludeMultiline(input string) value.Value {
 	env := testutil.SetupEnv()
 	env.SetSource(input)
 	env.SetFile("test.ai")
@@ -19,7 +19,7 @@ func testEvalStrictMultiline(input string) value.Value {
 
 func TestErrorHasPosition(t *testing.T) {
 	// HAL error should get annotated with call site position
-	result := testutil.EvalStrict(`first([])`)
+	result := testutil.EvalPrelude(`first([])`)
 
 	err, ok := result.(*value.Error)
 	if !ok {
@@ -41,7 +41,7 @@ func TestErrorHasSourceLine(t *testing.T) {
 first([])
 let y = 10`
 
-	result := testEvalStrictMultiline(input)
+	result := testEvalPreludeMultiline(input)
 
 	err, ok := result.(*value.Error)
 	if !ok {
@@ -64,7 +64,7 @@ func TestErrorStackTrace(t *testing.T) {
 }
 f()`
 
-	result := testEvalStrictMultiline(input)
+	result := testEvalPreludeMultiline(input)
 
 	err, ok := result.(*value.Error)
 	if !ok {
@@ -89,7 +89,7 @@ func TestErrorUndefinedHasPosition(t *testing.T) {
 	input := `let x = 1
 y + 1`
 
-	result := testEvalStrictMultiline(input)
+	result := testEvalPreludeMultiline(input)
 
 	err, ok := result.(*value.Error)
 	if !ok {
@@ -110,7 +110,7 @@ func TestErrorDivisionByZero(t *testing.T) {
 	input := `let x = 10
 let y = x / 0`
 
-	result := testEvalStrictMultiline(input)
+	result := testEvalPreludeMultiline(input)
 
 	err, ok := result.(*value.Error)
 	if !ok {
@@ -130,7 +130,7 @@ func TestErrorIndexOutOfBounds(t *testing.T) {
 	input := `let list = [1, 2, 3]
 list[10]`
 
-	result := testEvalStrictMultiline(input)
+	result := testEvalPreludeMultiline(input)
 
 	err, ok := result.(*value.Error)
 	if !ok {
@@ -147,7 +147,7 @@ list[10]`
 }
 
 func TestErrorCannotShadowBuiltin(t *testing.T) {
-	result := testutil.EvalStrict(`let first = 42`)
+	result := testutil.EvalPrelude(`let first = 42`)
 
 	err, ok := result.(*value.Error)
 	if !ok {
@@ -165,7 +165,7 @@ func TestInspectAtLayerUser(t *testing.T) {
 	stack := []value.StackFrame{
 		{Name: "main", File: "test.ai", Line: 1, Layer: value.LayerUser},
 		{Name: "helper", File: "test.ai", Line: 5, Layer: value.LayerUser},
-		{Name: "hash_get", File: "prelude.ai", Line: 100, Layer: value.LayerStrict},
+		{Name: "hash_get", File: "prelude.ai", Line: 100, Layer: value.LayerPrelude},
 		{Name: "first", File: "", Line: 0, Layer: value.LayerHal},
 	}
 
@@ -198,11 +198,11 @@ func TestInspectAtLayerUser(t *testing.T) {
 	}
 }
 
-func TestInspectAtLayerStrict(t *testing.T) {
+func TestInspectAtLayerPrelude(t *testing.T) {
 	stack := []value.StackFrame{
 		{Name: "main", File: "test.ai", Line: 1, Layer: value.LayerUser},
 		{Name: "helper", File: "test.ai", Line: 5, Layer: value.LayerUser},
-		{Name: "hash_get", File: "prelude.ai", Line: 100, Layer: value.LayerStrict},
+		{Name: "hash_get", File: "prelude.ai", Line: 100, Layer: value.LayerPrelude},
 		{Name: "first", File: "", Line: 0, Layer: value.LayerHal},
 	}
 
@@ -214,8 +214,8 @@ func TestInspectAtLayerStrict(t *testing.T) {
 		Stack:   stack,
 	}
 
-	// Strict layer should show strict and user, not hal
-	strictView := err.InspectAtLayer(value.LayerStrict)
+	// Prelude layer should show strict and user, not hal
+	strictView := err.InspectAtLayer(value.LayerPrelude)
 
 	// Should show user frames
 	if !strings.Contains(strictView, "'helper'") {
@@ -230,7 +230,7 @@ func TestInspectAtLayerStrict(t *testing.T) {
 func TestInspectAtLayerHal(t *testing.T) {
 	stack := []value.StackFrame{
 		{Name: "main", File: "test.ai", Line: 1, Layer: value.LayerUser},
-		{Name: "hash_get", File: "prelude.ai", Line: 100, Layer: value.LayerStrict},
+		{Name: "hash_get", File: "prelude.ai", Line: 100, Layer: value.LayerPrelude},
 		{Name: "first", File: "hal", Line: 0, Layer: value.LayerHal},
 	}
 

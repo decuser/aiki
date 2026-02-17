@@ -31,9 +31,9 @@ const (
 type Layer string
 
 const (
-	LayerHal    Layer = "hal"
-	LayerStrict Layer = "strict"
-	LayerUser   Layer = "user"
+	LayerHal     Layer = "hal"
+	LayerPrelude Layer = "strict"
+	LayerUser    Layer = "user"
 )
 
 type Value interface {
@@ -268,9 +268,9 @@ func (e *Error) InspectAtLayer(maxLayer Layer) string {
 // layerVisible returns true if frameLayer should be shown when viewing at maxLayer.
 func layerVisible(frameLayer, maxLayer Layer) bool {
 	order := map[Layer]int{
-		LayerUser:   0,
-		LayerStrict: 1,
-		LayerHal:    2,
+		LayerUser:    0,
+		LayerPrelude: 1,
+		LayerHal:     2,
 	}
 	// Empty layer treated as user
 	if frameLayer == "" {

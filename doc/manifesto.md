@@ -75,7 +75,7 @@ One source of truth, multiple views. If the grammar changes, the projections upd
 
 **Data.** Scheme. Lists as universal structure. Composition from atoms.
 
-**Evaluation.** Smalltalk. Strict left-to-right. No operator precedence.
+**Evaluation.** Smalltalk. Prelude left-to-right. No operator precedence.
 
 **Flow.** ML, F#. Data flows through pipes. Errors are values like any other. Match on them or let them propagate.
 

@@ -115,7 +115,7 @@ let x = length([1, 2, 3])
 	}
 }
 
-func TestLintStrictExportsOK(t *testing.T) {
+func TestLintPreludeExportsOK(t *testing.T) {
 	diags := lintSource(t, `
 let x = map([1, 2], (n) { return n + 1 })
 `)
@@ -336,7 +336,6 @@ let f = (a, b, ...rest) {
 }
 
 func TestLintComplexWhileLoop(t *testing.T) {
-	// Real-world while loop pattern (from pragmatic.ai)
 	diags := lintSource(t, `
 let _HASH_SIZE = 64
 let make_buckets = () {

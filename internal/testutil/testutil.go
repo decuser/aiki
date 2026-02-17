@@ -24,7 +24,7 @@ func SetupEnv() *value.Env {
 	if _, ok := result.(*value.Error); ok {
 		panic("failed to load strict: " + result.Inspect())
 	}
-	env.SnapshotStrict()
+	env.SnapshotPrelude()
 	return env
 }
 
@@ -34,8 +34,8 @@ func TestEval(input string) value.Value {
 	return eval.RunNode(testGrammar, input, env)
 }
 
-// testEvalStrict evaluates with strict loaded.
-func EvalStrict(input string) value.Value {
+// testEvalPrelude evaluates with strict loaded.
+func EvalPrelude(input string) value.Value {
 	env := SetupEnv()
 	return eval.RunNode(testGrammar, input, env)
 }

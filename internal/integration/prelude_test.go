@@ -8,64 +8,64 @@ import (
 )
 
 func TestRange(t *testing.T) {
-	result := testutil.EvalStrict(`range(1, 5)`)
+	result := testutil.EvalPrelude(`range(1, 5)`)
 	if result.Inspect() != "[1, 2, 3, 4]" {
 		t.Errorf("got %s, want [1, 2, 3, 4]", result.Inspect())
 	}
 }
 
 func TestSum(t *testing.T) {
-	result := testutil.EvalStrict(`sum([1, 2, 3, 4, 5])`)
+	result := testutil.EvalPrelude(`sum([1, 2, 3, 4, 5])`)
 	testutil.TestNumberValue(t, result, "15")
 }
 
 func TestMap(t *testing.T) {
-	result := testutil.EvalStrict(`map([1, 2, 3], (x) { return x * 2 })`)
+	result := testutil.EvalPrelude(`map([1, 2, 3], (x) { return x * 2 })`)
 	if result.Inspect() != "[2, 4, 6]" {
 		t.Errorf("got %s, want [2, 4, 6]", result.Inspect())
 	}
 }
 
 func TestFilter(t *testing.T) {
-	result := testutil.EvalStrict(`filter([1, 2, 3, 4, 5], (x) { return x > 3 })`)
+	result := testutil.EvalPrelude(`filter([1, 2, 3, 4, 5], (x) { return x > 3 })`)
 	if result.Inspect() != "[4, 5]" {
 		t.Errorf("got %s, want [4, 5]", result.Inspect())
 	}
 }
 
 func TestReduce(t *testing.T) {
-	result := testutil.EvalStrict(`reduce([1, 2, 3, 4], 0, (acc, x) { return acc + x })`)
+	result := testutil.EvalPrelude(`reduce([1, 2, 3, 4], 0, (acc, x) { return acc + x })`)
 	testutil.TestNumberValue(t, result, "10")
 }
 
 func TestReverse(t *testing.T) {
-	result := testutil.EvalStrict(`reverse([1, 2, 3])`)
+	result := testutil.EvalPrelude(`reverse([1, 2, 3])`)
 	if result.Inspect() != "[3, 2, 1]" {
 		t.Errorf("got %s, want [3, 2, 1]", result.Inspect())
 	}
 }
 
 func TestFind(t *testing.T) {
-	result := testutil.EvalStrict(`find([10, 20, 30], (x) { return x > 15 })`)
+	result := testutil.EvalPrelude(`find([10, 20, 30], (x) { return x > 15 })`)
 	testutil.TestNumberValue(t, result, "20")
 }
 
 func TestAnyAll(t *testing.T) {
-	result := testutil.EvalStrict(`any([1, 2, 3], (x) { return x > 2 })`)
+	result := testutil.EvalPrelude(`any([1, 2, 3], (x) { return x > 2 })`)
 	testutil.TestBooleanValue(t, result, true)
 
-	result = testutil.EvalStrict(`all([1, 2, 3], (x) { return x > 0 })`)
+	result = testutil.EvalPrelude(`all([1, 2, 3], (x) { return x > 0 })`)
 	testutil.TestBooleanValue(t, result, true)
 
-	result = testutil.EvalStrict(`all([1, 2, 3], (x) { return x > 2 })`)
+	result = testutil.EvalPrelude(`all([1, 2, 3], (x) { return x > 2 })`)
 	testutil.TestBooleanValue(t, result, false)
 }
 
 func TestMinMax(t *testing.T) {
-	result := testutil.EvalStrict(`min([3, 1, 4, 1, 5])`)
+	result := testutil.EvalPrelude(`min([3, 1, 4, 1, 5])`)
 	testutil.TestNumberValue(t, result, "1")
 
-	result = testutil.EvalStrict(`max([3, 1, 4, 1, 5])`)
+	result = testutil.EvalPrelude(`max([3, 1, 4, 1, 5])`)
 	testutil.TestNumberValue(t, result, "5")
 }
 
@@ -105,7 +105,7 @@ length(hash_keys(h))
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := testutil.EvalStrict(tt.input)
+			result := testutil.EvalPrelude(tt.input)
 			if result.Inspect() != tt.expected {
 				t.Errorf("got %s, want %s", result.Inspect(), tt.expected)
 			}
@@ -113,8 +113,8 @@ length(hash_keys(h))
 	}
 }
 
-// TestStrictExportsAreDefined verifies every exported name is defined and accessible.
-func TestStrictExportsAreDefined(t *testing.T) {
+// TestPreludeExportsAreDefined verifies every exported name is defined and accessible.
+func TestPreludeExportsAreDefined(t *testing.T) {
 	// Evaluate prelude.ai and get exports from env
 	env := testutil.SetupEnv()
 	exports := env.GetExports()
@@ -131,8 +131,8 @@ func TestStrictExportsAreDefined(t *testing.T) {
 	}
 }
 
-// TestStrictExportsComplete verifies all expected functions are exported.
-func TestStrictExportsComplete(t *testing.T) {
+// TestPreludeExportsComplete verifies all expected functions are exported.
+func TestPreludeExportsComplete(t *testing.T) {
 	env := testutil.SetupEnv()
 	exports := env.GetExports()
 
@@ -157,8 +157,8 @@ func TestStrictExportsComplete(t *testing.T) {
 	}
 }
 
-// TestStrictSourceHasLetBindings verifies every export has a let binding in source.
-func TestStrictSourceHasLetBindings(t *testing.T) {
+// TestPreludeSourceHasLetBindings verifies every export has a let binding in source.
+func TestPreludeSourceHasLetBindings(t *testing.T) {
 	source := prelude.Source
 	env := testutil.SetupEnv()
 	exports := env.GetExports()

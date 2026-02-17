@@ -18,8 +18,8 @@ go test ./...
 - [ ] `SnapshotStrict()` → `SnapshotPrelude()`
 - [ ] `shadowed = "strict"` → `shadowed = "prelude"`
 - [ ] `loadStrict` → `loadPrelude`
-- [ ] Remove "used by pragmatic" comment (line 7837)
-- [ ] style.md: "Strict vs pragmatic" → "Exact vs precise"
+- [X] Remove "used by pragmatic" comment (line 7837)
+- [X] style.md: "Strict vs pragmatic" → "Exact vs precise"
 
 ### 2. Grammar Cleanup
 - [x] Remove `%` from OPERATOR and BINOP

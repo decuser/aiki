@@ -460,16 +460,16 @@ Fields: point.x (shaped lists only)
 			return &value.String{Value: help}
 		},
 	},
-	// Internal - used by pragmatic
-	"_hash_code": {
-		Name: "_hash_code",
-		Fn: func(args ...value.Value) value.Value {
-			if len(args) != 1 {
-				return value.NewError("_hash_code: want 1 argument, got %d", len(args))
-			}
-			return value.NewNumber(hashValue(args[0]), 1)
-		},
-	},
+	// Internal - for precise
+	//"_hash_code": {
+	//	Name: "_hash_code",
+	//	Fn: func(args ...value.Value) value.Value {
+	//		if len(args) != 1 {
+	//			return value.NewError("_hash_code: want 1 argument, got %d", len(args))
+	//		}
+	//		return value.NewNumber(hashValue(args[0]), 1)
+	//	},
+	//},
 
 	// File I/O
 	"open": {

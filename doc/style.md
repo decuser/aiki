@@ -44,14 +44,14 @@ Full words preferred. Exceptions: `x`, `y`, `i`, `n`, `fn`, loop counters.
 - **Comments.** Never required, never forbidden. File header if helpful.
 - **Exact vs precise.** Exact by default. Precise when profiling says so.
 
-## Command Strictness
+## Command Preludeness
 
 | Command | Behavior |
 |---------|----------|
 | `aiki` | REPL. No rules. Workbench. |
-| `aiki file` | Strict. Lint errors bail. Unused = error. |
+| `aiki file` | Prelude. Lint errors bail. Unused = error. |
 | `aiki --proto file` | Loose. Warnings only. Runs anyway. TDD mode. |
-| `aiki validate file` | Strict check. No execution. |
+| `aiki validate file` | Prelude check. No execution. |
 
 Default is strict. Opt into looseness with `--proto`.
 

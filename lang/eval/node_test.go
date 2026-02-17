@@ -67,7 +67,7 @@ func TestEvalNodeBasic(t *testing.T) {
 
 			env := value.NewEnv(nil)
 			RunNode(g, prelude.Source, env)
-			env.SnapshotStrict()
+			env.SnapshotPrelude()
 
 			result := EvalNode(ast, env)
 

@@ -8,7 +8,7 @@ import (
 )
 
 func TestEvalPipe(t *testing.T) {
-	result := testutil.EvalStrict(`
+	result := testutil.EvalPrelude(`
 let add_one = (x) { return x + 1 }
 let double = (x) { return x * 2 }
 5 |> add_one() |> double()
@@ -17,14 +17,14 @@ let double = (x) { return x * 2 }
 }
 
 func TestEvalPipeWithBuiltins(t *testing.T) {
-	result := testutil.EvalStrict(`
+	result := testutil.EvalPrelude(`
 range(1, 6) |> sum()
 `)
 	testutil.TestNumberValue(t, result, "15")
 }
 
 func TestEvalMatchStatement(t *testing.T) {
-	result := testutil.EvalStrict(`
+	result := testutil.EvalPrelude(`
 let x = 2
 match x {
 	1 { "one" }
@@ -42,7 +42,7 @@ match x {
 }
 
 func TestEvalMatchWildcard(t *testing.T) {
-	result := testutil.EvalStrict(`
+	result := testutil.EvalPrelude(`
 let x = 99
 match x {
 	1 { "one" }
@@ -91,7 +91,7 @@ func TestEvalBuiltinType(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			result := testutil.EvalStrict(tt.input)
+			result := testutil.EvalPrelude(tt.input)
 			if result.Inspect() != tt.expected {
 				t.Errorf("got %s, want %s", result.Inspect(), tt.expected)
 			}
@@ -100,7 +100,7 @@ func TestEvalBuiltinType(t *testing.T) {
 }
 
 func TestEvalBuiltinShape(t *testing.T) {
-	result := testutil.EvalStrict(`
+	result := testutil.EvalPrelude(`
 let @point [x, y]
 let p = [@point, 1, 2]
 shape(p)
@@ -111,7 +111,7 @@ shape(p)
 }
 
 func TestEvalShapedListPositionalAccess(t *testing.T) {
-	result := testutil.EvalStrict(`
+	result := testutil.EvalPrelude(`
 let @point [x, y]
 let p = [@point, 10, 20]
 p[0]
