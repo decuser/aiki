@@ -1,8 +1,5 @@
-<!--
-Document Contract
-Audience: first contact.
-Allowed tags: NOW PHIL.
-Forbidden tags: PLAN HIST WHY RULE.
+<!-- contract
+allowed: NOW PHIL
 -->
 
 # Aiki

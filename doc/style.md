@@ -1,9 +1,7 @@
-<!--
-Document Contract
-Audience: users.
-Allowed tags: RULE NOW.
-Forbidden tags: PLAN HIST WHY PHIL.
-RULE statements reflect tool enforcement. NOW statements reflect runtime behavior.
+<!-- contract
+allowed: RULE NOW
+
+Note: RULE statements reflect tool enforcement. NOW statements reflect runtime behavior.
 -->
 
 # Aiki Style

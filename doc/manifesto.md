@@ -1,8 +1,5 @@
-<!--
-Document Contract
-Audience: philosophical orientation.
-Allowed tags: PHIL.
-Forbidden tags: NOW PLAN HIST WHY RULE.
+<!-- contract
+allowed: PHIL
 -->
 
 # The Aiki Manifesto

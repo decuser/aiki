@@ -1,8 +1,5 @@
-<!--
-Document Contract
-Audience: project tracking.
-Allowed tags: HIST.
-Forbidden tags: NOW PLAN WHY PHIL RULE.
+<!-- contract
+allowed: HIST
 -->
 
 # Aiki Done

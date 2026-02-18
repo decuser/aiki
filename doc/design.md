@@ -1,9 +1,7 @@
-<!--
-Document Contract
-Audience: contributors and implementers.
-Allowed tags: NOW.
-Forbidden tags: PLAN HIST WHY PHIL RULE.
-Every non obvious NOW claim includes a code anchor in brackets.
+<!-- contract
+allowed: NOW
+
+Note: Every non obvious NOW claim should include a code anchor in brackets.
 -->
 
 # Aiki Design

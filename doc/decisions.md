@@ -1,9 +1,7 @@
-<!--
-Document Contract
-Audience: future maintainers.
-Allowed tags: WHY HIST PLAN.
-Forbidden tags: NOW PHIL RULE.
-PLAN lines must include an explicit status sentence.
+<!-- contract
+allowed: WHY HIST PLAN
+
+Note: PLAN lines need to include an explicit status sentence.
 -->
 
 # Aiki Decisions

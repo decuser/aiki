@@ -1,8 +1,5 @@
-<!--
-Document Contract
-Audience: execution planning.
-Allowed tags: PLAN.
-Forbidden tags: NOW HIST WHY PHIL RULE.
+<!-- contract
+allowed: PLAN
 -->
 
 # Aiki TODO
