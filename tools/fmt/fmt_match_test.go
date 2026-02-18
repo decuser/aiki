@@ -10,7 +10,7 @@ import (
 var testGrammar *syntax.Grammar
 
 func init() {
-	SetGrammar(syntax.Grammar())
+	SetGrammar(syntax.GetGrammar())
 }
 
 func TestFmtMatchPreservesArms(t *testing.T) {

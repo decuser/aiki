@@ -1,10 +1,10 @@
-package integration
-import "aiki/syntax"
+package integration_test
 
 import (
 	"fmt"
 	"testing"
 
+	"aiki/syntax"
 )
 
 // TestIntegration tests the full pipeline without depending on lang/value

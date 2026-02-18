@@ -9,12 +9,12 @@ import (
 
 func init() {
 	// Initialize strictExports by calling SetGrammar
-	SetGrammar(syntax.Grammar())
+	SetGrammar(syntax.GetGrammar())
 }
 
 func lintSource(t *testing.T, source string) []Diagnostic {
 	t.Helper()
-	diags, err := LintSource(syntax.Grammar(), source)
+	diags, err := LintSource(syntax.GetGrammar(), source)
 	if err != nil {
 		t.Fatalf("lint error: %v", err)
 	}

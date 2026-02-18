@@ -5,11 +5,12 @@ import (
 	"testing"
 
 	aikifmt "aiki/tools/fmt"
+	"aiki/syntax"
 )
 
 func init() {
 
-	aikifmt.SetGrammar(lang.Grammar())
+	aikifmt.SetGrammar(syntax.GetGrammar())
 }
 
 // TestFmtRoundTrip verifies that parsing formatted output produces equivalent AST

@@ -10,7 +10,7 @@ import (
 var commentTestGrammar *syntax.Grammar
 
 func init() {
-	SetGrammar(syntax.Grammar())
+	SetGrammar(syntax.GetGrammar())
 }
 
 func TestFmtCommentOrder(t *testing.T) {
