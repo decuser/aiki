@@ -71,7 +71,6 @@ go test ./...
 
 ### 8. TCO
 - [ ] Tail call optimization — trampoline pattern
-
 ---
 
 ## Alpha Polish
@@ -85,6 +84,10 @@ go test ./...
 - [ ] `aiki validate` — strict check, no execution
 - [ ] `aiki --proto` flag for loose mode
 - [ ] `--errors=user|prelude|hal` flag for error depth
+- [ ] Externalize comment definition into the EBNF grammar
+Add a token rule for comments in the grammar and remove the hardcoded "#" check from the lexer. Lexer should treat comment tokens like any other token marked Skip or KeepComments.
+- [ ] Remove keyword priority from lexer and encode as grammar disambiguation
+Move keyword/operator precedence into the grammar ordering or a token classification field. Lexer should not impose literal before regex ordering; the grammar should define token precedence directly.
 
 ## Post-Alpha
 
