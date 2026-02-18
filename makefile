@@ -1,10 +1,10 @@
-.PHONY: build clean install run test fmt doclint lint
+.PHONY: build clean install run test fmt doclint lint validate
 
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 LDFLAGS := -ldflags "-X aiki/version.Version=$(VERSION)"
 
 build:
-	go build $(LDFLAGS) -o aiki ./tools/aiki
+	go build $(LDFLAGS) -o aiki ./cmd/aiki
 
 clean:
 	rm -f aiki
@@ -27,3 +27,6 @@ doclint:
 
 lint:
 	./aiki lint ./...
+
+validate: build fmt lint doclint test
+

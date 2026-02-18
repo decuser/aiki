@@ -1,0 +1,13 @@
+print("ADD")
+print(1 + 1)
+
+print("RAT_ONE_THIRD_TIMES_THREE")
+print((1 / 3) * 3)
+
+print("RAT_TWO_THIRDS_PLUS_ONE_SIXTH")
+print(2 / 3 + 1 / 6)
+
+print("LEFT_TO_RIGHT_ONE_PLUS_TWO_TIMES_THREE")
+print(1 + 2 * 3)
+
+print("MATH_SMOKE_DONE")
