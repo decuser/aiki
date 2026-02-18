@@ -1,0 +1,7 @@
+export(:ANSWER, :add_two)
+
+let ANSWER = 40
+
+let add_two = (x) {
+	return x + 2
+}

@@ -1,11 +1,5 @@
 # Aiki Backlog
 
-## Validation
-
-- go test ./...
-- ./aiki examples/canvas.ai
-- ./aiki -e 'print(sum(range(1, 10)))'
-
 ## Alpha Blockers
 
 ### 1. Cleanup: Terminology + Dead Code

@@ -17,6 +17,7 @@ import (
 	aikidoclint "aiki/tools/doclint"
 	aikifmt "aiki/tools/fmt"
 	aikilint "aiki/tools/lint"
+	aikismoke "aiki/tools/smoke"
 )
 
 func main() {
@@ -34,10 +35,14 @@ func main() {
 		case "fmt":
 			aikifmt.Run(os.Args[2:])
 			return
-		case "lint": // New case
+		case "lint":
 			aikilint.Run(os.Args[2:])
 			return
+		case "smoke":
+			aikismoke.Run(os.Args[2:])
+			return
 		}
+
 	}
 
 	opts := parseOptions()

@@ -9,7 +9,6 @@ import (
 	"math/rand"
 	"os"
 	"os/exec"
-	"strings"
 	"time"
 
 	"aiki/semantics/value"
@@ -292,23 +291,24 @@ var HAL = map[string]*value.Builtin{
 	"print": {
 		Name: "print",
 		Fn: func(args ...value.Value) value.Value {
-			parts := make([]string, len(args))
-			for i, a := range args {
-				switch v := a.(type) {
-				case *value.String:
-					parts[i] = v.Value
-				default:
-					parts[i] = a.Inspect()
+			for _, a := range args {
+				// Strings print raw
+				if v, ok := a.(*value.String); ok {
+					fmt.Fprint(Stdout, v.Value)
+					continue
 				}
+				// Everything else uses Inspect()
+				fmt.Fprint(Stdout, a.Inspect())
 			}
-			s := strings.Join(parts, " ")
-			fmt.Fprint(Stdout, s)
+
+			// Flush for real file stdout
 			if f, ok := Stdout.(*os.File); ok {
 				f.Sync()
 			}
 			return value.NULL
 		},
 	},
+
 	"read": {
 		Name: "read",
 		Fn: func(args ...value.Value) value.Value {

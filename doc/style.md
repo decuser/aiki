@@ -8,10 +8,11 @@ Note: RULE statements reflect tool enforcement. NOW statements reflect runtime b
 
 ## Naming
 
-RULE snake_case is the convention. [tools/lint]
-RULE Mixed case should trigger lint diagnostics. [tools/lint]
+RULE "_" is a valid identifier used for discard; it is exempt from case rules. [tools/lint]
+RULE normal identifiers must use snake_case. [tools/lint]
+RULE any mixedCase or PascalCase identifier must trigger a lint diagnostic. [tools/lint]
+RULE a leading "_" marks internal intent only and has no semantic effect. [doc/design.md]
 
-RULE underscore prefix marks internal intent. [doc/design.md]
 
 ## Shadowing
 

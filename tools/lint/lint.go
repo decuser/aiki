@@ -45,6 +45,9 @@ var screamRe = regexp.MustCompile(`^_?[A-Z][A-Z0-9_]*$`)
 
 // isValidCase checks if name is snake_case or SCREAMING_SNAKE_CASE.
 func isValidCase(name string) bool {
+	if name == "_" {
+		return true
+	}
 	return snakeRe.MatchString(name) || screamRe.MatchString(name)
 }
 

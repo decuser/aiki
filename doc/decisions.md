@@ -10,6 +10,22 @@ Note: PLAN lines need to include an explicit status sentence.
 PLAN Doclint as documentation contract enforcer. Status implemented for doc and work trees.
 WHY Documentation contracts prevent drift between design decisions work tracking and implementation.
 
+PLAN Smoke subcommand and transcript goldens as canary contracts. Status implemented for core math, recursion, iteration, pipeline, functional, IO, error, import, canvas, ord, and hash surfaces.
+WHY Smoke enforces behavioral contracts at the language surface and catches drift beyond Go tests.
+
+## 2026 02 18 Print semantics and naming
+
+PLAN Print is concatenative with no implicit separators; callers must print spaces and newlines explicitly. Status implemented in runtime/hal.  
+WHY Removing implicit spaces aligns IO with explicit semantics and makes print behavior contractible.
+
+PLAN "_" is a valid discard identifier in naming rules without runtime magic. Status implemented in tools/lint only.  
+WHY This enables a conventional ignore binding while keeping evaluation and case policy simple and explicit.
+
+
+## 2026 02 18 Tooling, drift control
+PLAN Doclint as documentation contract enforcer. Status implemented for doc and work trees.
+WHY Documentation contracts prevent drift between design decisions work tracking and implementation.
+
 ## 2026 02 17 Grammar loading boundary and package stabilization
 
 HIST Embedded grammar via go embed. [syntax/grammar_loader.go]

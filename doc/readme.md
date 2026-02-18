@@ -17,6 +17,7 @@ NOW Run file: aiki file.ai
 NOW Eval expression: aiki -e 'print(1 + 2)'
 NOW Format: aiki fmt file.ai
 NOW Lint: aiki lint file.ai
+NOW Smoke: aiki smoke
 
 ## Architecture
 
@@ -39,4 +40,5 @@ NOW done: doc/done.md
 
 ## Tools
 NOW `aiki doclint` validates documentation contracts in doc and work. [tools/doclint]
+NOW `aiki smoke` runs smoke tests. [tools/smoke]
 

@@ -48,4 +48,8 @@ NOW channel is a dedicated value type. [semantics/value/channel.go type Channel]
 
 ## Tools
 NOW doclint subcommand checks documentation contract headers and tag usage for doc and work trees. [tools/doclint]
+NOW smoke subcommand runs *_smoke.ai against .gold transcripts (IN/OUT/ERR/EXIT/DISPLAY) as canary contracts. [tools/smoke]
+
+## IO behavior
+NOW print writes arguments contiguously with no implicit separators; callers must print spaces and newlines explicitly. [runtime/hal print]
 

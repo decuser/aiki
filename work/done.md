@@ -4,11 +4,18 @@ allowed: HIST
 
 # Aiki Done
 
+## v0.3.2 smoke
+HIST Added `aiki smoke` subcommand running `*_smoke.ai` against `.gold` transcripts as surface canaries.
+HIST Defined transcript format with IN OUT ERR EXIT DISPLAY records and explicit escape handling.
+HIST Seeded smoke suites for math recursion iteration pipeline functional basic IO interactive error import canvas ord and hash.
+HIST Integrated smoke into `make validate` so build fmt lint doclint tests and smoke run as a single contract check.
+
 ## v0.3.1 doclint
 HIST Added `aiki doclint` subcommand enforcing documentation contracts for doc and work trees.
 HIST Introduced doclint.ini to declare scope roots and valid tags.
 HIST Added contract headers to design decisions manifesto style and work tracking docs.
 HIST Split work docs into work/todo work/done work/backlog distinct from doc/.
+
 
 ## 2026 02 17 Grammar loader and package boundary stabilization
 
