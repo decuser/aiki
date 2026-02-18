@@ -1,6 +1,5 @@
 package lint
 
-
 import (
 	"regexp"
 

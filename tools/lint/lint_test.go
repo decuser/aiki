@@ -1,10 +1,10 @@
 package lint
+
 import "aiki/syntax"
 
 import (
 	"strings"
 	"testing"
-
 )
 
 func init() {

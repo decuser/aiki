@@ -1,11 +1,9 @@
 package fmt
 
-
 import (
+	"aiki/syntax"
 	"sort"
 	"strings"
-	"aiki/syntax"
-
 )
 
 // FormatSource formats source code, preserving comments and blank lines.

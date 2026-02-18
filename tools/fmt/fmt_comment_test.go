@@ -1,10 +1,10 @@
 package fmt
+
 import "aiki/syntax"
 
 import (
 	"strings"
 	"testing"
-
 )
 
 var commentTestGrammar *syntax.Grammar

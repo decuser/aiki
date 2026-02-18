@@ -1,6 +1,5 @@
 package lint
 
-
 import (
 	"fmt"
 	"os"
@@ -11,7 +10,6 @@ import (
 	"aiki/semantics/eval"
 	"aiki/semantics/value"
 	"aiki/syntax"
-
 )
 
 var grammar *syntax.Grammar

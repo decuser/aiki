@@ -1,13 +1,12 @@
 package fmt
 
-
 import (
+	"aiki/syntax"
 	"flag"
 	gofmt "fmt"
 	"os"
 	"path/filepath"
 	"strings"
-	"aiki/syntax"
 )
 
 var grammar *syntax.Grammar

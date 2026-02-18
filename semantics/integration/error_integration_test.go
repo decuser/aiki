@@ -1,4 +1,5 @@
 package integration_test
+
 import "aiki/syntax"
 
 import (
