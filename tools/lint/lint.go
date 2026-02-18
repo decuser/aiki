@@ -1,7 +1,9 @@
 package lint
 
 import (
+	//"fmt"
 	"regexp"
+	"strings"
 
 	"aiki/runtime/hal"
 	"aiki/semantics/value"
@@ -150,6 +152,16 @@ func (c *checker) addWarning(line, col int, msg string) {
 }
 
 func (c *checker) check(node *syntax.Node) {
+	// Debug: log every node as it is visited
+	//fmt.Printf(
+	//	"NODE type=%-12q value=%-10q line=%-3d col=%-3d children=%d\n",
+	//	node.Type,
+	//	node.Value,
+	//	node.Line,
+	//	node.Column,
+	//	len(node.Children),
+	//)
+
 	switch node.Type {
 	case "program":
 		for _, child := range node.Children {
@@ -198,7 +210,13 @@ func (c *checker) check(node *syntax.Node) {
 	case "func_literal":
 		c.checkFunc(node)
 
-	case "expr", "pipe_expr", "infix_expr", "unary_expr", "postfix_expr":
+	case "expr", "pipe_expr", "infix_expr", "unary_expr":
+		for _, child := range node.Children {
+			c.check(child)
+		}
+
+	case "postfix_expr":
+		c.handlePostfixImport(node)
 		for _, child := range node.Children {
 			c.check(child)
 		}
@@ -450,5 +468,57 @@ func (c *checker) checkNameRef(node *syntax.Node) {
 	}
 	if !c.isDefined(name) {
 		c.addError(node.Line, node.Column, "undefined: '"+name+"'")
+	}
+}
+
+func (c *checker) handlePostfixImport(node *syntax.Node) {
+	if len(node.Children) != 2 {
+		return
+	}
+
+	primary := node.Children[0]
+	call := node.Children[1]
+
+	if primary.Type != "primary" || call.Type != "call" {
+		return
+	}
+
+	if len(primary.Children) == 0 {
+		return
+	}
+	nameNode := primary.Children[0]
+	if nameNode.Type != "NAME" || nameNode.Value != "import" {
+		return
+	}
+
+	// call children look like:
+	//   "(" expr "," expr "," expr ")"
+	// expr0 is module, expr1..N are imported symbols
+	exprCount := 0
+	for _, ch := range call.Children {
+		if ch.Type == "expr" {
+			exprCount++
+			if exprCount >= 2 {
+				c.defineImportExpr(ch)
+			}
+		}
+	}
+}
+
+func (c *checker) defineImportExpr(expr *syntax.Node) {
+	n := expr
+	for len(n.Children) == 1 && n.Type != "SYMBOL" {
+		n = n.Children[0]
+	}
+	if n.Type != "SYMBOL" {
+		return
+	}
+
+	v := n.Value // example ":ANSWER"
+	if strings.HasPrefix(v, ":") && len(v) > 1 {
+		v = v[1:]
+	}
+	if v != "" {
+		c.define(v)
 	}
 }
