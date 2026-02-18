@@ -1,17 +1,16 @@
 package fmt
+import "aiki/syntax"
 
 import (
 	"strings"
 	"testing"
 
-	"aiki/internal/ebnf"
-	"aiki/lang"
 )
 
-var commentTestGrammar *ebnf.Grammar
+var commentTestGrammar *syntax.Grammar
 
 func init() {
-	SetGrammar(lang.Grammar())
+	SetGrammar(syntax.Grammar())
 }
 
 func TestFmtCommentOrder(t *testing.T) {

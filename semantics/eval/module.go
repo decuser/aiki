@@ -1,27 +1,27 @@
 package eval
+import "aiki/syntax"
 
 import (
 	"os"
 	"path/filepath"
 
-	"aiki/internal/ebnf"
-	"aiki/lang/value"
+	"aiki/semantics/value"
 )
 
 // nodeGrammar holds a reference to the grammar for import/load parsing.
 // Set by SetNodeGrammar during initialization.
-var nodeGrammar *ebnf.Grammar
+var nodeGrammar *syntax.Grammar
 
 // SetNodeGrammar stores the grammar for use by import and load.
 // Validates that all grammar productions have handlers.
-func SetNodeGrammar(g *ebnf.Grammar) {
+func SetNodeGrammar(g *syntax.Grammar) {
 	nodeGrammar = g
 	ValidateHandlers(g)
 }
 
 // evalExport implements export(:name1, :name2, ...)
 // Records exported names on the environment.
-func evalExport(args []value.Value, env *value.Env, node *ebnf.Node) value.Value {
+func evalExport(args []value.Value, env *value.Env, node *syntax.Node) value.Value {
 	if len(args) == 0 {
 		return makeError(env, node, "export: want at least 1 argument")
 	}
@@ -41,7 +41,7 @@ func evalExport(args []value.Value, env *value.Env, node *ebnf.Node) value.Value
 
 // evalImport implements import("module", :name1, :name2, ...)
 // Parses and evaluates the module, then copies exported names into the current environment.
-func evalImport(args []value.Value, env *value.Env, node *ebnf.Node) value.Value {
+func evalImport(args []value.Value, env *value.Env, node *syntax.Node) value.Value {
 	if len(args) < 2 {
 		return makeError(env, node, "import: want module and at least 1 name")
 	}

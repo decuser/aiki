@@ -1,12 +1,12 @@
 package integration
 
 import (
-	"aiki/internal/testutil"
+	"aiki/semantics/testutil"
 	"os"
 	"strings"
 	"testing"
 
-	"aiki/lang/value"
+	"aiki/semantics/value"
 )
 
 func TestFileRoundTrip(t *testing.T) {

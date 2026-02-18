@@ -1,17 +1,16 @@
 package fmt
+import "aiki/syntax"
 
 import (
 	"strings"
 	"testing"
 
-	"aiki/internal/ebnf"
-	"aiki/lang"
 )
 
-var testGrammar *ebnf.Grammar
+var testGrammar *syntax.Grammar
 
 func init() {
-	SetGrammar(lang.Grammar())
+	SetGrammar(syntax.Grammar())
 }
 
 func TestFmtMatchPreservesArms(t *testing.T) {

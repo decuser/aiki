@@ -1,63 +1,62 @@
 package testutil
 
 import (
-	"testing"
+"testing"
 
-	"aiki/internal/ebnf"
-	"aiki/lang"
-	"aiki/lang/eval"
-	"aiki/lang/value"
-	"aiki/runtime/prelude"
+"aiki/syntax"
+"aiki/semantics/eval"
+"aiki/semantics/value"
+"aiki/runtime/prelude"
 )
 
-var testGrammar *ebnf.Grammar
+var testGrammar *syntax.Grammar
 
 func init() {
-	testGrammar = lang.Grammar()
-	eval.SetNodeGrammar(testGrammar)
+testGrammar = syntax.GetGrammar()
+eval.SetNodeGrammar(testGrammar)
 }
 
-// setupEnv creates an env with strict loaded.
+// SetupEnv creates an env with prelude loaded.
 func SetupEnv() *value.Env {
-	env := value.NewEnv(nil)
-	result := eval.RunNode(testGrammar, prelude.Source, env)
-	if _, ok := result.(*value.Error); ok {
-		panic("failed to load strict: " + result.Inspect())
-	}
-	env.SnapshotPrelude()
-	return env
+env := value.NewEnv(nil)
+result := eval.RunNode(testGrammar, prelude.Source, env)
+if _, ok := result.(*value.Error); ok {
+panic("failed to load prelude: " + result.Inspect())
+}
+env.SnapshotPrelude()
+return env
 }
 
-// testEval evaluates without strict (bare env).
+// TestEval evaluates without prelude (bare env).
 func TestEval(input string) value.Value {
-	env := value.NewEnv(nil)
-	return eval.RunNode(testGrammar, input, env)
+env := value.NewEnv(nil)
+return eval.RunNode(testGrammar, input, env)
 }
 
-// testEvalPrelude evaluates with strict loaded.
+// EvalPrelude evaluates with prelude loaded.
 func EvalPrelude(input string) value.Value {
-	env := SetupEnv()
-	return eval.RunNode(testGrammar, input, env)
+env := SetupEnv()
+return eval.RunNode(testGrammar, input, env)
 }
 
 func TestNumberValue(t *testing.T, v value.Value, expected string) {
-	t.Helper()
-	num, ok := v.(*value.Number)
-	if !ok {
-		t.Fatalf("expected Number, got %T (%v)", v, v)
-	}
-	if num.Inspect() != expected {
-		t.Errorf("got %s, want %s", num.Inspect(), expected)
-	}
+t.Helper()
+num, ok := v.(*value.Number)
+if !ok {
+t.Fatalf("expected Number, got %T (%v)", v, v)
+}
+if num.Inspect() != expected {
+t.Errorf("got %s, want %s", num.Inspect(), expected)
+}
 }
 
 func TestBooleanValue(t *testing.T, v value.Value, expected bool) {
-	t.Helper()
-	b, ok := v.(*value.Boolean)
-	if !ok {
-		t.Fatalf("expected Boolean, got %T (%v)", v, v)
-	}
-	if b.Value != expected {
-		t.Errorf("got %v, want %v", b.Value, expected)
-	}
+t.Helper()
+b, ok := v.(*value.Boolean)
+if !ok {
+t.Fatalf("expected Boolean, got %T (%v)", v, v)
+}
+if b.Value != expected {
+t.Errorf("got %v, want %v", b.Value, expected)
+}
 }

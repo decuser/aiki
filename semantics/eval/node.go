@@ -1,4 +1,5 @@
 package eval
+import "aiki/syntax"
 
 import (
 	"fmt"
@@ -8,16 +9,15 @@ import (
 	"strconv"
 	"strings"
 
-	"aiki/internal/ebnf"
-	"aiki/lang/value"
 	"aiki/runtime/hal"
+	"aiki/semantics/value"
 )
 
 // HAL is the single source of truth for all builtins.
 var HAL = hal.HAL
 
 // Handler is a function that evaluates a node type.
-type Handler func(*ebnf.Node, *value.Env) value.Value
+type Handler func(*syntax.Node, *value.Env) value.Value
 
 // handlers maps node types to their evaluation functions.
 var handlers map[string]Handler
@@ -63,7 +63,7 @@ func init() {
 
 // ValidateHandlers checks that all grammar productions have handlers.
 // Panics if any production lacks a handler.
-func ValidateHandlers(grammar *ebnf.Grammar) {
+func ValidateHandlers(grammar *syntax.Grammar) {
 	if grammar == nil {
 		return
 	}
@@ -79,7 +79,7 @@ func ValidateHandlers(grammar *ebnf.Grammar) {
 }
 
 // makeError creates a rich error with file, line, source context, and stack trace.
-func makeError(env *value.Env, node *ebnf.Node, format string, args ...interface{}) *value.Error {
+func makeError(env *value.Env, node *syntax.Node, format string, args ...interface{}) *value.Error {
 	return value.NewErrorAt(
 		env.GetFile(),
 		node.Line,
@@ -108,7 +108,7 @@ func isTruthy(val value.Value) bool {
 }
 
 // EvalNode evaluates a generic AST node from the ebnf parser.
-func EvalNode(node *ebnf.Node, env *value.Env) value.Value {
+func EvalNode(node *syntax.Node, env *value.Env) value.Value {
 	if handler, ok := handlers[node.Type]; ok {
 		return handler(node, env)
 	}
@@ -118,28 +118,28 @@ func EvalNode(node *ebnf.Node, env *value.Env) value.Value {
 	return value.NULL
 }
 
-func evalNodePassthrough(node *ebnf.Node, env *value.Env) value.Value {
+func evalNodePassthrough(node *syntax.Node, env *value.Env) value.Value {
 	if len(node.Children) == 1 {
 		return EvalNode(node.Children[0], env)
 	}
 	return value.NULL
 }
 
-func evalNodeStatement(node *ebnf.Node, env *value.Env) value.Value {
+func evalNodeStatement(node *syntax.Node, env *value.Env) value.Value {
 	if len(node.Children) > 0 {
 		return EvalNode(node.Children[0], env)
 	}
 	return value.NULL
 }
 
-func evalNodeExprStmt(node *ebnf.Node, env *value.Env) value.Value {
+func evalNodeExprStmt(node *syntax.Node, env *value.Env) value.Value {
 	if len(node.Children) > 0 {
 		return EvalNode(node.Children[0], env)
 	}
 	return value.NULL
 }
 
-func evalNodeString(node *ebnf.Node, env *value.Env) value.Value {
+func evalNodeString(node *syntax.Node, env *value.Env) value.Value {
 	s, err := strconv.Unquote(node.Value)
 	if err != nil {
 		return makeError(env, node, "invalid string: %s", node.Value)
@@ -147,7 +147,7 @@ func evalNodeString(node *ebnf.Node, env *value.Env) value.Value {
 	return &value.String{Value: s}
 }
 
-func evalNodeRune(node *ebnf.Node, env *value.Env) value.Value {
+func evalNodeRune(node *syntax.Node, env *value.Env) value.Value {
 	s := node.Value
 	if len(s) >= 2 {
 		s = s[1 : len(s)-1]
@@ -173,15 +173,15 @@ func evalNodeRune(node *ebnf.Node, env *value.Env) value.Value {
 	return value.NULL
 }
 
-func evalNodeSymbol(node *ebnf.Node, env *value.Env) value.Value {
+func evalNodeSymbol(node *syntax.Node, env *value.Env) value.Value {
 	return &value.Symbol{Value: strings.TrimPrefix(node.Value, ":")}
 }
 
-func evalNodeName(node *ebnf.Node, env *value.Env) value.Value {
+func evalNodeName(node *syntax.Node, env *value.Env) value.Value {
 	return evalNodeIdentWithNode(node, env)
 }
 
-func evalNodeTerminal(node *ebnf.Node, env *value.Env) value.Value {
+func evalNodeTerminal(node *syntax.Node, env *value.Env) value.Value {
 	switch node.Value {
 	case "true":
 		return value.True
@@ -191,7 +191,7 @@ func evalNodeTerminal(node *ebnf.Node, env *value.Env) value.Value {
 	return value.NULL
 }
 
-func evalNodeProgram(node *ebnf.Node, env *value.Env) value.Value {
+func evalNodeProgram(node *syntax.Node, env *value.Env) value.Value {
 	var result value.Value = value.NULL
 
 	for _, child := range node.Children {
@@ -208,10 +208,10 @@ func evalNodeProgram(node *ebnf.Node, env *value.Env) value.Value {
 	return result
 }
 
-func evalNodeLet(node *ebnf.Node, env *value.Env) value.Value {
+func evalNodeLet(node *syntax.Node, env *value.Env) value.Value {
 	var name string
-	var nameNode *ebnf.Node
-	var valNode *ebnf.Node
+	var nameNode *syntax.Node
+	var valNode *syntax.Node
 	var isShape bool
 	var shapeFields []string
 
@@ -278,10 +278,10 @@ func evalNodeLet(node *ebnf.Node, env *value.Env) value.Value {
 	return value.NULL
 }
 
-func evalNodeAssign(node *ebnf.Node, env *value.Env) value.Value {
+func evalNodeAssign(node *syntax.Node, env *value.Env) value.Value {
 	var name string
-	var nameNode *ebnf.Node
-	var valNode *ebnf.Node
+	var nameNode *syntax.Node
+	var valNode *syntax.Node
 
 	for i, child := range node.Children {
 		if child.Type == "NAME" && name == "" {
@@ -308,7 +308,7 @@ func evalNodeAssign(node *ebnf.Node, env *value.Env) value.Value {
 	return value.NULL
 }
 
-func evalNodeReturn(node *ebnf.Node, env *value.Env) value.Value {
+func evalNodeReturn(node *syntax.Node, env *value.Env) value.Value {
 	for _, child := range node.Children {
 		if child.Type != "TERMINAL" {
 			val := EvalNode(child, env)
@@ -321,8 +321,8 @@ func evalNodeReturn(node *ebnf.Node, env *value.Env) value.Value {
 	return &value.Return{Value: value.NULL}
 }
 
-func evalNodeIf(node *ebnf.Node, env *value.Env) value.Value {
-	var condNode, thenBlock, elseNode *ebnf.Node
+func evalNodeIf(node *syntax.Node, env *value.Env) value.Value {
+	var condNode, thenBlock, elseNode *syntax.Node
 
 	sawIf := false
 	sawElse := false
@@ -366,8 +366,8 @@ func evalNodeIf(node *ebnf.Node, env *value.Env) value.Value {
 	return value.NULL
 }
 
-func evalNodeWhile(node *ebnf.Node, env *value.Env) value.Value {
-	var condNode, bodyNode *ebnf.Node
+func evalNodeWhile(node *syntax.Node, env *value.Env) value.Value {
+	var condNode, bodyNode *syntax.Node
 
 	for _, child := range node.Children {
 		if child.Type == "TERMINAL" {
@@ -406,7 +406,7 @@ func evalNodeWhile(node *ebnf.Node, env *value.Env) value.Value {
 	return result
 }
 
-func evalNodeMatch(node *ebnf.Node, env *value.Env) value.Value {
+func evalNodeMatch(node *syntax.Node, env *value.Env) value.Value {
 	var subject value.Value
 
 	for _, child := range node.Children {
@@ -422,7 +422,7 @@ func evalNodeMatch(node *ebnf.Node, env *value.Env) value.Value {
 		}
 	}
 
-	var currentPattern *ebnf.Node
+	var currentPattern *syntax.Node
 	for _, child := range node.Children {
 		if child.Type == "pattern" {
 			currentPattern = child
@@ -439,7 +439,7 @@ func evalNodeMatch(node *ebnf.Node, env *value.Env) value.Value {
 	return value.NULL
 }
 
-func matchNodePattern(pattern *ebnf.Node, subject value.Value, env *value.Env) bool {
+func matchNodePattern(pattern *syntax.Node, subject value.Value, env *value.Env) bool {
 	for _, child := range pattern.Children {
 		switch child.Type {
 		case "TERMINAL":
@@ -473,7 +473,7 @@ func matchNodePattern(pattern *ebnf.Node, subject value.Value, env *value.Env) b
 	return false
 }
 
-func evalNodeBlock(node *ebnf.Node, env *value.Env) value.Value {
+func evalNodeBlock(node *syntax.Node, env *value.Env) value.Value {
 	blockEnv := value.NewEnv(env)
 	var result value.Value = value.NULL
 
@@ -494,7 +494,7 @@ func evalNodeBlock(node *ebnf.Node, env *value.Env) value.Value {
 	return result
 }
 
-func evalNodeExpr(node *ebnf.Node, env *value.Env) value.Value {
+func evalNodeExpr(node *syntax.Node, env *value.Env) value.Value {
 	switch node.Type {
 	case "pipe_expr":
 		return evalNodePipe(node, env)
@@ -520,7 +520,7 @@ func evalNodeExpr(node *ebnf.Node, env *value.Env) value.Value {
 	return result
 }
 
-func evalNodePipe(node *ebnf.Node, env *value.Env) value.Value {
+func evalNodePipe(node *syntax.Node, env *value.Env) value.Value {
 	var result value.Value
 
 	i := 0
@@ -551,10 +551,10 @@ func evalNodePipe(node *ebnf.Node, env *value.Env) value.Value {
 	return result
 }
 
-func evalNodeInfix(node *ebnf.Node, env *value.Env) value.Value {
+func evalNodeInfix(node *syntax.Node, env *value.Env) value.Value {
 	var result value.Value
 	var op string
-	var opNode *ebnf.Node
+	var opNode *syntax.Node
 
 	for _, child := range node.Children {
 		if child.Type == "BINOP" {
@@ -592,9 +592,9 @@ func evalNodeInfix(node *ebnf.Node, env *value.Env) value.Value {
 	return result
 }
 
-func evalNodeUnary(node *ebnf.Node, env *value.Env) value.Value {
+func evalNodeUnary(node *syntax.Node, env *value.Env) value.Value {
 	var prefixes []string
-	var prefixNodes []*ebnf.Node
+	var prefixNodes []*syntax.Node
 	var operand value.Value
 
 	for _, child := range node.Children {
@@ -631,7 +631,7 @@ func evalNodeUnary(node *ebnf.Node, env *value.Env) value.Value {
 	return operand
 }
 
-func evalNodePostfix(node *ebnf.Node, env *value.Env) value.Value {
+func evalNodePostfix(node *syntax.Node, env *value.Env) value.Value {
 	var result value.Value
 
 	for _, child := range node.Children {
@@ -660,7 +660,7 @@ func evalNodePostfix(node *ebnf.Node, env *value.Env) value.Value {
 	return result
 }
 
-func evalNodePrimary(node *ebnf.Node, env *value.Env) value.Value {
+func evalNodePrimary(node *syntax.Node, env *value.Env) value.Value {
 	for _, child := range node.Children {
 		switch child.Type {
 		case "NUMBER", "STRING", "RUNE", "SYMBOL", "NAME":
@@ -679,10 +679,10 @@ func evalNodePrimary(node *ebnf.Node, env *value.Env) value.Value {
 	return value.NULL
 }
 
-func evalNodeFunc(node *ebnf.Node, env *value.Env) value.Value {
+func evalNodeFunc(node *syntax.Node, env *value.Env) value.Value {
 	var params []string
 	var restParam string
-	var body *ebnf.Node
+	var body *syntax.Node
 
 	for _, child := range node.Children {
 		if child.Type == "params" {
@@ -701,7 +701,7 @@ func evalNodeFunc(node *ebnf.Node, env *value.Env) value.Value {
 	}
 }
 
-func extractNodeParams(node *ebnf.Node) (params []string, rest string) {
+func extractNodeParams(node *syntax.Node) (params []string, rest string) {
 	for _, child := range node.Children {
 		switch child.Type {
 		case "param_list":
@@ -723,7 +723,7 @@ func extractNodeParams(node *ebnf.Node) (params []string, rest string) {
 	return
 }
 
-func evalNodeList(node *ebnf.Node, env *value.Env) value.Value {
+func evalNodeList(node *syntax.Node, env *value.Env) value.Value {
 	var elements []value.Value
 	var shape string
 
@@ -752,7 +752,7 @@ func evalNodeList(node *ebnf.Node, env *value.Env) value.Value {
 	return list
 }
 
-func evalNodeIndex(target value.Value, node *ebnf.Node, env *value.Env) value.Value {
+func evalNodeIndex(target value.Value, node *syntax.Node, env *value.Env) value.Value {
 	var idxVal value.Value
 
 	for _, child := range node.Children {
@@ -790,7 +790,7 @@ func evalNodeIndex(target value.Value, node *ebnf.Node, env *value.Env) value.Va
 	}
 }
 
-func evalNodeAccess(target value.Value, node *ebnf.Node, env *value.Env) value.Value {
+func evalNodeAccess(target value.Value, node *syntax.Node, env *value.Env) value.Value {
 	var fieldName string
 
 	for _, child := range node.Children {
@@ -820,7 +820,7 @@ func evalNodeAccess(target value.Value, node *ebnf.Node, env *value.Env) value.V
 	return makeError(env, node, "unknown field: %s", fieldName)
 }
 
-func evalNodeIdentWithNode(node *ebnf.Node, env *value.Env) value.Value {
+func evalNodeIdentWithNode(node *syntax.Node, env *value.Env) value.Value {
 	name := node.Value
 	if val, ok := env.Get(name); ok {
 		return val
@@ -847,7 +847,7 @@ func evalNodeIdent(name string, env *value.Env) value.Value {
 	return value.NewError("undefined: %s", name)
 }
 
-func evalNodeNumber(node *ebnf.Node, env *value.Env) value.Value {
+func evalNodeNumber(node *syntax.Node, env *value.Env) value.Value {
 	s := node.Value
 	r := new(big.Rat)
 	if _, ok := r.SetString(s); !ok {
@@ -885,7 +885,7 @@ func applyNodeFunc(fn *value.Function, args []value.Value, callLine int) value.V
 
 	var result value.Value
 	if fn.BodyNode != nil {
-		result = EvalNode(fn.BodyNode.(*ebnf.Node), funcEnv)
+		result = EvalNode(fn.BodyNode.(*syntax.Node), funcEnv)
 	}
 
 	funcEnv.PopFrame()
@@ -896,7 +896,7 @@ func applyNodeFunc(fn *value.Function, args []value.Value, callLine int) value.V
 	return result
 }
 
-func applyOp(op string, left, right value.Value, env *value.Env, node *ebnf.Node) value.Value {
+func applyOp(op string, left, right value.Value, env *value.Env, node *syntax.Node) value.Value {
 	leftNum, leftIsNum := left.(*value.Number)
 	rightNum, rightIsNum := right.(*value.Number)
 
@@ -984,7 +984,7 @@ func isOp(s string) bool {
 	return ops[s]
 }
 
-func RunNode(grammar *ebnf.Grammar, input string, env *value.Env) value.Value {
+func RunNode(grammar *syntax.Grammar, input string, env *value.Env) value.Value {
 	ast, err := grammar.ParseSource(input)
 	if err != nil {
 		return value.NewError("parse error: %s", err)
@@ -995,7 +995,7 @@ func RunNode(grammar *ebnf.Grammar, input string, env *value.Env) value.Value {
 	return result
 }
 
-func RunFileNode(grammar *ebnf.Grammar, filename string, env *value.Env) value.Value {
+func RunFileNode(grammar *syntax.Grammar, filename string, env *value.Env) value.Value {
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return value.NewError("cannot read file: %s", err)

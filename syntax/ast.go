@@ -1,4 +1,4 @@
-package ebnf
+package syntax
 
 // Token represents a lexed token from source
 type Token struct {

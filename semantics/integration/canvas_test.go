@@ -1,10 +1,10 @@
 package integration
 
 import (
-	"aiki/internal/testutil"
+	"aiki/semantics/testutil"
 	"testing"
 
-	"aiki/lang/value"
+	"aiki/semantics/value"
 )
 
 func TestCanvasCreate(t *testing.T) {

@@ -1,14 +1,14 @@
 package repl
+import "aiki/syntax"
 
 import (
 	"io"
 
-	"aiki/internal/ebnf"
-	"aiki/lang/value"
+	"aiki/semantics/value"
 )
 
 // Run starts the REPL with the given environment.
-func Run(grammar *ebnf.Grammar, in io.Reader, out io.Writer, env *value.Env, debug bool) {
+func Run(grammar *syntax.Grammar, in io.Reader, out io.Writer, env *value.Env, debug bool) {
 	s := NewSession(grammar, out, env, debug)
 	s.Run()
 }

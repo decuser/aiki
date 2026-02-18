@@ -1,22 +1,20 @@
-package lang
+package syntax
 
-import (
-	"aiki/internal/ebnf"
-	_ "embed"
-)
+import _ "embed"
 
 //go:embed grammar.ebnf
 var grammarSource string
 
-var grammar *ebnf.Grammar
+var cachedGrammar *Grammar
 
-func Grammar() *ebnf.Grammar {
-	if grammar == nil {
-		g, err := ebnf.Parse(grammarSource)
+func GetGrammar() *Grammar {
+	if cachedGrammar == nil {
+		g, err := Parse(grammarSource)
 		if err != nil {
 			panic(err)
 		}
-		grammar = g
+		cachedGrammar = g
 	}
-	return grammar
+	return cachedGrammar
 }
+

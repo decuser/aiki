@@ -1,10 +1,10 @@
 package integration
+import "aiki/syntax"
 
 import (
-	"aiki/internal/testutil"
-	"aiki/lang"
-	"aiki/lang/eval"
-	"aiki/lang/value"
+	"aiki/semantics/eval"
+	"aiki/semantics/testutil"
+	"aiki/semantics/value"
 	"strings"
 	"testing"
 )
@@ -14,7 +14,7 @@ func testEvalPreludeMultiline(input string) value.Value {
 	env := testutil.SetupEnv()
 	env.SetSource(input)
 	env.SetFile("test.ai")
-	return eval.RunNode(lang.Grammar(), input, env)
+	return eval.RunNode(syntax.GetGrammar(), input, env)
 }
 
 func TestErrorHasPosition(t *testing.T) {

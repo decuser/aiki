@@ -1,6 +1,6 @@
 package hal
 
-import "aiki/lang/value"
+import "aiki/semantics/value"
 
 // DefaultScheduler is the package-level scheduler used by concurrency HAL.
 // Can be swapped for testing or alternative implementations (e.g., green threads).

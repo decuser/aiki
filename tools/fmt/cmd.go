@@ -1,19 +1,19 @@
 package fmt
 
+
 import (
 	"flag"
 	gofmt "fmt"
 	"os"
 	"path/filepath"
 	"strings"
-
-	"aiki/internal/ebnf"
+	"aiki/syntax"
 )
 
-var grammar *ebnf.Grammar
+var grammar *syntax.Grammar
 
 // SetGrammar sets the grammar for formatting.
-func SetGrammar(g *ebnf.Grammar) {
+func SetGrammar(g *syntax.Grammar) {
 	grammar = g
 }
 

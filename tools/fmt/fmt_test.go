@@ -4,8 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	aikifmt "aiki/cmd/fmt"
-	"aiki/lang"
+	aikifmt "aiki/tools/fmt"
 )
 
 func init() {

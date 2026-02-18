@@ -4,8 +4,8 @@ import (
 	gofmt "fmt"
 	"os"
 
-	"aiki/lang/eval"
-	"aiki/lang/value"
+	"aiki/semantics/eval"
+	"aiki/semantics/value"
 )
 
 func init() {

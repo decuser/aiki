@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"aiki/lang/value"
+	"aiki/semantics/value"
 )
 
 var Stdout io.Writer = os.Stdout

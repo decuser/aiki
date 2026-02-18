@@ -1,14 +1,14 @@
 package repl
+import "aiki/syntax"
 
 import (
 	"fmt"
 	"io"
 
-	"aiki/internal/ebnf"
-	"aiki/lang/eval"
-	"aiki/lang/value"
 	"aiki/runtime/hal"
 	"aiki/runtime/prelude"
+	"aiki/semantics/eval"
+	"aiki/semantics/value"
 )
 
 const (
@@ -23,11 +23,11 @@ type Session struct {
 	debug   bool
 	reader  LineReader
 	tracker *TrackingWriter
-	grammar *ebnf.Grammar
+	grammar *syntax.Grammar
 }
 
 // NewSession creates a new REPL session.
-func NewSession(grammar *ebnf.Grammar, out io.Writer, env *value.Env, debug bool) *Session {
+func NewSession(grammar *syntax.Grammar, out io.Writer, env *value.Env, debug bool) *Session {
 	reader, err := NewReadlineReader()
 	if err != nil {
 		reader = NewSimpleReader()

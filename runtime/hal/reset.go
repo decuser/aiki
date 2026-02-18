@@ -1,6 +1,6 @@
 package hal
 
-import "aiki/lang/value"
+import "aiki/semantics/value"
 
 // var CloseAllCanvases func() // set by canvas package at init
 

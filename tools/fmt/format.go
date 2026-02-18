@@ -1,14 +1,15 @@
 package fmt
 
+
 import (
 	"sort"
 	"strings"
+	"aiki/syntax"
 
-	"aiki/internal/ebnf"
 )
 
 // FormatSource formats source code, preserving comments and blank lines.
-func FormatSource(grammar *ebnf.Grammar, source string) (string, error) {
+func FormatSource(grammar *syntax.Grammar, source string) (string, error) {
 	node, comments, err := grammar.ParseSourceWithComments(source)
 	if err != nil {
 		return "", err
@@ -92,7 +93,7 @@ func (p *printer) emitTrailingComments() {
 }
 
 // nodeStartLine returns the line number of a node's first token.
-func nodeStartLine(node *ebnf.Node) int {
+func nodeStartLine(node *syntax.Node) int {
 	if node.Line > 0 {
 		return node.Line
 	}
@@ -105,7 +106,7 @@ func nodeStartLine(node *ebnf.Node) int {
 	return 0
 }
 
-func (p *printer) printProgram(node *ebnf.Node) {
+func (p *printer) printProgram(node *syntax.Node) {
 	prevLine := 0
 	for i, child := range node.Children {
 		line := nodeStartLine(child)
@@ -129,7 +130,7 @@ func (p *printer) printProgram(node *ebnf.Node) {
 	}
 }
 
-func (p *printer) printStatement(node *ebnf.Node) {
+func (p *printer) printStatement(node *syntax.Node) {
 	if len(node.Children) == 0 {
 		return
 	}
@@ -151,7 +152,7 @@ func (p *printer) printStatement(node *ebnf.Node) {
 	}
 }
 
-func (p *printer) printNode(node *ebnf.Node) {
+func (p *printer) printNode(node *syntax.Node) {
 	switch node.Type {
 	case "program":
 		p.printProgram(node)
@@ -212,7 +213,7 @@ func (p *printer) printNode(node *ebnf.Node) {
 	}
 }
 
-func (p *printer) printLet(node *ebnf.Node) {
+func (p *printer) printLet(node *syntax.Node) {
 	p.writeIndent()
 	p.write("let ")
 
@@ -231,7 +232,7 @@ func (p *printer) printLet(node *ebnf.Node) {
 	}
 }
 
-func (p *printer) printShapeDef(node *ebnf.Node) {
+func (p *printer) printShapeDef(node *syntax.Node) {
 	for _, child := range node.Children {
 		if child.Type == "SHAPE" {
 			p.write(child.Value)
@@ -257,9 +258,9 @@ func (p *printer) printShapeDef(node *ebnf.Node) {
 	p.write("]")
 }
 
-func (p *printer) printLetBinding(node *ebnf.Node) {
+func (p *printer) printLetBinding(node *syntax.Node) {
 	var name string
-	var valueNode *ebnf.Node
+	var valueNode *syntax.Node
 
 	foundEquals := false
 	for _, child := range node.Children {
@@ -283,7 +284,7 @@ func (p *printer) printLetBinding(node *ebnf.Node) {
 	}
 }
 
-func (p *printer) printAssign(node *ebnf.Node) {
+func (p *printer) printAssign(node *syntax.Node) {
 	p.writeIndent()
 	foundEquals := false
 	for _, child := range node.Children {
@@ -300,7 +301,7 @@ func (p *printer) printAssign(node *ebnf.Node) {
 	}
 }
 
-func (p *printer) printIf(node *ebnf.Node) {
+func (p *printer) printIf(node *syntax.Node) {
 	p.writeIndent()
 	p.write("if ")
 
@@ -340,7 +341,7 @@ func (p *printer) printIf(node *ebnf.Node) {
 	p.newline()
 }
 
-func (p *printer) printWhile(node *ebnf.Node) {
+func (p *printer) printWhile(node *syntax.Node) {
 	p.writeIndent()
 	p.write("while ")
 
@@ -369,7 +370,7 @@ func (p *printer) printWhile(node *ebnf.Node) {
 	p.newline()
 }
 
-func (p *printer) printMatch(node *ebnf.Node) {
+func (p *printer) printMatch(node *syntax.Node) {
 	p.writeIndent()
 	p.write("match ")
 
@@ -429,7 +430,7 @@ func (p *printer) printMatch(node *ebnf.Node) {
 	p.newline()
 }
 
-func (p *printer) printPattern(node *ebnf.Node) {
+func (p *printer) printPattern(node *syntax.Node) {
 	for _, child := range node.Children {
 		switch child.Type {
 		case "TERMINAL":
@@ -457,7 +458,7 @@ func (p *printer) printPattern(node *ebnf.Node) {
 	}
 }
 
-func (p *printer) printPatternLiteral(node *ebnf.Node) {
+func (p *printer) printPatternLiteral(node *syntax.Node) {
 	for _, child := range node.Children {
 		switch child.Type {
 		case "NUMBER", "STRING", "SYMBOL", "SHAPE":
@@ -468,7 +469,7 @@ func (p *printer) printPatternLiteral(node *ebnf.Node) {
 	}
 }
 
-func (p *printer) printReturn(node *ebnf.Node) {
+func (p *printer) printReturn(node *syntax.Node) {
 	p.writeIndent()
 	p.write("return ")
 	for _, child := range node.Children {
@@ -478,14 +479,14 @@ func (p *printer) printReturn(node *ebnf.Node) {
 	}
 }
 
-func (p *printer) printExprStmt(node *ebnf.Node) {
+func (p *printer) printExprStmt(node *syntax.Node) {
 	p.writeIndent()
 	for _, child := range node.Children {
 		p.printNode(child)
 	}
 }
 
-func (p *printer) printBlock(node *ebnf.Node) {
+func (p *printer) printBlock(node *syntax.Node) {
 	p.write("{\n")
 	p.indent++
 
@@ -503,7 +504,7 @@ func (p *printer) printBlock(node *ebnf.Node) {
 	p.write("}")
 }
 
-func (p *printer) printExpr(node *ebnf.Node) {
+func (p *printer) printExpr(node *syntax.Node) {
 	// expr contains pipe_expr which contains the actual |> terminals
 	// Just delegate to children - printNode will route pipe_expr correctly
 	for _, child := range node.Children {
@@ -511,7 +512,7 @@ func (p *printer) printExpr(node *ebnf.Node) {
 	}
 }
 
-func (p *printer) printPipeExpr(node *ebnf.Node) {
+func (p *printer) printPipeExpr(node *syntax.Node) {
 	// Collect all parts: expressions and pipe operators
 	// Output: expr |>\n\tindent expr |>\n\tindent expr
 	children := node.Children
@@ -550,7 +551,7 @@ func (p *printer) printPipeExpr(node *ebnf.Node) {
 	}
 }
 
-func (p *printer) printInfix(node *ebnf.Node) {
+func (p *printer) printInfix(node *syntax.Node) {
 	first := true
 	for _, child := range node.Children {
 		if child.Type == "BINOP" {
@@ -578,7 +579,7 @@ func (p *printer) printInfix(node *ebnf.Node) {
 	}
 }
 
-func (p *printer) printBinop(node *ebnf.Node) {
+func (p *printer) printBinop(node *syntax.Node) {
 	for _, child := range node.Children {
 		if child.Type == "TERMINAL" {
 			p.write(child.Value)
@@ -586,7 +587,7 @@ func (p *printer) printBinop(node *ebnf.Node) {
 	}
 }
 
-func (p *printer) printUnary(node *ebnf.Node) {
+func (p *printer) printUnary(node *syntax.Node) {
 	for _, child := range node.Children {
 		if child.Type == "TERMINAL" {
 			if child.Value == "not" {
@@ -600,13 +601,13 @@ func (p *printer) printUnary(node *ebnf.Node) {
 	}
 }
 
-func (p *printer) printPostfix(node *ebnf.Node) {
+func (p *printer) printPostfix(node *syntax.Node) {
 	for _, child := range node.Children {
 		p.printNode(child)
 	}
 }
 
-func (p *printer) printPrimary(node *ebnf.Node) {
+func (p *printer) printPrimary(node *syntax.Node) {
 	for _, child := range node.Children {
 		switch child.Type {
 		case "TERMINAL":
@@ -623,7 +624,7 @@ func (p *printer) printPrimary(node *ebnf.Node) {
 	}
 }
 
-func (p *printer) printFuncLiteral(node *ebnf.Node) {
+func (p *printer) printFuncLiteral(node *syntax.Node) {
 	p.write("(")
 	for _, child := range node.Children {
 		if child.Type == "params" {
@@ -638,7 +639,7 @@ func (p *printer) printFuncLiteral(node *ebnf.Node) {
 	}
 }
 
-func (p *printer) printParams(node *ebnf.Node) {
+func (p *printer) printParams(node *syntax.Node) {
 	first := true
 	for _, child := range node.Children {
 		switch child.Type {
@@ -673,7 +674,7 @@ func (p *printer) printParams(node *ebnf.Node) {
 	}
 }
 
-func (p *printer) printList(node *ebnf.Node) {
+func (p *printer) printList(node *syntax.Node) {
 	p.write("[")
 	first := true
 	for _, child := range node.Children {
@@ -689,7 +690,7 @@ func (p *printer) printList(node *ebnf.Node) {
 	p.write("]")
 }
 
-func (p *printer) printCall(node *ebnf.Node) {
+func (p *printer) printCall(node *syntax.Node) {
 	p.write("(")
 	first := true
 	for _, child := range node.Children {
@@ -705,7 +706,7 @@ func (p *printer) printCall(node *ebnf.Node) {
 	p.write(")")
 }
 
-func (p *printer) printIndex(node *ebnf.Node) {
+func (p *printer) printIndex(node *syntax.Node) {
 	p.write("[")
 	for _, child := range node.Children {
 		if child.Type != "TERMINAL" {
@@ -715,7 +716,7 @@ func (p *printer) printIndex(node *ebnf.Node) {
 	p.write("]")
 }
 
-func (p *printer) printAccess(node *ebnf.Node) {
+func (p *printer) printAccess(node *syntax.Node) {
 	p.write(".")
 	for _, child := range node.Children {
 		if child.Type == "NAME" {

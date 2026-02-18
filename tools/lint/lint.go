@@ -1,11 +1,12 @@
 package lint
 
+
 import (
 	"regexp"
 
-	"aiki/internal/ebnf"
-	"aiki/lang/value"
 	"aiki/runtime/hal"
+	"aiki/semantics/value"
+	"aiki/syntax"
 )
 
 // Diagnostic represents a lint finding.
@@ -17,7 +18,7 @@ type Diagnostic struct {
 }
 
 // LintSource checks source code for lint issues.
-func LintSource(grammar *ebnf.Grammar, source string) ([]Diagnostic, error) {
+func LintSource(grammar *syntax.Grammar, source string) ([]Diagnostic, error) {
 	node, err := grammar.ParseSource(source)
 	if err != nil {
 		return nil, err
@@ -72,7 +73,7 @@ func makeGlobals() map[string]bool {
 
 // collectTopLevel does a first pass over program children to pre-define
 // all top-level let bindings. This allows forward references at file scope.
-func (c *checker) collectTopLevel(node *ebnf.Node) {
+func (c *checker) collectTopLevel(node *syntax.Node) {
 	if node.Type != "program" {
 		return
 	}
@@ -146,7 +147,7 @@ func (c *checker) addWarning(line, col int, msg string) {
 	})
 }
 
-func (c *checker) check(node *ebnf.Node) {
+func (c *checker) check(node *syntax.Node) {
 	switch node.Type {
 	case "program":
 		for _, child := range node.Children {
@@ -228,8 +229,8 @@ func (c *checker) check(node *ebnf.Node) {
 	}
 }
 
-func (c *checker) checkLet(node *ebnf.Node) {
-	var name *ebnf.Node
+func (c *checker) checkLet(node *syntax.Node) {
+	var name *syntax.Node
 	isShape := false
 
 	for _, child := range node.Children {
@@ -279,7 +280,7 @@ func (c *checker) checkLet(node *ebnf.Node) {
 	}
 }
 
-func (c *checker) checkAssign(node *ebnf.Node) {
+func (c *checker) checkAssign(node *syntax.Node) {
 	for _, child := range node.Children {
 		if child.Type == "NAME" {
 			if !c.isDefined(child.Value) {
@@ -293,7 +294,7 @@ func (c *checker) checkAssign(node *ebnf.Node) {
 	}
 }
 
-func (c *checker) checkIf(node *ebnf.Node) {
+func (c *checker) checkIf(node *syntax.Node) {
 	for _, child := range node.Children {
 		if child.Type != "TERMINAL" {
 			c.check(child)
@@ -301,7 +302,7 @@ func (c *checker) checkIf(node *ebnf.Node) {
 	}
 }
 
-func (c *checker) checkWhile(node *ebnf.Node) {
+func (c *checker) checkWhile(node *syntax.Node) {
 	for _, child := range node.Children {
 		if child.Type != "TERMINAL" {
 			c.check(child)
@@ -309,7 +310,7 @@ func (c *checker) checkWhile(node *ebnf.Node) {
 	}
 }
 
-func (c *checker) checkMatch(node *ebnf.Node) {
+func (c *checker) checkMatch(node *syntax.Node) {
 	for _, child := range node.Children {
 		if child.Type == "pattern" {
 			// Pattern followed by block — handle as arm
@@ -324,11 +325,11 @@ func (c *checker) checkMatch(node *ebnf.Node) {
 	}
 }
 
-func (c *checker) checkMatchArm(matchNode *ebnf.Node, block *ebnf.Node) {
+func (c *checker) checkMatchArm(matchNode *syntax.Node, block *syntax.Node) {
 	c.pushScope()
 
 	// Find pattern that precedes this block
-	var pattern *ebnf.Node
+	var pattern *syntax.Node
 	for i, child := range matchNode.Children {
 		if child == block && i > 0 {
 			for j := i - 1; j >= 0; j-- {
@@ -353,7 +354,7 @@ func (c *checker) checkMatchArm(matchNode *ebnf.Node, block *ebnf.Node) {
 	c.popScope()
 }
 
-func (c *checker) checkPattern(node *ebnf.Node) {
+func (c *checker) checkPattern(node *syntax.Node) {
 	for _, child := range node.Children {
 		if child.Type == "NAME" {
 			// Binding in pattern — define it
@@ -364,7 +365,7 @@ func (c *checker) checkPattern(node *ebnf.Node) {
 	}
 }
 
-func (c *checker) checkFunc(node *ebnf.Node) {
+func (c *checker) checkFunc(node *syntax.Node) {
 	c.pushScope()
 
 	// Define parameters
@@ -386,7 +387,7 @@ func (c *checker) checkFunc(node *ebnf.Node) {
 	c.popScope()
 }
 
-func (c *checker) defineParams(node *ebnf.Node) {
+func (c *checker) defineParams(node *syntax.Node) {
 	for _, child := range node.Children {
 		switch child.Type {
 		case "param_list":
@@ -419,7 +420,7 @@ func (c *checker) defineParams(node *ebnf.Node) {
 	}
 }
 
-func (c *checker) checkAccess(node *ebnf.Node) {
+func (c *checker) checkAccess(node *syntax.Node) {
 	// Check the left side normally
 	for _, child := range node.Children {
 		if child.Type == "NAME" {
@@ -435,7 +436,7 @@ func (c *checker) checkAccess(node *ebnf.Node) {
 	}
 }
 
-func (c *checker) checkNameRef(node *ebnf.Node) {
+func (c *checker) checkNameRef(node *syntax.Node) {
 	name := node.Value
 	// Skip keywords that appear as NAME tokens
 	if name == "true" || name == "false" || name == "not" ||

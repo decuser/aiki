@@ -1,15 +1,15 @@
 package eval
+import "aiki/syntax"
 
 import (
 	"testing"
 
-	"aiki/internal/ebnf"
-	"aiki/lang/value"
 	"aiki/runtime/prelude"
+	"aiki/semantics/value"
 )
 
 func TestEvalNodeBasic(t *testing.T) {
-	g, err := ebnf.ParseFile("../../lang/grammar.ebnf")
+	g, err := syntax.ParseFile("../../syntax/grammar.ebnf")
 	if err != nil {
 		t.Fatalf("parse grammar: %v", err)
 	}

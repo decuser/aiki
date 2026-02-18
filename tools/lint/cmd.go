@@ -1,22 +1,24 @@
 package lint
 
+
 import (
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"aiki/internal/ebnf"
-	"aiki/lang/eval"
-	"aiki/lang/value"
 	"aiki/runtime/prelude"
+	"aiki/semantics/eval"
+	"aiki/semantics/value"
+	"aiki/syntax"
+
 )
 
-var grammar *ebnf.Grammar
+var grammar *syntax.Grammar
 var strictExports []string
 
 // SetGrammar sets the grammar for linting and evaluates strict to get exports.
-func SetGrammar(g *ebnf.Grammar) {
+func SetGrammar(g *syntax.Grammar) {
 	grammar = g
 
 	// Evaluate prelude.ai to get exports

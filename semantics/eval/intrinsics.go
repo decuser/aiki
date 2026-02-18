@@ -1,16 +1,16 @@
 package eval
+import "aiki/syntax"
 
 import (
-	"aiki/internal/ebnf"
-	"aiki/lang/value"
 	"aiki/runtime/hal"
+	"aiki/semantics/value"
 	"fmt"
 	"os"
 )
 
 // evalNodeCallSafe dispatches a function call, handling Fn: nil specials.
 // This replaces direct f.Fn(args...) calls throughout the evaluator.
-func evalNodeCallSafe(fn value.Value, node *ebnf.Node, env *value.Env) value.Value {
+func evalNodeCallSafe(fn value.Value, node *syntax.Node, env *value.Env) value.Value {
 	var args []value.Value
 
 	for _, child := range node.Children {
@@ -30,7 +30,7 @@ func evalNodeCallSafe(fn value.Value, node *ebnf.Node, env *value.Env) value.Val
 // dispatchCall applies a function to evaluated arguments.
 // Handles intrinsics, builtins, and user functions.
 // The node parameter is the call site, used to annotate errors.
-func dispatchCall(fn value.Value, args []value.Value, env *value.Env, node *ebnf.Node) value.Value {
+func dispatchCall(fn value.Value, args []value.Value, env *value.Env, node *syntax.Node) value.Value {
 	switch f := fn.(type) {
 	case *value.Intrinsic:
 		return evalIntrinsic(f.Name, args, env, node)
@@ -54,7 +54,7 @@ func dispatchCall(fn value.Value, args []value.Value, env *value.Env, node *ebnf
 }
 
 // evalIntrinsic dispatches to the appropriate intrinsic implementation.
-func evalIntrinsic(name string, args []value.Value, env *value.Env, node *ebnf.Node) value.Value {
+func evalIntrinsic(name string, args []value.Value, env *value.Env, node *syntax.Node) value.Value {
 	switch name {
 	case "apply":
 		return evalApply(args, env, node)
@@ -72,7 +72,7 @@ func evalIntrinsic(name string, args []value.Value, env *value.Env, node *ebnf.N
 }
 
 // evalApply implements apply(fn, list) — spreads list as args.
-func evalApply(args []value.Value, env *value.Env, node *ebnf.Node) value.Value {
+func evalApply(args []value.Value, env *value.Env, node *syntax.Node) value.Value {
 	if len(args) != 2 {
 		return makeError(env, node, "apply: want 2 arguments, got %d", len(args))
 	}
@@ -89,7 +89,7 @@ func evalApply(args []value.Value, env *value.Env, node *ebnf.Node) value.Value 
 }
 
 // evalLoad implements load(path) — reads and evaluates a file.
-func evalLoad(args []value.Value, env *value.Env, node *ebnf.Node) value.Value {
+func evalLoad(args []value.Value, env *value.Env, node *syntax.Node) value.Value {
 	if len(args) != 1 {
 		return makeError(env, node, "load: want 1 argument, got %d", len(args))
 	}
@@ -107,14 +107,14 @@ func evalLoad(args []value.Value, env *value.Env, node *ebnf.Node) value.Value {
 }
 
 // evalPipeCallSafe dispatches a pipe call, handling Fn: nil specials.
-func evalPipeCallSafe(node *ebnf.Node, pipedValue value.Value, env *value.Env) value.Value {
+func evalPipeCallSafe(node *syntax.Node, pipedValue value.Value, env *value.Env) value.Value {
 	var fn value.Value
-	var callNode *ebnf.Node
+	var callNode *syntax.Node
 	var args []value.Value
 	args = append(args, pipedValue)
 
-	var walk func(n *ebnf.Node)
-	walk = func(n *ebnf.Node) {
+	var walk func(n *syntax.Node)
+	walk = func(n *syntax.Node) {
 		for _, child := range n.Children {
 			switch child.Type {
 			case "primary", "postfix_expr", "infix_expr", "unary_expr", "pipe_expr", "expr":
@@ -153,7 +153,7 @@ func evalPipeCallSafe(node *ebnf.Node, pipedValue value.Value, env *value.Env) v
 	return dispatchCall(fn, args, env, callNode)
 }
 
-func evalSpawn(args []value.Value, env *value.Env, node *ebnf.Node) value.Value {
+func evalSpawn(args []value.Value, env *value.Env, node *syntax.Node) value.Value {
 	if len(args) < 1 {
 		return makeError(env, node, "spawn: want at least 1 argument (function)")
 	}

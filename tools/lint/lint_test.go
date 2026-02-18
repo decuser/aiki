@@ -1,20 +1,20 @@
 package lint
+import "aiki/syntax"
 
 import (
 	"strings"
 	"testing"
 
-	"aiki/lang"
 )
 
 func init() {
 	// Initialize strictExports by calling SetGrammar
-	SetGrammar(lang.Grammar())
+	SetGrammar(syntax.Grammar())
 }
 
 func lintSource(t *testing.T, source string) []Diagnostic {
 	t.Helper()
-	diags, err := LintSource(lang.Grammar(), source)
+	diags, err := LintSource(syntax.Grammar(), source)
 	if err != nil {
 		t.Fatalf("lint error: %v", err)
 	}

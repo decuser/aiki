@@ -3,8 +3,8 @@ package repl
 import (
 	"fmt"
 
-	"aiki/lang/value"
 	"aiki/runtime/hal"
+	"aiki/semantics/value"
 	"aiki/version"
 )
 
