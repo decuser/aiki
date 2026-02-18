@@ -1,82 +1,41 @@
+<!--
+Document Contract
+Audience: first contact.
+Allowed tags: NOW PHIL.
+Forbidden tags: PLAN HIST WHY RULE.
+-->
+
 # Aiki
 
-A minimal, composable programming language.
-
-## Principles
-
-- One way to do each thing.
-- Explicit over implicit. No operator precedence. No magic.
-- Composition through functions and shaped lists. No classes.
-- Inspectability enables knowing. The prelude is written in Aiki.
-
-Aiki is a learning field. Constraints force clarity.
+PHIL Aiki is a minimal composable language.
+PHIL Constraints force clarity.
+PHIL Explicit over implicit.
+PHIL Exactness by default.
+PHIL Inspectability enables knowing.
 
 ## Use
 
-```
-aiki                        # REPL
-aiki file.ai                # run file
-aiki -e 'print(1 + 2)'      # eval expression
-aiki fmt file.ai            # format
-aiki lint file.ai           # lint
-```
-
-## Examples
-
-```
-# recursive
-let factorial = (n) {
-    if n < 2 {
-        return 1
-    }
-    return n * factorial(n - 1)
-}
-
-# imperative
-let sum = 0
-each([1, 2, 3], (x) { sum = sum + x })
-println(sum)  # 6
-
-# functional pipeline
-range(1, 10) |> map((x) { return x * x }) |> filter((x) { return x > 10 }) |> println()
-
-# shaped data
-let @point [x, y]
-let origin = [@point, 0, 0]
-println(origin.x)  # 0
-
-# canvas
-let c = canvas(400, 400)
-circle(c, 200, 200, 50, :red)
-sleep(1000)
-destroy(c)
-```
-
-## Layers
-
-| Layer | What |
-|-------|------|
-| HAL | Go primitives — I/O, concurrency, canvas |
-| Prelude | Aiki wrappers — lists, hash maps, algorithms |
-
-Prelude is user-facing. HAL is invisible.
-
-## Docs
-
-- [Design](design.md) — decisions and rationale
-- [Manifesto](manifesto.md) — philosophy
-- [Style](style.md) — naming and formatting rules
+NOW REPL: aiki
+NOW Run file: aiki file.ai
+NOW Eval expression: aiki -e 'print(1 + 2)'
+NOW Format: aiki fmt file.ai
+NOW Lint: aiki lint file.ai
 
 ## Architecture
 
-- syntax defines structure: grammar, lexer, parser, AST
-- semantics defines meaning: evaluator over AST
-- runtime provides capabilities: HAL and effects
-- tools project the language: fmt, lint, repl
+NOW syntax defines structure. [syntax package]
+NOW semantics defines meaning. [semantics/eval package]
+NOW runtime provides capabilities. [runtime/hal package]
+NOW tools project the language. [tools package]
 
-Resolver exists as a package but is not yet wired into module loading.
+NOW grammar is embedded and loaded by syntax.GetGrammar. [syntax/grammar_loader.go GetGrammar]
 
+NOW import currently resolves by filesystem lookup. [semantics/eval/module.go resolveModulePath]
 
-## Modules
+## Docs
 
-import currently resolves module strings through filesystem lookup relative to the current file and working directory.
+NOW design: doc/design.md
+NOW decisions: doc/decisions.md
+NOW style: doc/style.md
+NOW todo: doc/todo.md
+NOW done: doc/done.md

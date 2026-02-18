@@ -1,76 +1,32 @@
-# Aiki Style Guide
+<!--
+Document Contract
+Audience: users.
+Allowed tags: RULE NOW.
+Forbidden tags: PLAN HIST WHY PHIL.
+RULE statements reflect tool enforcement. NOW statements reflect runtime behavior.
+-->
+
+# Aiki Style
 
 ## Naming
 
-| Category | Style | Examples |
-|----------|-------|----------|
-| Variables | snake_case | `total_count`, `user_input` |
-| Functions | snake_case | `find_first`, `to_string` |
-| Shapes | @snake_case | `@point`, `@http_response` |
-| Symbols | :snake_case | `:ok`, `:not_found` |
-| Fixed values | SCREAMING_SNAKE | `MAX_SIZE`, `DEFAULT_PORT` |
-| Internal | _leading | `_bucket_index`, `_HASH_SIZE` |
+RULE snake_case is the convention. [tools/lint]
+RULE Mixed case should trigger lint diagnostics. [tools/lint]
 
-Full words preferred. Exceptions: `x`, `y`, `i`, `n`, `fn`, loop counters.
-
-## Naming Rules (Enforced)
-
-- **snake_case only.** Mixed case (`firstName`, `FirstName`) is a syntax error.
-- **Case locked on first use.** `MAX_SIZE` stays `MAX_SIZE`. Inconsistency is an error.
-- **SCREAMING is all-or-nothing.** No `MAX_size`. If you scream, scream the whole thing.
-- **`_prefix` is distinct.** `_name` and `name` are different identifiers. You can't have both.
-- **Case propagates through imports.** If a module exports `MAX_INT`, you reference `MAX_INT`.
+RULE underscore prefix marks internal intent. [doc/design.md]
 
 ## Shadowing
 
-- **Allowed, always warned.** You can shadow imports, library functions, operators.
-- **Export `_name` warned.** Exporting internal-marked names triggers a warning.
-- **You own the consequences.** The tools witness your choices, don't prevent them.
+RULE Shadowing prelude names should warn. [tools/lint]
+RULE Shadowing intrinsics should error. [tools/lint and semantics/eval]
 
-## Formatting (Enforced by `aiki fmt`)
+## Formatting
 
-- **Tabs for indentation.** Not spaces.
-- **One statement per line.** Semicolons normalized away.
-- **Control structures expanded.** `if x { y }` becomes multiline.
-- **Trailing comma iff multiline.** `[1, 2, 3]` but `[\n  a,\n  b,\n]`.
-- **Braces same line as keyword.** `if x {` not `if x\n{`.
-- **`#` for comments.** No block comments.
-
-## Conventions
-
-- **Function length.** Fits on screen. If scrolling, refactor.
-- **Nesting depth.** Shallow is better. Extract, early return, pipeline.
-- **Error handling.** Return `[@error, reason]` on failure. Return value on success.
-- **Comments.** Never required, never forbidden. File header if helpful.
-- **Exact vs precise.** Exact by default. Precise when profiling says so.
-
-## Command Preludeness
-
-| Command | Behavior |
-|---------|----------|
-| `aiki` | REPL. No rules. Workbench. |
-| `aiki file` | Prelude. Lint errors bail. Unused = error. |
-| `aiki --proto file` | Loose. Warnings only. Runs anyway. TDD mode. |
-| `aiki validate file` | Prelude check. No execution. |
-
-Default is strict. Opt into looseness with `--proto`.
-
-## Error Depth
-
-| Flag | Shows |
-|------|-------|
-| `--errors=user` | Your code only. Default. |
-| `--errors=prelude` | Your code + standard library. |
-| `--errors=hal` | Everything. Full stack to primitives. |
-
-Stack traces filter by layer. Deeper = more detail.
-
-## Examples
-
-See `prelude.ai`.
+RULE Tabs for indentation. [tools/fmt]
+RULE One statement per line after formatting. [tools/fmt]
+RULE hash begins a comment. [tools/fmt and syntax lexer]
 
 ## Modules
 
-- Module identity comes from module declaration, not file path.
-- Imports refer to module names, not paths.
-- Filesystem layout has no semantic authority.
+NOW import resolves module strings through filesystem lookup. [semantics/eval/module.go resolveModulePath]
+NOW export declares explicit exports for enforcement on import. [semantics/eval/module.go evalExport]

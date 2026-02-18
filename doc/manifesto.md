@@ -1,105 +1,29 @@
+<!--
+Document Contract
+Audience: philosophical orientation.
+Allowed tags: PHIL.
+Forbidden tags: NOW PLAN HIST WHY RULE.
+-->
+
 # The Aiki Manifesto
 
 ## Focus
 
-**Constraints over choice.** One way to do each thing. Features enter by replacing complexity, not adding to it.
-
-**Explicit over implicit.** Left-to-right evaluation. Parens for grouping. `let` creates, `=` mutates. Errors are values, not exceptions.
-
-**Composition over inheritance.** Small pieces, named and combined. Lists and shapes, not classes.
-
-**Simplicity over ease.** Simple removes complexity. Easy hides it.
-
-**Exactness by default.** Rational arithmetic in the core. `1/3 * 3 = 1`. Floats are opt-in.
-
-**Inspection over abstraction.** The hash map is written in Aiki. The prelude proves the language works by using it.
+PHIL Constraints over choice. One way to do each thing.
+PHIL Explicit over implicit. No magic. No hidden behavior.
+PHIL Composition through naming. Small pieces named and combined.
+PHIL Exactness by default. Rationals in the core.
+PHIL Inspection over abstraction. The prelude proves the language.
 
 ## Paradigm
 
-Aiki is pre-paradigmatic. The primitives support multiple styles without privileging one:
+PHIL Pre paradigmatic. Primitives support multiple styles.
+PHIL Recursive and iterative and functional and imperative are all available.
+PHIL Immediate feedback. REPL and drawing as primitive.
 
-- **Recursive.** Functions call themselves. Lists decompose with `first`/`rest`.
-- **Iterative.** `while` loops. Explicit state.
-- **Functional.** `map`, `filter`, `reduce`, pipes.
-- **Imperative.** Sequential statements. Mutation with `=`.
-- **Immediate.** REPL. `dot(c, x, y)`. Drawing as primitive.
+## Closure
 
-The language provides the atoms. You choose the chemistry.
-
-## Mechanisms
-
-**Pipes.** `x |> f() |> g()`. Data flows left to right. Errors short-circuit.
-
-**Variadic.** `(...args)` collects. `apply(f, list)` spreads.
-
-**Shapes.** `[@point, x, y]`. Structure without classes.
-
-**Match.** Destructure values, bind names, branch on shape. One construct for what other languages split across switch, instanceof, and unpacking.
-
-**Concurrency.** `spawn(f)` runs. `channel()` connects. `send()`/`recv()` synchronize.
-
-## Architecture
-
-
-Aiki is stratified.
-
-syntax defines structure.
-semantics assigns meaning.
-runtime provides capability.
-resolver provides location.
-tools are projections.
-
-Filesystem is storage, not semantics.
-
-Two layers:
-
-| Layer | What | Visible |
-|-------|------|---------|
-| HAL | Go primitives | No |
-| Prelude | Aiki wrappers | Yes |
-
-HAL is the membrane to Go — effects, I/O, OS. Invisible, `_`-prefixed.
-
-Prelude wraps HAL, written in Aiki. The dictionary you start with.
-
-Principle: impurity at edges, purity at center.
-
-## Tooling
-
-One formatter. One style. Errors point to source. The REPL is the workbench.
-
-Subcommands are pure Aiki. The tools prove the language works by using it.
-
-## Projections
-
-Grammar is infrastructure. Derived, not written:
-
-- **Help** is projection. Derived from grammar and layer metadata.
-- **Errors** are projection. Templates per function, filled at runtime.
-- **Lint** is projection. Grammar plus style rules.
-
-One source of truth, multiple views. If the grammar changes, the projections update.
-
-## Lineage
-
-**Syntax.** BCPL, C, Go. Braces, simplicity, small language philosophy. Familiar costume, different skeleton.
-
-**Data.** Scheme. Lists as universal structure. Composition from atoms.
-
-**Evaluation.** Smalltalk. Prelude left-to-right. No operator precedence.
-
-**Flow.** ML, F#. Data flows through pipes. Errors are values like any other. Match on them or let them propagate.
-
-**Kernel.** Forth. Minimal core. Stdlib written in itself.
-
-**Feedback.** BASIC, Logo. Immediate. Drawing as primitive.
-
-**Host.** Go. Goroutines, channels, fmt. We accept the host's physics to enforce our own chemistry.
-
-## Infrastructure
-
-Aiki-grammar is the kernel. Aiki-lang is the first client.
-
-The grammar defines the structural space. Languages are points in that space. The grammar is frozen. Languages can evolve.
-
-Don't build in capabilities you won't surface. If the grammar can express something, users can express it too.
+PHIL Closed by design. Features replace complexity, not add to it.
+PHIL Grammar defines the structural space.
+PHIL Meaning is assigned by evaluation.
+PHIL Capability lives at the edges.

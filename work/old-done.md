@@ -1,31 +1,5 @@
 # Aiki Done
 
-## 2026-02-17 — Grammar Loader and Package Boundary Stabilization
-
-### Grammar Authority Hardening
-
-* Embedded canonical grammar via `go:embed`
-* Introduced `syntax.GetGrammar()` as the sole public grammar loader
-* Removed ambiguous `Grammar()` constructor usage
-* Eliminated ad hoc grammar loading in tools
-* Canonical grammar cached and centralized in `syntax`
-
-### Tool and Test Realignment
-
-* Updated `fmt` and `lint` to depend only on `syntax.GetGrammar()`
-* Standardized integration tests under `semantics/integration`
-* Converted integration tests to `integration_test` package
-* Resolved package boundary breakage after refactor
-* Confirmed `go test ./...` passes cleanly
-
-### Architectural Result
-
-* Grammar authority centralized in `syntax`
-* Tools depend only on exported syntax APIs
-* Evaluator–grammar coupling validated at startup
-* Package structure clarified and stabilized
-* No circular import or constructor ambiguity remains
-
 ## v0.2.7 (Architecture)
 
 ### Grammar Cleanup
@@ -124,21 +98,3 @@
 - Ruby-style error messages
 - Canvas primitives (Ebiten)
 - Concurrency (spawn, channel, send, recv)
-
-## 2026 02 17 Refactor and Test Repair
-
-### Grammar Loader Boundary
-
-- Canonical grammar embedded and loaded via GetGrammar
-- Removed ambiguous Grammar constructor usage from tools and tests
-- Tools and tool tests now use syntax.GetGrammar
-
-### Integration Tests
-
-- Integration tests kept under semantics integration
-- Standardized package name integration_test
-- Naming aligned to integration scope
-
-### Result
-
-- go test ./... passes
