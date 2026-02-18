@@ -98,3 +98,21 @@
 - Ruby-style error messages
 - Canvas primitives (Ebiten)
 - Concurrency (spawn, channel, send, recv)
+
+## 2026 02 17 Refactor and Test Repair
+
+### Grammar Loader Boundary
+
+- Canonical grammar embedded and loaded via GetGrammar
+- Removed ambiguous Grammar constructor usage from tools and tests
+- Tools and tool tests now use syntax.GetGrammar
+
+### Integration Tests
+
+- Integration tests kept under semantics integration
+- Standardized package name integration_test
+- Naming aligned to integration scope
+
+### Result
+
+- go test ./... passes

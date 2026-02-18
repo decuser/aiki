@@ -40,6 +40,17 @@ The language provides the atoms. You choose the chemistry.
 
 ## Architecture
 
+
+Aiki is stratified.
+
+syntax defines structure.
+semantics assigns meaning.
+runtime provides capability.
+resolver provides location.
+tools are projections.
+
+Filesystem is storage, not semantics.
+
 Two layers:
 
 | Layer | What | Visible |

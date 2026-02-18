@@ -68,3 +68,9 @@ Stack traces filter by layer. Deeper = more detail.
 ## Examples
 
 See `prelude.ai`.
+
+## Modules
+
+- Module identity comes from module declaration, not file path.
+- Imports refer to module names, not paths.
+- Filesystem layout has no semantic authority.

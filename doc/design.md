@@ -1,5 +1,39 @@
 # Aiki Design
 
+
+## Architecture
+
+Aiki is stratified by authority.
+
+syntax is structure only. It defines the grammar, lexer, parser, and AST.
+semantics is meaning only. It evaluates AST.
+runtime is capability only. It hosts effects and resource registries.
+resolver is location only. It maps module names to sources.
+tools are projections. They project the language into views like fmt, lint, and help.
+
+Hard boundaries.
+
+syntax has no meaning.
+semantics operates only on AST.
+runtime has no structural or semantic authority.
+resolver is not in the semantic pipeline.
+tools contain no language rules.
+
+Filesystem and network are storage, not semantics.
+
+## Grammar
+
+The canonical grammar is embedded and loaded through one public entry point.
+
+The grammar file is embedded in the binary.
+GetGrammar returns the canonical grammar.
+The grammar is loaded once and cached.
+Tools use the canonical grammar through GetGrammar.
+No tool loads grammar from the filesystem.
+
+Grammar defines structure.
+Evaluator assigns meaning.
+Runtime performs effects.
 A minimal, composable language. The language is complete; the system layer is future work.
 
 ## Principles
@@ -41,6 +75,66 @@ Note: `and`, `or` are operators.
 **`export(:name1, :name2)`** — mark names for external use.
 
 Functions, not keywords. Modules are values.
+
+## Modules
+
+In Aiki, the filesystem never determines meaning.
+
+Aiki imports names.
+Resolvers locate modules.
+Filesystem and network are implementation details, not semantics.
+
+Invariants.
+
+import refers only to declared module names.
+resolver maps names to code and nothing else.
+filesystem is never meaning.
+collisions must be explicit or fail.
+names beginning with underscore are internal. all others are exported.
+
+Only one keyword is required. module.
+
+Module identity is semantic.
+
+A module declares its identity inside the file.
+
+module math
+
+This name is the module.
+
+File paths do not matter.
+Directory layout does not matter.
+Moving or renaming files does not change meaning.
+
+Export is implicit by naming.
+
+names beginning with underscore are internal.
+all other names are exported.
+
+Imports refer only to declared module names.
+
+use("math")
+
+Imports resolve by module name, not path.
+
+no relative imports.
+no directory based visibility.
+no path semantics of any kind.
+no inference.
+
+Resolution is delegated to a pluggable resolver.
+
+Resolver decides where a module is loaded from.
+This resolver is outside language semantics.
+
+Runtime loading is AST based.
+
+Resolver returns source text or a cached AST.
+Evaluator loads the AST into an environment.
+
+local vs remote makes no semantic difference.
+module identity is stable.
+tooling works over AST, not paths.
 
 ## Layers
 

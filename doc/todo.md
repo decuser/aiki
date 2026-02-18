@@ -76,6 +76,13 @@ go test ./...
 ## Alpha Polish
 
 ### Documentation
+
+### Documentation
+
+- [ ] Document layer boundaries in design and decisions
+- [ ] Document grammar loading contract. GetGrammar is canonical
+- [ ] Document module identity as semantic and resolver as location only
+- [ ] Add a short note explaining why tools must not load grammar from filesystem
 - [ ] Document shadowing rules
 - [ ] Document exact vs precise modes
 
@@ -88,6 +95,12 @@ go test ./...
 Add a token rule for comments in the grammar and remove the hardcoded "#" check from the lexer. Lexer should treat comment tokens like any other token marked Skip or KeepComments.
 - [ ] Remove keyword priority from lexer and encode as grammar disambiguation
 Move keyword/operator precedence into the grammar ordering or a token classification field. Lexer should not impose literal before regex ordering; the grammar should define token precedence directly.
+
+### Tooling Hardening
+
+- [ ] Add a test that fmt and lint only depend on exported syntax APIs
+- [ ] Add a test that GetGrammar is the only grammar entry point used by tools
+- [ ] Remove any remaining grammar path loading from tools
 
 ## Post-Alpha
 

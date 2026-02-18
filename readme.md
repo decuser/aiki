@@ -66,3 +66,13 @@ Prelude is user-facing. HAL is invisible.
 - [Design](design.md) — decisions and rationale
 - [Manifesto](manifesto.md) — philosophy
 - [Style](style.md) — naming and formatting rules
+
+## Architecture
+
+syntax is structure.
+semantics is meaning.
+runtime is capability.
+resolver is location.
+tools are projections.
+
+Filesystem has no semantic authority.

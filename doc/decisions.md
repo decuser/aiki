@@ -1,5 +1,26 @@
 # Aiki Decisions
 
+
+## 2026-02-17: Grammar Loading and Package Boundaries
+
+### Grammar
+
+- The canonical grammar is embedded in the binary.
+- GetGrammar is the sole entry point for the canonical grammar.
+- Tools must use GetGrammar and must not load grammar from filesystem.
+
+### Boundaries
+
+- syntax is structure only.
+- semantics is meaning only and operates on AST.
+- runtime is capability only and has no structural authority.
+- resolver is location only and is not in the semantic pipeline.
+- tools are projections and contain no language rules.
+
+### Tests
+
+- Integration tests live in semantics integration.
+- Integration tests use integration_test package to avoid import cycles.
 Architectural decisions with context. Why we did what we did.
 
 ## 2026-02-15: Architecture Overhaul
