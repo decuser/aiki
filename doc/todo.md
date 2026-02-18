@@ -22,6 +22,9 @@ go test ./...
 - [X] style.md: "Strict vs pragmatic" → "Exact vs precise"
 
 ### 2. Grammar Cleanup
+
+- [ ] Replace filesystem based import resolution with resolver interface and name based module identity
+
 - [x] Remove `%` from OPERATOR and BINOP
 - [x] Remove `==` from OPERATOR and BINOP
 - [x] Remove `!=` from OPERATOR and BINOP

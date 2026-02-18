@@ -69,10 +69,14 @@ Prelude is user-facing. HAL is invisible.
 
 ## Architecture
 
-syntax is structure.
-semantics is meaning.
-runtime is capability.
-resolver is location.
-tools are projections.
+- syntax defines structure: grammar, lexer, parser, AST
+- semantics defines meaning: evaluator over AST
+- runtime provides capabilities: HAL and effects
+- tools project the language: fmt, lint, repl
 
-Filesystem has no semantic authority.
+Resolver exists as a package but is not yet wired into module loading.
+
+
+## Modules
+
+import currently resolves module strings through filesystem lookup relative to the current file and working directory.

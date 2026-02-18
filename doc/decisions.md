@@ -59,6 +59,9 @@ Not a layer. Evaluator internals that are callable values. User sees them as pri
 
 ### Exact vs Precise
 
+Status: Precise mode not implemented yet. Tracked in todo.
+
+
 | Term | Meaning |
 |------|---------|
 | **exact** | Rationals, default, shadowable operators, lookup cost |
@@ -87,6 +90,9 @@ Keywords: 9 currently (`let if else while match return true false not`)
 
 ### Type Cleanup
 
+Status: Not implemented yet. Resources are still dedicated value types.
+
+
 User-visible: 8 (unchanged)
 - number, boolean, rune, string, bytes, symbol, list, function
 
@@ -106,6 +112,9 @@ HAL maintains registries. Shape is claim, registry is authority.
 - No drift
 
 ### Canvas/Ebiten
+
+Status: Fork shepherd model not implemented yet. Tracked in todo.
+
 
 - Fork-on-start for Linux/Mac
 - Parent shepherds, child runs REPL

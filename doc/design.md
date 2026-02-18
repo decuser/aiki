@@ -69,12 +69,20 @@ Note: `and`, `or` are operators.
 **Cut:** `!` -> `not`, `==` -> `equal()`, `!=` -> `not(equal())`, `%` -> `modulo()`
 
 ## Modules
+Current module behavior is implemented by evaluator intrinsics.
 
-**`import("module", :name1, :name2)`** — load module, bind names in current scope.
+import("name", :sym1, :sym2, ...) loads a file by resolving the string against the filesystem.
+Resolution attempts, in order.
 
-**`export(:name1, :name2)`** — mark names for external use.
+1. Relative to the current file directory as name.ai
+2. name.ai in the current working directory
+3. name as given if it exists as a path
 
-Functions, not keywords. Modules are values.
+export(:sym1, :sym2, ...) records explicit exports for the current environment.
+If a module declares exports, import enforces them.
+
+A resolver package exists, but it is not yet used for module location.
+Name based module identity and module declarations are tracked in todo and decisions.
 
 ## Modules
 
