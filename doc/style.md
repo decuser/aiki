@@ -28,3 +28,8 @@ RULE hash begins a comment. [tools/fmt and syntax lexer]
 
 NOW import resolves module strings through filesystem lookup. [semantics/eval/module.go resolveModulePath]
 NOW export declares explicit exports for enforcement on import. [semantics/eval/module.go evalExport]
+
+## Tooling
+RULE Documentation files under doc and work must declare allowed tags in a contract header.
+RULE `aiki doclint` must pass before changes are merged.
+

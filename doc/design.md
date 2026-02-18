@@ -45,3 +45,7 @@ NOW operator shadowing is not implemented for infix syntax. [semantics/eval/node
 NOW handle is a dedicated value type. [semantics/value/value.go type Handle]
 NOW canvas is a dedicated value type. [semantics/value/canvas.go type Canvas]
 NOW channel is a dedicated value type. [semantics/value/channel.go type Channel]
+
+## Tools
+NOW doclint subcommand checks documentation contract headers and tag usage for doc and work trees. [tools/doclint]
+

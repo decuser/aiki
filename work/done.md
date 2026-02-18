@@ -4,6 +4,12 @@ allowed: HIST
 
 # Aiki Done
 
+## v0.3.1 doclint
+HIST Added `aiki doclint` subcommand enforcing documentation contracts for doc and work trees.
+HIST Introduced doclint.ini to declare scope roots and valid tags.
+HIST Added contract headers to design decisions manifesto style and work tracking docs.
+HIST Split work docs into work/todo work/done work/backlog distinct from doc/.
+
 ## 2026 02 17 Grammar loader and package boundary stabilization
 
 HIST Canonical grammar embedded via go embed. [syntax/grammar_loader.go]

@@ -6,6 +6,10 @@ Note: PLAN lines need to include an explicit status sentence.
 
 # Aiki Decisions
 
+## 2026 02 18 Tooling, drift control
+PLAN Doclint as documentation contract enforcer. Status implemented for doc and work trees.
+WHY Documentation contracts prevent drift between design decisions work tracking and implementation.
+
 ## 2026 02 17 Grammar loading boundary and package stabilization
 
 HIST Embedded grammar via go embed. [syntax/grammar_loader.go]

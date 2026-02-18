@@ -36,3 +36,7 @@ NOW decisions: doc/decisions.md
 NOW style: doc/style.md
 NOW todo: doc/todo.md
 NOW done: doc/done.md
+
+## Tools
+NOW `aiki doclint` validates documentation contracts in doc and work. [tools/doclint]
+
