@@ -1,12 +1,8 @@
 package eval
 
-import "aiki/syntax"
-
 import (
-	"aiki/runtime/hal"
+	"aiki/syntax"
 	"aiki/semantics/value"
-	"fmt"
-	"os"
 )
 
 // evalNodeCallSafe dispatches a function call, handling Fn: nil specials.
@@ -155,6 +151,9 @@ func evalPipeCallSafe(node *syntax.Node, pipedValue value.Value, env *value.Env)
 }
 
 func evalSpawn(args []value.Value, env *value.Env, node *syntax.Node) value.Value {
+	if env.Host == nil {
+		return makeError(env, node, "spawn: host not configured")
+	}
 	if len(args) < 1 {
 		return makeError(env, node, "spawn: want at least 1 argument (function)")
 	}
@@ -168,12 +167,10 @@ func evalSpawn(args []value.Value, env *value.Env, node *syntax.Node) value.Valu
 	fnArgs := args[1:]
 
 	// Use the HAL scheduler to launch a goroutine
-	hal.DefaultScheduler.Spawn(func() {
+	env.Host.Scheduler().Spawn(func() {
 		result := applyNodeFunc(fn, fnArgs, node.Line)
-		// Log errors from spawned functions (they can't propagate)
 		if err, ok := result.(*value.Error); ok {
-			// TODO: Consider a proper error channel or logger
-			fmt.Fprintf(os.Stderr, "spawn: %s\n", err.Message)
+			env.Host.Logf("spawn: %s\n", err.Message)
 		}
 	})
 

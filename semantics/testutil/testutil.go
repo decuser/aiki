@@ -19,6 +19,8 @@ func init() {
 // SetupEnv creates an env with prelude loaded.
 func SetupEnv() *value.Env {
 	env := value.NewEnv(nil)
+	// Ensure host services are available for intrinsics like spawn.
+	env.Host = NewTestHost()
 	result := eval.RunNode(testGrammar, prelude.Source, env)
 	if _, ok := result.(*value.Error); ok {
 		panic("failed to load prelude: " + result.Inspect())
@@ -30,6 +32,7 @@ func SetupEnv() *value.Env {
 // TestEval evaluates without prelude (bare env).
 func TestEval(input string) value.Value {
 	env := value.NewEnv(nil)
+	env.Host = NewTestHost()
 	return eval.RunNode(testGrammar, input, env)
 }
 

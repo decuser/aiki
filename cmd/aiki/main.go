@@ -47,7 +47,9 @@ func main() {
 
 	opts := parseOptions()
 
+	h := hal.NewHost()
 	env := value.NewEnv(nil)
+	env.Host = h
 
 	result := eval.RunNode(grammar, prelude.Source, env)
 	if e, ok := result.(*value.Error); ok {

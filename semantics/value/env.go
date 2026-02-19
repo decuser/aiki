@@ -1,6 +1,9 @@
 package value
 
-import "strings"
+import (
+	"strings"
+	"aiki/semantics/host"
+)
 
 // Env holds variable bindings with lexical scoping.
 type Env struct {
@@ -12,6 +15,7 @@ type Env struct {
 	file     *string   // current filename (shared)
 	source   *[]string // source lines (shared)
 	exports  []string
+	Host 	host.Host
 }
 
 // ShapeDef holds a shape definition.
