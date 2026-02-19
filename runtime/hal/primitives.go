@@ -14,7 +14,10 @@ import (
 	"aiki/semantics/value"
 )
 
-var Stdout io.Writer = os.Stdout
+var stdout io.Writer = os.Stdout
+var nextHandleID int64 = 1
+var files = map[int64]*os.File{}
+
 
 // HAL defines the Host Abstraction Layer for Aiki.
 //
@@ -294,15 +297,15 @@ var HAL = map[string]*value.Builtin{
 			for _, a := range args {
 				// Strings print raw
 				if v, ok := a.(*value.String); ok {
-					fmt.Fprint(Stdout, v.Value)
+					fmt.Fprint(stdout, v.Value)
 					continue
 				}
 				// Everything else uses Inspect()
-				fmt.Fprint(Stdout, a.Inspect())
+				fmt.Fprint(stdout, a.Inspect())
 			}
 
 			// Flush for real file stdout
-			if f, ok := Stdout.(*os.File); ok {
+			if f, ok := stdout.(*os.File); ok {
 				f.Sync()
 			}
 			return value.NULL
@@ -486,7 +489,11 @@ Fields: point.x (shaped lists only)
 			if err != nil {
 				return makeBuiltinError("open: " + err.Error())
 			}
-			return &value.Handle{File: f, Path: path.Value}
+			id := nextHandleID
+			nextHandleID++
+			files[id] = f
+			return &value.Handle{ID: id, Path: path.Value}
+
 		},
 	},
 	"create": {
@@ -503,7 +510,11 @@ Fields: point.x (shaped lists only)
 			if err != nil {
 				return makeBuiltinError("create: " + err.Error())
 			}
-			return &value.Handle{File: f, Path: path.Value}
+			id := nextHandleID
+			nextHandleID++
+			files[id] = f
+			return &value.Handle{ID: id, Path: path.Value}
+
 		},
 	},
 	"fread": {
@@ -517,7 +528,12 @@ Fields: point.x (shaped lists only)
 				return makeBuiltinError("fread: expected handle")
 			}
 			buf := make([]byte, 4096)
-			n, err := h.File.Read(buf)
+			f := files[h.ID]
+			if f == nil {
+				return makeBuiltinError("fread: invalid or closed handle")
+			}
+
+			n, err := f.Read(buf)
 			if err != nil {
 				if err == io.EOF {
 					return &value.List{
@@ -528,6 +544,7 @@ Fields: point.x (shaped lists only)
 				return makeBuiltinError("fread: " + err.Error())
 			}
 			return &value.String{Value: string(buf[:n])}
+
 		},
 	},
 	"fwrite": {
@@ -549,11 +566,17 @@ Fields: point.x (shaped lists only)
 			default:
 				return makeBuiltinError("fwrite: expected string or bytes")
 			}
-			_, err := h.File.Write(data)
+			f := files[h.ID]
+			if f == nil {
+				return makeBuiltinError("fwrite: invalid or closed handle")
+			}
+
+			_, err := f.Write(data)
 			if err != nil {
 				return makeBuiltinError("fwrite: " + err.Error())
 			}
 			return value.True
+
 		},
 	},
 	"fclose": {
@@ -566,11 +589,19 @@ Fields: point.x (shaped lists only)
 			if !ok {
 				return makeBuiltinError("fclose: expected handle")
 			}
-			err := h.File.Close()
+
+			f := files[h.ID]
+			if f == nil {
+				return makeBuiltinError("fclose: invalid or closed handle")
+			}
+
+			err := f.Close()
+			delete(files, h.ID)
 			if err != nil {
 				return makeBuiltinError("fclose: " + err.Error())
 			}
 			return value.True
+
 		},
 	},
 

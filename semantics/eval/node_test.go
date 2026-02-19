@@ -3,6 +3,7 @@ package eval
 import "aiki/syntax"
 
 import (
+	"os"
 	"testing"
 
 	"aiki/runtime/prelude"
@@ -10,10 +11,15 @@ import (
 )
 
 func TestEvalNodeBasic(t *testing.T) {
-	g, err := syntax.ParseFile("../../syntax/grammar.ebnf")
+	data, err := os.ReadFile("../../syntax/grammar.ebnf")
+	if err != nil {
+		t.Fatalf("read grammar: %v", err)
+	}
+	g, err := syntax.Parse(string(data))
 	if err != nil {
 		t.Fatalf("parse grammar: %v", err)
 	}
+
 
 	tests := []struct {
 		name   string

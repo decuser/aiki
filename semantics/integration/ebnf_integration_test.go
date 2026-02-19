@@ -2,6 +2,7 @@ package integration_test
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"aiki/syntax"
@@ -11,9 +12,13 @@ import (
 // This is a standalone test - for real integration, eval.go needs lang/value
 
 func TestIntegrationPrintAST(t *testing.T) {
-	g, err := syntax.ParseFile("../../syntax/grammar.ebnf")
+	data, err := os.ReadFile("../../syntax/grammar.ebnf")
 	if err != nil {
-		t.Fatalf("parse grammar error: %v", err)
+		t.Fatalf("read grammar: %v", err)
+	}
+	g, err := syntax.Parse(string(data))
+	if err != nil {
+		t.Fatalf("parse grammar: %v", err)
 	}
 
 	tests := []struct {

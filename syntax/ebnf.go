@@ -2,20 +2,10 @@ package syntax
 
 import (
 	"fmt"
-	"os"
 	"regexp"
 	"strings"
 	"unicode"
 )
-
-// ParseFile reads an EBNF file and returns a Grammar
-func ParseFile(path string) (*Grammar, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	return Parse(string(data))
-}
 
 // Parse parses EBNF source and returns a Grammar
 func Parse(source string) (*Grammar, error) {

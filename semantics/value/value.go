@@ -3,7 +3,6 @@ package value
 import (
 	"fmt"
 	"math/big"
-	"os"
 	"strings"
 )
 
@@ -171,9 +170,8 @@ func (f *Function) Inspect() string {
 	return fmt.Sprintf("(%s) { ... }", params)
 }
 
-// Handle wraps an OS file handle
 type Handle struct {
-	File *os.File
+	ID   int64
 	Path string
 }
 

@@ -107,10 +107,8 @@ expr = NUMBER
 }
 
 func TestParseAikiGrammar(t *testing.T) {
-	g, err := ParseFile("grammar.ebnf")
-	if err != nil {
-		t.Fatalf("parse error: %v", err)
-	}
+	g := LoadGrammarForTest(t, "grammar.ebnf")
+
 
 	// Check tokens
 	if len(g.Tokens) == 0 {
@@ -132,10 +130,7 @@ func TestParseAikiGrammar(t *testing.T) {
 }
 
 func TestTokenizeAiki(t *testing.T) {
-	g, err := ParseFile("grammar.ebnf")
-	if err != nil {
-		t.Fatalf("parse grammar error: %v", err)
-	}
+	g := LoadGrammarForTest(t, "grammar.ebnf")
 
 	tokens, err := g.Tokenize("let x = 42")
 	if err != nil {
@@ -169,10 +164,7 @@ func TestTokenizeAiki(t *testing.T) {
 }
 
 func TestParseSimpleAiki(t *testing.T) {
-	g, err := ParseFile("grammar.ebnf")
-	if err != nil {
-		t.Fatalf("parse grammar error: %v", err)
-	}
+	g := LoadGrammarForTest(t, "grammar.ebnf")
 
 	ast, err := g.ParseSource("42")
 	if err != nil {
@@ -185,10 +177,7 @@ func TestParseSimpleAiki(t *testing.T) {
 }
 
 func TestParseLetStatement(t *testing.T) {
-	g, err := ParseFile("grammar.ebnf")
-	if err != nil {
-		t.Fatalf("parse grammar error: %v", err)
-	}
+	g := LoadGrammarForTest(t, "grammar.ebnf")
 
 	ast, err := g.ParseSource("let x = 42")
 	if err != nil {
@@ -201,10 +190,7 @@ func TestParseLetStatement(t *testing.T) {
 }
 
 func TestParseFunctionLiteral(t *testing.T) {
-	g, err := ParseFile("grammar.ebnf")
-	if err != nil {
-		t.Fatalf("parse grammar error: %v", err)
-	}
+	g := LoadGrammarForTest(t, "grammar.ebnf")
 
 	ast, err := g.ParseSource("(a) { return a }")
 	if err != nil {
@@ -217,10 +203,7 @@ func TestParseFunctionLiteral(t *testing.T) {
 }
 
 func TestParseFunctionWithParams(t *testing.T) {
-	g, err := ParseFile("grammar.ebnf")
-	if err != nil {
-		t.Fatalf("parse grammar error: %v", err)
-	}
+	g := LoadGrammarForTest(t, "grammar.ebnf")
 
 	ast, err := g.ParseSource("let add = (a, b) { return a }")
 	if err != nil {
@@ -233,10 +216,7 @@ func TestParseFunctionWithParams(t *testing.T) {
 }
 
 func TestParseInfixExpression(t *testing.T) {
-	g, err := ParseFile("grammar.ebnf")
-	if err != nil {
-		t.Fatalf("parse grammar error: %v", err)
-	}
+	g := LoadGrammarForTest(t, "grammar.ebnf")
 
 	ast, err := g.ParseSource("a + b")
 	if err != nil {
@@ -249,10 +229,7 @@ func TestParseInfixExpression(t *testing.T) {
 }
 
 func TestParseFunctionWithInfix(t *testing.T) {
-	g, err := ParseFile("grammar.ebnf")
-	if err != nil {
-		t.Fatalf("parse grammar error: %v", err)
-	}
+	g := LoadGrammarForTest(t, "grammar.ebnf")
 
 	ast, err := g.ParseSource("let add = (a, b) { return a + b }")
 	if err != nil {
@@ -265,10 +242,7 @@ func TestParseFunctionWithInfix(t *testing.T) {
 }
 
 func TestParseIfStatement(t *testing.T) {
-	g, err := ParseFile("grammar.ebnf")
-	if err != nil {
-		t.Fatalf("parse grammar error: %v", err)
-	}
+	g := LoadGrammarForTest(t, "grammar.ebnf")
 
 	ast, err := g.ParseSource("if x { return 1 }")
 	if err != nil {
@@ -281,10 +255,7 @@ func TestParseIfStatement(t *testing.T) {
 }
 
 func TestParseIfElse(t *testing.T) {
-	g, err := ParseFile("grammar.ebnf")
-	if err != nil {
-		t.Fatalf("parse grammar error: %v", err)
-	}
+	g := LoadGrammarForTest(t, "grammar.ebnf")
 
 	ast, err := g.ParseSource("if x { return 1 } else { return 2 }")
 	if err != nil {
@@ -297,10 +268,7 @@ func TestParseIfElse(t *testing.T) {
 }
 
 func TestParseWhile(t *testing.T) {
-	g, err := ParseFile("grammar.ebnf")
-	if err != nil {
-		t.Fatalf("parse grammar error: %v", err)
-	}
+	g := LoadGrammarForTest(t, "grammar.ebnf")
 
 	ast, err := g.ParseSource("while x { x = x - 1 }")
 	if err != nil {
@@ -313,10 +281,7 @@ func TestParseWhile(t *testing.T) {
 }
 
 func TestParsePipe(t *testing.T) {
-	g, err := ParseFile("grammar.ebnf")
-	if err != nil {
-		t.Fatalf("parse grammar error: %v", err)
-	}
+	g := LoadGrammarForTest(t, "grammar.ebnf")
 
 	ast, err := g.ParseSource("x |> f()")
 	if err != nil {
@@ -329,10 +294,7 @@ func TestParsePipe(t *testing.T) {
 }
 
 func TestParseList(t *testing.T) {
-	g, err := ParseFile("grammar.ebnf")
-	if err != nil {
-		t.Fatalf("parse grammar error: %v", err)
-	}
+	g := LoadGrammarForTest(t, "grammar.ebnf")
 
 	ast, err := g.ParseSource("[1, 2, 3]")
 	if err != nil {
@@ -345,10 +307,7 @@ func TestParseList(t *testing.T) {
 }
 
 func TestParseShapedList(t *testing.T) {
-	g, err := ParseFile("grammar.ebnf")
-	if err != nil {
-		t.Fatalf("parse grammar error: %v", err)
-	}
+	g := LoadGrammarForTest(t, "grammar.ebnf")
 
 	ast, err := g.ParseSource("[@point, 10, 20]")
 	if err != nil {
@@ -361,10 +320,7 @@ func TestParseShapedList(t *testing.T) {
 }
 
 func TestParseCall(t *testing.T) {
-	g, err := ParseFile("grammar.ebnf")
-	if err != nil {
-		t.Fatalf("parse grammar error: %v", err)
-	}
+	g := LoadGrammarForTest(t, "grammar.ebnf")
 
 	ast, err := g.ParseSource("f(1, 2)")
 	if err != nil {
@@ -377,10 +333,7 @@ func TestParseCall(t *testing.T) {
 }
 
 func TestParseIndex(t *testing.T) {
-	g, err := ParseFile("grammar.ebnf")
-	if err != nil {
-		t.Fatalf("parse grammar error: %v", err)
-	}
+	g := LoadGrammarForTest(t, "grammar.ebnf")
 
 	ast, err := g.ParseSource("list[0]")
 	if err != nil {
@@ -393,10 +346,7 @@ func TestParseIndex(t *testing.T) {
 }
 
 func TestParseAccess(t *testing.T) {
-	g, err := ParseFile("grammar.ebnf")
-	if err != nil {
-		t.Fatalf("parse grammar error: %v", err)
-	}
+	g := LoadGrammarForTest(t, "grammar.ebnf")
 
 	ast, err := g.ParseSource("point.x")
 	if err != nil {
@@ -409,10 +359,7 @@ func TestParseAccess(t *testing.T) {
 }
 
 func TestParseMultipleStatements(t *testing.T) {
-	g, err := ParseFile("grammar.ebnf")
-	if err != nil {
-		t.Fatalf("parse grammar error: %v", err)
-	}
+	g := LoadGrammarForTest(t, "grammar.ebnf")
 
 	ast, err := g.ParseSource("let x = 1\nlet y = 2\nx + y")
 	if err != nil {

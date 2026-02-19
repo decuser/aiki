@@ -2,7 +2,7 @@ package repl
 
 import (
 	"fmt"
-
+	"os"
 	"aiki/runtime/hal"
 	"aiki/semantics/value"
 	"aiki/version"
@@ -12,7 +12,7 @@ func init() {
 	hal.HAL["help"] = &value.Builtin{
 		Name: "help",
 		Fn: func(args ...value.Value) value.Value {
-			fmt.Fprintf(hal.Stdout, `Aiki %s
+			fmt.Fprintf(os.Stdout, `Aiki %s
 
 Primitives:
   first(list)         - first element

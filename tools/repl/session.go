@@ -27,14 +27,14 @@ type Session struct {
 	grammar *syntax.Grammar
 }
 
-// NewSession creates a new REPL session.
 func NewSession(grammar *syntax.Grammar, out io.Writer, env *value.Env, debug bool) *Session {
 	reader, err := NewReadlineReader()
 	if err != nil {
 		reader = NewSimpleReader()
 	}
+
 	tracker := &TrackingWriter{Out: out, EndedWithNewline: true}
-	hal.Stdout = tracker
+
 	return &Session{
 		grammar: grammar,
 		out:     out,
@@ -44,6 +44,7 @@ func NewSession(grammar *syntax.Grammar, out io.Writer, env *value.Env, debug bo
 		tracker: tracker,
 	}
 }
+
 
 // Run starts the REPL loop.
 func (s *Session) Run() {
