@@ -1,0 +1,107 @@
+@tokens {
+    WHITESPACE  /[ \t\r\n]+/  @skip
+    COMMENT     /#[^\n]*/  @skip
+    NUMBER      /[0-9]+(\.[0-9]+)?(\/[0-9]+)?/
+    STRING      /"[^"]*"/
+    RUNE        /'([^'\\]|\\.)'/
+    SYMBOL      /:[a-zA-Z_][a-zA-Z0-9_]*/
+    SHAPE       /@[a-zA-Z_][a-zA-Z0-9_]*/
+    NAME        /[a-zA-Z_][a-zA-Z0-9_]*/
+    KEYWORD     let if else while match return true false and or not
+    OPERATOR    + - * / < > <= >=
+    PIPE        |>
+    DELIMITER   ( ) [ ] { } , ; ... . =
+}
+
+program = { statement }
+
+statement = let_stmt | assign_stmt | if_stmt | while_stmt
+          | match_stmt | return_stmt | expr_stmt
+
+let_stmt = "let" NAME "=" expr
+         | "let" SHAPE "[" [ field_list ] "]"
+
+field_list = field { field_tail }
+
+field_tail = "," field
+
+field = NAME | SHAPE
+
+assign_stmt = NAME "=" expr
+
+if_stmt = "if" expr block [ "else" else_clause ]
+
+else_clause = if_stmt | block
+
+while_stmt = "while" expr block
+
+match_stmt = "match" expr "{" { match_arm } "}"
+
+match_arm = pattern block
+
+pattern = "_" | NAME | literal
+        | "[" [ pattern_list ] "]"
+        | "[" SHAPE pattern_tail "]"
+
+pattern_list = pattern { pattern_tail }
+
+pattern_tail = "," pattern
+
+pattern_tail = { "," pattern }
+
+return_stmt = "return" expr
+
+expr_stmt = expr
+
+expr = pipe_expr
+
+pipe_expr = infix_expr { pipe_tail }
+
+pipe_tail = PIPE postfix_expr
+
+infix_expr = unary_expr { infix_tail }
+
+infix_tail = infix_op unary_expr
+
+infix_op = OPERATOR | "and" | "or"
+
+unary_expr = "-" unary_expr | "not" unary_expr | postfix_expr
+
+postfix_expr = primary { postfix_op }
+
+postfix_op = call | index | access
+
+call = "(" [ arg_list ] ")"
+
+arg_list = expr { arg_tail }
+
+arg_tail = "," expr
+
+index = "[" expr "]"
+
+access = "." NAME
+
+primary = NUMBER | STRING | RUNE | SYMBOL | NAME
+        | "true" | "false"
+        | list_literal
+        | func_literal
+        | "(" expr ")"
+
+list_literal = "[" [ arg_list ] "]"
+             | "[" SHAPE shape_args "]"
+
+shape_args = { "," expr }
+
+func_literal = "(" [ params ] ")" block
+
+params = param_list [ "," rest_param ] | rest_param
+
+param_list = NAME { param_tail }
+
+param_tail = "," NAME
+
+rest_param = "..." NAME
+
+block = "{" { statement } "}"
+
+literal = NUMBER | STRING | RUNE | SYMBOL | "true" | "false"

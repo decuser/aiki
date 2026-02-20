@@ -1,0 +1,14 @@
+let nums = [1, 2, 3, 4, 5]
+
+let map = (list, f) {
+    let result = []
+    let i = 0
+    while i < length(list) {
+        result = append(result, f(list[i]))
+        i = i + 1
+    }
+    return result
+}
+
+let double = (x) { return x * 2 }
+print(map(nums, double))

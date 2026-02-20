@@ -1,0 +1,22 @@
+[ BOUNDARY 1 ]          [ BOUNDARY 2 ]          [ BOUNDARY 3 ]          [ BOUNDARY 4 ]
+       External                Internal                Internal                External
+          |                       |                       |                       |
++---------V---------+     +-------V-------+     +---------V---------+     +---------V---------+
+|   ebnf-grammar-   |     | aiki-grammar- |     |                   |     |      host-        |
+|     generator     |     |   generator   |     |  aiki-evaluator   |     |   abstraction-    |
+|                   |     |               |     |                   |     |      layer        |
++-------------------+     +---------------+     +-------------------+     +-------------------+
+          |                       |                       |                       |
+          |  (implements)         |  (implements)         |  (implements)         |  (implements)
+          |                       |                       |                       |
+    [ebnf-grammar-     [aiki-grammar-          [aiki-behavior-         [go-runtime-
+       contract]               contract]               contract]               interface]
+          ^                       ^                       ^                       ^
+          |                       |                       |                       |
+          |  (defines)            |  (defines)            |  (defines)            |  (defines)
+          |                       |                       |                       |
++---------+---------+     +-------+-------+     +---------+---------+     +---------+---------+
+|  aiki-grammar-    |     |               |     |       host-       |     |        go-        |
+|    generator      |     | aiki-evaluator|     |   abstraction-    |     |      runtime      |
+|                   |     |               |     |       layer       |     |                   |
++-------------------+     +---------------+     +-------------------+     +-------------------+
