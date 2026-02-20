@@ -1,15 +1,12 @@
 package repl
 
-import "aiki/syntax"
-
 import (
 	"fmt"
 	"io"
 
-	"aiki/runtime/hal"
-	"aiki/runtime/prelude"
-	"aiki/semantics/eval"
-	"aiki/semantics/value"
+	"aiki/engine/semantics/evaluator"
+	"aiki/engine/semantics/value"
+	"aiki/engine/syntax"
 )
 
 const (
@@ -20,25 +17,26 @@ const (
 // Session manages a REPL session.
 type Session struct {
 	out     io.Writer
-	env     *value.Env
+	scope   *evaluator.Scope
+	ev      *evaluator.Evaluator
 	debug   bool
 	reader  LineReader
 	tracker *TrackingWriter
-	grammar *syntax.Grammar
+	grammar syntax.GrammarContract
 }
 
 // NewSession creates a new REPL session.
-func NewSession(grammar *syntax.Grammar, out io.Writer, env *value.Env, debug bool) *Session {
+func NewSession(ev *evaluator.Evaluator, grammar syntax.GrammarContract, out io.Writer, scope *evaluator.Scope, debug bool) *Session {
 	reader, err := NewReadlineReader()
 	if err != nil {
 		reader = NewSimpleReader()
 	}
 	tracker := &TrackingWriter{Out: out, EndedWithNewline: true}
-	hal.Stdout = tracker
 	return &Session{
+		ev:      ev,
 		grammar: grammar,
 		out:     out,
-		env:     env,
+		scope:   scope,
 		debug:   debug,
 		reader:  reader,
 		tracker: tracker,
@@ -82,29 +80,52 @@ func (s *Session) Run() {
 		}
 
 		s.tracker.EndedWithNewline = true
-		result := eval.RunNode(s.grammar, buffer, s.env)
+		result := s.evalInput(buffer)
 		buffer = ""
 		prompt = promptMain
 
-		// Check for reset signal
-		if _, ok := result.(*hal.ResetSignal); ok {
-			s.env = value.NewEnv(nil)
-			eval.RunNode(s.grammar, prelude.Source, s.env)
-			s.env.SnapshotPrelude()
-			fmt.Fprintln(s.out, "Environment reset.")
-			continue
+		// Check for special commands
+		if result.Type == value.Symbol {
+			if sym, ok := result.Data.(string); ok {
+				switch sym {
+				case "exit":
+					fmt.Fprintln(s.out, "Goodbye!")
+					return
+				case "reset":
+					// TODO: Reset environment
+					fmt.Fprintln(s.out, "Environment reset.")
+					continue
+				}
+			}
 		}
 
-		if _, ok := result.(*hal.ExitSignal); ok {
-			fmt.Fprintln(s.out, "Goodbye!")
-			return
-		}
-		if result != nil && result != value.NULL {
+		if result.Type != value.Null {
 			fmt.Fprintln(s.out, result.Inspect())
 		} else if !s.tracker.EndedWithNewline {
 			fmt.Fprintln(s.out)
 		}
 	}
+}
+
+// evalInput parses and evaluates an input string.
+func (s *Session) evalInput(input string) value.Value {
+	lexer := syntax.NewLexer("repl", input, s.grammar)
+	parser, err := syntax.NewParser(lexer, s.grammar)
+	if err != nil {
+		return value.Value{Type: value.String, Data: fmt.Sprintf("parse error: %v", err)}
+	}
+
+	ast, err := parser.Parse()
+	if err != nil {
+		return value.Value{Type: value.String, Data: fmt.Sprintf("parse error: %v", err)}
+	}
+
+	result, err := s.ev.Eval(ast, s.scope)
+	if err != nil {
+		return value.Value{Type: value.String, Data: fmt.Sprintf("error: %v", err)}
+	}
+
+	return result
 }
 
 // isComplete checks if the input has balanced delimiters.

@@ -6,69 +6,72 @@ import (
 	"os"
 	"os/user"
 
-	"aiki/runtime/hal"
-	"aiki/runtime/prelude"
-	"aiki/semantics/eval"
-	"aiki/semantics/value"
-	"aiki/syntax"
-	"aiki/tools/repl"
-	"aiki/version"
-
-	aikidoclint "aiki/tools/doclint"
-	aikifmt "aiki/tools/fmt"
-	aikilint "aiki/tools/lint"
-	aikismoke "aiki/tools/smoke"
+	"aiki/auxiliary/version"
+	"aiki/engine/runtime/hal/substrate"
+	"aiki/engine/runtime/prelude"
+	"aiki/engine/semantics/evaluator"
+	"aiki/engine/syntax"
+	"aiki/engine/syntax/definition"
+	"aiki/interaction/tools/repl"
 )
 
 func main() {
-	grammar := syntax.GetGrammar()
-	aikifmt.SetGrammar(grammar)
-	aikilint.SetGrammar(grammar)
-	eval.SetNodeGrammar(grammar)
+	grammar := definition.New()
 
 	// Check for subcommands before flag parsing
 	if len(os.Args) > 1 {
 		switch os.Args[1] {
-		case "doclint":
-			aikidoclint.Run(os.Args[2:])
+		case "version":
+			fmt.Printf("aiki %s\n", version.Version)
 			return
-		case "fmt":
-			aikifmt.Run(os.Args[2:])
-			return
-		case "lint":
-			aikilint.Run(os.Args[2:])
-			return
-		case "smoke":
-			aikismoke.Run(os.Args[2:])
-			return
+		// TODO: Add back when tools are ported
+		// case "doclint":
+		// 	aikidoclint.Run(os.Args[2:])
+		// 	return
+		// case "fmt":
+		// 	aikifmt.Run(os.Args[2:])
+		// 	return
+		// case "lint":
+		// 	aikilint.Run(os.Args[2:])
+		// 	return
+		// case "smoke":
+		// 	aikismoke.Run(os.Args[2:])
+		// 	return
 		}
-
 	}
 
 	opts := parseOptions()
 
-	env := value.NewEnv(nil)
+	// Create runtime and scope
+	rt := substrate.NewGoRuntime()
+	scope := evaluator.NewScope(nil)
+	prelude.Load(scope, rt)
 
-	result := eval.RunNode(grammar, prelude.Source, env)
-	if e, ok := result.(*value.Error); ok {
-		fmt.Fprintf(os.Stderr, "error loading prelude: %s\n", e.Message)
-		os.Exit(1)
-	}
-	env.SnapshotPrelude()
+	// Create evaluator
+	ev := evaluator.New(rt, nil)
+	ev.SetGrammar(grammar)
+
+	// TODO: Load prelude.ai when available
+	// preludeResult, err := ev.RunFile("prelude.ai", scope)
+	// if err != nil {
+	// 	fmt.Fprintf(os.Stderr, "error loading prelude: %v\n", err)
+	// 	os.Exit(1)
+	// }
+	// scope.SnapshotPrelude()
 
 	if opts.Expr != "" {
-		runExpr(opts.Expr, env, opts)
+		runExpr(ev, grammar, opts.Expr, scope, opts)
 		return
 	}
 
 	if flag.NArg() == 0 {
-		startREPL(env, opts)
+		startREPL(ev, grammar, scope, opts)
 	} else {
-		runFile(flag.Arg(0), env, opts)
+		runFile(ev, flag.Arg(0), scope, opts)
 	}
 }
 
-func startREPL(env *value.Env, opts Options) {
+func startREPL(ev *evaluator.Evaluator, grammar syntax.GrammarContract, scope *evaluator.Scope, opts Options) {
 	u, err := user.Current()
 	if err != nil {
 		u = &user.User{Username: "user"}
@@ -78,14 +81,23 @@ func startREPL(env *value.Env, opts Options) {
 	fmt.Printf("Hello %s! The system is live.\n", u.Username)
 	fmt.Printf("Type help() for help.\n\n")
 
-	repl.Run(syntax.GetGrammar(), os.Stdin, os.Stdout, env, opts.Debug)
+	repl.Run(ev, grammar, os.Stdout, scope, opts.Debug)
 }
 
-func runFile(filename string, env *value.Env, opts Options) {
-	result := eval.RunFileNode(syntax.GetGrammar(), filename, env)
+func runFile(ev *evaluator.Evaluator, filename string, scope *evaluator.Scope, opts Options) {
+	scope.SetFile(filename)
 
-	if e, ok := result.(*value.Error); ok {
-		fmt.Fprintln(os.Stderr, e.Inspect())
+	content, err := os.ReadFile(filename)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error reading file: %v\n", err)
+		os.Exit(1)
+	}
+
+	scope.SetSource(string(content))
+	result, err := ev.RunFile(filename, scope)
+
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
@@ -94,15 +106,23 @@ func runFile(filename string, env *value.Env, opts Options) {
 	}
 }
 
-func runExpr(expr string, env *value.Env, opts Options) {
-	result := eval.RunNode(syntax.GetGrammar(), expr, env)
-
-	if _, ok := result.(*hal.ExitSignal); ok {
-		return
+func runExpr(ev *evaluator.Evaluator, grammar syntax.GrammarContract, expr string, scope *evaluator.Scope, opts Options) {
+	lexer := syntax.NewLexer("expr", expr, grammar)
+	parser, err := syntax.NewParser(lexer, grammar)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "parse error: %v\n", err)
+		os.Exit(1)
 	}
 
-	if e, ok := result.(*value.Error); ok {
-		fmt.Fprintln(os.Stderr, e.Inspect())
+	ast, err := parser.Parse()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "parse error: %v\n", err)
+		os.Exit(1)
+	}
+
+	result, err := ev.Eval(ast, scope)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 

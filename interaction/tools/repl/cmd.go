@@ -1,15 +1,14 @@
 package repl
 
-import "aiki/syntax"
-
 import (
 	"io"
 
-	"aiki/semantics/value"
+	"aiki/engine/semantics/evaluator"
+	"aiki/engine/syntax"
 )
 
 // Run starts the REPL with the given environment.
-func Run(grammar *syntax.Grammar, in io.Reader, out io.Writer, env *value.Env, debug bool) {
-	s := NewSession(grammar, out, env, debug)
+func Run(ev *evaluator.Evaluator, grammar syntax.GrammarContract, out io.Writer, scope *evaluator.Scope, debug bool) {
+	s := NewSession(ev, grammar, out, scope, debug)
 	s.Run()
 }

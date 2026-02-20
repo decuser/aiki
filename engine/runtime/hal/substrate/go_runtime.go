@@ -323,6 +323,45 @@ func (g *GoRuntime) registerDefaults() {
 		// For now, return a symbol of the type
 		return value.NewSymbol(value.TypeName(args[0].Type)), nil
 	})
+
+	// REPL builtins
+	g.Register("help", func(args []value.Value) (value.Value, error) {
+		helpText := `Aiki
+
+Primitives:
+  first(list)         - first element
+  rest(list)          - all but first
+  length(list)        - length
+  cons(val, list)     - prepend to list
+  append(list, val)   - append to list
+  type(val)           - type as symbol
+  shape(val)          - shape name or :list
+  equal(a, b)         - deep equality
+  to_str(val)         - convert to string
+  print(val...)       - output (no newline)
+  println(val...)     - output with newline
+  modulo(a, b)        - remainder
+  ord(rune)           - character code
+
+REPL:
+  help()              - this message
+  quit()              - exit REPL
+`
+		fmt.Print(helpText)
+		return value.NullValue(), nil
+	})
+
+	g.Register("quit", func(args []value.Value) (value.Value, error) {
+		return value.NewSymbol("exit"), nil
+	})
+
+	g.Register("exit", func(args []value.Value) (value.Value, error) {
+		return value.NewSymbol("exit"), nil
+	})
+
+	g.Register("reset", func(args []value.Value) (value.Value, error) {
+		return value.NewSymbol("reset"), nil
+	})
 }
 
 // valuesEqual compares two values for equality.

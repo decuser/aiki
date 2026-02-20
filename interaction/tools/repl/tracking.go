@@ -2,6 +2,7 @@ package repl
 
 import "io"
 
+// TrackingWriter tracks whether output ended with a newline.
 type TrackingWriter struct {
 	Out              io.Writer
 	EndedWithNewline bool

@@ -10,12 +10,12 @@ type readlineReader struct {
 	rl *readline.Instance
 }
 
-// NewReadlineReader creates a LineReader using chzyer/readline.
+// NewReadlineReader creates a LineReader with readline support.
 func NewReadlineReader() (LineReader, error) {
 	rl, err := readline.NewEx(&readline.Config{
-		Prompt:          "",
+		HistoryFile:     "/tmp/aiki_history",
 		InterruptPrompt: "^C",
-		EOFPrompt:       "",
+		EOFPrompt:       "exit",
 	})
 	if err != nil {
 		return nil, err

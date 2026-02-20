@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"aiki/version"
+	"aiki/auxiliary/version"
 )
 
 const appName = "aiki"
