@@ -11,7 +11,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 
-	"aiki/semantics/value"
+	"aiki/reference/semantics/value"
 )
 
 type Game struct {

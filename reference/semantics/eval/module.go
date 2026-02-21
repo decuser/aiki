@@ -1,12 +1,12 @@
 package eval
 
-import "aiki/syntax"
+import "aiki/reference/syntax"
 
 import (
 	"os"
 	"path/filepath"
 
-	"aiki/semantics/value"
+	"aiki/reference/semantics/value"
 )
 
 // nodeGrammar holds a reference to the grammar for import/load parsing.

@@ -3,10 +3,10 @@ package testutil
 import (
 	"testing"
 
-	"aiki/runtime/prelude"
-	"aiki/semantics/eval"
-	"aiki/semantics/value"
-	"aiki/syntax"
+	"aiki/reference/runtime/prelude"
+	"aiki/reference/semantics/eval"
+	"aiki/reference/semantics/value"
+	"aiki/reference/syntax"
 )
 
 var testGrammar *syntax.Grammar

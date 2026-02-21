@@ -1,12 +1,12 @@
 package eval
 
-import "aiki/syntax"
+import "aiki/reference/syntax"
 
 import (
 	"testing"
 
-	"aiki/runtime/prelude"
-	"aiki/semantics/value"
+	"aiki/reference/runtime/prelude"
+	"aiki/reference/semantics/value"
 )
 
 func TestEvalNodeBasic(t *testing.T) {

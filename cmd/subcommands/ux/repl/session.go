@@ -1,15 +1,15 @@
 package repl
 
-import "aiki/syntax"
+import "aiki/reference/syntax"
 
 import (
 	"fmt"
 	"io"
 
-	"aiki/runtime/hal"
-	"aiki/runtime/prelude"
-	"aiki/semantics/eval"
-	"aiki/semantics/value"
+	"aiki/reference/runtime/hal"
+	"aiki/reference/runtime/prelude"
+	"aiki/reference/semantics/eval"
+	"aiki/reference/semantics/value"
 )
 
 const (

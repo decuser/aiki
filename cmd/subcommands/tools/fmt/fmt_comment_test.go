@@ -1,6 +1,6 @@
 package fmt
 
-import "aiki/syntax"
+import "aiki/reference/syntax"
 
 import (
 	"strings"

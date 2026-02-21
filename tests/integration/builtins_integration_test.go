@@ -3,7 +3,7 @@ package integration_test
 import (
 	"testing"
 
-	"aiki/semantics/value"
+	"aiki/reference/semantics/value"
 	"aiki/tests/testutil"
 )
 

@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"testing"
 
-	"aiki/syntax"
+	"aiki/reference/syntax"
 )
 
 // TestIntegration tests the full pipeline without depending on lang/value
 // This is a standalone test - for real integration, eval.go needs lang/value
 
 func TestIntegrationPrintAST(t *testing.T) {
-	g, err := syntax.ParseFile("../../syntax/grammar.ebnf")
+	g, err := syntax.ParseFile("../../reference/syntax/grammar.ebnf")
 	if err != nil {
 		t.Fatalf("parse grammar error: %v", err)
 	}

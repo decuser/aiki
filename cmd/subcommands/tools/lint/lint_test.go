@@ -1,6 +1,6 @@
 package lint
 
-import "aiki/syntax"
+import "aiki/reference/syntax"
 
 import (
 	"strings"

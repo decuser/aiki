@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"aiki/internal/version"
-	"aiki/runtime/hal"
-	"aiki/semantics/value"
+	"aiki/reference/runtime/hal"
+	"aiki/reference/semantics/value"
 )
 
 func init() {

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	aikifmt "aiki/cmd/subcommands/tools/fmt"
-	"aiki/syntax"
+	"aiki/reference/syntax"
 )
 
 func init() {

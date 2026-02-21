@@ -11,7 +11,7 @@ import (
 	"os/exec"
 	"time"
 
-	"aiki/semantics/value"
+	"aiki/reference/semantics/value"
 )
 
 var Stdout io.Writer = os.Stdout

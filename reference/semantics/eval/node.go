@@ -1,6 +1,6 @@
 package eval
 
-import "aiki/syntax"
+import "aiki/reference/syntax"
 
 import (
 	"fmt"
@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"strings"
 
-	"aiki/runtime/hal"
-	"aiki/semantics/value"
+	"aiki/reference/runtime/hal"
+	"aiki/reference/semantics/value"
 )
 
 // HAL is the single source of truth for all builtins.

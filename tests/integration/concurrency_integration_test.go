@@ -4,7 +4,7 @@ import (
 	"aiki/tests/testutil"
 	"testing"
 
-	"aiki/semantics/value"
+	"aiki/reference/semantics/value"
 )
 
 func TestChannel(t *testing.T) {

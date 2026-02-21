@@ -1,14 +1,14 @@
 // cmd/loader.go
 package main
 
-import "aiki/syntax"
+import "aiki/reference/syntax"
 
 import (
 	"fmt"
 
-	"aiki/runtime/prelude"
-	"aiki/semantics/eval"
-	"aiki/semantics/value"
+	"aiki/reference/runtime/prelude"
+	"aiki/reference/semantics/eval"
+	"aiki/reference/semantics/value"
 )
 
 func loadPrelude(grammar *syntax.Grammar, env *value.Env) error {

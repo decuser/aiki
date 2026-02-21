@@ -3,7 +3,7 @@ package hal
 import (
 	"image/color"
 
-	"aiki/semantics/value"
+	"aiki/reference/semantics/value"
 )
 
 func init() {

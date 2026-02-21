@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"aiki/semantics/value"
+	"aiki/reference/semantics/value"
 )
 
 func TestFileRoundTrip(t *testing.T) {

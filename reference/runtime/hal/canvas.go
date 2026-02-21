@@ -3,7 +3,7 @@ package hal
 import (
 	"sync"
 
-	"aiki/semantics/value"
+	"aiki/reference/semantics/value"
 )
 
 var (

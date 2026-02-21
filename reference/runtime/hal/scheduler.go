@@ -1,6 +1,6 @@
 package hal
 
-import "aiki/semantics/value"
+import "aiki/reference/semantics/value"
 
 // Scheduler defines the concurrency model.
 // Implementations can use goroutines (GoScheduler) or cooperative green threads.

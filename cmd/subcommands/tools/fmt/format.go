@@ -1,7 +1,7 @@
 package fmt
 
 import (
-	"aiki/syntax"
+	"aiki/reference/syntax"
 	"sort"
 	"strings"
 )

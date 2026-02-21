@@ -1,10 +1,10 @@
 package integration_test
 
-import "aiki/syntax"
+import "aiki/reference/syntax"
 
 import (
-	"aiki/semantics/eval"
-	"aiki/semantics/value"
+	"aiki/reference/semantics/eval"
+	"aiki/reference/semantics/value"
 	"aiki/tests/testutil"
 	"strings"
 	"testing"

@@ -1,10 +1,10 @@
 package eval
 
-import "aiki/syntax"
+import "aiki/reference/syntax"
 
 import (
-	"aiki/runtime/hal"
-	"aiki/semantics/value"
+	"aiki/reference/runtime/hal"
+	"aiki/reference/semantics/value"
 	"fmt"
 	"os"
 )

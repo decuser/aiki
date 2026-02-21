@@ -5,9 +5,9 @@ import (
 	"regexp"
 	"strings"
 
-	"aiki/runtime/hal"
-	"aiki/semantics/value"
-	"aiki/syntax"
+	"aiki/reference/runtime/hal"
+	"aiki/reference/semantics/value"
+	"aiki/reference/syntax"
 )
 
 // Diagnostic represents a lint finding.

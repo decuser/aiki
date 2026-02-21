@@ -1,11 +1,11 @@
 package repl
 
-import "aiki/syntax"
+import "aiki/reference/syntax"
 
 import (
 	"io"
 
-	"aiki/semantics/value"
+	"aiki/reference/semantics/value"
 )
 
 // Run starts the REPL with the given environment.

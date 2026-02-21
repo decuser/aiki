@@ -6,10 +6,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"aiki/runtime/prelude"
-	"aiki/semantics/eval"
-	"aiki/semantics/value"
-	"aiki/syntax"
+	"aiki/reference/runtime/prelude"
+	"aiki/reference/semantics/eval"
+	"aiki/reference/semantics/value"
+	"aiki/reference/syntax"
 )
 
 var grammar *syntax.Grammar
