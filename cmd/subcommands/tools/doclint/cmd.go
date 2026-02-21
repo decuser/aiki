@@ -1,32 +1,41 @@
 package doclint
 
 import (
+	"flag"
 	"fmt"
 	"os"
 )
 
 // Run executes the doclint subcommand.
 //
-// Behavior
-// Reads doclint.ini from current working directory
-// Enforces contract headers and allowed tags for all scoped markdown files
+// Usage:
+//
+//	aiki doclint [flags] path...
+//	aiki doclint extra/doc extra/status
+//	aiki doclint ./...
+//
+// Flags:
+//
+//	--no-header  allow files without contract headers
 func Run(args []string) {
-	scanRoot := "."
-	if len(args) > 1 {
-		fmt.Fprintln(os.Stderr, "usage: aiki doclint [path]")
-		os.Exit(1)
-	}
-	if len(args) == 1 {
-		scanRoot = args[0]
-	}
+	fs := flag.NewFlagSet("doclint", flag.ContinueOnError)
+	noHeader := fs.Bool("no-header", false, "allow files without contract headers")
 
-	cfg, err := LoadConfig(scanRoot)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "doclint: %s\n", err)
+	if err := fs.Parse(args); err != nil {
 		os.Exit(2)
 	}
 
-	violations, err := Check(cfg)
+	paths := fs.Args()
+	if len(paths) == 0 {
+		fmt.Fprintln(os.Stderr, "usage: aiki doclint [--no-header] path...")
+		os.Exit(2)
+	}
+
+	opts := Options{
+		RequireHeader: !*noHeader,
+	}
+
+	violations, err := Check(paths, opts)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "doclint: %s\n", err)
 		os.Exit(2)

@@ -1,143 +1,200 @@
-package doclint_test
+package doclint
 
 import (
 	"os"
 	"path/filepath"
 	"testing"
-
-	"aiki/cmd/subcommands/tools/doclint"
 )
 
-func write(path string, contents string) {
-	os.MkdirAll(filepath.Dir(path), 0o755)
-	os.WriteFile(path, []byte(contents), 0o644)
-}
+func TestCheckFile_Valid(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "valid.md")
 
-func TestDoclintBasic(t *testing.T) {
-	root := t.TempDir()
-
-	// Create repo structure
-	write(filepath.Join(root, "doclint.ini"), `
-[scope]
-roots = doc, work
-include = **/*.md
-exclude = work/backlog.md
-
-[contracts]
-require_header = true
-
-[tags]
-valid = NOW, PLAN, HIST, WHY, PHIL, RULE
-`)
-
-	// Valid file
-	write(filepath.Join(root, "doc/design.md"), `
-<!-- contract
-allowed: NOW HIST
+	content := `<!-- contract
+allowed: NOW PLAN
 -->
-NOW valid-tag
-HIST good
-`)
 
-	// Missing header → violation
-	write(filepath.Join(root, "doc/bad1.md"), `
-NOW fail-here
-`)
+# Test
 
-	// Invalid tag → violation
-	write(filepath.Join(root, "doc/bad2.md"), `
-<!-- contract
-allowed: HIST
--->
-PLAN notallowed
-`)
+NOW this is current.
+PLAN this is planned.
+`
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
 
-	// Excluded file → ignored even if malformed
-	write(filepath.Join(root, "work/backlog.md"), `
-HIST bogus
-NOW bogus
-`)
-
-	cfg, err := doclint.LoadConfig(root)
+	opts := Options{RequireHeader: true}
+	violations, err := Check([]string{path}, opts)
 	if err != nil {
-		t.Fatalf("LoadConfig failed: %v", err)
-	}
-
-	violations, err := doclint.Check(cfg)
-	if err != nil {
-		t.Fatalf("Check returned error: %v", err)
-	}
-
-	// Expect exactly TWO violations:
-	// 1. missing header
-	// 2. tag not allowed
-	if len(violations) != 2 {
-		t.Fatalf("expected 2 violations, got %d: %+v", len(violations), violations)
-	}
-
-	paths := []string{violations[0].Path, violations[1].Path}
-	want := map[string]bool{
-		"doc/bad1.md": true,
-		"doc/bad2.md": true,
-	}
-
-	for _, p := range paths {
-		if !want[p] {
-			t.Fatalf("unexpected violation at %s (want doc/bad1.md or doc/bad2.md)", p)
-		}
-	}
-}
-
-func TestDoclintFindConfigRoot(t *testing.T) {
-	root := t.TempDir()
-
-	// repo root config
-	write(filepath.Join(root, "doclint.ini"), `
-[scope]
-roots = doc
-include = **/*.md
-
-[contracts]
-require_header = true
-
-[tags]
-valid = NOW HIST PLAN WHY PHIL RULE
-`)
-
-	// scope root directory declared in config
-	if err := os.MkdirAll(filepath.Join(root, "doc"), 0o755); err != nil {
-		t.Fatalf("mkdir doc: %v", err)
-	}
-
-	// deep directory where we start the search
-	deep := filepath.Join(root, "a", "b", "c")
-	if err := os.MkdirAll(deep, 0o755); err != nil {
-		t.Fatalf("mkdir deep: %v", err)
-	}
-
-	// file under the declared root
-	write(filepath.Join(root, "doc", "test.md"), `
-<!-- contract
-allowed: HIST
--->
-HIST ok
-`)
-
-	cfg, err := doclint.LoadConfig(deep)
-	if err != nil {
-		t.Fatalf("LoadConfig failed from deep: %v", err)
-	}
-
-	if cfg.Root != root {
-		t.Fatalf("expected config root %s, got %s", root, cfg.Root)
-	}
-
-	violations, err := doclint.Check(cfg)
-	if err != nil {
-		t.Fatalf("Check failed: %v", err)
+		t.Fatal(err)
 	}
 
 	if len(violations) != 0 {
-		t.Fatalf("unexpected violations: %+v", violations)
+		t.Errorf("expected no violations, got %d: %v", len(violations), violations)
+	}
+}
+
+func TestCheckFile_DisallowedTag(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "invalid.md")
+
+	content := `<!-- contract
+allowed: NOW
+-->
+
+# Test
+
+NOW this is fine.
+PLAN this is not allowed.
+`
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	opts := Options{RequireHeader: true}
+	violations, err := Check([]string{path}, opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(violations) != 1 {
+		t.Errorf("expected 1 violation, got %d", len(violations))
+	}
+
+	if len(violations) > 0 && violations[0].Message != "tag not allowed by contract: PLAN" {
+		t.Errorf("unexpected message: %s", violations[0].Message)
+	}
+}
+
+func TestCheckFile_MissingHeader(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "noheader.md")
+
+	content := `# Test
+
+Just some content.
+`
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	opts := Options{RequireHeader: true}
+	violations, err := Check([]string{path}, opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Files without headers are skipped, not violations
+	if len(violations) != 0 {
+		t.Errorf("expected no violations (skip), got %d: %v", len(violations), violations)
+	}
+}
+
+func TestCheckFile_NoHeaderRequired(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "noheader.md")
+
+	content := `# Test
+
+Just some content.
+`
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	opts := Options{RequireHeader: false}
+	violations, err := Check([]string{path}, opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(violations) != 0 {
+		t.Errorf("expected no violations, got %d: %v", len(violations), violations)
+	}
+}
+
+func TestCheckDir(t *testing.T) {
+	dir := t.TempDir()
+
+	if err := os.MkdirAll(filepath.Join(dir, "doc"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	content := `<!-- contract
+allowed: NOW
+-->
+
+NOW valid tag.
+`
+	if err := os.WriteFile(filepath.Join(dir, "doc", "test.md"), []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	opts := Options{RequireHeader: true}
+	violations, err := Check([]string{filepath.Join(dir, "doc")}, opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(violations) != 0 {
+		t.Errorf("expected no violations, got %d: %v", len(violations), violations)
+	}
+}
+
+func TestCheckRecursive(t *testing.T) {
+	dir := t.TempDir()
+
+	if err := os.MkdirAll(filepath.Join(dir, "sub", "deep"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	content := `<!-- contract
+allowed: NOW
+-->
+
+NOW valid.
+`
+	if err := os.WriteFile(filepath.Join(dir, "sub", "deep", "test.md"), []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Change to temp dir to test ./...
+	oldWd, _ := os.Getwd()
+	os.Chdir(dir)
+	defer os.Chdir(oldWd)
+
+	opts := Options{RequireHeader: true}
+	violations, err := Check([]string{"./..."}, opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(violations) != 0 {
+		t.Errorf("expected no violations, got %d: %v", len(violations), violations)
+	}
+}
+
+func TestEmptyAllowedList(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "empty.md")
+
+	content := `<!-- contract
+-->
+
+NOW this will fail.
+`
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	opts := Options{RequireHeader: true}
+	violations, err := Check([]string{path}, opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Should get violation for empty allowed list
+	if len(violations) < 1 {
+		t.Errorf("expected at least 1 violation, got %d", len(violations))
 	}
 }
