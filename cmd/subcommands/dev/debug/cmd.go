@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"aiki/reference/runtime/hal"
 	"aiki/reference/runtime/prelude"
 	"aiki/reference/semantics/eval"
 	"aiki/reference/semantics/value"
@@ -134,7 +135,18 @@ func run(path, stage string, stdout, stderr io.Writer) int {
 	env.SetFile(path)
 	env.SetSource(source)
 
+	// Capture program output
+	var progOut bytes.Buffer
+	oldStdout := hal.Stdout
+	hal.Stdout = &progOut
 	result := eval.EvalNode(ast, env)
+	hal.Stdout = oldStdout
+
+	// Write captured output first
+	if progOut.Len() > 0 {
+		fmt.Fprintln(stdout, "=== OUTPUT ===")
+		stdout.Write(progOut.Bytes())
+	}
 
 	if e, ok := result.(*value.Error); ok {
 		fmt.Fprintln(stderr, e.Inspect())
@@ -155,6 +167,10 @@ func run(path, stage string, stdout, stderr io.Writer) int {
 	}
 	fmt.Fprintln(stdout, "=== AST ===")
 	printAST(stdout, ast, 0)
+	if progOut.Len() > 0 {
+		fmt.Fprintln(stdout, "=== OUTPUT ===")
+		stdout.Write(progOut.Bytes())
+	}
 	fmt.Fprintln(stdout, "=== RESULT ===")
 	fmt.Fprintln(stdout, result.Inspect())
 
