@@ -44,6 +44,7 @@ func main() {
 			return
 		case "debug":
 			aikidebug.Run(os.Args[2:])
+			return
 		}
 
 	}
