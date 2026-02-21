@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"aiki/tools/doclint"
+	"aiki/cmd/subcommands/tools/doclint"
 )
 
 func write(path string, contents string) {

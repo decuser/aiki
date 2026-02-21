@@ -6,18 +6,18 @@ import (
 	"os"
 	"os/user"
 
+	"aiki/cmd/subcommands/ux/repl"
 	"aiki/runtime/hal"
 	"aiki/runtime/prelude"
 	"aiki/semantics/eval"
 	"aiki/semantics/value"
 	"aiki/syntax"
-	"aiki/tools/repl"
 	"aiki/version"
 
-	aikidoclint "aiki/tools/doclint"
-	aikifmt "aiki/tools/fmt"
-	aikilint "aiki/tools/lint"
-	aikismoke "aiki/tools/smoke"
+	aikismoke "aiki/cmd/subcommands/dev/smoke"
+	aikidoclint "aiki/cmd/subcommands/tools/doclint"
+	aikifmt "aiki/cmd/subcommands/tools/fmt"
+	aikilint "aiki/cmd/subcommands/tools/lint"
 )
 
 func main() {
