@@ -6,58 +6,55 @@ import (
 	"os"
 	"os/user"
 
-	"aiki/auxiliary/version"
+	"aiki/cmd/subcommands/dev/debug"
+	"aiki/cmd/subcommands/dev/smoke"
+	"aiki/cmd/subcommands/ux/repl"
 	"aiki/engine/runtime/hal/substrate"
 	"aiki/engine/runtime/prelude"
 	"aiki/engine/semantics/evaluator"
 	"aiki/engine/syntax"
 	"aiki/engine/syntax/definition"
-	"aiki/interaction/tools/repl"
 )
 
 func main() {
-	grammar := definition.New()
-
 	// Check for subcommands before flag parsing
 	if len(os.Args) > 1 {
 		switch os.Args[1] {
 		case "version":
-			fmt.Printf("aiki %s\n", version.Version)
+			fmt.Printf("aiki %s\n", Version)
 			return
+		case "debug":
+			os.Exit(debug.Run(os.Args[2:]))
+		case "smoke":
+			os.Exit(smoke.Run(os.Args[2:]))
 		// TODO: Add back when tools are ported
 		// case "doclint":
-		// 	aikidoclint.Run(os.Args[2:])
-		// 	return
+		// 	os.Exit(doclint.Run(os.Args[2:]))
 		// case "fmt":
-		// 	aikifmt.Run(os.Args[2:])
-		// 	return
+		// 	os.Exit(aikifmt.Run(os.Args[2:]))
 		// case "lint":
-		// 	aikilint.Run(os.Args[2:])
-		// 	return
+		// 	os.Exit(lint.Run(os.Args[2:]))
 		// case "smoke":
-		// 	aikismoke.Run(os.Args[2:])
-		// 	return
+		// 	os.Exit(smoke.Run(os.Args[2:]))
 		}
 	}
 
+	grammar := definition.New()
 	opts := parseOptions()
 
 	// Create runtime and scope
 	rt := substrate.NewGoRuntime()
 	scope := evaluator.NewScope(nil)
-	prelude.Load(scope, rt)
 
 	// Create evaluator
 	ev := evaluator.New(rt, nil)
 	ev.SetGrammar(grammar)
 
-	// TODO: Load prelude.ai when available
-	// preludeResult, err := ev.RunFile("prelude.ai", scope)
-	// if err != nil {
-	// 	fmt.Fprintf(os.Stderr, "error loading prelude: %v\n", err)
-	// 	os.Exit(1)
-	// }
-	// scope.SnapshotPrelude()
+	_, err := ev.RunSource(prelude.Name, prelude.Source, scope)
+	if err != nil {
+	    fmt.Fprintf(os.Stderr, "error loading prelude: %v\n", err)
+	    os.Exit(1)
+	}
 
 	if opts.Expr != "" {
 		runExpr(ev, grammar, opts.Expr, scope, opts)
@@ -77,7 +74,7 @@ func startREPL(ev *evaluator.Evaluator, grammar syntax.GrammarContract, scope *e
 		u = &user.User{Username: "user"}
 	}
 
-	fmt.Printf("%s %s\n", appName, version.Version)
+	fmt.Printf("%s %s\n", appName, Version)
 	fmt.Printf("Hello %s! The system is live.\n", u.Username)
 	fmt.Printf("Type help() for help.\n\n")
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 
+	"aiki/engine/runtime/hal/substrate"
 	"aiki/engine/semantics/evaluator"
 	"aiki/engine/semantics/value"
 	"aiki/engine/syntax"
@@ -32,6 +33,7 @@ func NewSession(ev *evaluator.Evaluator, grammar syntax.GrammarContract, out io.
 		reader = NewSimpleReader()
 	}
 	tracker := &TrackingWriter{Out: out, EndedWithNewline: true}
+	substrate.Stdout = tracker
 	return &Session{
 		ev:      ev,
 		grammar: grammar,

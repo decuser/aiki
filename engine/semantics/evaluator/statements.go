@@ -69,11 +69,13 @@ func evalBlock(e *Evaluator, node *syntax.Node, scope *Scope) (value.Value, erro
 }
 
 // evalLet evaluates a let statement (variable or shape definition).
+// evalLet evaluates a let statement (variable or shape definition).
 func evalLet(e *Evaluator, node *syntax.Node, scope *Scope) (value.Value, error) {
-	// AST structure: let_stmt -> KEYWORD:"let" NAME OPERATOR:"=" expr
 	var name string
 	var nameNode *syntax.Node
 	var valNode *syntax.Node
+	var isShapeDef bool
+	var shapeFields []string
 
 	for i, child := range node.Children {
 		switch child.Type {
@@ -83,19 +85,38 @@ func evalLet(e *Evaluator, node *syntax.Node, scope *Scope) (value.Value, error)
 				nameNode = child
 			}
 		case "SHAPE":
-			// Shape definition - handle separately
+			isShapeDef = true
 			name = strings.TrimPrefix(child.Value, "@")
 			nameNode = child
+		case "field":
+			// Single field in shape definition
+			for _, f := range child.Children {
+				if f.Type == "NAME" || f.Type == "SHAPE" {
+					shapeFields = append(shapeFields, f.Value)
+				}
+			}
+		case "field_list":
+			// Collect all fields
+			shapeFields = append(shapeFields, collectShapeFields(child)...)
 		case "OPERATOR":
 			if child.Value == "=" && i+1 < len(node.Children) {
 				valNode = node.Children[i+1]
 			}
 		case "expr":
-			// Direct expr child (after =)
 			if valNode == nil {
 				valNode = child
 			}
 		}
+	}
+
+	// Handle shape definition: let @name [field1, field2, ...]
+	if isShapeDef {
+		def := &ShapeDef{
+			Name:   name,
+			Fields: shapeFields,
+		}
+		scope.DefineShape(def)
+		return value.NullValue(), nil
 	}
 
 	// Variable binding
@@ -128,6 +149,34 @@ func evalLet(e *Evaluator, node *syntax.Node, scope *Scope) (value.Value, error)
 
 	scope.Define(name, val)
 	return value.NullValue(), nil
+}
+
+// collectShapeFields extracts field names from a field_list node.
+func collectShapeFields(node *syntax.Node) []string {
+	var fields []string
+	for _, child := range node.Children {
+		switch child.Type {
+		case "field":
+			for _, f := range child.Children {
+				if f.Type == "NAME" || f.Type == "SHAPE" {
+					fields = append(fields, f.Value)
+				}
+			}
+		case "field_tail":
+			for _, fc := range child.Children {
+				if fc.Type == "field" {
+					for _, f := range fc.Children {
+						if f.Type == "NAME" || f.Type == "SHAPE" {
+							fields = append(fields, f.Value)
+						}
+					}
+				}
+			}
+		case "NAME", "SHAPE":
+			fields = append(fields, child.Value)
+		}
+	}
+	return fields
 }
 
 // evalAssign evaluates an assignment statement.

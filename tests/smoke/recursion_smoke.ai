@@ -1,0 +1,21 @@
+let fib = (n) {
+	if n <= 1 {
+		return n
+	}
+	return fib(n - 1) + fib(n - 2)
+}
+
+let fact = (n) {
+	if n <= 1 {
+		return 1
+	}
+	return n * fact(n - 1)
+}
+
+print("FIB\n")
+print(fib(10), "\n")
+
+print("FACT\n")
+print(fact(5), "\n")
+
+print("RECURSION_SMOKE_DONE\n")

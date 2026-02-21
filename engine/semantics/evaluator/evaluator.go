@@ -62,22 +62,20 @@ func (e *Evaluator) eval(node *syntax.Node, scope *Scope) (value.Value, error) {
 }
 
 // RunSource parses and evaluates source code.
-func (e *Evaluator) RunSource(source string, scope *Scope) (value.Value, error) {
+func (e *Evaluator) RunSource(name, source string, scope *Scope) (value.Value, error) {
 	if e.grammar == nil {
 		return value.NullValue(), makeError(scope, nil, "grammar not initialized")
 	}
-
-	lexer := syntax.NewLexer("", source, e.grammar)
+	scope.SetFile(name)
+	lexer := syntax.NewLexer(name, source, e.grammar)
 	parser, err := syntax.NewParser(lexer, e.grammar)
 	if err != nil {
 		return value.NullValue(), err
 	}
-
 	ast, err := parser.Parse()
 	if err != nil {
 		return value.NullValue(), err
 	}
-
 	scope.SetSource(source)
 	return e.Eval(ast, scope)
 }
@@ -91,7 +89,7 @@ func (e *Evaluator) RunFile(filename string, scope *Scope) (value.Value, error) 
 	}
 
 	scope.SetFile(filename)
-	return e.RunSource(string(content), scope)
+	return e.RunSource(filename, string(content), scope)
 }
 
 // isTruthy determines if a value is truthy.

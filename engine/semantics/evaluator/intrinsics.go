@@ -6,6 +6,9 @@
 package evaluator
 
 import (
+	"fmt"
+	"sort"
+	"os"
 	"aiki/engine/semantics/value"
 	"aiki/engine/syntax"
 )
@@ -17,6 +20,18 @@ var intrinsics = map[string]bool{
 	"import": true,
 	"export": true,
 	"apply":  true,
+}
+
+func init() {
+	if os.Getenv("AIKI_DEBUG_INTRINSICS") == "" {
+		return
+	}
+	keys := make([]string, 0, len(intrinsics))
+	for k := range intrinsics {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	fmt.Fprintln(os.Stderr, "evaluator intrinsics:", keys)
 }
 
 // IsIntrinsic checks if a name is an intrinsic function.

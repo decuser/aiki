@@ -20,6 +20,12 @@ type EvalError struct {
 }
 
 func (e *EvalError) Error() string {
+	if e.File != "" && e.Line > 0 {
+		return fmt.Sprintf("%s:%d:%d: %s", e.File, e.Line, e.Column, e.Message)
+	}
+	if e.Line > 0 {
+		return fmt.Sprintf("%d:%d: %s", e.Line, e.Column, e.Message)
+	}
 	return e.Message
 }
 

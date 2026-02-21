@@ -1,0 +1,324 @@
+# Prelude - Pure Aiki standard library
+export(:each, :map, :filter, :reduce, :range, :reverse, :find, :any, :all, :sum, :max, :min, :hash_new, :hash_get, :hash_put, :hash_has, :hash_del, :hash_keys, :hash_values, :hash_code, :println)
+
+let @ok [value]
+let @error [reason]
+let @end []
+
+# Pure Aiki hash code implementation
+# Polynomial rolling hash: h = h * 31 + char_code
+let _hash_string = (s) {
+	let h = 0
+	while length(s) > 0 {
+		let r = first(s)
+		h = h * 31 + ord(r)
+		s = rest(s)
+	}
+	return h
+}
+
+let _hash_code_aiki = (val) {
+	match type(val) {
+		:number {
+			return _hash_string(to_str(val))
+		}
+		:boolean {
+			if val {
+				return 1
+			}
+			return 0
+		}
+		:rune {
+			return ord(val)
+		}
+		:string {
+			return _hash_string(val)
+		}
+		:symbol {
+			return _hash_string(to_str(val))
+		}
+		:list {
+			let h = _hash_string(to_str(shape(val)))
+			let i = 0
+			while i < length(val) {
+				h = h * 31 + _hash_code_aiki(val[i])
+				i = i + 1
+			}
+			return h
+		}
+		_ {
+			return 0
+		}
+	}
+}
+
+# Shim: strict uses pure Aiki hash
+let hash_code = _hash_code_aiki
+
+# Higher-order functions
+let each = (list, f) {
+	let i = 0
+	while i < length(list) {
+		f(list[i])
+		i = i + 1
+	}
+	return true
+}
+
+let map = (list, f) {
+	let result = []
+	let i = 0
+	while i < length(list) {
+		result = append(result, f(list[i]))
+		i = i + 1
+	}
+	return result
+}
+
+let filter = (list, f) {
+	let result = []
+	let i = 0
+	while i < length(list) {
+		if f(list[i]) {
+			result = append(result, list[i])
+		}
+		i = i + 1
+	}
+	return result
+}
+
+let reduce = (list, acc, f) {
+	let result = acc
+	let i = 0
+	while i < length(list) {
+		result = f(result, list[i])
+		i = i + 1
+	}
+	return result
+}
+
+# List operations
+let range = (start, end) {
+	let result = []
+	let i = start
+	while i < end {
+		result = append(result, i)
+		i = i + 1
+	}
+	return result
+}
+
+let reverse = (list) {
+	let result = []
+	let i = length(list) - 1
+	while i >= 0 {
+		result = append(result, list[i])
+		i = i - 1
+	}
+	return result
+}
+
+let find = (list, f) {
+	let i = 0
+	while i < length(list) {
+		if f(list[i]) {
+			return list[i]
+		}
+		i = i + 1
+	}
+	return [@error, "not found"]
+}
+
+let any = (list, f) {
+	let i = 0
+	while i < length(list) {
+		if f(list[i]) {
+			return true
+		}
+		i = i + 1
+	}
+	return false
+}
+
+let all = (list, f) {
+	let i = 0
+	while i < length(list) {
+		if not f(list[i]) {
+			return false
+		}
+		i = i + 1
+	}
+	return true
+}
+
+# Aggregation
+let sum = (list) {
+	let add = (acc, x) {
+		return acc + x
+	}
+	return reduce(list, 0, add)
+}
+
+let max = (list) {
+	if equal(length(list), 0) {
+		return [@error, "empty list"]
+	}
+	let m = list[0]
+	let i = 1
+	while i < length(list) {
+		if list[i] > m {
+			m = list[i]
+		}
+		i = i + 1
+	}
+	return m
+}
+
+let min = (list) {
+	if equal(length(list), 0) {
+		return [@error, "empty list"]
+	}
+	let m = list[0]
+	let i = 1
+	while i < length(list) {
+		if list[i] < m {
+			m = list[i]
+		}
+		i = i + 1
+	}
+	return m
+}
+
+# Hash map implementation
+# A hash is a list of 64 buckets, each bucket is a list of [key, value] pairs
+let _HASH_SIZE = 64
+
+let hash_new = () {
+	let buckets = []
+	let i = 0
+	while i < _HASH_SIZE {
+		buckets = append(buckets, [])
+		i = i + 1
+	}
+	return buckets
+}
+
+let _bucket_index = (key) {
+	return modulo(hash_code(key), _HASH_SIZE)
+}
+
+let hash_get = (h, key) {
+	let idx = _bucket_index(key)
+	let bucket = h[idx]
+	let i = 0
+	while i < length(bucket) {
+		let pair = bucket[i]
+		if equal(pair[0], key) {
+			return pair[1]
+		}
+		i = i + 1
+	}
+	return [@error, "key not found"]
+}
+
+let hash_put = (h, key, val) {
+	let idx = _bucket_index(key)
+	let bucket = h[idx]
+	let new_bucket = []
+	let found = false
+	let i = 0
+	while i < length(bucket) {
+		let pair = bucket[i]
+		if equal(pair[0], key) {
+			new_bucket = append(new_bucket, [key, val])
+			found = true
+		} else {
+			new_bucket = append(new_bucket, pair)
+		}
+		i = i + 1
+	}
+	if not found {
+		new_bucket = append(new_bucket, [key, val])
+	}
+	# Build new hash with updated bucket
+	let new_h = []
+	let j = 0
+	while j < _HASH_SIZE {
+		if equal(j, idx) {
+			new_h = append(new_h, new_bucket)
+		} else {
+			new_h = append(new_h, h[j])
+		}
+		j = j + 1
+	}
+	return new_h
+}
+
+let hash_has = (h, key) {
+	let result = hash_get(h, key)
+	return not (equal(shape(result), :error))
+}
+
+let hash_del = (h, key) {
+	let idx = _bucket_index(key)
+	let bucket = h[idx]
+	let new_bucket = []
+	let i = 0
+	while i < length(bucket) {
+		let pair = bucket[i]
+		if not equal(pair[0], key) {
+			new_bucket = append(new_bucket, pair)
+		}
+		i = i + 1
+	}
+	# Build new hash with updated bucket
+	let new_h = []
+	let j = 0
+	while j < _HASH_SIZE {
+		if equal(j, idx) {
+			new_h = append(new_h, new_bucket)
+		} else {
+			new_h = append(new_h, h[j])
+		}
+		j = j + 1
+	}
+	return new_h
+}
+
+let hash_keys = (h) {
+	let keys = []
+	let i = 0
+	while i < _HASH_SIZE {
+		let bucket = h[i]
+		let j = 0
+		while j < length(bucket) {
+			let pair = bucket[j]
+			keys = append(keys, pair[0])
+			j = j + 1
+		}
+		i = i + 1
+	}
+	return keys
+}
+
+let hash_values = (h) {
+	let vals = []
+	let i = 0
+	while i < _HASH_SIZE {
+		let bucket = h[i]
+		let j = 0
+		while j < length(bucket) {
+			let pair = bucket[j]
+			vals = append(vals, pair[1])
+			j = j + 1
+		}
+		i = i + 1
+	}
+	return vals
+}
+
+# println - requires rest params and apply
+let println = (...args) {
+	apply(print, args)
+	print("\n")
+}
