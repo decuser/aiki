@@ -13,6 +13,7 @@ import (
 	"aiki/reference/semantics/value"
 	"aiki/reference/syntax"
 
+	aikidebug "aiki/cmd/subcommands/dev/debug"
 	aikismoke "aiki/cmd/subcommands/dev/smoke"
 	aikidoclint "aiki/cmd/subcommands/tools/doclint"
 	aikifmt "aiki/cmd/subcommands/tools/fmt"
@@ -41,6 +42,8 @@ func main() {
 		case "smoke":
 			aikismoke.Run(os.Args[2:])
 			return
+		case "debug":
+			aikidebug.Run(os.Args[2:])
 		}
 
 	}
