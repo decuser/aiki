@@ -1,7 +1,7 @@
 package integration_test
 
 import (
-	"aiki/semantics/testutil"
+	"aiki/tests/testutil"
 	"os"
 	"strings"
 	"testing"

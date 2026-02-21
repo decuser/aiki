@@ -1,4 +1,4 @@
-import("smoke/import_target", :ANSWER, :add_two)
+import("tests/smoke/import_target", :ANSWER, :add_two)
 
 print("IMPORT\n")
 print(ANSWER, "\n")

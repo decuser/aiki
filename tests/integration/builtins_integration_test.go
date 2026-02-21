@@ -3,8 +3,8 @@ package integration_test
 import (
 	"testing"
 
-	"aiki/semantics/testutil"
 	"aiki/semantics/value"
+	"aiki/tests/testutil"
 )
 
 func TestFirst(t *testing.T) {

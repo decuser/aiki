@@ -2,7 +2,7 @@ package integration_test
 
 import (
 	"aiki/runtime/prelude"
-	"aiki/semantics/testutil"
+	"aiki/tests/testutil"
 	"strings"
 	"testing"
 )

@@ -4,8 +4,8 @@ import "aiki/syntax"
 
 import (
 	"aiki/semantics/eval"
-	"aiki/semantics/testutil"
 	"aiki/semantics/value"
+	"aiki/tests/testutil"
 	"strings"
 	"testing"
 )
