@@ -7,7 +7,6 @@ import (
 	"os/user"
 
 	"aiki/cmd/subcommands/ux/repl"
-	"aiki/internal/version"
 	"aiki/reference/runtime/hal"
 	"aiki/reference/runtime/prelude"
 	"aiki/reference/semantics/eval"
@@ -21,6 +20,7 @@ import (
 )
 
 func main() {
+	repl.AppVersion = Version
 	grammar := syntax.GetGrammar()
 	aikifmt.SetGrammar(grammar)
 	aikilint.SetGrammar(grammar)
@@ -74,7 +74,7 @@ func startREPL(env *value.Env, opts Options) {
 		u = &user.User{Username: "user"}
 	}
 
-	fmt.Printf("%s %s\n", appName, version.Version)
+	fmt.Printf("%s %s\n", appName, Version)
 	fmt.Printf("Hello %s! The system is live.\n", u.Username)
 	fmt.Printf("Type help() for help.\n\n")
 

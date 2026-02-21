@@ -4,8 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-
-	"aiki/internal/version"
 )
 
 const appName = "aiki"
@@ -30,7 +28,7 @@ func parseOptions() Options {
 	flag.Parse()
 
 	if *showVersion {
-		fmt.Printf("%s %s\n", appName, version.Version)
+		fmt.Printf("%s %s\n", appName, Version)
 		os.Exit(0)
 	}
 

@@ -3,10 +3,11 @@ package repl
 import (
 	"fmt"
 
-	"aiki/internal/version"
 	"aiki/reference/runtime/hal"
 	"aiki/reference/semantics/value"
 )
+
+var AppVersion string
 
 func init() {
 	hal.HAL["help"] = &value.Builtin{
@@ -35,7 +36,7 @@ Primitives:
   random(n)           - random 0 to n-1
   sleep(ms)           - sleep for n milliseconds
 
-`, version.Version)
+`, AppVersion)
 			return value.NULL
 		},
 	}
