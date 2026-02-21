@@ -7,12 +7,12 @@ import (
 	"os/user"
 
 	"aiki/cmd/subcommands/ux/repl"
+	"aiki/internal/version"
 	"aiki/runtime/hal"
 	"aiki/runtime/prelude"
 	"aiki/semantics/eval"
 	"aiki/semantics/value"
 	"aiki/syntax"
-	"aiki/version"
 
 	aikismoke "aiki/cmd/subcommands/dev/smoke"
 	aikidoclint "aiki/cmd/subcommands/tools/doclint"

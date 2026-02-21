@@ -3,9 +3,9 @@ package repl
 import (
 	"fmt"
 
+	"aiki/internal/version"
 	"aiki/runtime/hal"
 	"aiki/semantics/value"
-	"aiki/version"
 )
 
 func init() {
