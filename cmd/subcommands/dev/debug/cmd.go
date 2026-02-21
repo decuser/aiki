@@ -1,12 +1,14 @@
 package debug
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"strings"
 
-	"aiki/engine"
 	"aiki/reference/runtime/prelude"
 	"aiki/reference/semantics/eval"
 	"aiki/reference/semantics/value"
@@ -18,22 +20,73 @@ import (
 func Run(args []string) int {
 	fs := flag.NewFlagSet("debug", flag.ContinueOnError)
 	stage := fs.String("stage", "all", "output stage: lex, parse, eval, or all")
-	trace := fs.Bool("trace", false, "enable trace observation")
+	gold := fs.Bool("gold", false, "write output to gold file")
+	check := fs.Bool("check", false, "compare output against gold file")
 
 	if err := fs.Parse(args); err != nil {
 		return 1
 	}
 
 	if fs.NArg() < 1 {
-		fmt.Fprintln(os.Stderr, "usage: aiki debug [--stage lex|parse|eval|all] [--trace] <filename>")
+		fmt.Fprintln(os.Stderr, "usage: aiki debug [--stage lex|parse|eval|all] [--gold|--check] <filename>")
 		return 1
 	}
 
-	return run(fs.Arg(0), *stage, *trace, os.Stdout, os.Stderr)
+	if *gold && *check {
+		fmt.Fprintln(os.Stderr, "cannot use both --gold and --check")
+		return 1
+	}
+
+	path := fs.Arg(0)
+	var buf bytes.Buffer
+
+	code := run(path, *stage, &buf, os.Stderr)
+	if code != 0 {
+		return code
+	}
+
+	goldPath := goldFileName(path, *stage)
+
+	if *gold {
+		if err := os.WriteFile(goldPath, buf.Bytes(), 0644); err != nil {
+			fmt.Fprintf(os.Stderr, "error writing gold file: %v\n", err)
+			return 1
+		}
+		fmt.Fprintf(os.Stderr, "wrote %s\n", goldPath)
+		return 0
+	}
+
+	if *check {
+		expected, err := os.ReadFile(goldPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error reading gold file: %v\n", err)
+			return 1
+		}
+		if !bytes.Equal(buf.Bytes(), expected) {
+			fmt.Fprintf(os.Stderr, "output differs from %s\n", goldPath)
+			fmt.Fprintln(os.Stderr, "=== EXPECTED ===")
+			os.Stderr.Write(expected)
+			fmt.Fprintln(os.Stderr, "=== GOT ===")
+			os.Stderr.Write(buf.Bytes())
+			return 1
+		}
+		fmt.Fprintf(os.Stderr, "ok %s\n", goldPath)
+		return 0
+	}
+
+	// Normal output
+	os.Stdout.Write(buf.Bytes())
+	return 0
+}
+
+func goldFileName(path, stage string) string {
+	ext := filepath.Ext(path)
+	base := strings.TrimSuffix(path, ext)
+	return fmt.Sprintf("%s.%s.gold", base, stage)
 }
 
 // run is the internal implementation, separated for testability.
-func run(path, stage string, trace bool, stdout, stderr io.Writer) int {
+func run(path, stage string, stdout, stderr io.Writer) int {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		fmt.Fprintf(stderr, "error reading file: %v\n", err)
@@ -43,13 +96,6 @@ func run(path, stage string, trace bool, stdout, stderr io.Writer) int {
 
 	grammar := syntax.GetGrammar()
 
-	var obs engine.Observer
-	if trace {
-		obs = &TraceObserver{out: stdout}
-	} else {
-		obs = engine.SilentObserver{}
-	}
-
 	// === LEX ===
 	if stage == "lex" || stage == "all" {
 		tokens, err := grammar.Tokenize(source)
@@ -58,19 +104,11 @@ func run(path, stage string, trace bool, stdout, stderr io.Writer) int {
 			return 1
 		}
 
-		if stage == "lex" || trace {
+		if stage == "lex" {
 			fmt.Fprintln(stdout, "=== TOKENS ===")
 			for _, tok := range tokens {
-				obs.OnLex(tok.Type, tok.Lexeme, engine.Position{
-					File: path,
-					Line: tok.Line,
-					Col:  tok.Column,
-				})
 				fmt.Fprintf(stdout, "%d:%d\t%s\t%q\n", tok.Line, tok.Column, tok.Type, tok.Lexeme)
 			}
-		}
-
-		if stage == "lex" {
 			return 0
 		}
 	}
@@ -82,12 +120,9 @@ func run(path, stage string, trace bool, stdout, stderr io.Writer) int {
 		return 1
 	}
 
-	if stage == "parse" || (stage == "all" && trace) {
-		fmt.Fprintln(stdout, "=== AST ===")
-		printAST(stdout, ast, 0, obs, path)
-	}
-
 	if stage == "parse" {
+		fmt.Fprintln(stdout, "=== AST ===")
+		printAST(stdout, ast, 0)
 		return 0
 	}
 
@@ -106,23 +141,31 @@ func run(path, stage string, trace bool, stdout, stderr io.Writer) int {
 		return 1
 	}
 
+	if stage == "eval" {
+		fmt.Fprintln(stdout, "=== RESULT ===")
+		fmt.Fprintln(stdout, result.Inspect())
+		return 0
+	}
+
+	// stage == "all"
+	fmt.Fprintln(stdout, "=== TOKENS ===")
+	tokens, _ := grammar.Tokenize(source)
+	for _, tok := range tokens {
+		fmt.Fprintf(stdout, "%d:%d\t%s\t%q\n", tok.Line, tok.Column, tok.Type, tok.Lexeme)
+	}
+	fmt.Fprintln(stdout, "=== AST ===")
+	printAST(stdout, ast, 0)
 	fmt.Fprintln(stdout, "=== RESULT ===")
 	fmt.Fprintln(stdout, result.Inspect())
 
 	return 0
 }
 
-func printAST(w io.Writer, node *syntax.Node, depth int, obs engine.Observer, file string) {
+func printAST(w io.Writer, node *syntax.Node, depth int) {
 	indent := ""
 	for i := 0; i < depth; i++ {
 		indent += "  "
 	}
-
-	obs.OnParse(node.Type, depth, engine.Position{
-		File: file,
-		Line: node.Line,
-		Col:  node.Column,
-	})
 
 	if node.Value != "" {
 		fmt.Fprintf(w, "%s%s: %q\n", indent, node.Type, node.Value)
@@ -131,6 +174,6 @@ func printAST(w io.Writer, node *syntax.Node, depth int, obs engine.Observer, fi
 	}
 
 	for _, child := range node.Children {
-		printAST(w, child, depth+1, obs, file)
+		printAST(w, child, depth+1)
 	}
 }
