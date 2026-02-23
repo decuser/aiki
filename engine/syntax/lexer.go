@@ -71,7 +71,6 @@ func (l *Lexer) Next() (Token, error) {
 			Lexeme: "",
 			Pos:    l.position(),
 		}
-		l.observer.OnLex(tok.Type, tok.Lexeme, tok.Pos)
 		return tok, nil
 	}
 

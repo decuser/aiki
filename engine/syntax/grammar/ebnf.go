@@ -9,8 +9,7 @@ import (
 	"aiki/engine"
 )
 
-// Parser parses EBNFX grammar files.
-type Parser struct {
+type ebnfParser struct {
 	source string
 	file   string
 	pos    int
@@ -18,26 +17,14 @@ type Parser struct {
 	col    int
 }
 
-// NewParser creates a parser for the given source.
-func NewParser(file, source string) *Parser {
-	return &Parser{
-		source: source,
-		file:   file,
-		pos:    0,
-		line:   1,
-		col:    1,
-	}
+func NewParser(file, source string) *ebnfParser {
+	return &ebnfParser{source: source, file: file, pos: 0, line: 1, col: 1}
 }
 
-// Parse parses the EBNFX source into a Grammar.
-func (p *Parser) Parse() (*Grammar, error) {
-	g := &Grammar{
-		Productions: make(map[string]Production),
-	}
-
+func (p *ebnfParser) Parse() (*Grammar, error) {
+	g := &Grammar{Productions: make(map[string]*Production)}
 	p.skipWhitespaceAndComments()
 
-	// Parse @tokens block if present
 	if p.peek() == '@' && p.lookingAt("@tokens") {
 		tokens, err := p.parseTokensBlock()
 		if err != nil {
@@ -47,18 +34,15 @@ func (p *Parser) Parse() (*Grammar, error) {
 		p.skipWhitespaceAndComments()
 	}
 
-	// Parse productions
 	for p.pos < len(p.source) {
 		p.skipWhitespaceAndComments()
 		if p.pos >= len(p.source) {
 			break
 		}
-
 		prod, err := p.parseProduction()
 		if err != nil {
 			return nil, err
 		}
-
 		if g.Start == "" {
 			g.Start = prod.Name
 		}
@@ -66,20 +50,46 @@ func (p *Parser) Parse() (*Grammar, error) {
 		p.skipWhitespaceAndComments()
 	}
 
+	for _, prod := range g.Productions {
+		prod.Expr = resolveRefs(prod.Expr, g.Productions)
+	}
 	return g, nil
 }
 
-// parseTokensBlock parses @tokens { ... }
-func (p *Parser) parseTokensBlock() ([]TokenDef, error) {
-	p.expect("@tokens")
-	p.skipWhitespaceAndComments()
-	if err := p.expectChar('{'); err != nil {
-		return nil, err
+func resolveRefs(expr Expression, prods map[string]*Production) Expression {
+	switch e := expr.(type) {
+	case *Sequence:
+		for i, sub := range e.Exprs {
+			e.Exprs[i] = resolveRefs(sub, prods)
+		}
+	case *Alternative:
+		for i, sub := range e.Exprs {
+			e.Exprs[i] = resolveRefs(sub, prods)
+		}
+	case *Repetition:
+		e.Expr = resolveRefs(e.Expr, prods)
+	case *Option:
+		e.Expr = resolveRefs(e.Expr, prods)
+	case *Group:
+		e.Expr = resolveRefs(e.Expr, prods)
+	case *TokenRef:
+		if _, ok := prods[e.Name]; ok {
+			return &Reference{Name: e.Name}
+		}
+	}
+	return expr
+}
+
+func (p *ebnfParser) parseTokensBlock() ([]TokenDef, error) {
+	if !p.consumeString("@tokens") {
+		return nil, p.error("expected @tokens")
 	}
 	p.skipWhitespaceAndComments()
-
+	if !p.consume('{') {
+		return nil, p.error("expected '{'")
+	}
 	var tokens []TokenDef
-
+	p.skipWhitespaceAndComments()
 	for p.peek() != '}' && p.pos < len(p.source) {
 		tok, err := p.parseTokenDef()
 		if err != nil {
@@ -88,31 +98,22 @@ func (p *Parser) parseTokensBlock() ([]TokenDef, error) {
 		tokens = append(tokens, tok)
 		p.skipWhitespaceAndComments()
 	}
-
-	if err := p.expectChar('}'); err != nil {
-		return nil, err
+	if !p.consume('}') {
+		return nil, p.error("expected '}'")
 	}
-
 	return tokens, nil
 }
 
-// parseTokenDef parses a single token definition.
-func (p *Parser) parseTokenDef() (TokenDef, error) {
+func (p *ebnfParser) parseTokenDef() (TokenDef, error) {
 	startPos := p.position()
-
-	name := p.parseName()
+	name := p.parseIdentifier()
 	if name == "" {
 		return TokenDef{}, p.error("expected token name")
 	}
+	p.skipSpaces()
 
-	p.skipInlineWhitespace()
+	def := TokenDef{Name: name, Pos: startPos}
 
-	tok := TokenDef{
-		Name: name,
-		Pos:  startPos,
-	}
-
-	// Check for pattern or keyword list
 	if p.peek() == '/' {
 		pattern, err := p.parseRegex()
 		if err != nil {
@@ -120,117 +121,72 @@ func (p *Parser) parseTokenDef() (TokenDef, error) {
 		}
 		re, err := regexp.Compile("^" + pattern)
 		if err != nil {
-			return TokenDef{}, p.error("invalid regex: %s", err)
+			return TokenDef{}, p.error("invalid regex: " + err.Error())
 		}
-		tok.Pattern = re
+		def.Pattern = re
 	} else {
-		// Keyword/operator/delimiter list - no pattern, just literals
-		// These are handled specially by the lexer
-		p.skipToEndOfLine()
-		return tok, nil
+		def.Literal = strings.TrimSpace(p.parseUntilNewlineOrAt())
 	}
 
-	// Parse @skip and decorations
-	p.skipInlineWhitespace()
-	for p.peek() == '@' {
-		decorator, value, err := p.parseDecorator()
-		if err != nil {
-			return TokenDef{}, err
-		}
-		switch decorator {
-		case "skip":
-			tok.Skip = true
-		case "error":
-			tok.Meta.Error = value
-		case "template":
-			tok.Meta.Template = value
-		case "help":
-			tok.Meta.Help = value
-		}
-		p.skipInlineWhitespace()
-	}
-
-	// Check for continued decorations on next lines
+	// Parse decorations (may span multiple lines)
 	for {
-		savedPos, savedLine, savedCol := p.pos, p.line, p.col
 		p.skipWhitespaceAndComments()
-		if p.peek() == '@' {
-			decorator, value, err := p.parseDecorator()
-			if err != nil {
-				return TokenDef{}, err
-			}
-			switch decorator {
-			case "skip":
-				tok.Skip = true
-			case "error":
-				tok.Meta.Error = value
-			case "template":
-				tok.Meta.Template = value
-			case "help":
-				tok.Meta.Help = value
-			default:
-				// Unknown decorator, restore position
-				p.pos, p.line, p.col = savedPos, savedLine, savedCol
-				break
-			}
-		} else if p.pos < len(p.source) && !unicode.IsUpper(rune(p.peek())) && p.peek() != '}' {
-			// Next token definition or end
-			p.pos, p.line, p.col = savedPos, savedLine, savedCol
+		if p.peek() != '@' {
 			break
+		}
+		// Check if this is a new token or production (uppercase after @)
+		if p.lookingAt("@tokens") || p.lookingAt("@skip") || p.lookingAt("@error") || p.lookingAt("@template") || p.lookingAt("@help") {
+			if p.lookingAt("@tokens") {
+				break // new block
+			}
+			dname, value := p.parseDecorator()
+			switch dname {
+			case "skip":
+				def.Skip = true
+			case "error":
+				def.Meta.Error = value
+			case "template":
+				def.Meta.Template = value
+			case "help":
+				def.Meta.Help = value
+			}
 		} else {
-			p.pos, p.line, p.col = savedPos, savedLine, savedCol
 			break
 		}
 	}
-
-	return tok, nil
+	return def, nil
 }
 
-// parseProduction parses a production rule.
-func (p *Parser) parseProduction() (Production, error) {
+func (p *ebnfParser) parseProduction() (*Production, error) {
 	startPos := p.position()
-
-	name := p.parseName()
+	name := p.parseIdentifier()
 	if name == "" {
-		return Production{}, p.error("expected production name")
-	}
-
-	p.skipWhitespaceAndComments()
-	if err := p.expectChar('='); err != nil {
-		return Production{}, err
+		return nil, p.error("expected production name")
 	}
 	p.skipWhitespaceAndComments()
+	if !p.consume('=') {
+		return nil, p.error("expected '='")
+	}
+	p.skipWhitespaceAndComments()
 
-	prod := Production{
-		Name: name,
-		Pos:  startPos,
+	expr, err := p.parseExpression()
+	if err != nil {
+		return nil, err
 	}
 
-	// Parse expressions (alternatives)
+	prod := &Production{Name: name, Expr: expr, Pos: startPos}
+
+	// Parse decorations (may span multiple lines)
 	for {
-		expr, err := p.parseExpression()
-		if err != nil {
-			return Production{}, err
-		}
-		prod.Expressions = append(prod.Expressions, expr)
-
 		p.skipWhitespaceAndComments()
-		if p.peek() == '|' && !p.lookingAt("|>") {
-			p.advance() // consume |
-			p.skipWhitespaceAndComments()
-		} else {
+		if p.peek() != '@' {
 			break
 		}
-	}
-
-	// Parse decorations
-	p.skipWhitespaceAndComments()
-	for p.peek() == '@' {
-		decorator, value, err := p.parseDecorator()
-		if err != nil {
-			return Production{}, err
+		if !p.lookingAt("@error") && !p.lookingAt("@template") && !p.lookingAt("@help") {
+			break
 		}
-		switch decorator {
+		dname, value := p.parseDecorator()
+		switch dname {
 		case "error":
 			prod.Meta.Error = value
 		case "template":
@@ -238,280 +194,194 @@ func (p *Parser) parseProduction() (Production, error) {
 		case "help":
 			prod.Meta.Help = value
 		}
-		p.skipWhitespaceAndComments()
 	}
-
 	return prod, nil
 }
 
-// parseExpression parses a sequence of terms.
-func (p *Parser) parseExpression() (Expression, error) {
-	var expr Expression
+func (p *ebnfParser) parseExpression() (Expression, error) {
+	return p.parseAlternative()
+}
+
+func (p *ebnfParser) parseAlternative() (Expression, error) {
+	first, err := p.parseSequenceExpr()
+	if err != nil {
+		return nil, err
+	}
+	var alts []Expression
+	alts = append(alts, first)
 
 	for {
-		p.skipInlineWhitespace()
-		ch := p.peek()
-
-		// End of expression
-		if ch == 0 || ch == '|' || ch == '@' || ch == '\n' {
+		p.skipWhitespaceAndComments()
+		if p.peek() != '|' || p.lookingAt("|>") {
 			break
 		}
-		// Also end on these unless in group
-		if ch == ')' || ch == ']' || ch == '}' {
-			break
+		p.consume('|')
+		p.skipWhitespaceAndComments()
+		next, err := p.parseSequenceExpr()
+		if err != nil {
+			return nil, err
 		}
+		alts = append(alts, next)
+	}
+	if len(alts) == 1 {
+		return alts[0], nil
+	}
+	return &Alternative{Exprs: alts}, nil
+}
 
+func (p *ebnfParser) parseSequenceExpr() (Expression, error) {
+	var terms []Expression
+	for {
+		p.skipSpaces()
 		term, err := p.parseTerm()
 		if err != nil {
-			return Expression{}, err
+			return nil, err
 		}
-		if term.Value != "" || term.Kind != TermLiteral {
-			expr.Terms = append(expr.Terms, term)
-		} else {
+		if term == nil {
 			break
 		}
+		terms = append(terms, term)
 	}
-
-	return expr, nil
+	if len(terms) == 0 {
+		return nil, p.error("expected expression")
+	}
+	if len(terms) == 1 {
+		return terms[0], nil
+	}
+	return &Sequence{Exprs: terms}, nil
 }
 
-// parseTerm parses a single term.
-func (p *Parser) parseTerm() (Term, error) {
-	startPos := p.position()
+func (p *ebnfParser) parseTerm() (Expression, error) {
+	p.skipSpaces()
 	ch := p.peek()
 
-	var term Term
-	term.Pos = startPos
-
-	switch {
-	case ch == '"':
-		// Literal string
-		lit, err := p.parseString()
-		if err != nil {
-			return Term{}, err
-		}
-		term.Value = lit
-		term.Kind = TermLiteral
-
-	case ch == '[':
-		// Optional group - may contain alternatives
-		p.advance()
-		p.skipWhitespaceAndComments()
-		
-		var alts []Expression
-		for {
-			expr, err := p.parseExpression()
-			if err != nil {
-				return Term{}, err
-			}
-			alts = append(alts, expr)
-			p.skipWhitespaceAndComments()
-			if p.peek() == '|' && !p.lookingAt("|>") {
-				p.advance() // consume |
-				p.skipWhitespaceAndComments()
-			} else {
-				break
-			}
-		}
-		
-		p.skipWhitespaceAndComments()
-		if err := p.expectChar(']'); err != nil {
-			return Term{}, err
-		}
-		
-		if len(alts) == 1 && len(alts[0].Terms) == 1 {
-			term = alts[0].Terms[0]
-			term.Optional = true
-		} else {
-			term.Value = "[group]"
-			term.Kind = TermProduction
-			term.Optional = true
-		}
-
-	case ch == '{':
-		// Repeat group - may contain alternatives
-		p.advance()
-		p.skipWhitespaceAndComments()
-		
-		var alts []Expression
-		for {
-			expr, err := p.parseExpression()
-			if err != nil {
-				return Term{}, err
-			}
-			alts = append(alts, expr)
-			p.skipWhitespaceAndComments()
-			if p.peek() == '|' && !p.lookingAt("|>") {
-				p.advance() // consume |
-				p.skipWhitespaceAndComments()
-			} else {
-				break
-			}
-		}
-		
-		p.skipWhitespaceAndComments()
-		if err := p.expectChar('}'); err != nil {
-			return Term{}, err
-		}
-		
-		if len(alts) == 1 && len(alts[0].Terms) == 1 {
-			term = alts[0].Terms[0]
-			term.Repeat = true
-		} else {
-			term.Value = "{group}"
-			term.Kind = TermProduction
-			term.Repeat = true
-		}
-
-	case ch == '(':
-		// Grouping - may contain alternatives
-		p.advance()
-		p.skipWhitespaceAndComments()
-		
-		var alts []Expression
-		for {
-			expr, err := p.parseExpression()
-			if err != nil {
-				return Term{}, err
-			}
-			alts = append(alts, expr)
-			p.skipWhitespaceAndComments()
-			if p.peek() == '|' && !p.lookingAt("|>") {
-				p.advance() // consume |
-				p.skipWhitespaceAndComments()
-			} else {
-				break
-			}
-		}
-		
-		p.skipWhitespaceAndComments()
-		if err := p.expectChar(')'); err != nil {
-			return Term{}, err
-		}
-		
-		if len(alts) == 1 && len(alts[0].Terms) == 1 {
-			term = alts[0].Terms[0]
-		} else {
-			term.Value = "(group)"
-			term.Kind = TermProduction
-		}
-
-	case unicode.IsUpper(rune(ch)):
-		// Token reference
-		name := p.parseName()
-		term.Value = name
-		term.Kind = TermToken
-
-	case unicode.IsLower(rune(ch)) || ch == '_':
-		// Production reference
-		name := p.parseName()
-		term.Value = name
-		term.Kind = TermProduction
-
-	default:
-		return Term{}, nil
+	if ch == 0 || ch == '|' || ch == ')' || ch == ']' || ch == '}' || ch == '@' {
+		return nil, nil
 	}
 
-	return term, nil
+	if ch == '(' {
+		p.consume('(')
+		p.skipWhitespaceAndComments()
+		expr, err := p.parseExpression()
+		if err != nil {
+			return nil, err
+		}
+		p.skipWhitespaceAndComments()
+		if !p.consume(')') {
+			return nil, p.error("expected ')'")
+		}
+		return &Group{Expr: expr}, nil
+	}
+
+	if ch == '[' {
+		p.consume('[')
+		p.skipWhitespaceAndComments()
+		expr, err := p.parseExpression()
+		if err != nil {
+			return nil, err
+		}
+		p.skipWhitespaceAndComments()
+		if !p.consume(']') {
+			return nil, p.error("expected ']'")
+		}
+		return &Option{Expr: expr}, nil
+	}
+
+	if ch == '{' {
+		p.consume('{')
+		p.skipWhitespaceAndComments()
+		expr, err := p.parseExpression()
+		if err != nil {
+			return nil, err
+		}
+		p.skipWhitespaceAndComments()
+		if !p.consume('}') {
+			return nil, p.error("expected '}'")
+		}
+		return &Repetition{Expr: expr}, nil
+	}
+
+	if ch == '"' {
+		p.consume('"')
+		start := p.pos
+		for p.pos < len(p.source) && p.source[p.pos] != '"' {
+			p.advance()
+		}
+		value := p.source[start:p.pos]
+		if !p.consume('"') {
+			return nil, p.error("unterminated string")
+		}
+		return &Terminal{Value: value}, nil
+	}
+
+	if unicode.IsLetter(rune(ch)) || ch == '_' {
+		name := p.parseIdentifier()
+		if isTokenClass(name) {
+			return &TokenRef{Name: name}, nil
+		}
+		return &Reference{Name: name}, nil
+	}
+
+	return nil, nil
 }
 
-// parseDecorator parses @name or @name "value"
-func (p *Parser) parseDecorator() (string, string, error) {
-	if err := p.expectChar('@'); err != nil {
-		return "", "", err
+func isTokenClass(name string) bool {
+	for _, r := range name {
+		if !unicode.IsUpper(r) && r != '_' {
+			return false
+		}
 	}
+	return len(name) > 0
+}
 
-	name := p.parseName()
-	if name == "" {
-		return "", "", p.error("expected decorator name")
+func (p *ebnfParser) parseDecorator() (string, string) {
+	if !p.consume('@') {
+		return "", ""
 	}
-
-	p.skipInlineWhitespace()
-
+	name := p.parseIdentifier()
+	p.skipSpaces()
 	var value string
 	if p.peek() == '"' {
-		var err error
-		value, err = p.parseString()
-		if err != nil {
-			return "", "", err
-		}
-	}
-
-	return name, value, nil
-}
-
-// parseString parses a quoted string.
-func (p *Parser) parseString() (string, error) {
-	if err := p.expectChar('"'); err != nil {
-		return "", err
-	}
-
-	var sb strings.Builder
-	for p.pos < len(p.source) {
-		ch := p.source[p.pos]
-		if ch == '"' {
-			p.advance()
-			return sb.String(), nil
-		}
-		if ch == '\\' && p.pos+1 < len(p.source) {
-			p.advance()
-			next := p.source[p.pos]
-			switch next {
-			case 'n':
-				sb.WriteByte('\n')
-			case 't':
-				sb.WriteByte('\t')
-			case '"':
-				sb.WriteByte('"')
-			case '\\':
-				sb.WriteByte('\\')
-			default:
-				sb.WriteByte(next)
+		p.consume('"')
+		start := p.pos
+		for p.pos < len(p.source) && p.source[p.pos] != '"' {
+			if p.source[p.pos] == '\\' && p.pos+1 < len(p.source) {
+				p.pos += 2 // skip escape sequence
+			} else {
+				p.pos++
 			}
-			p.advance()
-		} else {
-			sb.WriteByte(ch)
-			p.advance()
 		}
+		value = p.source[start:p.pos]
+		p.consume('"')
 	}
-
-	return "", p.error("unterminated string")
+	return name, value
 }
 
-// parseRegex parses /pattern/
-func (p *Parser) parseRegex() (string, error) {
-	if err := p.expectChar('/'); err != nil {
-		return "", err
+func (p *ebnfParser) parseRegex() (string, error) {
+	if !p.consume('/') {
+		return "", p.error("expected '/'")
 	}
-
-	var sb strings.Builder
-	for p.pos < len(p.source) {
-		ch := p.source[p.pos]
-		if ch == '/' {
-			p.advance()
-			return sb.String(), nil
-		}
-		if ch == '\\' && p.pos+1 < len(p.source) {
-			sb.WriteByte(ch)
-			p.advance()
-			sb.WriteByte(p.source[p.pos])
-			p.advance()
+	start := p.pos
+	for p.pos < len(p.source) && p.source[p.pos] != '/' {
+		if p.source[p.pos] == '\\' && p.pos+1 < len(p.source) {
+			p.pos += 2
 		} else {
-			sb.WriteByte(ch)
-			p.advance()
+			p.pos++
 		}
 	}
-
-	return "", p.error("unterminated regex")
+	pattern := p.source[start:p.pos]
+	if !p.consume('/') {
+		return "", p.error("unterminated regex")
+	}
+	return pattern, nil
 }
 
-// parseName parses an identifier.
-func (p *Parser) parseName() string {
+func (p *ebnfParser) parseIdentifier() string {
 	start := p.pos
 	for p.pos < len(p.source) {
 		ch := p.source[p.pos]
 		if unicode.IsLetter(rune(ch)) || unicode.IsDigit(rune(ch)) || ch == '_' {
-			p.advance()
+			p.pos++
 		} else {
 			break
 		}
@@ -519,16 +389,22 @@ func (p *Parser) parseName() string {
 	return p.source[start:p.pos]
 }
 
-// Helper methods
+func (p *ebnfParser) parseUntilNewlineOrAt() string {
+	start := p.pos
+	for p.pos < len(p.source) && p.source[p.pos] != '\n' && p.source[p.pos] != '@' {
+		p.pos++
+	}
+	return p.source[start:p.pos]
+}
 
-func (p *Parser) peek() byte {
+func (p *ebnfParser) peek() byte {
 	if p.pos >= len(p.source) {
 		return 0
 	}
 	return p.source[p.pos]
 }
 
-func (p *Parser) advance() {
+func (p *ebnfParser) advance() {
 	if p.pos < len(p.source) {
 		if p.source[p.pos] == '\n' {
 			p.line++
@@ -540,45 +416,29 @@ func (p *Parser) advance() {
 	}
 }
 
-func (p *Parser) lookingAt(s string) bool {
+func (p *ebnfParser) consume(ch byte) bool {
+	if p.peek() == ch {
+		p.advance()
+		return true
+	}
+	return false
+}
+
+func (p *ebnfParser) consumeString(s string) bool {
+	if p.lookingAt(s) {
+		for range s {
+			p.advance()
+		}
+		return true
+	}
+	return false
+}
+
+func (p *ebnfParser) lookingAt(s string) bool {
 	return strings.HasPrefix(p.source[p.pos:], s)
 }
 
-func (p *Parser) expect(s string) error {
-	if !p.lookingAt(s) {
-		return p.error("expected '%s'", s)
-	}
-	for range s {
-		p.advance()
-	}
-	return nil
-}
-
-func (p *Parser) expectChar(ch byte) error {
-	if p.peek() != ch {
-		return p.error("expected '%c'", ch)
-	}
-	p.advance()
-	return nil
-}
-
-func (p *Parser) skipWhitespaceAndComments() {
-	for p.pos < len(p.source) {
-		ch := p.source[p.pos]
-		if ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n' {
-			p.advance()
-		} else if ch == '#' {
-			// Skip comment to end of line
-			for p.pos < len(p.source) && p.source[p.pos] != '\n' {
-				p.advance()
-			}
-		} else {
-			break
-		}
-	}
-}
-
-func (p *Parser) skipInlineWhitespace() {
+func (p *ebnfParser) skipSpaces() {
 	for p.pos < len(p.source) {
 		ch := p.source[p.pos]
 		if ch == ' ' || ch == '\t' {
@@ -589,21 +449,25 @@ func (p *Parser) skipInlineWhitespace() {
 	}
 }
 
-func (p *Parser) skipToEndOfLine() {
-	for p.pos < len(p.source) && p.source[p.pos] != '\n' {
-		p.advance()
+func (p *ebnfParser) skipWhitespaceAndComments() {
+	for p.pos < len(p.source) {
+		ch := p.source[p.pos]
+		if ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n' {
+			p.advance()
+		} else if ch == '#' {
+			for p.pos < len(p.source) && p.source[p.pos] != '\n' {
+				p.advance()
+			}
+		} else {
+			break
+		}
 	}
 }
 
-func (p *Parser) position() engine.Position {
-	return engine.Position{
-		File: p.file,
-		Line: p.line,
-		Col:  p.col,
-	}
+func (p *ebnfParser) position() engine.Position {
+	return engine.Position{File: p.file, Line: p.line, Col: p.col}
 }
 
-func (p *Parser) error(format string, args ...interface{}) error {
-	msg := fmt.Sprintf(format, args...)
+func (p *ebnfParser) error(msg string) error {
 	return fmt.Errorf("%s:%d:%d: %s", p.file, p.line, p.col, msg)
 }

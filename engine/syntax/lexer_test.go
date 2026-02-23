@@ -19,7 +19,7 @@ func testGrammar() *grammar.Grammar {
 			{Name: "SYMBOL", Pattern: mustCompile(`:[a-zA-Z_][a-zA-Z0-9_]*`)},
 			{Name: "SHAPE", Pattern: mustCompile(`@[a-zA-Z_][a-zA-Z0-9_]*`)},
 		},
-		Productions: make(map[string]grammar.Production),
+		Productions: make(map[string]*grammar.Production),
 	}
 }
 
@@ -45,7 +45,6 @@ func TestLexerBasicTokens(t *testing.T) {
 		{"NAME", "x"},
 		{"OPERATOR", "="},
 		{"NUMBER", "42"},
-		{"EOF", ""},
 	}
 
 	if len(tokens) != len(expected) {
@@ -78,8 +77,8 @@ func TestLexerPosition(t *testing.T) {
 	}
 
 	// Second "let" should be at line 2, col 1
-	// tokens: let x = 1 let y = 2 EOF
-	// indices: 0   1 2 3 4   5 6 7 8
+	// tokens: let x = 1 let y = 2
+	// indices: 0   1 2 3 4   5 6 7
 	if tokens[4].Pos.Line != 2 || tokens[4].Pos.Col != 1 {
 		t.Errorf("expected 2:1, got %d:%d", tokens[4].Pos.Line, tokens[4].Pos.Col)
 	}
@@ -185,7 +184,6 @@ func TestLexerLiterals(t *testing.T) {
 		{"RUNE", "'a'"},
 		{"SYMBOL", ":ok"},
 		{"SHAPE", "@point"},
-		{"EOF", ""},
 	}
 
 	if len(tokens) != len(expected) {
@@ -220,9 +218,9 @@ let y = 2`
 		}
 	}
 
-	// Should have 8 tokens: let x = 1 let y = 2 EOF
-	if len(tokens) != 9 {
-		t.Errorf("expected 9 tokens, got %d", len(tokens))
+	// Should have 8 tokens: let x = 1 let y = 2
+	if len(tokens) != 8 {
+		t.Errorf("expected 8 tokens, got %d", len(tokens))
 	}
 }
 
@@ -243,7 +241,7 @@ func TestLexerObserver(t *testing.T) {
 		t.Fatalf("tokenize error: %v", err)
 	}
 
-	expected := []string{"KEYWORD:let", "NAME:x", "OPERATOR:=", "NUMBER:1", "EOF:"}
+	expected := []string{"KEYWORD:let", "NAME:x", "OPERATOR:=", "NUMBER:1"}
 	if len(observed) != len(expected) {
 		t.Fatalf("expected %d observations, got %d", len(expected), len(observed))
 	}
@@ -284,7 +282,7 @@ func TestLexerRestParam(t *testing.T) {
 		t.Fatalf("tokenize error: %v", err)
 	}
 
-	// Should have: ( ... args ) EOF
+	// Should have: ( ... args )
 	expected := []struct {
 		typ    string
 		lexeme string
@@ -293,7 +291,6 @@ func TestLexerRestParam(t *testing.T) {
 		{"DELIMITER", "..."},
 		{"NAME", "args"},
 		{"DELIMITER", ")"},
-		{"EOF", ""},
 	}
 
 	if len(tokens) != len(expected) {
