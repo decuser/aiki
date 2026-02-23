@@ -1,4 +1,4 @@
-package eval
+package evaluator
 
 import (
 	"aiki/engine/semantics/value"
@@ -9,8 +9,8 @@ func (e *Evaluator) applyFunction(fn value.Value, args []value.Value, node *synt
 	switch f := fn.(type) {
 	case *value.Function:
 		return e.applyUserFunction(f, args, node, env)
-	case *value.Intrinsic:
-		return e.applyIntrinsic(f, args, node, env)
+	case value.Callable:
+		return f.Call(args)
 	default:
 		return e.makeError(node, env, "not a function: %s", fn.Type())
 	}
@@ -53,18 +53,6 @@ func (e *Evaluator) applyUserFunction(fn *value.Function, args []value.Value, no
 	}
 
 	return result
-}
-
-func (e *Evaluator) applyIntrinsic(fn *value.Intrinsic, args []value.Value, node *syntax.Node, env *value.Env) value.Value {
-	if fn.Fn == nil {
-		return e.makeError(node, env, "intrinsic not implemented: %s", fn.Name)
-	}
-
-	if call, ok := fn.Fn.(func([]value.Value) value.Value); ok {
-		return call(args)
-	}
-
-	return e.makeError(node, env, "invalid intrinsic: %s", fn.Name)
 }
 
 func (e *Evaluator) extractParams(node *syntax.Node) ([]string, string) {

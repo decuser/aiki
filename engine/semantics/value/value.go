@@ -133,14 +133,11 @@ func (f *Function) Inspect() string {
 	return "<fn>"
 }
 
-// Intrinsic is a builtin function.
-type Intrinsic struct {
-	Name string
-	Fn   interface{} // actual function, set by HAL
+// Callable is implemented by values that can be called as functions.
+type Callable interface {
+	Value
+	Call(args []Value) Value
 }
-
-func (i *Intrinsic) Type() Type      { return FunctionType }
-func (i *Intrinsic) Inspect() string { return fmt.Sprintf("<builtin %s>", i.Name) }
 
 // Error
 type Error struct {

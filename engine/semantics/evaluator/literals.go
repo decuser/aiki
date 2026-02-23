@@ -1,4 +1,4 @@
-package eval
+package evaluator
 
 import (
 	"strconv"
@@ -57,12 +57,16 @@ func (e *Evaluator) evalSymbol(node *syntax.Node, env *value.Env) value.Value {
 func (e *Evaluator) evalName(node *syntax.Node, env *value.Env) value.Value {
 	name := node.Value
 
-	if builtin, ok := e.hal[name]; ok {
-		return builtin
-	}
-
+	// Check environment first (allows shadowing)
 	if val, ok := env.Get(name); ok {
 		return val
+	}
+
+	// Then check builtins via runtime
+	if e.runtime != nil {
+		if builtin, ok := e.runtime.GetBuiltin(name); ok {
+			return builtin
+		}
 	}
 
 	return e.makeError(node, env, "undefined: %s", name)

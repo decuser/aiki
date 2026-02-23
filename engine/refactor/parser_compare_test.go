@@ -50,11 +50,6 @@ func TestParserCompare(t *testing.T) {
 
 // compareParserOutput parses with both parsers and compares ASTs.
 func compareParserOutput(t *testing.T, newGrammar *grammar.Grammar, refGrammar *refsyntax.Grammar, file, source string) {
-	fmt.Printf("statement: %+v\n", newGrammar.Productions["statement"])
-	fmt.Printf("expr_stmt: %+v\n", newGrammar.Productions["expr_stmt"])
-	fmt.Printf("expr: %+v\n", newGrammar.Productions["expr"])
-	fmt.Printf("unary_expr: %+v\n", newGrammar.Productions["unary_expr"])
-
 	// Parse with new engine
 	newLexer := syntax.NewLexer(newGrammar, file, source, nil)
 	newTokens, err := newLexer.Tokenize()

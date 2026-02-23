@@ -1,8 +1,9 @@
-// Package eval provides the AST evaluator.
-package eval
+// Package evaluator provides the AST evaluator.
+package evaluator
 
 import (
 	"aiki/engine"
+	"aiki/engine/runtime/hal"
 	"aiki/engine/semantics/value"
 	"aiki/engine/syntax"
 )
@@ -10,23 +11,18 @@ import (
 // Evaluator evaluates AST nodes.
 type Evaluator struct {
 	observer engine.Observer
-	hal      map[string]value.Value // builtins
+	runtime  hal.RuntimeContract
 }
 
-// New creates an evaluator.
-func New(observer engine.Observer) *Evaluator {
+// New creates an evaluator with a runtime.
+func New(runtime hal.RuntimeContract, observer engine.Observer) *Evaluator {
 	if observer == nil {
 		observer = engine.SilentObserver{}
 	}
 	return &Evaluator{
 		observer: observer,
-		hal:      make(map[string]value.Value),
+		runtime:  runtime,
 	}
-}
-
-// RegisterBuiltin adds a builtin function.
-func (e *Evaluator) RegisterBuiltin(name string, fn value.Value) {
-	e.hal[name] = fn
 }
 
 // Eval evaluates an AST node.
