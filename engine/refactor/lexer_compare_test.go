@@ -10,9 +10,9 @@ import (
 	"testing"
 
 	"aiki/engine/syntax"
+	enginesyntax "aiki/engine/syntax"
 	"aiki/engine/syntax/grammar"
 	refsyntax "aiki/reference/syntax"
-	enginesyntax "aiki/engine/syntax"
 )
 
 // findProjectRoot walks up from cwd to find go.mod
@@ -37,13 +37,13 @@ func findProjectRoot() (string, error) {
 func TestLexerCompare(t *testing.T) {
 	root, err := findProjectRoot()
 	if err != nil {
-	    t.Fatalf("finding project root: %v", err)
+		t.Fatalf("finding project root: %v", err)
 	}
 
 	// Load grammar for new engine
 	g, err := grammar.Load("grammar.ebnfx", enginesyntax.EbnfxSource, "grammar.help", enginesyntax.HelpSource)
 	if err != nil {
-	    t.Fatalf("loading grammar: %v", err)
+		t.Fatalf("loading grammar: %v", err)
 	}
 
 	// Get reference grammar
@@ -51,10 +51,10 @@ func TestLexerCompare(t *testing.T) {
 
 	// Test files
 	testFiles := []string{
-	    "tests/smoke/math_smoke.ai",
-	    "tests/smoke/functional_smoke.ai",
-	    "tests/smoke/iter_smoke.ai",
-	    "tests/smoke/pipeline_smoke.ai",
+		"tests/smoke/math_smoke.ai",
+		"tests/smoke/functional_smoke.ai",
+		"tests/smoke/iter_smoke.ai",
+		"tests/smoke/pipeline_smoke.ai",
 	}
 
 	for _, file := range testFiles {

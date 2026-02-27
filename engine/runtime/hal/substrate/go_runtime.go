@@ -23,8 +23,8 @@ type Builtin struct {
 	fn   func(args []value.Value) value.Value
 }
 
-func (b *Builtin) Type() value.Type              { return value.FunctionType }
-func (b *Builtin) Inspect() string               { return fmt.Sprintf("<builtin: %s>", b.name) }
+func (b *Builtin) Type() value.Type                    { return value.FunctionType }
+func (b *Builtin) Inspect() string                     { return fmt.Sprintf("<builtin: %s>", b.name) }
 func (b *Builtin) Call(args []value.Value) value.Value { return b.fn(args) }
 
 // Verify Builtin implements Callable

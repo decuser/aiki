@@ -78,18 +78,18 @@ func (l *Lexer) Next() (Token, error) {
 
 	// Try identifier/keyword first (before patterns)
 	if l.isIdentStart(l.peek()) {
-	    ident := l.readIdent()
-	    tokType := "NAME"
-	    if l.isKeyword(ident) {
-		tokType = "KEYWORD"
-	    }
-	    tok := Token{
-		Type:   tokType,
-		Lexeme: ident,
-		Pos:    startPos,
-	    }
-	    l.observer.OnLex(tok.Type, tok.Lexeme, tok.Pos)
-	    return tok, nil
+		ident := l.readIdent()
+		tokType := "NAME"
+		if l.isKeyword(ident) {
+			tokType = "KEYWORD"
+		}
+		tok := Token{
+			Type:   tokType,
+			Lexeme: ident,
+			Pos:    startPos,
+		}
+		l.observer.OnLex(tok.Type, tok.Lexeme, tok.Pos)
+		return tok, nil
 	}
 
 	// Try each token definition
@@ -113,7 +113,6 @@ func (l *Lexer) Next() (Token, error) {
 			return tok, nil
 		}
 	}
-
 
 	// Try delimiters before operators (... must match before .)
 	if delim := l.matchDelimiter(); delim != "" {

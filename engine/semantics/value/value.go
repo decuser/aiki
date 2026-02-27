@@ -120,7 +120,7 @@ func (l *List) Inspect() string {
 type Function struct {
 	Name   string
 	Params []string
-	Rest   string // rest parameter name, empty if none
+	Rest   string      // rest parameter name, empty if none
 	Body   interface{} // *syntax.Node, but we don't import syntax here
 	Env    interface{} // *Env, set at runtime
 }
