@@ -146,21 +146,64 @@ type Error struct {
 	File    string
 	Line    int
 	Source  string // source line for context
+	Stack   []StackFrame
 }
 
-func (e *Error) Type() Type      { return ErrorType }
-func (e *Error) Inspect() string { return e.Message }
+func (e *Error) Type() Type { return ErrorType }
+
+// Inspect returns Ruby-style error format:
+// file:line:in 'func': message
+//
+//	source line
+//	    from file:line:in 'func'
+func (e *Error) Inspect() string {
+	var sb strings.Builder
+
+	// Find the innermost visible frame for the header
+	funcName := "<main>"
+	if len(e.Stack) > 0 {
+		// Use the innermost (last) frame's name
+		funcName = e.Stack[len(e.Stack)-1].Name
+	}
+
+	// First line: file:line:in 'func': message
+	if e.File != "" && e.Line > 0 {
+		sb.WriteString(fmt.Sprintf("%s:%d:in '%s': %s", e.File, e.Line, funcName, e.Message))
+	} else if e.Line > 0 {
+		sb.WriteString(fmt.Sprintf("line %d:in '%s': %s", e.Line, funcName, e.Message))
+	} else {
+		sb.WriteString(e.Message)
+	}
+
+	// Second line: source code (indented)
+	if e.Source != "" {
+		sb.WriteString(fmt.Sprintf("\n    %s", strings.TrimSpace(e.Source)))
+	}
+
+	// Stack trace: from file:line:in 'func' (skip innermost, shown above)
+	for i := len(e.Stack) - 2; i >= 0; i-- {
+		frame := e.Stack[i]
+		if frame.File != "" {
+			sb.WriteString(fmt.Sprintf("\n        from %s:%d:in '%s'", frame.File, frame.Line, frame.Name))
+		} else {
+			sb.WriteString(fmt.Sprintf("\n        from line %d:in '%s'", frame.Line, frame.Name))
+		}
+	}
+
+	return sb.String()
+}
 
 func NewError(format string, args ...interface{}) *Error {
 	return &Error{Message: fmt.Sprintf(format, args...)}
 }
 
-func NewErrorAt(file string, line int, source string, format string, args ...interface{}) *Error {
+func NewErrorAt(file string, line int, source string, stack []StackFrame, format string, args ...interface{}) *Error {
 	return &Error{
 		Message: fmt.Sprintf(format, args...),
 		File:    file,
 		Line:    line,
 		Source:  source,
+		Stack:   stack,
 	}
 }
 

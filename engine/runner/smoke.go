@@ -207,7 +207,8 @@ func runEngineFile(path string, stdin []byte) (stdout []byte, stderr []byte, exi
 	ev := evaluator.New(rt, nil)
 	result := ev.Eval(ast, userEnv)
 	if errVal, ok := result.(*value.Error); ok {
-		errBuf.WriteString(errVal.Message)
+		errBuf.WriteString(errVal.Inspect())
+		errBuf.WriteString("\n")
 		return outBuf.Bytes(), errBuf.Bytes(), 1
 	}
 

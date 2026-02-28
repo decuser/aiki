@@ -20,6 +20,7 @@ func (e *Evaluator) makeError(node *syntax.Node, env *value.Env, format string, 
 		env.GetFile(),
 		node.Pos.Line,
 		env.GetSourceLine(node.Pos.Line),
+		env.CopyStack(),
 		format,
 		args...,
 	)

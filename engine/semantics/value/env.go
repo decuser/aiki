@@ -8,47 +8,87 @@ const (
 	ScopePrelude              // Prelude - can access HAL primitives (_prefixed)
 )
 
+// StackFrame represents a call site in the stack trace.
+type StackFrame struct {
+	Name  string
+	File  string
+	Line  int
+	Scope Scope
+}
+
 // Env holds variable bindings and scope chain.
 type Env struct {
 	store  map[string]Value
 	shapes map[string]*ShapeDef
 	outer  *Env
-	file   string
-	source string
+	file   *string       // shared across enclosed envs
+	source *string       // shared across enclosed envs
+	stack  *[]StackFrame // shared across enclosed envs
 	scope  Scope
 }
 
 // NewEnv creates a new environment with user scope.
 func NewEnv() *Env {
+	file := ""
+	source := ""
+	stack := make([]StackFrame, 0)
 	return &Env{
 		store:  make(map[string]Value),
 		shapes: make(map[string]*ShapeDef),
 		scope:  ScopeUser,
+		file:   &file,
+		source: &source,
+		stack:  &stack,
 	}
 }
 
 // NewEnvWithScope creates a new environment with explicit scope.
 func NewEnvWithScope(scope Scope) *Env {
-	return &Env{
-		store:  make(map[string]Value),
-		shapes: make(map[string]*ShapeDef),
-		scope:  scope,
-	}
-}
-
-// NewEnclosedEnv creates a child environment, inheriting scope.
-func NewEnclosedEnv(outer *Env) *Env {
 	env := NewEnv()
-	env.outer = outer
-	if outer != nil {
-		env.scope = outer.scope
-	}
+	env.scope = scope
 	return env
 }
 
-// GetScope returns the scope, checking outer chain if not set.
+// NewEnclosedEnv creates a child environment, inheriting scope and shared state.
+func NewEnclosedEnv(outer *Env) *Env {
+	return &Env{
+		store:  make(map[string]Value),
+		shapes: make(map[string]*ShapeDef),
+		outer:  outer,
+		scope:  outer.scope,
+		file:   outer.file,
+		source: outer.source,
+		stack:  outer.stack,
+	}
+}
+
+// GetScope returns the scope.
 func (e *Env) GetScope() Scope {
 	return e.scope
+}
+
+// PushFrame adds a stack frame.
+func (e *Env) PushFrame(name string, line int, scope Scope) {
+	*e.stack = append(*e.stack, StackFrame{
+		Name:  name,
+		File:  *e.file,
+		Line:  line,
+		Scope: scope,
+	})
+}
+
+// PopFrame removes the top stack frame.
+func (e *Env) PopFrame() {
+	if len(*e.stack) > 0 {
+		*e.stack = (*e.stack)[:len(*e.stack)-1]
+	}
+}
+
+// CopyStack returns a copy of the current call stack.
+func (e *Env) CopyStack() []StackFrame {
+	cp := make([]StackFrame, len(*e.stack))
+	copy(cp, *e.stack)
+	return cp
 }
 
 // Get retrieves a value by name.
@@ -93,35 +133,28 @@ func (e *Env) GetShape(name string) (*ShapeDef, bool) {
 
 // SetFile sets the current file name.
 func (e *Env) SetFile(file string) {
-	e.file = file
+	*e.file = file
 }
 
 // GetFile returns the current file name.
 func (e *Env) GetFile() string {
-	if e.file != "" {
-		return e.file
-	}
-	if e.outer != nil {
-		return e.outer.GetFile()
+	if *e.file != "" {
+		return *e.file
 	}
 	return "<unknown>"
 }
 
 // SetSource sets the source code.
 func (e *Env) SetSource(source string) {
-	e.source = source
+	*e.source = source
 }
 
 // GetSourceLine returns a specific line from source.
 func (e *Env) GetSourceLine(line int) string {
-	src := e.source
-	if src == "" && e.outer != nil {
-		src = e.outer.source
-	}
-	if src == "" {
+	if *e.source == "" {
 		return ""
 	}
-	lines := splitLines(src)
+	lines := splitLines(*e.source)
 	if line < 1 || line > len(lines) {
 		return ""
 	}
