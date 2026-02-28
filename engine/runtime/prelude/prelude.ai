@@ -2,8 +2,8 @@
 # This file runs with ScopePrelude, so it can access _prefixed HAL primitives.
 # It defines user-visible wrappers that user code can call.
 
-# IO wrappers
-let print = (...args) { _print(...args) }
+# IO wrappers - print uses apply for variadic support
+let print = (...args) { apply(_print, args) }
 let read = () { _read() }
 let input = () { _read() }
 
@@ -100,6 +100,7 @@ let sum = (list) {
 }
 
 # Convenience
-let println = (val) {
-	_print(val, "\n")
+let println = (...args) {
+	apply(_print, args)
+	_print("\n")
 }

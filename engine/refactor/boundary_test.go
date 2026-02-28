@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"aiki/engine/runtime/hal"
 	"aiki/engine/runtime/hal/substrate"
 	"aiki/engine/runtime/prelude"
 	"aiki/engine/semantics/evaluator"
@@ -17,7 +16,7 @@ import (
 func TestBoundaryUserCannotSeeHAL(t *testing.T) {
 	code := `_print("should fail")`
 
-	result, err := evalWithScope(code, hal.ScopeUser, false)
+	result, err := evalWithScope(code, value.ScopeUser, false)
 	if err != nil {
 		t.Fatalf("eval error: %v", err)
 	}
@@ -36,7 +35,7 @@ func TestBoundaryUserCannotSeeHAL(t *testing.T) {
 func TestBoundaryUserCanSeePrintAfterPrelude(t *testing.T) {
 	code := `print`
 
-	result, err := evalWithScope(code, hal.ScopeUser, true)
+	result, err := evalWithScope(code, value.ScopeUser, true)
 	if err != nil {
 		t.Fatalf("eval error: %v", err)
 	}
@@ -51,7 +50,7 @@ func TestBoundaryUserCanSeePrintAfterPrelude(t *testing.T) {
 func TestBoundaryUserCannotSeePrintWithoutPrelude(t *testing.T) {
 	code := `print`
 
-	result, err := evalWithScope(code, hal.ScopeUser, false)
+	result, err := evalWithScope(code, value.ScopeUser, false)
 	if err != nil {
 		t.Fatalf("eval error: %v", err)
 	}
@@ -66,7 +65,7 @@ func TestBoundaryUserCannotSeePrintWithoutPrelude(t *testing.T) {
 func TestBoundaryPreludeCanSeeHAL(t *testing.T) {
 	code := `_print`
 
-	result, err := evalWithScope(code, hal.ScopePrelude, false)
+	result, err := evalWithScope(code, value.ScopePrelude, false)
 	if err != nil {
 		t.Fatalf("eval error: %v", err)
 	}
@@ -81,7 +80,7 @@ func TestBoundaryPreludeCanSeeHAL(t *testing.T) {
 func TestBoundaryPreludeCannotSeeNonPrefixed(t *testing.T) {
 	code := `print`
 
-	result, err := evalWithScope(code, hal.ScopePrelude, false)
+	result, err := evalWithScope(code, value.ScopePrelude, false)
 	if err != nil {
 		t.Fatalf("eval error: %v", err)
 	}
@@ -97,18 +96,18 @@ func TestBoundaryHALRegistryOnlyHasUnderscored(t *testing.T) {
 	rt := substrate.NewGoRuntime()
 
 	// Try to get non-prefixed from prelude scope - should fail
-	if _, ok := rt.GetBuiltin("print", hal.ScopePrelude); ok {
+	if _, ok := rt.GetBuiltin("print", value.ScopePrelude); ok {
 		t.Error("HAL registry should not contain non-prefixed 'print'")
 	}
-	if _, ok := rt.GetBuiltin("length", hal.ScopePrelude); ok {
+	if _, ok := rt.GetBuiltin("length", value.ScopePrelude); ok {
 		t.Error("HAL registry should not contain non-prefixed 'length'")
 	}
 
 	// _prefixed should work
-	if _, ok := rt.GetBuiltin("_print", hal.ScopePrelude); !ok {
+	if _, ok := rt.GetBuiltin("_print", value.ScopePrelude); !ok {
 		t.Error("HAL registry should contain '_print'")
 	}
-	if _, ok := rt.GetBuiltin("_length", hal.ScopePrelude); !ok {
+	if _, ok := rt.GetBuiltin("_length", value.ScopePrelude); !ok {
 		t.Error("HAL registry should contain '_length'")
 	}
 }
@@ -118,29 +117,34 @@ func TestBoundaryUserScopeGetsNothingFromRuntime(t *testing.T) {
 	rt := substrate.NewGoRuntime()
 
 	// User scope should get nothing, even for _prefixed
-	if rt.HasBuiltin("_print", hal.ScopeUser) {
+	if rt.HasBuiltin("_print", value.ScopeUser) {
 		t.Error("user scope should not see _print")
 	}
-	if rt.HasBuiltin("print", hal.ScopeUser) {
+	if rt.HasBuiltin("print", value.ScopeUser) {
 		t.Error("user scope should not see print from runtime")
 	}
 }
 
 // evalWithScope evaluates code with the specified scope.
-func evalWithScope(code string, scope hal.Scope, loadPrelude bool) (value.Value, error) {
+func evalWithScope(code string, scope value.Scope, loadPrel bool) (value.Value, error) {
 	g, err := grammar.Load("grammar.ebnfx", syntax.EbnfxSource, "grammar.help", syntax.HelpSource)
 	if err != nil {
 		return nil, err
 	}
 
 	rt := substrate.NewGoRuntime()
-	env := value.NewEnv()
 
-	// Optionally load prelude first
-	if loadPrelude {
-		if err := loadPreludeInto(g, rt, env); err != nil {
+	// Create env with specified scope
+	env := value.NewEnvWithScope(scope)
+
+	// Optionally load prelude first (into a prelude-scope env, then enclose)
+	if loadPrel {
+		preludeEnv := value.NewEnvWithScope(value.ScopePrelude)
+		if err := loadPreludeInto(g, rt, preludeEnv); err != nil {
 			return nil, err
 		}
+		// Create user env enclosed by prelude
+		env = value.NewEnclosedEnv(preludeEnv)
 	}
 
 	lexer := syntax.NewLexer(g, "<test>", code, nil)
@@ -155,12 +159,12 @@ func evalWithScope(code string, scope hal.Scope, loadPrelude bool) (value.Value,
 		return nil, err
 	}
 
-	ev := evaluator.NewWithScope(rt, nil, scope)
+	ev := evaluator.New(rt, nil)
 
 	return ev.Eval(ast, env), nil
 }
 
-// loadPreludeInto loads prelude.ai into the environment with ScopePrelude.
+// loadPreludeInto loads prelude.ai into the environment.
 func loadPreludeInto(g *grammar.Grammar, rt *substrate.GoRuntime, env *value.Env) error {
 	lexer := syntax.NewLexer(g, "<prelude>", prelude.Source, nil)
 	tokens, err := lexer.Tokenize()
@@ -174,7 +178,7 @@ func loadPreludeInto(g *grammar.Grammar, rt *substrate.GoRuntime, env *value.Env
 		return err
 	}
 
-	ev := evaluator.NewWithScope(rt, nil, hal.ScopePrelude)
+	ev := evaluator.New(rt, nil)
 	result := ev.Eval(ast, env)
 	if errVal, ok := result.(*value.Error); ok {
 		return fmt.Errorf("%s", errVal.Message)

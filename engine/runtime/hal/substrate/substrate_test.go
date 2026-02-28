@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"testing"
 
-	"aiki/engine/runtime/hal"
 	"aiki/engine/semantics/value"
 )
 
@@ -68,18 +67,18 @@ func TestUserScopeGetsNothing(t *testing.T) {
 	rt := NewGoRuntime()
 
 	// User cannot see anything - all access comes from prelude.ai bindings in Env
-	if rt.HasBuiltin("first", hal.ScopeUser) {
+	if rt.HasBuiltin("first", value.ScopeUser) {
 		t.Error("user should NOT see first from runtime")
 	}
-	if rt.HasBuiltin("_first", hal.ScopeUser) {
+	if rt.HasBuiltin("_first", value.ScopeUser) {
 		t.Error("user should NOT see _first")
 	}
 
-	_, ok := rt.GetBuiltin("first", hal.ScopeUser)
+	_, ok := rt.GetBuiltin("first", value.ScopeUser)
 	if ok {
 		t.Error("user should NOT get first from runtime")
 	}
-	_, ok = rt.GetBuiltin("_first", hal.ScopeUser)
+	_, ok = rt.GetBuiltin("_first", value.ScopeUser)
 	if ok {
 		t.Error("user should NOT get _first")
 	}
@@ -90,22 +89,22 @@ func TestPreludeScopeSeesOnlyPrefixed(t *testing.T) {
 	rt := NewGoRuntime()
 
 	// Prelude cannot see non-prefixed (those come from prelude.ai, not registry)
-	if rt.HasBuiltin("first", hal.ScopePrelude) {
+	if rt.HasBuiltin("first", value.ScopePrelude) {
 		t.Error("prelude should NOT see non-prefixed 'first' from registry")
 	}
 
 	// Prelude can see _prefixed
-	if !rt.HasBuiltin("_first", hal.ScopePrelude) {
+	if !rt.HasBuiltin("_first", value.ScopePrelude) {
 		t.Error("prelude should see _first")
 	}
 
 	// GetBuiltin matches HasBuiltin
-	_, ok := rt.GetBuiltin("first", hal.ScopePrelude)
+	_, ok := rt.GetBuiltin("first", value.ScopePrelude)
 	if ok {
 		t.Error("prelude should NOT get non-prefixed 'first' from registry")
 	}
 
-	b, ok := rt.GetBuiltin("_first", hal.ScopePrelude)
+	b, ok := rt.GetBuiltin("_first", value.ScopePrelude)
 	if !ok || b == nil {
 		t.Error("prelude GetBuiltin(_first) failed")
 	}

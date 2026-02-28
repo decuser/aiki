@@ -68,10 +68,10 @@ func (g *GoRuntime) Execute(name string, args []value.Value) (value.Value, error
 }
 
 // HasBuiltin checks if a name is visible at the given scope.
-func (g *GoRuntime) HasBuiltin(name string, scope hal.Scope) bool {
+func (g *GoRuntime) HasBuiltin(name string, scope value.Scope) bool {
 	// User scope cannot access any builtins directly.
 	// All user-visible functions come from prelude.ai bindings in Env.
-	if scope == hal.ScopeUser {
+	if scope == value.ScopeUser {
 		return false
 	}
 
@@ -83,10 +83,10 @@ func (g *GoRuntime) HasBuiltin(name string, scope hal.Scope) bool {
 }
 
 // GetBuiltin returns a callable for the named builtin at the given scope.
-func (g *GoRuntime) GetBuiltin(name string, scope hal.Scope) (value.Callable, bool) {
+func (g *GoRuntime) GetBuiltin(name string, scope value.Scope) (value.Callable, bool) {
 	// User scope cannot access any builtins directly.
 	// All user-visible functions come from prelude.ai bindings in Env.
-	if scope == hal.ScopeUser {
+	if scope == value.ScopeUser {
 		return nil, false
 	}
 

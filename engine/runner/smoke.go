@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 
-	"aiki/engine/runtime/hal"
 	"aiki/engine/runtime/hal/substrate"
 	"aiki/engine/semantics/evaluator"
 	"aiki/engine/semantics/value"
@@ -173,15 +172,20 @@ func runEngineFile(path string, stdin []byte) (stdout []byte, stderr []byte, exi
 		return nil, []byte(err.Error()), 1
 	}
 
-	// Create runtime and environment
+	// Create runtime
 	rt := substrate.NewGoRuntime()
-	env := value.NewEnv()
 
-	// Load prelude with ScopePrelude
-	if err := loadPrelude(g, rt, env); err != nil {
+	// Create prelude environment with ScopePrelude
+	preludeEnv := value.NewEnvWithScope(value.ScopePrelude)
+
+	// Load prelude
+	if err := loadPrelude(g, rt, preludeEnv); err != nil {
 		errBuf.WriteString(err.Error())
 		return outBuf.Bytes(), errBuf.Bytes(), 1
 	}
+
+	// Create user environment enclosed by prelude
+	userEnv := value.NewEnclosedEnv(preludeEnv)
 
 	// Lex user code
 	lexer := syntax.NewLexer(g, path, string(source), nil)
@@ -197,11 +201,11 @@ func runEngineFile(path string, stdin []byte) (stdout []byte, stderr []byte, exi
 		return nil, []byte(err.Error()), 1
 	}
 
-	// Eval user code with ScopeUser
-	env.SetFile(path)
-	env.SetSource(string(source))
-	ev := evaluator.NewWithScope(rt, nil, hal.ScopeUser)
-	result := ev.Eval(ast, env)
+	// Eval user code
+	userEnv.SetFile(path)
+	userEnv.SetSource(string(source))
+	ev := evaluator.New(rt, nil)
+	result := ev.Eval(ast, userEnv)
 	if errVal, ok := result.(*value.Error); ok {
 		errBuf.WriteString(errVal.Message)
 		return outBuf.Bytes(), errBuf.Bytes(), 1
