@@ -26,8 +26,8 @@ type Intrinsic struct {
 	Name string
 }
 
-func (i *Intrinsic) Type() value.Type    { return value.FunctionType }
-func (i *Intrinsic) Inspect() string     { return "<intrinsic: " + i.Name + ">" }
+func (i *Intrinsic) Type() value.Type { return value.FunctionType }
+func (i *Intrinsic) Inspect() string  { return "<intrinsic: " + i.Name + ">" }
 
 // callIntrinsic dispatches to intrinsic implementations.
 func (e *Evaluator) callIntrinsic(name string, args []value.Value, node *syntax.Node, env *value.Env) value.Value {
@@ -86,7 +86,16 @@ func (e *Evaluator) applyUserFunction(fn *value.Function, args []value.Value, no
 		return e.makeError(node, env, "invalid function body")
 	}
 
+	// Push stack frame for function call
+	funcName := fn.Name
+	if funcName == "" {
+		funcName = "<anonymous>"
+	}
+	callEnv.PushFrame(funcName, node.Pos.Line, callEnv.GetScope())
+
 	result := e.Eval(body, callEnv)
+
+	callEnv.PopFrame()
 
 	if ret, ok := result.(*value.Return); ok {
 		return ret.Val

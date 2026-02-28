@@ -8,6 +8,10 @@ import (
 )
 
 func (e *Evaluator) evalProgram(node *syntax.Node, env *value.Env) value.Value {
+	// Push main frame at program entry
+	env.PushFrame("<main>", 1, env.GetScope())
+	defer env.PopFrame()
+
 	var result value.Value = value.NULL
 	for _, child := range node.Children {
 		result = e.Eval(child, env)

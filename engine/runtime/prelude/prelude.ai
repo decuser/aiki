@@ -1,50 +1,113 @@
 # Prelude - minimal standard library
 # This file runs with ScopePrelude, so it can access _prefixed HAL primitives.
 # It defines user-visible wrappers that user code can call.
-
 # IO wrappers - print uses apply for variadic support
-let print = (...args) { apply(_print, args) }
-let read = () { _read() }
-let input = () { _read() }
+let print = (...args) {
+	apply(_print, args)
+}
+let read = () {
+	_read()
+}
+let input = () {
+	_read()
+}
 
 # List wrappers
-let first = (list) { _first(list) }
-let rest = (list) { _rest(list) }
-let length = (list) { _length(list) }
-let prepend = (list, val) { _prepend(list, val) }
-let append = (list, val) { _append(list, val) }
-let empty = (list) { _empty(list) }
-let range = (start, end) { _range(start, end) }
+let first = (list) {
+	_first(list)
+}
+let rest = (list) {
+	_rest(list)
+}
+let length = (list) {
+	_length(list)
+}
+let prepend = (list, val) {
+	_prepend(list, val)
+}
+let append = (list, val) {
+	_append(list, val)
+}
+let empty = (list) {
+	_empty(list)
+}
+let range = (start, end) {
+	_range(start, end)
+}
 
 # Type wrappers
-let type = (val) { _type(val) }
-let inspect = (val) { _inspect(val) }
-let equal = (a, b) { _equal(a, b) }
-let ord = (r) { _ord(r) }
+let type = (val) {
+	_type(val)
+}
+let inspect = (val) {
+	_inspect(val)
+}
+let equal = (a, b) {
+	_equal(a, b)
+}
+let ord = (r) {
+	_ord(r)
+}
 
 # Math wrappers
-let floor = (n) { _floor(n) }
-let ceil = (n) { _ceil(n) }
-let modulo = (a, b) { _modulo(a, b) }
-let cos = (n) { _cos(n) }
-let sin = (n) { _sin(n) }
+let floor = (n) {
+	_floor(n)
+}
+let ceil = (n) {
+	_ceil(n)
+}
+let modulo = (a, b) {
+	_modulo(a, b)
+}
+let cos = (n) {
+	_cos(n)
+}
+let sin = (n) {
+	_sin(n)
+}
 
 # Time wrappers
-let sleep = (ms) { _sleep(ms) }
+let sleep = (ms) {
+	_sleep(ms)
+}
 
 # Canvas wrappers
-let canvas = (w, h) { _canvas(w, h) }
-let dot = (c, x, y) { _dot(c, x, y) }
-let line = (c, x1, y1, x2, y2) { _line(c, x1, y1, x2, y2) }
-let rect = (c, x, y, w, h) { _rect(c, x, y, w, h) }
-let fill_rect = (c, x, y, w, h) { _fill_rect(c, x, y, w, h) }
-let circle = (c, x, y, r) { _circle(c, x, y, r) }
-let fill_circle = (c, x, y, r) { _fill_circle(c, x, y, r) }
-let clear = (c) { _clear(c) }
-let destroy = (c) { _destroy(c) }
-let set_bg = (c, r, g, b) { _set_bg(c, r, g, b) }
-let set_fg = (c, r, g, b) { _set_fg(c, r, g, b) }
-let pen_size = (c, s) { _pen_size(c, s) }
+let canvas = (w, h) {
+	_canvas(w, h)
+}
+let dot = (c, x, y) {
+	_dot(c, x, y)
+}
+let line = (c, x1, y1, x2, y2) {
+	_line(c, x1, y1, x2, y2)
+}
+let rect = (c, x, y, w, h) {
+	_rect(c, x, y, w, h)
+}
+let fill_rect = (c, x, y, w, h) {
+	_fill_rect(c, x, y, w, h)
+}
+let circle = (c, x, y, r) {
+	_circle(c, x, y, r)
+}
+let fill_circle = (c, x, y, r) {
+	_fill_circle(c, x, y, r)
+}
+let clear = (c) {
+	_clear(c)
+}
+let destroy = (c) {
+	_destroy(c)
+}
+let set_bg = (c, r, g, b) {
+	_set_bg(c, r, g, b)
+}
+let set_fg = (c, r, g, b) {
+	_set_fg(c, r, g, b)
+}
+let pen_size = (c, s) {
+	_pen_size(c, s)
+}
 
 # Higher-order functions
 let map = (list, f) {
