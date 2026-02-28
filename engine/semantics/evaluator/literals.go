@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"strings"
 
+	"aiki/engine/runtime/hal"
 	"aiki/engine/semantics/value"
 	"aiki/engine/syntax"
 )
@@ -62,9 +63,9 @@ func (e *Evaluator) evalName(node *syntax.Node, env *value.Env) value.Value {
 		return val
 	}
 
-	// Then check builtins via runtime
+	// Then check builtins via runtime (user scope)
 	if e.runtime != nil {
-		if builtin, ok := e.runtime.GetBuiltin(name); ok {
+		if builtin, ok := e.runtime.GetBuiltin(name, hal.ScopeUser); ok {
 			return builtin
 		}
 	}

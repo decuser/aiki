@@ -11,11 +11,19 @@ import (
 
 func main() {
 	if len(os.Args) < 2 {
-		// REPL mode - just eval expressions
 		fmt.Println("aiki-engine test runner")
 		fmt.Println("Usage: go run cmd/engine-test/main.go <file.ai>")
 		fmt.Println("       go run cmd/engine-test/main.go -e '<expr>'")
+		fmt.Println("       go run cmd/engine-test/main.go smoke [path]")
 		os.Exit(1)
+	}
+
+	if os.Args[1] == "smoke" {
+		args := []string{}
+		if len(os.Args) > 2 {
+			args = os.Args[2:]
+		}
+		os.Exit(runner.Smoke(args))
 	}
 
 	if os.Args[1] == "-e" && len(os.Args) >= 3 {

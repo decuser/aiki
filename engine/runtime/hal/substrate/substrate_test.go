@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"testing"
 
+	"aiki/engine/runtime/hal"
 	"aiki/engine/semantics/value"
 )
 
@@ -62,20 +63,50 @@ func TestEqual(t *testing.T) {
 	}
 }
 
-func TestHasBuiltin(t *testing.T) {
+func TestHasBuiltinUser(t *testing.T) {
 	rt := NewGoRuntime()
-	if !rt.HasBuiltin("first") {
-		t.Error("missing first")
+	// User can see "first" but not "_first"
+	if !rt.HasBuiltin("first", hal.ScopeUser) {
+		t.Error("user should see first")
 	}
-	if rt.HasBuiltin("nonexistent") {
-		t.Error("unexpected builtin")
+	if rt.HasBuiltin("_first", hal.ScopeUser) {
+		t.Error("user should NOT see _first")
 	}
 }
 
-func TestGetBuiltin(t *testing.T) {
+func TestHasBuiltinPrelude(t *testing.T) {
 	rt := NewGoRuntime()
-	b, ok := rt.GetBuiltin("length")
+	// Prelude can see both "first" and "_first"
+	if !rt.HasBuiltin("first", hal.ScopePrelude) {
+		t.Error("prelude should see first")
+	}
+	if !rt.HasBuiltin("_first", hal.ScopePrelude) {
+		t.Error("prelude should see _first")
+	}
+}
+
+func TestGetBuiltinUser(t *testing.T) {
+	rt := NewGoRuntime()
+	// User can get "length" but not "_length"
+	b, ok := rt.GetBuiltin("length", hal.ScopeUser)
 	if !ok || b == nil {
-		t.Error("GetBuiltin failed")
+		t.Error("user GetBuiltin(length) failed")
+	}
+	_, ok = rt.GetBuiltin("_length", hal.ScopeUser)
+	if ok {
+		t.Error("user should NOT get _length")
+	}
+}
+
+func TestGetBuiltinPrelude(t *testing.T) {
+	rt := NewGoRuntime()
+	// Prelude can get both
+	b, ok := rt.GetBuiltin("length", hal.ScopePrelude)
+	if !ok || b == nil {
+		t.Error("prelude GetBuiltin(length) failed")
+	}
+	b, ok = rt.GetBuiltin("_length", hal.ScopePrelude)
+	if !ok || b == nil {
+		t.Error("prelude GetBuiltin(_length) failed")
 	}
 }
