@@ -1,5 +1,4 @@
 # Prelude - minimal standard library
-
 # Higher-order functions
 let map = (list, f) {
 	let result = []

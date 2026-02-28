@@ -27,6 +27,25 @@ func (g *GoRuntime) registerHAL() {
 	g.registerHALBuiltin("_floor", halFloor)
 	g.registerHALBuiltin("_ceil", halCeil)
 	g.registerHALBuiltin("_modulo", halModulo)
+	g.registerHALBuiltin("_cos", halCos)
+	g.registerHALBuiltin("_sin", halSin)
+
+	// Time
+	g.registerHALBuiltin("_sleep", halSleep)
+
+	// Canvas
+	g.registerHALBuiltin("_canvas", halCanvas)
+	g.registerHALBuiltin("_dot", halDot)
+	g.registerHALBuiltin("_line", halLine)
+	g.registerHALBuiltin("_rect", halRect)
+	g.registerHALBuiltin("_fill_rect", halFillRect)
+	g.registerHALBuiltin("_circle", halCircle)
+	g.registerHALBuiltin("_fill_circle", halFillCircle)
+	g.registerHALBuiltin("_clear", halClear)
+	g.registerHALBuiltin("_destroy", halDestroy)
+	g.registerHALBuiltin("_set_bg", halSetBG)
+	g.registerHALBuiltin("_set_fg", halSetFG)
+	g.registerHALBuiltin("_pen_size", halPenSize)
 }
 
 // registerPrelude registers user-visible builtins.
@@ -56,6 +75,25 @@ func (g *GoRuntime) registerPrelude() {
 	g.registerPreludeBuiltin("floor", halFloor)
 	g.registerPreludeBuiltin("ceil", halCeil)
 	g.registerPreludeBuiltin("modulo", halModulo)
+	g.registerPreludeBuiltin("cos", halCos)
+	g.registerPreludeBuiltin("sin", halSin)
+
+	// Time
+	g.registerPreludeBuiltin("sleep", halSleep)
+
+	// Canvas
+	g.registerPreludeBuiltin("canvas", halCanvas)
+	g.registerPreludeBuiltin("dot", halDot)
+	g.registerPreludeBuiltin("line", halLine)
+	g.registerPreludeBuiltin("rect", halRect)
+	g.registerPreludeBuiltin("fill_rect", halFillRect)
+	g.registerPreludeBuiltin("circle", halCircle)
+	g.registerPreludeBuiltin("fill_circle", halFillCircle)
+	g.registerPreludeBuiltin("clear", halClear)
+	g.registerPreludeBuiltin("destroy", halDestroy)
+	g.registerPreludeBuiltin("set_bg", halSetBG)
+	g.registerPreludeBuiltin("set_fg", halSetFG)
+	g.registerPreludeBuiltin("pen_size", halPenSize)
 }
 
 // registerHALBuiltin adds a HAL primitive.

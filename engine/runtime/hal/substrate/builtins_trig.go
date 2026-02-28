@@ -1,0 +1,48 @@
+package substrate
+
+import (
+	"math"
+	"math/big"
+	"time"
+
+	"aiki/engine/semantics/value"
+)
+
+func halCos(args []value.Value) value.Value {
+	if len(args) != 1 {
+		return value.NewError("cos: want 1 argument, got %d", len(args))
+	}
+	n, ok := args[0].(*value.Number)
+	if !ok {
+		return value.NewError("cos: expected number")
+	}
+	f, _ := n.Val.Float64()
+	r := new(big.Rat).SetFloat64(math.Cos(f))
+	return &value.Number{Val: r}
+}
+
+func halSin(args []value.Value) value.Value {
+	if len(args) != 1 {
+		return value.NewError("sin: want 1 argument, got %d", len(args))
+	}
+	n, ok := args[0].(*value.Number)
+	if !ok {
+		return value.NewError("sin: expected number")
+	}
+	f, _ := n.Val.Float64()
+	r := new(big.Rat).SetFloat64(math.Sin(f))
+	return &value.Number{Val: r}
+}
+
+func halSleep(args []value.Value) value.Value {
+	if len(args) != 1 {
+		return value.NewError("sleep: want 1 argument, got %d", len(args))
+	}
+	n, ok := args[0].(*value.Number)
+	if !ok {
+		return value.NewError("sleep: expected number (milliseconds)")
+	}
+	ms, _ := n.Val.Float64()
+	time.Sleep(time.Duration(ms) * time.Millisecond)
+	return value.TRUE
+}

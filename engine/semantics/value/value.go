@@ -23,6 +23,7 @@ const (
 	ReturnType   Type = "return"
 	HandleType   Type = "handle"
 	ChannelType  Type = "channel"
+	CanvasType   Type = "canvas"
 )
 
 // Value is the interface all Aiki values implement.
