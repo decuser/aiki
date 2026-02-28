@@ -12,23 +12,16 @@ import (
 type Evaluator struct {
 	observer engine.Observer
 	runtime  hal.RuntimeContract
-	scope    hal.Scope
 }
 
-// New creates an evaluator with a runtime (defaults to ScopeUser).
+// New creates an evaluator with a runtime.
 func New(runtime hal.RuntimeContract, observer engine.Observer) *Evaluator {
-	return NewWithScope(runtime, observer, hal.ScopeUser)
-}
-
-// NewWithScope creates an evaluator with explicit scope.
-func NewWithScope(runtime hal.RuntimeContract, observer engine.Observer, scope hal.Scope) *Evaluator {
 	if observer == nil {
 		observer = engine.SilentObserver{}
 	}
 	return &Evaluator{
 		observer: observer,
 		runtime:  runtime,
-		scope:    scope,
 	}
 }
 

@@ -76,7 +76,7 @@ func (e *Evaluator) evalLet(node *syntax.Node, env *value.Env) value.Value {
 		return e.makeError(node, env, "let: missing value")
 	}
 
-	if e.runtime != nil && e.runtime.HasBuiltin(name, e.scope) {
+	if e.runtime != nil && e.runtime.HasBuiltin(name, env.GetScope()) {
 		return e.makeError(node, env, "cannot shadow builtin: %s", name)
 	}
 

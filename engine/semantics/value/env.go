@@ -1,5 +1,13 @@
 package value
 
+// Scope represents the visibility level for builtins.
+type Scope int
+
+const (
+	ScopeUser    Scope = iota // User code - cannot access HAL primitives
+	ScopePrelude              // Prelude - can access HAL primitives (_prefixed)
+)
+
 // Env holds variable bindings and scope chain.
 type Env struct {
 	store  map[string]Value
@@ -7,21 +15,40 @@ type Env struct {
 	outer  *Env
 	file   string
 	source string
+	scope  Scope
 }
 
-// NewEnv creates a new environment.
+// NewEnv creates a new environment with user scope.
 func NewEnv() *Env {
 	return &Env{
 		store:  make(map[string]Value),
 		shapes: make(map[string]*ShapeDef),
+		scope:  ScopeUser,
 	}
 }
 
-// NewEnclosedEnv creates a child environment.
+// NewEnvWithScope creates a new environment with explicit scope.
+func NewEnvWithScope(scope Scope) *Env {
+	return &Env{
+		store:  make(map[string]Value),
+		shapes: make(map[string]*ShapeDef),
+		scope:  scope,
+	}
+}
+
+// NewEnclosedEnv creates a child environment, inheriting scope.
 func NewEnclosedEnv(outer *Env) *Env {
 	env := NewEnv()
 	env.outer = outer
+	if outer != nil {
+		env.scope = outer.scope
+	}
 	return env
+}
+
+// GetScope returns the scope, checking outer chain if not set.
+func (e *Env) GetScope() Scope {
+	return e.scope
 }
 
 // Get retrieves a value by name.

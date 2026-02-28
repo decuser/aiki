@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 
-	"aiki/engine/runtime/hal"
 	"aiki/engine/runtime/hal/substrate"
 	"aiki/engine/runtime/prelude"
 	"aiki/engine/semantics/evaluator"
@@ -35,13 +34,16 @@ func RunSource(filename, source string) error {
 	// Create runtime
 	rt := substrate.NewGoRuntime()
 
-	// Create environment
-	env := value.NewEnv()
+	// Create prelude environment with ScopePrelude
+	preludeEnv := value.NewEnvWithScope(value.ScopePrelude)
 
-	// Load prelude with ScopePrelude
-	if err := loadPrelude(g, rt, env); err != nil {
+	// Load prelude
+	if err := loadPrelude(g, rt, preludeEnv); err != nil {
 		return fmt.Errorf("loading prelude: %w", err)
 	}
+
+	// Create user environment enclosed by prelude, with ScopeUser
+	userEnv := value.NewEnclosedEnv(preludeEnv)
 
 	// Lex user code
 	lexer := syntax.NewLexer(g, filename, source, nil)
@@ -57,11 +59,11 @@ func RunSource(filename, source string) error {
 		return fmt.Errorf("parser: %w", err)
 	}
 
-	// Eval user code with ScopeUser
-	env.SetFile(filename)
-	env.SetSource(source)
-	ev := evaluator.NewWithScope(rt, nil, hal.ScopeUser)
-	result := ev.Eval(ast, env)
+	// Eval user code
+	userEnv.SetFile(filename)
+	userEnv.SetSource(source)
+	ev := evaluator.New(rt, nil)
+	result := ev.Eval(ast, userEnv)
 	if err, ok := result.(*value.Error); ok {
 		return fmt.Errorf("%s", err.Message)
 	}
@@ -69,7 +71,7 @@ func RunSource(filename, source string) error {
 	return nil
 }
 
-// loadPrelude parses and evaluates the prelude with ScopePrelude.
+// loadPrelude parses and evaluates the prelude.
 func loadPrelude(g *grammar.Grammar, rt *substrate.GoRuntime, env *value.Env) error {
 	lexer := syntax.NewLexer(g, "<prelude>", prelude.Source, nil)
 	tokens, err := lexer.Tokenize()
@@ -83,7 +85,7 @@ func loadPrelude(g *grammar.Grammar, rt *substrate.GoRuntime, env *value.Env) er
 		return err
 	}
 
-	ev := evaluator.NewWithScope(rt, nil, hal.ScopePrelude)
+	ev := evaluator.New(rt, nil)
 	result := ev.Eval(ast, env)
 	if err, ok := result.(*value.Error); ok {
 		return fmt.Errorf("%s", err.Message)
@@ -100,12 +102,17 @@ func RunExpr(expr string) (string, error) {
 	}
 
 	rt := substrate.NewGoRuntime()
-	env := value.NewEnv()
+
+	// Create prelude environment with ScopePrelude
+	preludeEnv := value.NewEnvWithScope(value.ScopePrelude)
 
 	// Load prelude
-	if err := loadPrelude(g, rt, env); err != nil {
+	if err := loadPrelude(g, rt, preludeEnv); err != nil {
 		return "", fmt.Errorf("loading prelude: %w", err)
 	}
+
+	// Create user environment enclosed by prelude
+	userEnv := value.NewEnclosedEnv(preludeEnv)
 
 	lexer := syntax.NewLexer(g, "<expr>", expr, nil)
 	tokens, err := lexer.Tokenize()
@@ -119,8 +126,8 @@ func RunExpr(expr string) (string, error) {
 		return "", err
 	}
 
-	ev := evaluator.NewWithScope(rt, nil, hal.ScopeUser)
-	result := ev.Eval(ast, env)
+	ev := evaluator.New(rt, nil)
+	result := ev.Eval(ast, userEnv)
 	if err, ok := result.(*value.Error); ok {
 		return "", fmt.Errorf("%s", err.Message)
 	}
