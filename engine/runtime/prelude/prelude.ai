@@ -1,0 +1,59 @@
+# Prelude - minimal standard library
+
+# Higher-order functions
+let map = (list, f) {
+	let result = []
+	let i = 0
+	while i < length(list) {
+		result = append(result, f(list[i]))
+		i = i + 1
+	}
+	return result
+}
+
+let filter = (list, f) {
+	let result = []
+	let i = 0
+	while i < length(list) {
+		if f(list[i]) {
+			result = append(result, list[i])
+		}
+		i = i + 1
+	}
+	return result
+}
+
+let reduce = (list, acc, f) {
+	let result = acc
+	let i = 0
+	while i < length(list) {
+		result = f(result, list[i])
+		i = i + 1
+	}
+	return result
+}
+
+let each = (list, f) {
+	let i = 0
+	while i < length(list) {
+		f(list[i])
+		i = i + 1
+	}
+	return true
+}
+
+# Aggregation
+let sum = (list) {
+	let total = 0
+	let i = 0
+	while i < length(list) {
+		total = total + list[i]
+		i = i + 1
+	}
+	return total
+}
+
+# Convenience
+let println = (val) {
+	print(val, "\n")
+}

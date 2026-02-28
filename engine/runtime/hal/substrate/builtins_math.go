@@ -41,3 +41,24 @@ func halCeil(args []value.Value) value.Value {
 	}
 	return &value.Number{Val: new(big.Rat).SetInt(q)}
 }
+
+func halModulo(args []value.Value) value.Value {
+	if len(args) != 2 {
+		return value.NewError("modulo: want 2 arguments, got %d", len(args))
+	}
+	left, ok1 := args[0].(*value.Number)
+	right, ok2 := args[1].(*value.Number)
+	if !ok1 || !ok2 {
+		return value.NewError("modulo: expected numbers")
+	}
+	if !left.Val.IsInt() || !right.Val.IsInt() {
+		return value.NewError("modulo: requires integers")
+	}
+	if right.Val.Sign() == 0 {
+		return value.NewError("modulo: division by zero")
+	}
+	l := left.Val.Num()
+	r := right.Val.Num()
+	result := new(big.Int).Mod(l, r)
+	return &value.Number{Val: new(big.Rat).SetInt(result)}
+}
