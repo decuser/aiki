@@ -23,7 +23,7 @@ func (e *Evaluator) evalExpr(node *syntax.Node, env *value.Env) value.Value {
 		return e.Eval(node.Children[0], env)
 	}
 
-	var result value.Value = value.NULL
+	var result value.Value = value.EMPTY
 	for _, child := range node.Children {
 		result = e.Eval(child, env)
 		if value.IsError(result) {
@@ -76,7 +76,7 @@ func (e *Evaluator) evalUnary(node *syntax.Node, env *value.Env) value.Value {
 	}
 
 	if operand == nil {
-		return value.NULL
+		return value.EMPTY
 	}
 
 	for i := len(prefixes) - 1; i >= 0; i-- {
@@ -208,7 +208,7 @@ func (e *Evaluator) evalPrimary(node *syntax.Node, env *value.Env) value.Value {
 			return e.Eval(child, env)
 		}
 	}
-	return value.NULL
+	return value.EMPTY
 }
 
 func (e *Evaluator) evalToFunction(node *syntax.Node, env *value.Env) value.Value {

@@ -35,7 +35,7 @@ func (e *Evaluator) evalIndex(val value.Value, node *syntax.Node, env *value.Env
 		}
 	}
 
-	return value.NULL
+	return value.EMPTY
 }
 
 func (e *Evaluator) evalStringIndex(s *value.String, node *syntax.Node, env *value.Env) value.Value {
@@ -60,7 +60,7 @@ func (e *Evaluator) evalStringIndex(s *value.String, node *syntax.Node, env *val
 			return &value.Rune{Val: runes[i]}
 		}
 	}
-	return value.NULL
+	return value.EMPTY
 }
 
 func (e *Evaluator) evalAccess(val value.Value, node *syntax.Node, env *value.Env) value.Value {
@@ -85,5 +85,5 @@ func (e *Evaluator) evalAccess(val value.Value, node *syntax.Node, env *value.En
 		}
 	}
 
-	return value.NULL
+	return value.EMPTY
 }

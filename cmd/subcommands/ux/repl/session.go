@@ -106,7 +106,7 @@ func (s *Session) Run() {
 			return
 		}
 
-		if result != nil && result != value.NULL {
+		if result != nil && result != value.EMPTY {
 			// Don't print errors twice - they're already printed
 			if _, ok := result.(*value.Error); !ok {
 				fmt.Fprintln(s.out, result.Inspect())

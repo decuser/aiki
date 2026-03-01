@@ -81,6 +81,6 @@ func (e *Evaluator) Eval(node *syntax.Node, env *value.Env) value.Value {
 		if len(node.Children) == 1 {
 			return e.Eval(node.Children[0], env)
 		}
-		return value.NULL
+		return value.EMPTY
 	}
 }

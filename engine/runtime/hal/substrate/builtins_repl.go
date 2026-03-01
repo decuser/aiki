@@ -45,5 +45,5 @@ Control:
   reset()             - reset environment
 
 `)
-	return value.NULL
+	return value.EMPTY
 }

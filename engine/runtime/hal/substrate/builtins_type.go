@@ -66,8 +66,6 @@ func valuesEqual(a, b value.Value) bool {
 	case *value.Rune:
 		bv := b.(*value.Rune)
 		return av.Val == bv.Val
-	case *value.Null:
-		return true
 	default:
 		return false
 	}

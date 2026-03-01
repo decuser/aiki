@@ -12,7 +12,7 @@ func (e *Evaluator) evalProgram(node *syntax.Node, env *value.Env) value.Value {
 	env.PushFrame("<main>", 1, env.GetScope())
 	defer env.PopFrame()
 
-	var result value.Value = value.NULL
+	var result value.Value = value.EMPTY
 	for _, child := range node.Children {
 		result = e.Eval(child, env)
 		if ret, ok := result.(*value.Return); ok {
@@ -29,14 +29,14 @@ func (e *Evaluator) evalStatement(node *syntax.Node, env *value.Env) value.Value
 	if len(node.Children) > 0 {
 		return e.Eval(node.Children[0], env)
 	}
-	return value.NULL
+	return value.EMPTY
 }
 
 func (e *Evaluator) evalExprStmt(node *syntax.Node, env *value.Env) value.Value {
 	if len(node.Children) > 0 {
 		return e.Eval(node.Children[0], env)
 	}
-	return value.NULL
+	return value.EMPTY
 }
 
 func (e *Evaluator) evalLet(node *syntax.Node, env *value.Env) value.Value {
@@ -70,7 +70,7 @@ func (e *Evaluator) evalLet(node *syntax.Node, env *value.Env) value.Value {
 
 	if isShape {
 		env.DefineShape(&value.ShapeDef{Name: name, Fields: shapeFields})
-		return value.NULL
+		return value.EMPTY
 	}
 
 	if name == "" {
@@ -94,7 +94,7 @@ func (e *Evaluator) evalLet(node *syntax.Node, env *value.Env) value.Value {
 	}
 
 	env.Set(name, val)
-	return value.NULL
+	return value.EMPTY
 }
 
 func (e *Evaluator) evalAssign(node *syntax.Node, env *value.Env) value.Value {
@@ -127,7 +127,7 @@ func (e *Evaluator) evalAssign(node *syntax.Node, env *value.Env) value.Value {
 		return e.makeError(node, env, "cannot assign to: %s", name)
 	}
 
-	return value.NULL
+	return value.EMPTY
 }
 
 func (e *Evaluator) evalReturn(node *syntax.Node, env *value.Env) value.Value {
@@ -140,7 +140,7 @@ func (e *Evaluator) evalReturn(node *syntax.Node, env *value.Env) value.Value {
 			return &value.Return{Val: val}
 		}
 	}
-	return &value.Return{Val: value.NULL}
+	return &value.Return{Val: value.EMPTY}
 }
 
 func (e *Evaluator) evalIf(node *syntax.Node, env *value.Env) value.Value {
@@ -181,7 +181,7 @@ func (e *Evaluator) evalIf(node *syntax.Node, env *value.Env) value.Value {
 		return e.Eval(elseBlock, env)
 	}
 
-	return value.NULL
+	return value.EMPTY
 }
 
 func (e *Evaluator) evalWhile(node *syntax.Node, env *value.Env) value.Value {
@@ -203,7 +203,7 @@ func (e *Evaluator) evalWhile(node *syntax.Node, env *value.Env) value.Value {
 		return e.makeError(node, env, "while: invalid syntax")
 	}
 
-	var result value.Value = value.NULL
+	var result value.Value = value.EMPTY
 	for {
 		condVal := e.Eval(cond, env)
 		if value.IsError(condVal) {
@@ -261,11 +261,11 @@ func (e *Evaluator) evalMatch(node *syntax.Node, env *value.Env) value.Value {
 		}
 	}
 
-	return value.NULL
+	return value.EMPTY
 }
 
 func (e *Evaluator) evalBlock(node *syntax.Node, env *value.Env) value.Value {
-	var result value.Value = value.NULL
+	var result value.Value = value.EMPTY
 	for _, child := range node.Children {
 		if child.Type == "TERMINAL" {
 			continue
