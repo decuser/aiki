@@ -20,7 +20,8 @@ func eval(t *testing.T, source string) value.Value {
 	}
 	rt := substrate.NewGoRuntime()
 	ev := New(rt, nil)
-	return ev.Eval(ast, value.NewEnv())
+	// Use prelude scope to access HAL primitives directly
+	return ev.Eval(ast, value.NewEnvWithScope(value.ScopePrelude))
 }
 
 func TestEvalNumber(t *testing.T) {
@@ -86,14 +87,14 @@ func TestEvalList(t *testing.T) {
 }
 
 func TestEvalBuiltin(t *testing.T) {
-	v := eval(t, "length([1, 2, 3])")
+	v := eval(t, "_length([1, 2, 3])")
 	if v.Inspect() != "3" {
 		t.Errorf("got %s", v.Inspect())
 	}
 }
 
 func TestEvalPipe(t *testing.T) {
-	v := eval(t, "[1, 2, 3] |> first")
+	v := eval(t, "[1, 2, 3] |> _first")
 	if v.Inspect() != "1" {
 		t.Errorf("got %s", v.Inspect())
 	}
