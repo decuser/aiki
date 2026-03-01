@@ -2,6 +2,12 @@
 # This file runs with ScopePrelude, so it can access _prefixed HAL primitives.
 # It defines user-visible wrappers that user code can call.
 
+# Intrinsic wrappers - these need evaluator context
+# Note: import and export are available directly (no wrapper needed)
+let apply = (fn, args) { _apply(fn, args) }
+let load = (path) { _load(path) }
+let spawn = (fn, ...args) { _apply(_spawn, _prepend(args, fn)) }
+
 # IO wrappers - print uses apply for variadic support
 let print = (...args) { apply(_print, args) }
 let read = () { _read() }

@@ -18,13 +18,14 @@ type StackFrame struct {
 
 // Env holds variable bindings and scope chain.
 type Env struct {
-	store  map[string]Value
-	shapes map[string]*ShapeDef
-	outer  *Env
-	file   string   // this env's file (not shared)
-	source string   // this env's source (not shared)
-	stack  *[]StackFrame // shared across enclosed envs
-	scope  Scope
+	store   map[string]Value
+	shapes  map[string]*ShapeDef
+	outer   *Env
+	file    string         // this env's file (not shared)
+	source  string         // this env's source (not shared)
+	stack   *[]StackFrame  // shared across enclosed envs
+	scope   Scope
+	exports []string       // exported names for modules
 }
 
 // NewEnv creates a new environment with user scope.
@@ -173,4 +174,14 @@ func splitLines(s string) []string {
 		lines = append(lines, s[start:])
 	}
 	return lines
+}
+
+// SetExports sets the list of exported names for this module.
+func (e *Env) SetExports(names []string) {
+	e.exports = names
+}
+
+// GetExports returns the list of exported names.
+func (e *Env) GetExports() []string {
+	return e.exports
 }

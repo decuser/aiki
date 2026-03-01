@@ -63,6 +63,7 @@ func RunSource(filename, source string) error {
 	userEnv.SetFile(filename)
 	userEnv.SetSource(source)
 	ev := evaluator.New(rt, nil)
+	ev.SetGrammar(g)
 	result := ev.Eval(ast, userEnv)
 	if err, ok := result.(*value.Error); ok {
 		return fmt.Errorf("%s", err.Inspect())
@@ -88,6 +89,7 @@ func loadPrelude(g *grammar.Grammar, rt *substrate.GoRuntime, env *value.Env) er
 	env.SetFile("<prelude>")
 	env.SetSource(prelude.Source)
 	ev := evaluator.New(rt, nil)
+	ev.SetGrammar(g)
 	result := ev.Eval(ast, env)
 	if err, ok := result.(*value.Error); ok {
 		return fmt.Errorf("%s", err.Inspect())
@@ -129,6 +131,7 @@ func RunExpr(expr string) (string, error) {
 	}
 
 	ev := evaluator.New(rt, nil)
+	ev.SetGrammar(g)
 	result := ev.Eval(ast, userEnv)
 	if err, ok := result.(*value.Error); ok {
 		return "", fmt.Errorf("%s", err.Inspect())

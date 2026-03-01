@@ -3,10 +3,11 @@ package substrate
 import (
 	"math/big"
 
+	"aiki/engine/runtime/hal"
 	"aiki/engine/semantics/value"
 )
 
-func halFloor(args []value.Value) value.Value {
+func halFloor(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
 		return value.NewError("floor: want 1 argument, got %d", len(args))
 	}
@@ -24,7 +25,7 @@ func halFloor(args []value.Value) value.Value {
 	return &value.Number{Val: new(big.Rat).SetInt(q)}
 }
 
-func halCeil(args []value.Value) value.Value {
+func halCeil(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
 		return value.NewError("ceil: want 1 argument, got %d", len(args))
 	}
@@ -42,7 +43,7 @@ func halCeil(args []value.Value) value.Value {
 	return &value.Number{Val: new(big.Rat).SetInt(q)}
 }
 
-func halModulo(args []value.Value) value.Value {
+func halModulo(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 2 {
 		return value.NewError("modulo: want 2 arguments, got %d", len(args))
 	}

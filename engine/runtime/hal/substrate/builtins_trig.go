@@ -5,10 +5,11 @@ import (
 	"math/big"
 	"time"
 
+	"aiki/engine/runtime/hal"
 	"aiki/engine/semantics/value"
 )
 
-func halCos(args []value.Value) value.Value {
+func halCos(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
 		return value.NewError("cos: want 1 argument, got %d", len(args))
 	}
@@ -21,7 +22,7 @@ func halCos(args []value.Value) value.Value {
 	return &value.Number{Val: r}
 }
 
-func halSin(args []value.Value) value.Value {
+func halSin(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
 		return value.NewError("sin: want 1 argument, got %d", len(args))
 	}
@@ -34,7 +35,7 @@ func halSin(args []value.Value) value.Value {
 	return &value.Number{Val: r}
 }
 
-func halSleep(args []value.Value) value.Value {
+func halSleep(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
 		return value.NewError("sleep: want 1 argument, got %d", len(args))
 	}

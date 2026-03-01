@@ -1,24 +1,25 @@
 package substrate
 
 import (
+	"aiki/engine/runtime/hal"
 	"aiki/engine/semantics/value"
 )
 
-func halType(args []value.Value) value.Value {
+func halType(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
 		return value.NewError("type: want 1 argument, got %d", len(args))
 	}
 	return &value.Symbol{Val: string(args[0].Type())}
 }
 
-func halInspect(args []value.Value) value.Value {
+func halInspect(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
 		return value.NewError("inspect: want 1 argument, got %d", len(args))
 	}
 	return &value.String{Val: args[0].Inspect()}
 }
 
-func halEqual(args []value.Value) value.Value {
+func halEqual(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 2 {
 		return value.NewError("equal: want 2 arguments, got %d", len(args))
 	}
@@ -28,7 +29,7 @@ func halEqual(args []value.Value) value.Value {
 	return value.FALSE
 }
 
-func halOrd(args []value.Value) value.Value {
+func halOrd(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
 		return value.NewError("ord: want 1 argument")
 	}

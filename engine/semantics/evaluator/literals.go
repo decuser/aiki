@@ -57,11 +57,6 @@ func (e *Evaluator) evalSymbol(node *syntax.Node, env *value.Env) value.Value {
 func (e *Evaluator) evalName(node *syntax.Node, env *value.Env) value.Value {
 	name := node.Value
 
-	// Check for intrinsics first
-	if name == "apply" {
-		return &Intrinsic{Name: "apply"}
-	}
-
 	// Check environment first (allows shadowing)
 	if val, ok := env.Get(name); ok {
 		return val

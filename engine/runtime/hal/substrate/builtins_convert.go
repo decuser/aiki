@@ -1,11 +1,12 @@
 package substrate
 
 import (
+	"aiki/engine/runtime/hal"
 	"aiki/engine/semantics/value"
 )
 
 // halShape returns the shape of a list, or :list if unshaped.
-func halShape(args []value.Value) value.Value {
+func halShape(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
 		return value.NewError("shape: want 1 argument, got %d", len(args))
 	}
@@ -20,7 +21,7 @@ func halShape(args []value.Value) value.Value {
 }
 
 // halToStr converts any value to a string.
-func halToStr(args []value.Value) value.Value {
+func halToStr(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
 		return value.NewError("to_str: want 1 argument, got %d", len(args))
 	}
