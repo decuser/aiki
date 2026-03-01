@@ -39,14 +39,15 @@ func (e *Evaluator) applyUserFunction(fn *value.Function, args []value.Value, no
 		return e.makeError(node, env, "invalid function environment")
 	}
 
+	// Check argument count (excluding rest params)
+	if len(args) < len(fn.Params) {
+		return e.makeError(node, env, "%s: want %d arguments, got %d", fn.Name, len(fn.Params), len(args))
+	}
+
 	callEnv := value.NewEnclosedEnv(fnEnv)
 
 	for i, param := range fn.Params {
-		if i < len(args) {
-			callEnv.Set(param, args[i])
-		} else {
-			callEnv.Set(param, value.NULL)
-		}
+		callEnv.Set(param, args[i])
 	}
 
 	if fn.Rest != "" {

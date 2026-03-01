@@ -1,3 +1,5 @@
+import("math/inexact", :sin, :cos)
+
 let canvas_ref = canvas(800, 800)
 let tick = 0
 let outer_radius = 200

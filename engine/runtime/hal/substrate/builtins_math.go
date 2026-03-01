@@ -1,6 +1,7 @@
 package substrate
 
 import (
+	"math"
 	"math/big"
 
 	"aiki/engine/runtime/hal"
@@ -62,4 +63,20 @@ func halModulo(args []value.Value, ctx *hal.EvalContext) value.Value {
 	r := right.Val.Num()
 	result := new(big.Int).Mod(l, r)
 	return &value.Number{Val: new(big.Rat).SetInt(result)}
+}
+
+func halSqrt(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 1 {
+		return value.NewError("sqrt: want 1 argument, got %d", len(args))
+	}
+	n, ok := args[0].(*value.Number)
+	if !ok {
+		return value.NewError("sqrt: expected number")
+	}
+	f, _ := n.Val.Float64()
+	if f < 0 {
+		return value.NewError("sqrt: negative number")
+	}
+	r := new(big.Rat).SetFloat64(math.Sqrt(f))
+	return &value.Number{Val: r}
 }

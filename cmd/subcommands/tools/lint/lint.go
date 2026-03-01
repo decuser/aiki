@@ -466,6 +466,10 @@ func (c *checker) checkNameRef(node *syntax.Node) {
 		name == "from" || name == "use" {
 		return
 	}
+	// Skip _ prefixed names - these are HAL primitives accessible in prelude scope
+	if len(name) > 0 && name[0] == '_' {
+		return
+	}
 	if !c.isDefined(name) {
 		c.addError(node.Line, node.Column, "undefined: '"+name+"'")
 	}

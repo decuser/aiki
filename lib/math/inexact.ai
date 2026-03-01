@@ -1,0 +1,9 @@
+# math/inexact - fast float-backed math functions
+# These use hardware floats internally, returning rational approximations.
+# Use when speed matters more than exactness.
+
+let sin = (x) { _sin_inexact(x) }
+let cos = (x) { _cos_inexact(x) }
+let sqrt = (x) { _sqrt_inexact(x) }
+
+export(:sin, :cos, :sqrt)

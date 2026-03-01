@@ -1,5 +1,4 @@
 # Hash utility tests
-
 let h = hash_new()
 h = hash_put(h, "a", 1)
 h = hash_put(h, "b", 2)
