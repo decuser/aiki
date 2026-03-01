@@ -4,6 +4,7 @@ import (
 	"image/color"
 	"sync"
 
+	"aiki/engine/runtime/hal"
 	"aiki/engine/semantics/value"
 )
 
@@ -47,7 +48,7 @@ func CloseAllCanvases() {
 	openCanvasesMu.Unlock()
 }
 
-func halCanvas(args []value.Value) value.Value {
+func halCanvas(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 2 {
 		return value.NewError("canvas: want 2 arguments, got %d", len(args))
 	}
@@ -75,7 +76,7 @@ func halCanvas(args []value.Value) value.Value {
 	return cvs
 }
 
-func halDot(args []value.Value) value.Value {
+func halDot(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) < 3 || len(args) > 4 {
 		return value.NewError("dot: want 3 or 4 arguments, got %d", len(args))
 	}
@@ -99,7 +100,7 @@ func halDot(args []value.Value) value.Value {
 	return value.TRUE
 }
 
-func halLine(args []value.Value) value.Value {
+func halLine(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) < 5 || len(args) > 6 {
 		return value.NewError("line: want 5 or 6 arguments, got %d", len(args))
 	}
@@ -125,11 +126,11 @@ func halLine(args []value.Value) value.Value {
 	return value.TRUE
 }
 
-func halRect(args []value.Value) value.Value {
+func halRect(args []value.Value, ctx *hal.EvalContext) value.Value {
 	return rectHelper("rect", args)
 }
 
-func halFillRect(args []value.Value) value.Value {
+func halFillRect(args []value.Value, ctx *hal.EvalContext) value.Value {
 	return rectHelper("fill_rect", args)
 }
 
@@ -159,11 +160,11 @@ func rectHelper(op string, args []value.Value) value.Value {
 	return value.TRUE
 }
 
-func halCircle(args []value.Value) value.Value {
+func halCircle(args []value.Value, ctx *hal.EvalContext) value.Value {
 	return circleHelper("circle", args)
 }
 
-func halFillCircle(args []value.Value) value.Value {
+func halFillCircle(args []value.Value, ctx *hal.EvalContext) value.Value {
 	return circleHelper("fill_circle", args)
 }
 
@@ -192,7 +193,7 @@ func circleHelper(op string, args []value.Value) value.Value {
 	return value.TRUE
 }
 
-func halClear(args []value.Value) value.Value {
+func halClear(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
 		return value.NewError("clear: want 1 argument, got %d", len(args))
 	}
@@ -204,7 +205,7 @@ func halClear(args []value.Value) value.Value {
 	return value.TRUE
 }
 
-func halDestroy(args []value.Value) value.Value {
+func halDestroy(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
 		return value.NewError("destroy: want 1 argument, got %d", len(args))
 	}
@@ -221,7 +222,7 @@ func halDestroy(args []value.Value) value.Value {
 	return value.TRUE
 }
 
-func halSetBG(args []value.Value) value.Value {
+func halSetBG(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 2 {
 		return value.NewError("set_bg: want 2 arguments, got %d", len(args))
 	}
@@ -237,7 +238,7 @@ func halSetBG(args []value.Value) value.Value {
 	return value.TRUE
 }
 
-func halSetFG(args []value.Value) value.Value {
+func halSetFG(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 2 {
 		return value.NewError("set_fg: want 2 arguments, got %d", len(args))
 	}
@@ -253,7 +254,7 @@ func halSetFG(args []value.Value) value.Value {
 	return value.TRUE
 }
 
-func halPenSize(args []value.Value) value.Value {
+func halPenSize(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 2 {
 		return value.NewError("pen_size: want 2 arguments, got %d", len(args))
 	}

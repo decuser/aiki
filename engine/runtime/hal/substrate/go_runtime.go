@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"aiki/engine/runtime/hal"
@@ -17,15 +18,24 @@ var (
 	Stdin  io.Reader = os.Stdin
 )
 
+// BuiltinFunc is a HAL-level function that may use evaluation context.
+// Simple builtins ignore ctx; intrinsics (import, export, apply, etc.) use it.
+type BuiltinFunc func(args []value.Value, ctx *hal.EvalContext) value.Value
+
 // Builtin is a HAL-level function implementing value.Callable.
 type Builtin struct {
-	name string
-	fn   func(args []value.Value) value.Value
+	name    string
+	fn      BuiltinFunc
+	runtime *GoRuntime // back-reference for context access
 }
 
-func (b *Builtin) Type() value.Type                    { return value.FunctionType }
-func (b *Builtin) Inspect() string                     { return fmt.Sprintf("<builtin: %s>", b.name) }
-func (b *Builtin) Call(args []value.Value) value.Value { return b.fn(args) }
+func (b *Builtin) Type() value.Type    { return value.FunctionType }
+func (b *Builtin) Inspect() string     { return fmt.Sprintf("<builtin: %s>", b.name) }
+
+// Call invokes the builtin. Context is retrieved from the runtime's current context.
+func (b *Builtin) Call(args []value.Value) value.Value {
+	return b.fn(args, b.runtime.currentCtx)
+}
 
 // Verify Builtin implements Callable
 var _ value.Callable = (*Builtin)(nil)
@@ -34,8 +44,9 @@ var _ value.Callable = (*Builtin)(nil)
 // It maintains a single registry of _prefixed HAL primitives.
 // User-visible names are defined in prelude.ai, not here.
 type GoRuntime struct {
-	registry map[string]*Builtin // _print, _read, etc - prelude only
-	mu       sync.RWMutex
+	registry   map[string]*Builtin // _print, _read, etc - prelude only
+	mu         sync.RWMutex
+	currentCtx *hal.EvalContext    // set before each builtin call
 }
 
 // Verify GoRuntime implements RuntimeContract
@@ -50,8 +61,14 @@ func NewGoRuntime() *GoRuntime {
 	return rt
 }
 
+// SetContext sets the evaluation context for subsequent builtin calls.
+// Called by the evaluator before invoking builtins.
+func (g *GoRuntime) SetContext(ctx *hal.EvalContext) {
+	g.currentCtx = ctx
+}
+
 // Execute calls a registered primitive function.
-func (g *GoRuntime) Execute(name string, args []value.Value) (value.Value, error) {
+func (g *GoRuntime) Execute(name string, args []value.Value, ctx *hal.EvalContext) (value.Value, error) {
 	g.mu.RLock()
 	b, ok := g.registry[name]
 	g.mu.RUnlock()
@@ -60,7 +77,7 @@ func (g *GoRuntime) Execute(name string, args []value.Value) (value.Value, error
 		return nil, fmt.Errorf("builtin %s not found", name)
 	}
 
-	result := b.Call(args)
+	result := b.fn(args, ctx)
 	if err, ok := result.(*value.Error); ok {
 		return nil, fmt.Errorf("%s", err.Message)
 	}
@@ -69,7 +86,15 @@ func (g *GoRuntime) Execute(name string, args []value.Value) (value.Value, error
 
 // HasBuiltin checks if a name is visible at the given scope.
 func (g *GoRuntime) HasBuiltin(name string, scope value.Scope) bool {
-	// User scope cannot access any builtins directly.
+	// export and import are available in all scopes (they're language primitives)
+	if name == "export" || name == "import" {
+		g.mu.RLock()
+		_, ok := g.registry["_"+name]
+		g.mu.RUnlock()
+		return ok
+	}
+
+	// User scope cannot access any other builtins directly.
 	// All user-visible functions come from prelude.ai bindings in Env.
 	if scope == value.ScopeUser {
 		return false
@@ -84,7 +109,15 @@ func (g *GoRuntime) HasBuiltin(name string, scope value.Scope) bool {
 
 // GetBuiltin returns a callable for the named builtin at the given scope.
 func (g *GoRuntime) GetBuiltin(name string, scope value.Scope) (value.Callable, bool) {
-	// User scope cannot access any builtins directly.
+	// export and import are available in all scopes (they're language primitives)
+	if name == "export" || name == "import" {
+		g.mu.RLock()
+		b, ok := g.registry["_"+name]
+		g.mu.RUnlock()
+		return b, ok
+	}
+
+	// User scope cannot access any other builtins directly.
 	// All user-visible functions come from prelude.ai bindings in Env.
 	if scope == value.ScopeUser {
 		return nil, false
@@ -95,4 +128,35 @@ func (g *GoRuntime) GetBuiltin(name string, scope value.Scope) (value.Callable, 
 	b, ok := g.registry[name]
 	g.mu.RUnlock()
 	return b, ok
+}
+
+// register adds a builtin to the registry.
+func (g *GoRuntime) register(name string, fn BuiltinFunc) {
+	g.registry[name] = &Builtin{name: name, fn: fn, runtime: g}
+}
+
+// resolveModulePath finds the .ai file for a module name.
+func resolveModulePath(name string, env *value.Env) string {
+	// Try relative to current file
+	currentFile := env.GetFile()
+	if currentFile != "" && currentFile != "<unknown>" {
+		dir := filepath.Dir(currentFile)
+		candidate := filepath.Join(dir, name+".ai")
+		if _, err := os.Stat(candidate); err == nil {
+			return candidate
+		}
+	}
+
+	// Try as-is with .ai extension
+	candidate := name + ".ai"
+	if _, err := os.Stat(candidate); err == nil {
+		return candidate
+	}
+
+	// Try without extension
+	if _, err := os.Stat(name); err == nil {
+		return name
+	}
+
+	return ""
 }

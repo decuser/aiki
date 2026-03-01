@@ -205,6 +205,7 @@ func runEngineFile(path string, stdin []byte) (stdout []byte, stderr []byte, exi
 	userEnv.SetFile(path)
 	userEnv.SetSource(string(source))
 	ev := evaluator.New(rt, nil)
+	ev.SetGrammar(g)
 	result := ev.Eval(ast, userEnv)
 	if errVal, ok := result.(*value.Error); ok {
 		errBuf.WriteString(errVal.Inspect())

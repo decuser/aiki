@@ -1,20 +1,24 @@
 package evaluator
 
 import (
+	"aiki/engine/runtime/hal"
 	"aiki/engine/semantics/value"
 	"aiki/engine/syntax"
 )
 
 func (e *Evaluator) applyFunction(fn value.Value, args []value.Value, node *syntax.Node, env *value.Env) value.Value {
-	// Check for intrinsic functions that need evaluator context
-	if intrinsic, ok := fn.(*Intrinsic); ok {
-		return e.callIntrinsic(intrinsic.Name, args, node, env)
-	}
-
 	switch f := fn.(type) {
 	case *value.Function:
 		return e.applyUserFunction(f, args, node, env)
 	case value.Callable:
+		// Set context before calling builtin so intrinsics have access
+		ctx := &hal.EvalContext{
+			Env:     env,
+			Node:    node,
+			Grammar: e.grammar,
+			Eval:    e.Eval,
+		}
+		e.runtime.SetContext(ctx)
 		result := f.Call(args)
 		// Annotate HAL errors with call site location
 		if err, ok := result.(*value.Error); ok && err.File == "" {
@@ -27,41 +31,6 @@ func (e *Evaluator) applyFunction(fn value.Value, args []value.Value, node *synt
 	default:
 		return e.makeError(node, env, "not a function: %s", fn.Type())
 	}
-}
-
-// Intrinsic represents a function that needs evaluator context.
-type Intrinsic struct {
-	Name string
-}
-
-func (i *Intrinsic) Type() value.Type    { return value.FunctionType }
-func (i *Intrinsic) Inspect() string     { return "<intrinsic: " + i.Name + ">" }
-
-// callIntrinsic dispatches to intrinsic implementations.
-func (e *Evaluator) callIntrinsic(name string, args []value.Value, node *syntax.Node, env *value.Env) value.Value {
-	switch name {
-	case "apply":
-		return e.intrinsicApply(args, node, env)
-	default:
-		return e.makeError(node, env, "unknown intrinsic: %s", name)
-	}
-}
-
-// intrinsicApply implements apply(fn, list) - spreads list as args.
-func (e *Evaluator) intrinsicApply(args []value.Value, node *syntax.Node, env *value.Env) value.Value {
-	if len(args) != 2 {
-		return e.makeError(node, env, "apply: want 2 arguments, got %d", len(args))
-	}
-
-	fn := args[0]
-	listVal := args[1]
-
-	list, ok := listVal.(*value.List)
-	if !ok {
-		return e.makeError(node, env, "apply: second argument must be list, got %s", listVal.Type())
-	}
-
-	return e.applyFunction(fn, list.Elements, node, env)
 }
 
 func (e *Evaluator) applyUserFunction(fn *value.Function, args []value.Value, node *syntax.Node, env *value.Env) value.Value {

@@ -6,12 +6,14 @@ import (
 	"aiki/engine/runtime/hal"
 	"aiki/engine/semantics/value"
 	"aiki/engine/syntax"
+	"aiki/engine/syntax/grammar"
 )
 
 // Evaluator evaluates AST nodes.
 type Evaluator struct {
 	observer engine.Observer
 	runtime  hal.RuntimeContract
+	grammar  *grammar.Grammar
 }
 
 // New creates an evaluator with a runtime.
@@ -23,6 +25,11 @@ func New(runtime hal.RuntimeContract, observer engine.Observer) *Evaluator {
 		observer: observer,
 		runtime:  runtime,
 	}
+}
+
+// SetGrammar sets the grammar for use by import/load intrinsics.
+func (e *Evaluator) SetGrammar(g *grammar.Grammar) {
+	e.grammar = g
 }
 
 // Eval evaluates an AST node.

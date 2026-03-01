@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"io"
 
+	"aiki/engine/runtime/hal"
 	"aiki/engine/semantics/value"
 )
 
-func halPrint(args []value.Value) value.Value {
+func halPrint(args []value.Value, ctx *hal.EvalContext) value.Value {
 	for _, arg := range args {
 		if s, ok := arg.(*value.String); ok {
 			fmt.Fprint(Stdout, s.Val)
@@ -19,7 +20,7 @@ func halPrint(args []value.Value) value.Value {
 	return value.NULL
 }
 
-func halRead(args []value.Value) value.Value {
+func halRead(args []value.Value, ctx *hal.EvalContext) value.Value {
 	reader := bufio.NewReader(Stdin)
 	line, err := reader.ReadString('\n')
 	if err != nil {

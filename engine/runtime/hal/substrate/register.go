@@ -1,7 +1,5 @@
 package substrate
 
-import "aiki/engine/semantics/value"
-
 // registerHAL registers all HAL primitives (_prefixed, prelude-only).
 func (g *GoRuntime) registerHAL() {
 	// IO
@@ -46,13 +44,15 @@ func (g *GoRuntime) registerHAL() {
 	g.register("_set_bg", halSetBG)
 	g.register("_set_fg", halSetFG)
 	g.register("_pen_size", halPenSize)
+
+	// Convert
 	g.register("_shape", halShape)
 	g.register("_to_str", halToStr)
-}
 
-// register adds a HAL primitive to the registry.
-func (g *GoRuntime) register(name string, fn func(args []value.Value) value.Value) {
-	g.mu.Lock()
-	g.registry[name] = &Builtin{name: name, fn: fn}
-	g.mu.Unlock()
+	// Intrinsics - these use evaluation context
+	g.register("_apply", halApply)
+	g.register("_import", halImport)
+	g.register("_export", halExport)
+	g.register("_load", halLoad)
+	g.register("_spawn", halSpawn)
 }

@@ -1,10 +1,11 @@
 package substrate
 
 import (
+	"aiki/engine/runtime/hal"
 	"aiki/engine/semantics/value"
 )
 
-func halFirst(args []value.Value) value.Value {
+func halFirst(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
 		return value.NewError("first: want 1 argument, got %d", len(args))
 	}
@@ -25,7 +26,7 @@ func halFirst(args []value.Value) value.Value {
 	}
 }
 
-func halRest(args []value.Value) value.Value {
+func halRest(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
 		return value.NewError("rest: want 1 argument, got %d", len(args))
 	}
@@ -46,7 +47,7 @@ func halRest(args []value.Value) value.Value {
 	}
 }
 
-func halLength(args []value.Value) value.Value {
+func halLength(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
 		return value.NewError("length: want 1 argument, got %d", len(args))
 	}
@@ -60,7 +61,7 @@ func halLength(args []value.Value) value.Value {
 	}
 }
 
-func halPrepend(args []value.Value) value.Value {
+func halPrepend(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 2 {
 		return value.NewError("prepend: want 2 arguments, got %d", len(args))
 	}
@@ -74,7 +75,7 @@ func halPrepend(args []value.Value) value.Value {
 	return &value.List{Elements: newElems}
 }
 
-func halAppend(args []value.Value) value.Value {
+func halAppend(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 2 {
 		return value.NewError("append: want 2 arguments, got %d", len(args))
 	}
@@ -88,7 +89,7 @@ func halAppend(args []value.Value) value.Value {
 	return &value.List{Elements: newElems}
 }
 
-func halEmpty(args []value.Value) value.Value {
+func halEmpty(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
 		return value.NewError("empty: want 1 argument, got %d", len(args))
 	}
@@ -108,7 +109,7 @@ func halEmpty(args []value.Value) value.Value {
 	}
 }
 
-func halRange(args []value.Value) value.Value {
+func halRange(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) < 1 || len(args) > 2 {
 		return value.NewError("range: want 1 or 2 arguments")
 	}
