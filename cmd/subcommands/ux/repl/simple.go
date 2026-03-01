@@ -7,16 +7,15 @@ import (
 	"os"
 )
 
-type simpleReader struct {
+type SimpleReader struct {
 	scanner *bufio.Scanner
 }
 
-// NewSimpleReader creates a basic LineReader with no editing.
-func NewSimpleReader() LineReader {
-	return &simpleReader{scanner: bufio.NewScanner(os.Stdin)}
+func NewSimpleReader() *SimpleReader {
+	return &SimpleReader{scanner: bufio.NewScanner(os.Stdin)}
 }
 
-func (r *simpleReader) Prompt(prompt string) (string, error) {
+func (r *SimpleReader) Prompt(prompt string) (string, error) {
 	fmt.Print(prompt)
 	if r.scanner.Scan() {
 		return r.scanner.Text(), nil
@@ -27,6 +26,4 @@ func (r *simpleReader) Prompt(prompt string) (string, error) {
 	return "", io.EOF
 }
 
-func (r *simpleReader) Close() error {
-	return nil
-}
+func (r *SimpleReader) Close() {}

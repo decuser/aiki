@@ -6,7 +6,7 @@ import (
 	"os"
 	"os/user"
 
-	"aiki/cmd/repl"
+	"aiki/cmd/subcommands/ux/repl"
 	"aiki/engine/runner"
 	"aiki/engine/semantics/value"
 
@@ -15,18 +15,10 @@ import (
 	aikidoclint "aiki/cmd/subcommands/tools/doclint"
 	aikifmt "aiki/cmd/subcommands/tools/fmt"
 	aikilint "aiki/cmd/subcommands/tools/lint"
-
-	// For fmt/lint - they need reference grammar for now
-	"aiki/reference/syntax"
 )
 
 func main() {
 	repl.AppVersion = Version
-
-	// Set grammar for fmt/lint (still uses reference)
-	grammar := syntax.GetGrammar()
-	aikifmt.SetGrammar(grammar)
-	aikilint.SetGrammar(grammar)
 
 	// Check for subcommands before flag parsing
 	if len(os.Args) > 1 {
