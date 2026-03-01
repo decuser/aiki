@@ -11,6 +11,7 @@ type Parser struct {
 	grammar  *grammar.Grammar
 	tokens   []Token
 	pos      int
+	furthest int // furthest position reached - for better error reporting
 	source   string
 	observer engine.Observer
 }
@@ -19,7 +20,7 @@ func NewParser(g *grammar.Grammar, tokens []Token, source string, observer engin
 	if observer == nil {
 		observer = engine.SilentObserver{}
 	}
-	return &Parser{grammar: g, tokens: tokens, pos: 0, source: source, observer: observer}
+	return &Parser{grammar: g, tokens: tokens, pos: 0, furthest: 0, source: source, observer: observer}
 }
 
 func (p *Parser) Parse() (*Node, error) {
@@ -28,7 +29,12 @@ func (p *Parser) Parse() (*Node, error) {
 		return nil, err
 	}
 	if p.pos < len(p.tokens) {
-		tok := p.tokens[p.pos]
+		// Use furthest position for better error location
+		errPos := p.furthest
+		if errPos >= len(p.tokens) {
+			errPos = len(p.tokens) - 1
+		}
+		tok := p.tokens[errPos]
 		return nil, fmt.Errorf("%s", engine.FormatWithCaret(tok.Pos, engine.GetSourceLine(p.source, tok.Pos.Line),
 			fmt.Sprintf("unexpected token '%s'", tok.Lexeme)))
 	}
@@ -134,7 +140,7 @@ func (p *Parser) parseTerminal(term *grammar.Terminal) ([]*Node, error) {
 	if tok.Lexeme != term.Value {
 		return nil, p.error("expected '%s', got '%s'", term.Value, tok.Lexeme)
 	}
-	p.pos++
+	p.advance()
 	return []*Node{{Type: "TERMINAL", Value: tok.Lexeme, Pos: tok.Pos}}, nil
 }
 
@@ -154,8 +160,16 @@ func (p *Parser) parseTokenRef(ref *grammar.TokenRef) ([]*Node, error) {
 	if !p.matchesToken(tok, ref.Name) {
 		return nil, p.error("expected %s, got %s", ref.Name, tok.Type)
 	}
-	p.pos++
+	p.advance()
 	return []*Node{{Type: ref.Name, Value: tok.Lexeme, Pos: tok.Pos}}, nil
+}
+
+// advance moves to next token and tracks furthest position reached.
+func (p *Parser) advance() {
+	p.pos++
+	if p.pos > p.furthest {
+		p.furthest = p.pos
+	}
 }
 
 func (p *Parser) matchesToken(tok Token, refName string) bool {
