@@ -2,15 +2,16 @@ package repl
 
 import "io"
 
+// TrackingWriter tracks whether output ended with newline.
 type TrackingWriter struct {
 	Out              io.Writer
 	EndedWithNewline bool
 }
 
-func (w *TrackingWriter) Write(p []byte) (n int, err error) {
-	n, err = w.Out.Write(p)
+func (t *TrackingWriter) Write(p []byte) (n int, err error) {
+	n, err = t.Out.Write(p)
 	if n > 0 {
-		w.EndedWithNewline = p[n-1] == '\n'
+		t.EndedWithNewline = p[n-1] == '\n'
 	}
 	return
 }

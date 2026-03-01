@@ -1,15 +1,12 @@
 package repl
 
-import "aiki/reference/syntax"
-
 import (
 	"fmt"
 	"io"
 
-	"aiki/reference/runtime/hal"
-	"aiki/reference/runtime/prelude"
-	"aiki/reference/semantics/eval"
-	"aiki/reference/semantics/value"
+	"aiki/engine/runner"
+	"aiki/engine/runtime/hal/substrate"
+	"aiki/engine/semantics/value"
 )
 
 const (
@@ -17,32 +14,40 @@ const (
 	promptCont = "  "
 )
 
+var AppVersion string
+
 // Session manages a REPL session.
 type Session struct {
 	out     io.Writer
-	env     *value.Env
+	session *runner.Session
 	debug   bool
 	reader  LineReader
 	tracker *TrackingWriter
-	grammar *syntax.Grammar
 }
 
 // NewSession creates a new REPL session.
-func NewSession(grammar *syntax.Grammar, out io.Writer, env *value.Env, debug bool) *Session {
-	reader, err := NewReadlineReader()
+func NewSession(out io.Writer, debug bool) (*Session, error) {
+	sess, err := runner.NewSession()
+	if err != nil {
+		return nil, err
+	}
+
+	var reader LineReader
+	reader, err = NewReadlineReader()
 	if err != nil {
 		reader = NewSimpleReader()
 	}
+
 	tracker := &TrackingWriter{Out: out, EndedWithNewline: true}
-	hal.Stdout = tracker
+	substrate.Stdout = tracker
+
 	return &Session{
-		grammar: grammar,
 		out:     out,
-		env:     env,
+		session: sess,
 		debug:   debug,
 		reader:  reader,
 		tracker: tracker,
-	}
+	}, nil
 }
 
 // Run starts the REPL loop.
@@ -82,25 +87,32 @@ func (s *Session) Run() {
 		}
 
 		s.tracker.EndedWithNewline = true
-		result := eval.RunNode(s.grammar, buffer, s.env)
+		result := s.session.Eval(buffer)
 		buffer = ""
 		prompt = promptMain
 
 		// Check for reset signal
-		if _, ok := result.(*hal.ResetSignal); ok {
-			s.env = value.NewEnv(nil)
-			eval.RunNode(s.grammar, prelude.Source, s.env)
-			s.env.SnapshotPrelude()
-			fmt.Fprintln(s.out, "Environment reset.")
+		if _, ok := result.(*value.ResetSignal); ok {
+			if err := s.session.Reset(); err != nil {
+				fmt.Fprintf(s.out, "reset error: %v\n", err)
+			} else {
+				fmt.Fprintln(s.out, "Environment reset.")
+			}
 			continue
 		}
 
-		if _, ok := result.(*hal.ExitSignal); ok {
+		if _, ok := result.(*value.ExitSignal); ok {
 			fmt.Fprintln(s.out, "Goodbye!")
 			return
 		}
+
 		if result != nil && result != value.NULL {
-			fmt.Fprintln(s.out, result.Inspect())
+			// Don't print errors twice - they're already printed
+			if _, ok := result.(*value.Error); !ok {
+				fmt.Fprintln(s.out, result.Inspect())
+			} else {
+				fmt.Fprintln(s.out, result.Inspect())
+			}
 		} else if !s.tracker.EndedWithNewline {
 			fmt.Fprintln(s.out)
 		}
