@@ -99,3 +99,59 @@ func TestEvalPipe(t *testing.T) {
 		t.Errorf("got %s", v.Inspect())
 	}
 }
+
+func TestHandlerValidationPanicsOnMissingHandler(t *testing.T) {
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Error("expected panic for missing handler")
+		}
+		msg, ok := r.(string)
+		if !ok || msg != "grammar production has no handler: fake_stmt" {
+			t.Errorf("unexpected panic message: %v", r)
+		}
+	}()
+
+	g := &grammar.Grammar{
+		Productions: map[string]*grammar.Production{
+			"program":   {},
+			"fake_stmt": {}, // no handler for this
+		},
+		Tokens: []grammar.TokenDef{},
+	}
+
+	ev := New(nil, nil)
+	ev.SetGrammar(g) // should panic
+}
+
+func TestHandlerValidationPanicsOnMissingTokenHandler(t *testing.T) {
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Error("expected panic for missing token handler")
+		}
+	}()
+
+	g := &grammar.Grammar{
+		Productions: map[string]*grammar.Production{
+			"program": {},
+		},
+		Tokens: []grammar.TokenDef{
+			{Name: "FAKE_TOKEN", Skip: false}, // no handler for this
+		},
+	}
+
+	ev := New(nil, nil)
+	ev.SetGrammar(g) // should panic
+}
+
+func TestHandlerValidationPassesForRealGrammar(t *testing.T) {
+	// Should not panic
+	g, err := grammar.Load("grammar.ebnfx", syntax.EbnfxSource, "grammar.help", syntax.HelpSource)
+	if err != nil {
+		t.Fatalf("load grammar: %v", err)
+	}
+
+	ev := New(nil, nil)
+	ev.SetGrammar(g) // should not panic
+}
