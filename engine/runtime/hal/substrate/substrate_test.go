@@ -10,7 +10,7 @@ import (
 func TestFirst(t *testing.T) {
 	rt := NewGoRuntime()
 	list := &value.List{Elements: []value.Value{value.NewNumber(1, 1), value.NewNumber(2, 1)}}
-	v, _ := rt.Execute("_first", []value.Value{list})
+	v, _ := rt.Execute("_first", []value.Value{list}, nil)
 	if v.Inspect() != "1" {
 		t.Errorf("got %s", v.Inspect())
 	}
@@ -19,7 +19,7 @@ func TestFirst(t *testing.T) {
 func TestRest(t *testing.T) {
 	rt := NewGoRuntime()
 	list := &value.List{Elements: []value.Value{value.NewNumber(1, 1), value.NewNumber(2, 1)}}
-	v, _ := rt.Execute("_rest", []value.Value{list})
+	v, _ := rt.Execute("_rest", []value.Value{list}, nil)
 	if v.Inspect() != "[2]" {
 		t.Errorf("got %s", v.Inspect())
 	}
@@ -28,7 +28,7 @@ func TestRest(t *testing.T) {
 func TestLength(t *testing.T) {
 	rt := NewGoRuntime()
 	list := &value.List{Elements: []value.Value{value.NewNumber(1, 1), value.NewNumber(2, 1)}}
-	v, _ := rt.Execute("_length", []value.Value{list})
+	v, _ := rt.Execute("_length", []value.Value{list}, nil)
 	if v.Inspect() != "2" {
 		t.Errorf("got %s", v.Inspect())
 	}
@@ -36,7 +36,7 @@ func TestLength(t *testing.T) {
 
 func TestEmpty(t *testing.T) {
 	rt := NewGoRuntime()
-	v, _ := rt.Execute("_empty", []value.Value{&value.List{}})
+	v, _ := rt.Execute("_empty", []value.Value{&value.List{}}, nil)
 	if v != value.TRUE {
 		t.Error("expected true")
 	}
@@ -48,7 +48,7 @@ func TestPrint(t *testing.T) {
 	defer func() { Stdout = nil }()
 
 	rt := NewGoRuntime()
-	rt.Execute("_print", []value.Value{&value.String{Val: "hello"}})
+	rt.Execute("_print", []value.Value{&value.String{Val: "hello"}}, nil)
 	if buf.String() != "hello" {
 		t.Errorf("got %q", buf.String())
 	}
@@ -56,7 +56,7 @@ func TestPrint(t *testing.T) {
 
 func TestEqual(t *testing.T) {
 	rt := NewGoRuntime()
-	v, _ := rt.Execute("_equal", []value.Value{value.NewNumber(1, 1), value.NewNumber(1, 1)})
+	v, _ := rt.Execute("_equal", []value.Value{value.NewNumber(1, 1), value.NewNumber(1, 1)}, nil)
 	if v != value.TRUE {
 		t.Error("expected true")
 	}
