@@ -46,6 +46,8 @@ func (g *GoRuntime) registerHAL() {
 	g.register("_set_bg", halSetBG)
 	g.register("_set_fg", halSetFG)
 	g.register("_pen_size", halPenSize)
+	g.register("_shape", halShape)
+	g.register("_to_str", halToStr)
 }
 
 // register adds a HAL primitive to the registry.

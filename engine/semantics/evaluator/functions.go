@@ -15,7 +15,15 @@ func (e *Evaluator) applyFunction(fn value.Value, args []value.Value, node *synt
 	case *value.Function:
 		return e.applyUserFunction(f, args, node, env)
 	case value.Callable:
-		return f.Call(args)
+		result := f.Call(args)
+		// Annotate HAL errors with call site location
+		if err, ok := result.(*value.Error); ok && err.File == "" {
+			err.File = env.GetFile()
+			err.Line = node.Pos.Line
+			err.Source = env.GetSourceLine(node.Pos.Line)
+			err.Stack = env.CopyStack()
+		}
+		return result
 	default:
 		return e.makeError(node, env, "not a function: %s", fn.Type())
 	}
@@ -26,8 +34,8 @@ type Intrinsic struct {
 	Name string
 }
 
-func (i *Intrinsic) Type() value.Type { return value.FunctionType }
-func (i *Intrinsic) Inspect() string  { return "<intrinsic: " + i.Name + ">" }
+func (i *Intrinsic) Type() value.Type    { return value.FunctionType }
+func (i *Intrinsic) Inspect() string     { return "<intrinsic: " + i.Name + ">" }
 
 // callIntrinsic dispatches to intrinsic implementations.
 func (e *Evaluator) callIntrinsic(name string, args []value.Value, node *syntax.Node, env *value.Env) value.Value {
@@ -92,9 +100,9 @@ func (e *Evaluator) applyUserFunction(fn *value.Function, args []value.Value, no
 		funcName = "<anonymous>"
 	}
 	callEnv.PushFrame(funcName, node.Pos.Line, callEnv.GetScope())
-
+	
 	result := e.Eval(body, callEnv)
-
+	
 	callEnv.PopFrame()
 
 	if ret, ok := result.(*value.Return); ok {

@@ -1,113 +1,50 @@
 # Prelude - minimal standard library
 # This file runs with ScopePrelude, so it can access _prefixed HAL primitives.
 # It defines user-visible wrappers that user code can call.
+
 # IO wrappers - print uses apply for variadic support
-let print = (...args) {
-	apply(_print, args)
-}
-let read = () {
-	_read()
-}
-let input = () {
-	_read()
-}
+let print = (...args) { apply(_print, args) }
+let read = () { _read() }
+let input = () { _read() }
 
 # List wrappers
-let first = (list) {
-	_first(list)
-}
-let rest = (list) {
-	_rest(list)
-}
-let length = (list) {
-	_length(list)
-}
-let prepend = (list, val) {
-	_prepend(list, val)
-}
-let append = (list, val) {
-	_append(list, val)
-}
-let empty = (list) {
-	_empty(list)
-}
-let range = (start, end) {
-	_range(start, end)
-}
+let first = (list) { _first(list) }
+let rest = (list) { _rest(list) }
+let length = (list) { _length(list) }
+let prepend = (list, val) { _prepend(list, val) }
+let append = (list, val) { _append(list, val) }
+let empty = (list) { _empty(list) }
+let range = (start, end) { _range(start, end) }
 
 # Type wrappers
-let type = (val) {
-	_type(val)
-}
-let inspect = (val) {
-	_inspect(val)
-}
-let equal = (a, b) {
-	_equal(a, b)
-}
-let ord = (r) {
-	_ord(r)
-}
+let type = (val) { _type(val) }
+let inspect = (val) { _inspect(val) }
+let equal = (a, b) { _equal(a, b) }
+let ord = (r) { _ord(r) }
 
 # Math wrappers
-let floor = (n) {
-	_floor(n)
-}
-let ceil = (n) {
-	_ceil(n)
-}
-let modulo = (a, b) {
-	_modulo(a, b)
-}
-let cos = (n) {
-	_cos(n)
-}
-let sin = (n) {
-	_sin(n)
-}
+let floor = (n) { _floor(n) }
+let ceil = (n) { _ceil(n) }
+let modulo = (a, b) { _modulo(a, b) }
+let cos = (n) { _cos(n) }
+let sin = (n) { _sin(n) }
 
 # Time wrappers
-let sleep = (ms) {
-	_sleep(ms)
-}
+let sleep = (ms) { _sleep(ms) }
 
 # Canvas wrappers
-let canvas = (w, h) {
-	_canvas(w, h)
-}
-let dot = (c, x, y) {
-	_dot(c, x, y)
-}
-let line = (c, x1, y1, x2, y2) {
-	_line(c, x1, y1, x2, y2)
-}
-let rect = (c, x, y, w, h) {
-	_rect(c, x, y, w, h)
-}
-let fill_rect = (c, x, y, w, h) {
-	_fill_rect(c, x, y, w, h)
-}
-let circle = (c, x, y, r) {
-	_circle(c, x, y, r)
-}
-let fill_circle = (c, x, y, r) {
-	_fill_circle(c, x, y, r)
-}
-let clear = (c) {
-	_clear(c)
-}
-let destroy = (c) {
-	_destroy(c)
-}
-let set_bg = (c, r, g, b) {
-	_set_bg(c, r, g, b)
-}
-let set_fg = (c, r, g, b) {
-	_set_fg(c, r, g, b)
-}
-let pen_size = (c, s) {
-	_pen_size(c, s)
-}
+let canvas = (w, h) { _canvas(w, h) }
+let dot = (c, x, y) { _dot(c, x, y) }
+let line = (c, x1, y1, x2, y2) { _line(c, x1, y1, x2, y2) }
+let rect = (c, x, y, w, h) { _rect(c, x, y, w, h) }
+let fill_rect = (c, x, y, w, h) { _fill_rect(c, x, y, w, h) }
+let circle = (c, x, y, r) { _circle(c, x, y, r) }
+let fill_circle = (c, x, y, r) { _fill_circle(c, x, y, r) }
+let clear = (c) { _clear(c) }
+let destroy = (c) { _destroy(c) }
+let set_bg = (c, r, g, b) { _set_bg(c, r, g, b) }
+let set_fg = (c, r, g, b) { _set_fg(c, r, g, b) }
+let pen_size = (c, s) { _pen_size(c, s) }
 
 # Higher-order functions
 let map = (list, f) {
@@ -166,4 +103,125 @@ let sum = (list) {
 let println = (...args) {
 	apply(_print, args)
 	_print("\n")
+}
+
+# Type conversion wrappers
+let shape = (val) { _shape(val) }
+let to_str = (val) { _to_str(val) }
+
+# Hash code implementation
+let _hash_string = (s) {
+	let h = 0
+	while _length(s) > 0 {
+		let r = _first(s)
+		h = h * 31 + _ord(r)
+		s = _rest(s)
+	}
+	return h
+}
+
+let _hash_code_impl = (val) {
+	match _type(val) {
+		:number {
+			return _hash_string(_to_str(val))
+		}
+		:boolean {
+			if val {
+				return 1
+			}
+			return 0
+		}
+		:rune {
+			return _ord(val)
+		}
+		:string {
+			return _hash_string(val)
+		}
+		:symbol {
+			return _hash_string(_to_str(val))
+		}
+		:list {
+			let h = _hash_string(_to_str(_shape(val)))
+			let i = 0
+			while i < _length(val) {
+				h = h * 31 + _hash_code_impl(val[i])
+				i = i + 1
+			}
+			return h
+		}
+		_ {
+			return 0
+		}
+	}
+}
+
+let hash_code = (val) { _hash_code_impl(val) }
+
+# Hash map implementation
+let _HASH_SIZE = 64
+
+let hash_new = () {
+	let buckets = []
+	let i = 0
+	while i < _HASH_SIZE {
+		buckets = _append(buckets, [])
+		i = i + 1
+	}
+	return buckets
+}
+
+let _bucket_index = (key) {
+	return _modulo(hash_code(key), _HASH_SIZE)
+}
+
+let hash_get = (h, key) {
+	let idx = _bucket_index(key)
+	let bucket = h[idx]
+	let i = 0
+	while i < _length(bucket) {
+		let pair = bucket[i]
+		if _equal(pair[0], key) {
+			return pair[1]
+		}
+		i = i + 1
+	}
+	return [@error, "key not found"]
+}
+
+let hash_put = (h, key, val) {
+	let idx = _bucket_index(key)
+	let bucket = h[idx]
+	let new_bucket = []
+	let found = false
+	let i = 0
+	while i < _length(bucket) {
+		let pair = bucket[i]
+		if _equal(pair[0], key) {
+			new_bucket = _append(new_bucket, [key, val])
+			found = true
+		} else {
+			new_bucket = _append(new_bucket, pair)
+		}
+		i = i + 1
+	}
+	if not found {
+		new_bucket = _append(new_bucket, [key, val])
+	}
+	# Build new hash with updated bucket
+	let new_h = []
+	let j = 0
+	while j < _HASH_SIZE {
+		if _equal(j, idx) {
+			new_h = _append(new_h, new_bucket)
+		} else {
+			new_h = _append(new_h, h[j])
+		}
+		j = j + 1
+	}
+	return new_h
+}
+
+let hash_has = (h, key) {
+	let result = hash_get(h, key)
+	return not (_equal(_shape(result), :error))
 }

@@ -12,6 +12,11 @@ func (e *Evaluator) matchPattern(pattern *syntax.Node, val value.Value, bindings
 		return e.matchPattern(pattern.Children[0], val, bindings, env)
 	}
 
+	// Unwrap literal node
+	if pattern.Type == "literal" && len(pattern.Children) > 0 {
+		return e.matchPattern(pattern.Children[0], val, bindings, env)
+	}
+
 	if pattern.Type == "NAME" && pattern.Value == "_" {
 		return true
 	}

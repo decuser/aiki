@@ -85,6 +85,8 @@ func loadPrelude(g *grammar.Grammar, rt *substrate.GoRuntime, env *value.Env) er
 		return err
 	}
 
+	env.SetFile("<prelude>")
+	env.SetSource(prelude.Source)
 	ev := evaluator.New(rt, nil)
 	result := ev.Eval(ast, env)
 	if err, ok := result.(*value.Error); ok {

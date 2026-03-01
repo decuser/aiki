@@ -21,23 +21,19 @@ type Env struct {
 	store  map[string]Value
 	shapes map[string]*ShapeDef
 	outer  *Env
-	file   *string       // shared across enclosed envs
-	source *string       // shared across enclosed envs
+	file   string   // this env's file (not shared)
+	source string   // this env's source (not shared)
 	stack  *[]StackFrame // shared across enclosed envs
 	scope  Scope
 }
 
 // NewEnv creates a new environment with user scope.
 func NewEnv() *Env {
-	file := ""
-	source := ""
 	stack := make([]StackFrame, 0)
 	return &Env{
 		store:  make(map[string]Value),
 		shapes: make(map[string]*ShapeDef),
 		scope:  ScopeUser,
-		file:   &file,
-		source: &source,
 		stack:  &stack,
 	}
 }
@@ -56,8 +52,6 @@ func NewEnclosedEnv(outer *Env) *Env {
 		shapes: make(map[string]*ShapeDef),
 		outer:  outer,
 		scope:  outer.scope,
-		file:   outer.file,
-		source: outer.source,
 		stack:  outer.stack,
 	}
 }
@@ -71,7 +65,7 @@ func (e *Env) GetScope() Scope {
 func (e *Env) PushFrame(name string, line int, scope Scope) {
 	*e.stack = append(*e.stack, StackFrame{
 		Name:  name,
-		File:  *e.file,
+		File:  e.GetFile(),
 		Line:  line,
 		Scope: scope,
 	})
@@ -131,34 +125,39 @@ func (e *Env) GetShape(name string) (*ShapeDef, bool) {
 	return def, ok
 }
 
-// SetFile sets the current file name.
+// SetFile sets the current file name for this env.
 func (e *Env) SetFile(file string) {
-	*e.file = file
+	e.file = file
 }
 
-// GetFile returns the current file name.
+// GetFile returns the file name, chaining up if not set.
 func (e *Env) GetFile() string {
-	if *e.file != "" {
-		return *e.file
+	if e.file != "" {
+		return e.file
+	}
+	if e.outer != nil {
+		return e.outer.GetFile()
 	}
 	return "<unknown>"
 }
 
-// SetSource sets the source code.
+// SetSource sets the source code for this env.
 func (e *Env) SetSource(source string) {
-	*e.source = source
+	e.source = source
 }
 
-// GetSourceLine returns a specific line from source.
+// GetSourceLine returns a specific line from source, chaining up if needed.
 func (e *Env) GetSourceLine(line int) string {
-	if *e.source == "" {
-		return ""
+	if e.source != "" {
+		lines := splitLines(e.source)
+		if line >= 1 && line <= len(lines) {
+			return lines[line-1]
+		}
 	}
-	lines := splitLines(*e.source)
-	if line < 1 || line > len(lines) {
-		return ""
+	if e.outer != nil {
+		return e.outer.GetSourceLine(line)
 	}
-	return lines[line-1]
+	return ""
 }
 
 func splitLines(s string) []string {
