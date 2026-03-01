@@ -109,3 +109,43 @@ func TestPreludeScopeSeesOnlyPrefixed(t *testing.T) {
 		t.Error("prelude GetBuiltin(_first) failed")
 	}
 }
+
+func TestRandom(t *testing.T) {
+	// random returns value in range
+	result := halRandom([]value.Value{value.NewNumber(10, 1)}, nil)
+	n, ok := result.(*value.Number)
+	if !ok {
+		t.Fatalf("expected Number, got %T", result)
+	}
+	v := n.Val.Num().Int64()
+	if v < 0 || v >= 10 {
+		t.Errorf("random(10) returned %d, want 0-9", v)
+	}
+}
+
+func TestSeedReproducible(t *testing.T) {
+	// same seed = same sequence
+	halSeed([]value.Value{value.NewNumber(42, 1)}, nil)
+	r1 := halRandom([]value.Value{value.NewNumber(100, 1)}, nil).(*value.Number)
+
+	halSeed([]value.Value{value.NewNumber(42, 1)}, nil)
+	r2 := halRandom([]value.Value{value.NewNumber(100, 1)}, nil).(*value.Number)
+
+	if r1.Val.Cmp(r2.Val) != 0 {
+		t.Errorf("same seed gave different results: %s vs %s", r1.Inspect(), r2.Inspect())
+	}
+}
+
+func TestRandomErrors(t *testing.T) {
+	// zero max
+	result := halRandom([]value.Value{value.NewNumber(0, 1)}, nil)
+	if !value.IsError(result) {
+		t.Error("random(0) should error")
+	}
+
+	// negative max
+	result = halRandom([]value.Value{value.NewNumber(-5, 1)}, nil)
+	if !value.IsError(result) {
+		t.Error("random(-5) should error")
+	}
+}

@@ -1,5 +1,6 @@
 # Aiki Number Guessing Game
-let secret = 42
+seed(42)
+let secret = random(100) + 1
 let attempts = 0
 let guessed = false
 

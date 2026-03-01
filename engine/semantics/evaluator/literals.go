@@ -54,6 +54,11 @@ func (e *Evaluator) evalSymbol(node *syntax.Node, env *value.Env) value.Value {
 	return &value.Symbol{Val: strings.TrimPrefix(node.Value, ":")}
 }
 
+func (e *Evaluator) evalShape(node *syntax.Node, env *value.Env) value.Value {
+	// SHAPE token evaluates to symbol (used in list literals)
+	return &value.Symbol{Val: strings.TrimPrefix(node.Value, "@")}
+}
+
 func (e *Evaluator) evalName(node *syntax.Node, env *value.Env) value.Value {
 	name := node.Value
 

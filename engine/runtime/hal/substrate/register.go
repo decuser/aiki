@@ -28,6 +28,8 @@ func (g *GoRuntime) registerHAL() {
 	g.register("_sqrt_inexact", halSqrt)
 	g.register("_cos_inexact", halCos)
 	g.register("_sin_inexact", halSin)
+	g.register("_seed", halSeed)
+	g.register("_random", halRandom)
 
 	// Time
 	g.register("_sleep", halSleep)

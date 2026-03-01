@@ -36,6 +36,10 @@ let modulo = (a, b) { _modulo(a, b) }
 # Time wrappers
 let sleep = (ms) { _sleep(ms) }
 
+# Random wrappers
+let seed = (n) { _seed(n) }
+let random = (max) { _random(max) }
+
 # Canvas wrappers
 let canvas = (w, h) { _canvas(w, h) }
 let dot = (c, x, y, ...rest) { apply(_dot, _prepend(_prepend(_prepend(rest, y), x), c)) }
