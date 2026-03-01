@@ -1,3 +1,5 @@
+import("math/inexact", :sin, :cos)
+
 let c = canvas(800, 800)
 let tick = 0
 let R = 200
@@ -5,12 +7,15 @@ let r = 80
 let d = 150
 let diff = R - r
 let ratio = diff / r
-while tick < 6280 {
+while tick < 1257 {
 	let angle = tick / 100
 	let x = 400 + ((diff * cos(angle)) + (d * cos(ratio * angle)))
 	let y = 400 + ((diff * sin(angle)) - (d * sin(ratio * angle)))
-	dot(c, x, y, :cyan)
+	if tick < 3140 {
+		dot(c, x, y, :cyan)
+	} else {
+		dot(c, x, y, :red)
+	}
 	tick = tick + 1
 }
-
 sleep(1000)

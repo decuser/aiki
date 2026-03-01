@@ -21,11 +21,11 @@ type Env struct {
 	store   map[string]Value
 	shapes  map[string]*ShapeDef
 	outer   *Env
-	file    string         // this env's file (not shared)
-	source  string         // this env's source (not shared)
-	stack   *[]StackFrame  // shared across enclosed envs
+	file    string        // this env's file (not shared)
+	source  string        // this env's source (not shared)
+	stack   *[]StackFrame // shared across enclosed envs
 	scope   Scope
-	exports []string       // exported names for modules
+	exports []string // exported names for modules
 }
 
 // NewEnv creates a new environment with user scope.

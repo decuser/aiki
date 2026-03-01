@@ -25,8 +25,9 @@ func (g *GoRuntime) registerHAL() {
 	g.register("_floor", halFloor)
 	g.register("_ceil", halCeil)
 	g.register("_modulo", halModulo)
-	g.register("_cos", halCos)
-	g.register("_sin", halSin)
+	g.register("_sqrt_inexact", halSqrt)
+	g.register("_cos_inexact", halCos)
+	g.register("_sin_inexact", halSin)
 
 	// Time
 	g.register("_sleep", halSleep)
@@ -48,6 +49,8 @@ func (g *GoRuntime) registerHAL() {
 	// Convert
 	g.register("_shape", halShape)
 	g.register("_to_str", halToStr)
+	g.register("_to_decimal", halToDecimal)
+	g.register("_to_number", halToNumber)
 
 	// Intrinsics - these use evaluation context
 	g.register("_apply", halApply)
@@ -55,4 +58,9 @@ func (g *GoRuntime) registerHAL() {
 	g.register("_export", halExport)
 	g.register("_load", halLoad)
 	g.register("_spawn", halSpawn)
+
+	// REPL
+	g.register("_quit", halQuit)
+	g.register("_reset", halReset)
+	g.register("_help", halHelp)
 }

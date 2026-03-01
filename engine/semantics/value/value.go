@@ -240,6 +240,22 @@ type Channel struct {
 func (c *Channel) Type() Type      { return ChannelType }
 func (c *Channel) Inspect() string { return "<channel>" }
 
+// ExitSignal signals REPL to exit.
+type ExitSignal struct{}
+
+func (e *ExitSignal) Type() Type      { return "exit" }
+func (e *ExitSignal) Inspect() string { return "" }
+
+var EXIT = &ExitSignal{}
+
+// ResetSignal signals REPL to reset environment.
+type ResetSignal struct{}
+
+func (r *ResetSignal) Type() Type      { return "reset" }
+func (r *ResetSignal) Inspect() string { return "<reset>" }
+
+var RESET = &ResetSignal{}
+
 // ShapeDef defines a shaped list structure.
 type ShapeDef struct {
 	Name   string

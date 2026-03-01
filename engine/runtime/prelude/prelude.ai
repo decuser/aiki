@@ -32,20 +32,18 @@ let ord = (r) { _ord(r) }
 let floor = (n) { _floor(n) }
 let ceil = (n) { _ceil(n) }
 let modulo = (a, b) { _modulo(a, b) }
-let cos = (n) { _cos(n) }
-let sin = (n) { _sin(n) }
 
 # Time wrappers
 let sleep = (ms) { _sleep(ms) }
 
 # Canvas wrappers
 let canvas = (w, h) { _canvas(w, h) }
-let dot = (c, x, y) { _dot(c, x, y) }
-let line = (c, x1, y1, x2, y2) { _line(c, x1, y1, x2, y2) }
-let rect = (c, x, y, w, h) { _rect(c, x, y, w, h) }
-let fill_rect = (c, x, y, w, h) { _fill_rect(c, x, y, w, h) }
-let circle = (c, x, y, r) { _circle(c, x, y, r) }
-let fill_circle = (c, x, y, r) { _fill_circle(c, x, y, r) }
+let dot = (c, x, y, ...rest) { apply(_dot, _prepend(_prepend(_prepend(rest, y), x), c)) }
+let line = (c, x1, y1, x2, y2, ...rest) { apply(_line, _prepend(_prepend(_prepend(_prepend(_prepend(rest, y2), x2), y1), x1), c)) }
+let rect = (c, x, y, w, h, ...rest) { apply(_rect, _prepend(_prepend(_prepend(_prepend(_prepend(rest, h), w), y), x), c)) }
+let fill_rect = (c, x, y, w, h, ...rest) { apply(_fill_rect, _prepend(_prepend(_prepend(_prepend(_prepend(rest, h), w), y), x), c)) }
+let circle = (c, x, y, r, ...rest) { apply(_circle, _prepend(_prepend(_prepend(_prepend(rest, r), y), x), c)) }
+let fill_circle = (c, x, y, r, ...rest) { apply(_fill_circle, _prepend(_prepend(_prepend(_prepend(rest, r), y), x), c)) }
 let clear = (c) { _clear(c) }
 let destroy = (c) { _destroy(c) }
 let set_bg = (c, r, g, b) { _set_bg(c, r, g, b) }
@@ -114,6 +112,8 @@ let println = (...args) {
 # Type conversion wrappers
 let shape = (val) { _shape(val) }
 let to_str = (val) { _to_str(val) }
+let to_decimal = (n, places) { _to_decimal(n, places) }
+let to_number = (s) { _to_number(s) }
 
 # Hash code implementation
 let _hash_string = (s) {
@@ -361,3 +361,8 @@ let min = (list) {
 	}
 	return result
 }
+
+# REPL control
+let quit = () { _quit() }
+let reset = () { _reset() }
+let help = () { _help() }

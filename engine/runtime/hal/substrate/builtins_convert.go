@@ -1,6 +1,8 @@
 package substrate
 
 import (
+	"fmt"
+
 	"aiki/engine/runtime/hal"
 	"aiki/engine/semantics/value"
 )
@@ -26,4 +28,39 @@ func halToStr(args []value.Value, ctx *hal.EvalContext) value.Value {
 		return value.NewError("to_str: want 1 argument, got %d", len(args))
 	}
 	return &value.String{Val: args[0].Inspect()}
+}
+
+// halToDecimal formats a number with specified decimal places.
+func halToDecimal(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 2 {
+		return value.NewError("to_decimal: want 2 arguments, got %d", len(args))
+	}
+	n, ok := args[0].(*value.Number)
+	if !ok {
+		return value.NewError("to_decimal: first argument must be number")
+	}
+	places, ok := args[1].(*value.Number)
+	if !ok || !places.Val.IsInt() {
+		return value.NewError("to_decimal: second argument must be integer")
+	}
+	p := int(places.Val.Num().Int64())
+	f, _ := n.Val.Float64()
+	format := fmt.Sprintf("%%.%df", p)
+	return &value.String{Val: fmt.Sprintf(format, f)}
+}
+
+// halToNumber parses a string into a number.
+func halToNumber(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 1 {
+		return value.NewError("to_number: want 1 argument, got %d", len(args))
+	}
+	s, ok := args[0].(*value.String)
+	if !ok {
+		return value.NewError("to_number: expected string")
+	}
+	n, err := value.NewNumberFromString(s.Val)
+	if err != nil {
+		return value.NewError("to_number: invalid number: %s", s.Val)
+	}
+	return n
 }

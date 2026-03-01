@@ -153,6 +153,21 @@ func resolveModulePath(name string, env *value.Env) string {
 		return candidate
 	}
 
+	// Try lib/ directory relative to cwd
+	libCandidate := filepath.Join("lib", name+".ai")
+	if _, err := os.Stat(libCandidate); err == nil {
+		return libCandidate
+	}
+
+	// Try lib/ directory relative to executable
+	if exePath, err := os.Executable(); err == nil {
+		exeDir := filepath.Dir(exePath)
+		libCandidate := filepath.Join(exeDir, "lib", name+".ai")
+		if _, err := os.Stat(libCandidate); err == nil {
+			return libCandidate
+		}
+	}
+
 	// Try without extension
 	if _, err := os.Stat(name); err == nil {
 		return name

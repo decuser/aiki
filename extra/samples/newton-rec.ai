@@ -34,7 +34,7 @@ let my_sqrt = (x) {
 	return sqrt_iter(1.0, x)
 }
 
-print(my_sqrt(9))
-print(my_sqrt(2))
+print(my_sqrt(9), "\n")
+print(my_sqrt(2), "\n")
 print(to_decimal(my_sqrt(9), 6), "\n")
 print(to_decimal(my_sqrt(2), 6), "\n")

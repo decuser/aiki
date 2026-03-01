@@ -1,7 +1,0 @@
-let f = (list) {
-    if empty(list) {
-        return []
-    }
-    return list[0]
-}
-print(f([1,2,3]), "\n")

@@ -6,26 +6,27 @@ import (
 	"os"
 	"os/user"
 
-	"aiki/cmd/subcommands/ux/repl"
-	"aiki/reference/runtime/hal"
-	"aiki/reference/runtime/prelude"
-	"aiki/reference/semantics/eval"
-	"aiki/reference/semantics/value"
-	"aiki/reference/syntax"
+	"aiki/cmd/repl"
+	"aiki/engine/runner"
+	"aiki/engine/semantics/value"
 
 	aikidebug "aiki/cmd/subcommands/dev/debug"
 	aikismoke "aiki/cmd/subcommands/dev/smoke"
 	aikidoclint "aiki/cmd/subcommands/tools/doclint"
 	aikifmt "aiki/cmd/subcommands/tools/fmt"
 	aikilint "aiki/cmd/subcommands/tools/lint"
+
+	// For fmt/lint - they need reference grammar for now
+	"aiki/reference/syntax"
 )
 
 func main() {
 	repl.AppVersion = Version
+
+	// Set grammar for fmt/lint (still uses reference)
 	grammar := syntax.GetGrammar()
 	aikifmt.SetGrammar(grammar)
 	aikilint.SetGrammar(grammar)
-	eval.SetNodeGrammar(grammar)
 
 	// Check for subcommands before flag parsing
 	if len(os.Args) > 1 {
@@ -46,33 +47,23 @@ func main() {
 			aikidebug.Run(os.Args[2:])
 			return
 		}
-
 	}
 
 	opts := parseOptions()
 
-	env := value.NewEnv(nil)
-
-	result := eval.RunNode(grammar, prelude.Source, env)
-	if e, ok := result.(*value.Error); ok {
-		fmt.Fprintf(os.Stderr, "error loading prelude: %s\n", e.Message)
-		os.Exit(1)
-	}
-	env.SnapshotPrelude()
-
 	if opts.Expr != "" {
-		runExpr(opts.Expr, env, opts)
+		runExpr(opts.Expr, opts)
 		return
 	}
 
 	if flag.NArg() == 0 {
-		startREPL(env, opts)
+		startREPL(opts)
 	} else {
-		runFile(flag.Arg(0), env, opts)
+		runFile(flag.Arg(0), opts)
 	}
 }
 
-func startREPL(env *value.Env, opts Options) {
+func startREPL(opts Options) {
 	u, err := user.Current()
 	if err != nil {
 		u = &user.User{Username: "user"}
@@ -82,26 +73,32 @@ func startREPL(env *value.Env, opts Options) {
 	fmt.Printf("Hello %s! The system is live.\n", u.Username)
 	fmt.Printf("Type help() for help.\n\n")
 
-	repl.Run(syntax.GetGrammar(), os.Stdin, os.Stdout, env, opts.Debug)
+	sess, err := repl.NewSession(os.Stdout, opts.Debug)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
+	sess.Run()
 }
 
-func runFile(filename string, env *value.Env, opts Options) {
-	result := eval.RunFileNode(syntax.GetGrammar(), filename, env)
+func runFile(filename string, opts Options) {
+	err := runner.Run(filename)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+}
 
-	if e, ok := result.(*value.Error); ok {
-		fmt.Fprintln(os.Stderr, e.Inspect())
+func runExpr(expr string, opts Options) {
+	sess, err := runner.NewSession()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
 
-	if opts.Debug {
-		fmt.Println(result.Inspect())
-	}
-}
+	result := sess.Eval(expr)
 
-func runExpr(expr string, env *value.Env, opts Options) {
-	result := eval.RunNode(syntax.GetGrammar(), expr, env)
-
-	if _, ok := result.(*hal.ExitSignal); ok {
+	if _, ok := result.(*value.ExitSignal); ok {
 		return
 	}
 
