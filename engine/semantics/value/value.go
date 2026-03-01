@@ -19,7 +19,6 @@ const (
 	ListType     Type = "list"
 	FunctionType Type = "function"
 	ErrorType    Type = "error"
-	NullType     Type = "null"
 	ReturnType   Type = "return"
 	HandleType   Type = "handle"
 	ChannelType  Type = "channel"
@@ -207,13 +206,8 @@ func NewErrorAt(file string, line int, source string, stack []StackFrame, format
 	}
 }
 
-// Null
-type Null struct{}
-
-func (n *Null) Type() Type      { return NullType }
-func (n *Null) Inspect() string { return "null" }
-
-var NULL = &Null{}
+// EMPTY is the empty list singleton, used as "no value".
+var EMPTY = &List{Elements: []Value{}}
 
 // Return wraps a return value (internal use).
 type Return struct {
@@ -268,8 +262,8 @@ func IsTruthy(v Value) bool {
 	switch val := v.(type) {
 	case *Boolean:
 		return val.Val
-	case *Null:
-		return false
+	case *List:
+		return len(val.Elements) > 0
 	default:
 		return true
 	}

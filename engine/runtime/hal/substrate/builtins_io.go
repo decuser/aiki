@@ -17,7 +17,7 @@ func halPrint(args []value.Value, ctx *hal.EvalContext) value.Value {
 			fmt.Fprint(Stdout, arg.Inspect())
 		}
 	}
-	return value.NULL
+	return value.EMPTY
 }
 
 func halRead(args []value.Value, ctx *hal.EvalContext) value.Value {

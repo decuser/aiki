@@ -47,7 +47,7 @@ func TestList(t *testing.T) {
 }
 
 func TestIsTruthy(t *testing.T) {
-	if !IsTruthy(TRUE) || IsTruthy(FALSE) || IsTruthy(NULL) || !IsTruthy(NewNumber(0, 1)) {
+	if !IsTruthy(TRUE) || IsTruthy(FALSE) || IsTruthy(EMPTY) || !IsTruthy(NewNumber(0, 1)) {
 		t.Error("truthy")
 	}
 }

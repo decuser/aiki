@@ -51,7 +51,7 @@ func applyUserFunction(fn *value.Function, args []value.Value, ctx *hal.EvalCont
 		if i < len(args) {
 			callEnv.Set(param, args[i])
 		} else {
-			callEnv.Set(param, value.NULL)
+			callEnv.Set(param, value.EMPTY)
 		}
 	}
 
@@ -99,7 +99,7 @@ func halExport(args []value.Value, ctx *hal.EvalContext) value.Value {
 	}
 
 	ctx.Env.SetExports(names)
-	return value.NULL
+	return value.EMPTY
 }
 
 // halImport implements import("module", :name1, :name2, ...).
@@ -181,7 +181,7 @@ func halImport(args []value.Value, ctx *hal.EvalContext) value.Value {
 		ctx.Env.Set(name, val)
 	}
 
-	return value.NULL
+	return value.EMPTY
 }
 
 // halLoad implements load(path) - reads and evaluates a file.

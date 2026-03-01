@@ -47,7 +47,7 @@ func (e *Evaluator) evalRune(node *syntax.Node, env *value.Env) value.Value {
 	if len(runes) > 0 {
 		return &value.Rune{Val: runes[0]}
 	}
-	return value.NULL
+	return value.EMPTY
 }
 
 func (e *Evaluator) evalSymbol(node *syntax.Node, env *value.Env) value.Value {
@@ -79,7 +79,7 @@ func (e *Evaluator) evalTerminal(node *syntax.Node, env *value.Env) value.Value 
 	case "false":
 		return value.FALSE
 	}
-	return value.NULL
+	return value.EMPTY
 }
 
 func (e *Evaluator) evalFunc(node *syntax.Node, env *value.Env) value.Value {
