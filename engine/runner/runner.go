@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"aiki/engine/runtime/hal/substrate"
+	"aiki/engine/runtime/help"
 	"aiki/engine/runtime/prelude"
 	"aiki/engine/semantics/evaluator"
 	"aiki/engine/semantics/value"
@@ -74,6 +75,11 @@ func RunSource(filename, source string) error {
 
 // loadPrelude parses and evaluates the prelude.
 func loadPrelude(g *grammar.Grammar, rt *substrate.GoRuntime, env *value.Env) error {
+	// Initialize help registry
+	if err := initHelpRegistry(); err != nil {
+		return fmt.Errorf("loading help: %w", err)
+	}
+
 	lexer := syntax.NewLexer(g, "<prelude>", prelude.Source, nil)
 	tokens, err := lexer.Tokenize()
 	if err != nil {
@@ -94,6 +100,26 @@ func loadPrelude(g *grammar.Grammar, rt *substrate.GoRuntime, env *value.Env) er
 	if err, ok := result.(*value.Error); ok {
 		return fmt.Errorf("%s", err.Inspect())
 	}
+
+	return nil
+}
+
+// initHelpRegistry loads prelude help and doc files.
+func initHelpRegistry() error {
+	registry := help.NewRegistry()
+
+	funcs, err := help.ParseHelpFile("prelude.help", prelude.HelpSource)
+	if err != nil {
+		return err
+	}
+
+	docs, err := help.ParseDocFile("prelude.doc", prelude.DocSource)
+	if err != nil {
+		return err
+	}
+
+	registry.Merge(funcs, docs)
+	substrate.HelpRegistry = registry
 
 	return nil
 }
