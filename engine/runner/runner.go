@@ -166,13 +166,13 @@ func initHelpRegistry() error {
 func extractPreludeFuncs(source string) map[string]bool {
 	names := make(map[string]bool)
 	lines := strings.Split(source, "\n")
-	
+
 	for _, line := range lines {
 		// Only top-level: must start with "let " (no leading whitespace)
 		if !strings.HasPrefix(line, "let ") {
 			continue
 		}
-		
+
 		// Extract name: "let name = ..." or "let name = (..."
 		rest := strings.TrimPrefix(line, "let ")
 		// Find the name (ends at space or =)
