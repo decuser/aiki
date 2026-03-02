@@ -49,3 +49,11 @@ func GetSourceLine(source string, line int) string {
 	}
 	return lines[line-1]
 }
+
+// FormatCaret returns a caret string positioned at the given column.
+func FormatCaret(col int) string {
+	if col <= 0 {
+		return "^"
+	}
+	return strings.Repeat(" ", col-1) + "^"
+}
