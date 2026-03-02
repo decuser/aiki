@@ -372,4 +372,11 @@ let min = (list) {
 # REPL control
 let quit = () { _quit() }
 let reset = () { _reset() }
-let help = () { _help() }
+let help = (...args) { 
+	if empty(args) {
+		_help("")
+	} else {
+		_help(first(args))
+	}
+}
+let doc = (name) { _doc(name) }

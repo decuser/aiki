@@ -1,0 +1,278 @@
+# Prelude function help - quick reference
+
+# Core
+@func apply
+@template "apply(fn, args)"
+@help "Applies function to list of arguments."
+
+@func load
+@template "load(path)"
+@help "Loads and evaluates an aiki file."
+
+# Concurrency
+@func spawn
+@template "spawn(fn, arg, ...)"
+@help "Runs function concurrently with isolated environment."
+
+@func channel
+@template "channel()"
+@help "Creates a new channel for communication."
+
+@func send
+@template "send(ch, val)"
+@help "Sends value on channel, blocks until received."
+
+@func recv
+@template "recv(ch)"
+@help "Receives value from channel, blocks until sent."
+
+# IO
+@func print
+@template "print(val, ...)"
+@help "Prints values to stdout."
+
+@func println
+@template "println(val, ...)"
+@help "Prints values to stdout with newline."
+
+@func read
+@template "read()"
+@help "Reads a line from stdin."
+
+@func input
+@template "input()"
+@help "Reads a line from stdin (alias for read)."
+
+# List operations
+@func first
+@template "first(list)"
+@help "Returns first element of list."
+
+@func rest
+@template "rest(list)"
+@help "Returns list without first element."
+
+@func length
+@template "length(list)"
+@help "Returns number of elements in list."
+
+@func prepend
+@template "prepend(list, val)"
+@help "Returns new list with val at front."
+
+@func append
+@template "append(list, val)"
+@help "Returns new list with val at end."
+
+@func empty
+@template "empty(list)"
+@help "Returns true if list is empty."
+
+@func range
+@template "range(start, end)"
+@help "Returns list of integers from start to end-1."
+
+@func reverse
+@template "reverse(list)"
+@help "Returns list in reverse order."
+
+# Type operations
+@func type
+@template "type(val)"
+@help "Returns type of value as symbol."
+
+@func inspect
+@template "inspect(val)"
+@help "Returns string representation of value."
+
+@func equal
+@template "equal(a, b)"
+@help "Returns true if values are deeply equal."
+
+@func shape
+@template "shape(val)"
+@help "Returns shape name of list, or :list."
+
+@func ord
+@template "ord(rune)"
+@help "Returns integer code point of rune."
+
+# Conversion
+@func to_str
+@template "to_str(val)"
+@help "Converts value to string."
+
+@func to_number
+@template "to_number(str)"
+@help "Parses string as number."
+
+@func to_decimal
+@template "to_decimal(n, places)"
+@help "Formats number as decimal string."
+
+# Math
+@func floor
+@template "floor(n)"
+@help "Returns largest integer <= n."
+
+@func ceil
+@template "ceil(n)"
+@help "Returns smallest integer >= n."
+
+@func modulo
+@template "modulo(a, b)"
+@help "Returns remainder of a divided by b."
+
+@func sum
+@template "sum(list)"
+@help "Returns sum of numbers in list."
+
+@func max
+@template "max(list)"
+@help "Returns largest number in list."
+
+@func min
+@template "min(list)"
+@help "Returns smallest number in list."
+
+# Random
+@func seed
+@template "seed(n)"
+@help "Sets random number generator seed."
+
+@func random
+@template "random(max)"
+@help "Returns random integer from 0 to max-1."
+
+# Time
+@func sleep
+@template "sleep(ms)"
+@help "Pauses execution for ms milliseconds."
+
+# Higher-order functions
+@func map
+@template "map(list, fn)"
+@help "Applies fn to each element, returns new list."
+
+@func filter
+@template "filter(list, fn)"
+@help "Returns elements where fn returns true."
+
+@func reduce
+@template "reduce(list, init, fn)"
+@help "Reduces list to single value using fn."
+
+@func each
+@template "each(list, fn)"
+@help "Calls fn on each element for side effects."
+
+@func find
+@template "find(list, fn)"
+@help "Returns first element where fn returns true."
+
+@func any
+@template "any(list, fn)"
+@help "Returns true if fn returns true for any element."
+
+@func all
+@template "all(list, fn)"
+@help "Returns true if fn returns true for all elements."
+
+# Hash map
+@func hash_new
+@template "hash_new()"
+@help "Creates empty hash map."
+
+@func hash_get
+@template "hash_get(h, key)"
+@help "Gets value for key, or [@error, ...]."
+
+@func hash_put
+@template "hash_put(h, key, val)"
+@help "Returns new hash map with key set to val."
+
+@func hash_has
+@template "hash_has(h, key)"
+@help "Returns true if key exists in hash map."
+
+@func hash_del
+@template "hash_del(h, key)"
+@help "Returns new hash map without key."
+
+@func hash_keys
+@template "hash_keys(h)"
+@help "Returns list of all keys."
+
+@func hash_values
+@template "hash_values(h)"
+@help "Returns list of all values."
+
+@func hash_code
+@template "hash_code(val)"
+@help "Returns integer hash code for value."
+
+# Canvas
+@func canvas
+@template "canvas(width, height)"
+@help "Creates a drawing canvas."
+
+@func dot
+@template "dot(c, x, y)"
+@help "Draws a point at (x, y)."
+
+@func line
+@template "line(c, x1, y1, x2, y2)"
+@help "Draws line from (x1,y1) to (x2,y2)."
+
+@func rect
+@template "rect(c, x, y, w, h)"
+@help "Draws rectangle outline."
+
+@func fill_rect
+@template "fill_rect(c, x, y, w, h)"
+@help "Draws filled rectangle."
+
+@func circle
+@template "circle(c, x, y, r)"
+@help "Draws circle outline."
+
+@func fill_circle
+@template "fill_circle(c, x, y, r)"
+@help "Draws filled circle."
+
+@func clear
+@template "clear(c)"
+@help "Clears canvas to background color."
+
+@func destroy
+@template "destroy(c)"
+@help "Closes canvas window."
+
+@func set_bg
+@template "set_bg(c, r, g, b)"
+@help "Sets background color (0-255 each)."
+
+@func set_fg
+@template "set_fg(c, r, g, b)"
+@help "Sets foreground/drawing color."
+
+@func pen_size
+@template "pen_size(c, size)"
+@help "Sets line thickness in pixels."
+
+# REPL
+@func quit
+@template "quit()"
+@help "Exits the REPL."
+
+@func reset
+@template "reset()"
+@help "Resets the environment."
+
+@func help
+@template "help(name)"
+@help "Shows help for name."
+
+@func doc
+@template "doc(name)"
+@help "Shows full documentation for name."
