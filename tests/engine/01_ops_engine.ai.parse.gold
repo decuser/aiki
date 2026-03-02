@@ -1,0 +1,302 @@
+program 5:1
+  statement 5:1
+    let_stmt 5:1
+      TERMINAL 5:1 "let"
+      NAME 5:5 "x"
+      TERMINAL 5:7 "="
+      expr 5:9
+        pipe_expr 5:9
+          infix_expr 5:9
+            unary_expr 5:9
+              postfix_expr 5:9
+                primary 5:9
+                  NUMBER 5:9 "1"
+            BINOP 5:11
+              TERMINAL 5:11 "+"
+            unary_expr 5:13
+              postfix_expr 5:13
+                primary 5:13
+                  NUMBER 5:13 "2"
+            BINOP 5:15
+              TERMINAL 5:15 "*"
+            unary_expr 5:17
+              postfix_expr 5:17
+                primary 5:17
+                  NUMBER 5:17 "3"
+            BINOP 5:19
+              TERMINAL 5:19 "-"
+            unary_expr 5:21
+              postfix_expr 5:21
+                primary 5:21
+                  NUMBER 5:21 "4"
+            BINOP 5:23
+              TERMINAL 5:23 "/"
+            unary_expr 5:25
+              postfix_expr 5:25
+                primary 5:25
+                  NUMBER 5:25 "2"
+  statement 6:1
+    let_stmt 6:1
+      TERMINAL 6:1 "let"
+      NAME 6:5 "y"
+      TERMINAL 6:7 "="
+      expr 6:9
+        pipe_expr 6:9
+          infix_expr 6:9
+            unary_expr 6:9
+              postfix_expr 6:9
+                primary 6:9
+                  TERMINAL 6:9 "("
+                  expr 6:10
+                    pipe_expr 6:10
+                      infix_expr 6:10
+                        unary_expr 6:10
+                          postfix_expr 6:10
+                            primary 6:10
+                              NUMBER 6:10 "1"
+                        BINOP 6:12
+                          TERMINAL 6:12 "+"
+                        unary_expr 6:14
+                          postfix_expr 6:14
+                            primary 6:14
+                              NUMBER 6:14 "2"
+                  TERMINAL 6:15 ")"
+            BINOP 6:17
+              TERMINAL 6:17 "*"
+            unary_expr 6:19
+              postfix_expr 6:19
+                primary 6:19
+                  TERMINAL 6:19 "("
+                  expr 6:20
+                    pipe_expr 6:20
+                      infix_expr 6:20
+                        unary_expr 6:20
+                          postfix_expr 6:20
+                            primary 6:20
+                              NUMBER 6:20 "3"
+                        BINOP 6:22
+                          TERMINAL 6:22 "-"
+                        unary_expr 6:24
+                          postfix_expr 6:24
+                            primary 6:24
+                              NUMBER 6:24 "4"
+                  TERMINAL 6:25 ")"
+            BINOP 6:27
+              TERMINAL 6:27 "/"
+            unary_expr 6:29
+              postfix_expr 6:29
+                primary 6:29
+                  NUMBER 6:29 "2"
+  statement 8:1
+    expr_stmt 8:1
+      expr 8:1
+        pipe_expr 8:1
+          infix_expr 8:1
+            unary_expr 8:1
+              postfix_expr 8:1
+                primary 8:1
+                  NAME 8:1 "println"
+                call 8:8
+                  TERMINAL 8:8 "("
+                  expr 8:9
+                    pipe_expr 8:9
+                      infix_expr 8:9
+                        unary_expr 8:9
+                          postfix_expr 8:9
+                            primary 8:9
+                              NAME 8:9 "x"
+                  TERMINAL 8:10 ")"
+  statement 9:1
+    expr_stmt 9:1
+      expr 9:1
+        pipe_expr 9:1
+          infix_expr 9:1
+            unary_expr 9:1
+              postfix_expr 9:1
+                primary 9:1
+                  NAME 9:1 "println"
+                call 9:8
+                  TERMINAL 9:8 "("
+                  expr 9:9
+                    pipe_expr 9:9
+                      infix_expr 9:9
+                        unary_expr 9:9
+                          postfix_expr 9:9
+                            primary 9:9
+                              NAME 9:9 "y"
+                  TERMINAL 9:10 ")"
+  statement 11:1
+    expr_stmt 11:1
+      expr 11:1
+        pipe_expr 11:1
+          infix_expr 11:1
+            unary_expr 11:1
+              postfix_expr 11:1
+                primary 11:1
+                  NAME 11:1 "println"
+                call 11:8
+                  TERMINAL 11:8 "("
+                  expr 11:9
+                    pipe_expr 11:9
+                      infix_expr 11:9
+                        unary_expr 11:9
+                          postfix_expr 11:9
+                            primary 11:9
+                              NAME 11:9 "equal"
+                            call 11:14
+                              TERMINAL 11:14 "("
+                              expr 11:15
+                                pipe_expr 11:15
+                                  infix_expr 11:15
+                                    unary_expr 11:15
+                                      postfix_expr 11:15
+                                        primary 11:15
+                                          NAME 11:15 "x"
+                              TERMINAL 11:16 ","
+                              expr 11:18
+                                pipe_expr 11:18
+                                  infix_expr 11:18
+                                    unary_expr 11:18
+                                      postfix_expr 11:18
+                                        primary 11:18
+                                          NAME 11:18 "y"
+                              TERMINAL 11:19 ")"
+                  TERMINAL 11:20 ")"
+  statement 12:1
+    expr_stmt 12:1
+      expr 12:1
+        pipe_expr 12:1
+          infix_expr 12:1
+            unary_expr 12:1
+              postfix_expr 12:1
+                primary 12:1
+                  NAME 12:1 "println"
+                call 12:8
+                  TERMINAL 12:8 "("
+                  expr 12:9
+                    pipe_expr 12:9
+                      infix_expr 12:9
+                        unary_expr 12:9
+                          TERMINAL 12:9 "not"
+                          postfix_expr 12:13
+                            primary 12:13
+                              NAME 12:13 "equal"
+                            call 12:18
+                              TERMINAL 12:18 "("
+                              expr 12:19
+                                pipe_expr 12:19
+                                  infix_expr 12:19
+                                    unary_expr 12:19
+                                      postfix_expr 12:19
+                                        primary 12:19
+                                          NAME 12:19 "x"
+                              TERMINAL 12:20 ","
+                              expr 12:22
+                                pipe_expr 12:22
+                                  infix_expr 12:22
+                                    unary_expr 12:22
+                                      postfix_expr 12:22
+                                        primary 12:22
+                                          NAME 12:22 "y"
+                              TERMINAL 12:23 ")"
+                  TERMINAL 12:24 ")"
+  statement 13:1
+    expr_stmt 13:1
+      expr 13:1
+        pipe_expr 13:1
+          infix_expr 13:1
+            unary_expr 13:1
+              postfix_expr 13:1
+                primary 13:1
+                  NAME 13:1 "println"
+                call 13:8
+                  TERMINAL 13:8 "("
+                  expr 13:9
+                    pipe_expr 13:9
+                      infix_expr 13:9
+                        unary_expr 13:9
+                          postfix_expr 13:9
+                            primary 13:9
+                              NAME 13:9 "x"
+                        BINOP 13:11
+                          TERMINAL 13:11 "<"
+                        unary_expr 13:13
+                          postfix_expr 13:13
+                            primary 13:13
+                              NAME 13:13 "y"
+                  TERMINAL 13:14 ")"
+  statement 14:1
+    expr_stmt 14:1
+      expr 14:1
+        pipe_expr 14:1
+          infix_expr 14:1
+            unary_expr 14:1
+              postfix_expr 14:1
+                primary 14:1
+                  NAME 14:1 "println"
+                call 14:8
+                  TERMINAL 14:8 "("
+                  expr 14:9
+                    pipe_expr 14:9
+                      infix_expr 14:9
+                        unary_expr 14:9
+                          postfix_expr 14:9
+                            primary 14:9
+                              NAME 14:9 "x"
+                        BINOP 14:11
+                          TERMINAL 14:11 "<="
+                        unary_expr 14:14
+                          postfix_expr 14:14
+                            primary 14:14
+                              NAME 14:14 "y"
+                  TERMINAL 14:15 ")"
+  statement 15:1
+    expr_stmt 15:1
+      expr 15:1
+        pipe_expr 15:1
+          infix_expr 15:1
+            unary_expr 15:1
+              postfix_expr 15:1
+                primary 15:1
+                  NAME 15:1 "println"
+                call 15:8
+                  TERMINAL 15:8 "("
+                  expr 15:9
+                    pipe_expr 15:9
+                      infix_expr 15:9
+                        unary_expr 15:9
+                          postfix_expr 15:9
+                            primary 15:9
+                              NAME 15:9 "x"
+                        BINOP 15:11
+                          TERMINAL 15:11 ">"
+                        unary_expr 15:13
+                          postfix_expr 15:13
+                            primary 15:13
+                              NAME 15:13 "y"
+                  TERMINAL 15:14 ")"
+  statement 16:1
+    expr_stmt 16:1
+      expr 16:1
+        pipe_expr 16:1
+          infix_expr 16:1
+            unary_expr 16:1
+              postfix_expr 16:1
+                primary 16:1
+                  NAME 16:1 "println"
+                call 16:8
+                  TERMINAL 16:8 "("
+                  expr 16:9
+                    pipe_expr 16:9
+                      infix_expr 16:9
+                        unary_expr 16:9
+                          postfix_expr 16:9
+                            primary 16:9
+                              NAME 16:9 "x"
+                        BINOP 16:11
+                          TERMINAL 16:11 ">="
+                        unary_expr 16:14
+                          postfix_expr 16:14
+                            primary 16:14
+                              NAME 16:14 "y"
+                  TERMINAL 16:15 ")"
