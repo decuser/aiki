@@ -11,6 +11,7 @@ import (
 	"aiki/engine/semantics/value"
 
 	aikidebug "aiki/cmd/subcommands/dev/debug"
+	aikienginesmoke "aiki/cmd/subcommands/dev/enginesmoke"
 	aikismoke "aiki/cmd/subcommands/dev/smoke"
 	aikidoclint "aiki/cmd/subcommands/tools/doclint"
 	aikifmt "aiki/cmd/subcommands/tools/fmt"
@@ -34,6 +35,9 @@ func main() {
 			return
 		case "smoke":
 			aikismoke.Run(os.Args[2:])
+			return
+		case "enginesmoke":
+			aikienginesmoke.Run(os.Args[2:])
 			return
 		case "debug":
 			aikidebug.Run(os.Args[2:])

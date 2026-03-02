@@ -1,0 +1,297 @@
+program 4:1
+  statement 4:1
+    let_stmt 4:1
+      TERMINAL 4:1 "let"
+      NAME 4:5 "println"
+      TERMINAL 4:13 "="
+      expr 4:15
+        pipe_expr 4:15
+          infix_expr 4:15
+            unary_expr 4:15
+              postfix_expr 4:15
+                primary 4:15
+                  func_literal 4:15
+                    TERMINAL 4:15 "("
+                    params 4:16
+                      param_list 4:16
+                        NAME 4:16 "val"
+                    TERMINAL 4:19 ")"
+                    block 4:21
+                      TERMINAL 4:21 "{"
+                      statement 5:5
+                        expr_stmt 5:5
+                          expr 5:5
+                            pipe_expr 5:5
+                              infix_expr 5:5
+                                unary_expr 5:5
+                                  postfix_expr 5:5
+                                    primary 5:5
+                                      NAME 5:5 "print"
+                                    call 5:10
+                                      TERMINAL 5:10 "("
+                                      expr 5:11
+                                        pipe_expr 5:11
+                                          infix_expr 5:11
+                                            unary_expr 5:11
+                                              postfix_expr 5:11
+                                                primary 5:11
+                                                  NAME 5:11 "val"
+                                      TERMINAL 5:14 ","
+                                      expr 5:16
+                                        pipe_expr 5:16
+                                          infix_expr 5:16
+                                            unary_expr 5:16
+                                              postfix_expr 5:16
+                                                primary 5:16
+                                                  STRING 5:16 "\"\\n\""
+                                      TERMINAL 5:20 ")"
+                      statement 6:5
+                        return_stmt 6:5
+                          TERMINAL 6:5 "return"
+                          expr 6:12
+                            pipe_expr 6:12
+                              infix_expr 6:12
+                                unary_expr 6:12
+                                  postfix_expr 6:12
+                                    primary 6:12
+                                      TERMINAL 6:12 "true"
+                      TERMINAL 7:1 "}"
+  statement 9:1
+    let_stmt 9:1
+      TERMINAL 9:1 "let"
+      NAME 9:5 "h"
+      TERMINAL 9:7 "="
+      expr 9:9
+        pipe_expr 9:9
+          infix_expr 9:9
+            unary_expr 9:9
+              postfix_expr 9:9
+                primary 9:9
+                  NAME 9:9 "hash_new"
+                call 9:17
+                  TERMINAL 9:17 "("
+                  TERMINAL 9:18 ")"
+  statement 10:1
+    let_stmt 10:1
+      TERMINAL 10:1 "let"
+      NAME 10:5 "h"
+      TERMINAL 10:7 "="
+      expr 10:9
+        pipe_expr 10:9
+          infix_expr 10:9
+            unary_expr 10:9
+              postfix_expr 10:9
+                primary 10:9
+                  NAME 10:9 "hash_put"
+                call 10:17
+                  TERMINAL 10:17 "("
+                  expr 10:18
+                    pipe_expr 10:18
+                      infix_expr 10:18
+                        unary_expr 10:18
+                          postfix_expr 10:18
+                            primary 10:18
+                              NAME 10:18 "h"
+                  TERMINAL 10:19 ","
+                  expr 10:21
+                    pipe_expr 10:21
+                      infix_expr 10:21
+                        unary_expr 10:21
+                          postfix_expr 10:21
+                            primary 10:21
+                              STRING 10:21 "\"name\""
+                  TERMINAL 10:27 ","
+                  expr 10:29
+                    pipe_expr 10:29
+                      infix_expr 10:29
+                        unary_expr 10:29
+                          postfix_expr 10:29
+                            primary 10:29
+                              STRING 10:29 "\"Mochi\""
+                  TERMINAL 10:36 ")"
+  statement 11:1
+    let_stmt 11:1
+      TERMINAL 11:1 "let"
+      NAME 11:5 "h"
+      TERMINAL 11:7 "="
+      expr 11:9
+        pipe_expr 11:9
+          infix_expr 11:9
+            unary_expr 11:9
+              postfix_expr 11:9
+                primary 11:9
+                  NAME 11:9 "hash_put"
+                call 11:17
+                  TERMINAL 11:17 "("
+                  expr 11:18
+                    pipe_expr 11:18
+                      infix_expr 11:18
+                        unary_expr 11:18
+                          postfix_expr 11:18
+                            primary 11:18
+                              NAME 11:18 "h"
+                  TERMINAL 11:19 ","
+                  expr 11:21
+                    pipe_expr 11:21
+                      infix_expr 11:21
+                        unary_expr 11:21
+                          postfix_expr 11:21
+                            primary 11:21
+                              SYMBOL 11:21 ":age"
+                  TERMINAL 11:25 ","
+                  expr 11:27
+                    pipe_expr 11:27
+                      infix_expr 11:27
+                        unary_expr 11:27
+                          postfix_expr 11:27
+                            primary 11:27
+                              NUMBER 11:27 "3"
+                  TERMINAL 11:28 ")"
+  statement 13:1
+    expr_stmt 13:1
+      expr 13:1
+        pipe_expr 13:1
+          infix_expr 13:1
+            unary_expr 13:1
+              postfix_expr 13:1
+                primary 13:1
+                  NAME 13:1 "println"
+                call 13:8
+                  TERMINAL 13:8 "("
+                  expr 13:9
+                    pipe_expr 13:9
+                      infix_expr 13:9
+                        unary_expr 13:9
+                          postfix_expr 13:9
+                            primary 13:9
+                              NAME 13:9 "hash_get"
+                            call 13:17
+                              TERMINAL 13:17 "("
+                              expr 13:18
+                                pipe_expr 13:18
+                                  infix_expr 13:18
+                                    unary_expr 13:18
+                                      postfix_expr 13:18
+                                        primary 13:18
+                                          NAME 13:18 "h"
+                              TERMINAL 13:19 ","
+                              expr 13:21
+                                pipe_expr 13:21
+                                  infix_expr 13:21
+                                    unary_expr 13:21
+                                      postfix_expr 13:21
+                                        primary 13:21
+                                          STRING 13:21 "\"name\""
+                              TERMINAL 13:27 ")"
+                  TERMINAL 13:28 ")"
+  statement 14:1
+    expr_stmt 14:1
+      expr 14:1
+        pipe_expr 14:1
+          infix_expr 14:1
+            unary_expr 14:1
+              postfix_expr 14:1
+                primary 14:1
+                  NAME 14:1 "println"
+                call 14:8
+                  TERMINAL 14:8 "("
+                  expr 14:9
+                    pipe_expr 14:9
+                      infix_expr 14:9
+                        unary_expr 14:9
+                          postfix_expr 14:9
+                            primary 14:9
+                              NAME 14:9 "hash_get"
+                            call 14:17
+                              TERMINAL 14:17 "("
+                              expr 14:18
+                                pipe_expr 14:18
+                                  infix_expr 14:18
+                                    unary_expr 14:18
+                                      postfix_expr 14:18
+                                        primary 14:18
+                                          NAME 14:18 "h"
+                              TERMINAL 14:19 ","
+                              expr 14:21
+                                pipe_expr 14:21
+                                  infix_expr 14:21
+                                    unary_expr 14:21
+                                      postfix_expr 14:21
+                                        primary 14:21
+                                          SYMBOL 14:21 ":age"
+                              TERMINAL 14:25 ")"
+                  TERMINAL 14:26 ")"
+  statement 15:1
+    expr_stmt 15:1
+      expr 15:1
+        pipe_expr 15:1
+          infix_expr 15:1
+            unary_expr 15:1
+              postfix_expr 15:1
+                primary 15:1
+                  NAME 15:1 "println"
+                call 15:8
+                  TERMINAL 15:8 "("
+                  expr 15:9
+                    pipe_expr 15:9
+                      infix_expr 15:9
+                        unary_expr 15:9
+                          postfix_expr 15:9
+                            primary 15:9
+                              NAME 15:9 "hash_has"
+                            call 15:17
+                              TERMINAL 15:17 "("
+                              expr 15:18
+                                pipe_expr 15:18
+                                  infix_expr 15:18
+                                    unary_expr 15:18
+                                      postfix_expr 15:18
+                                        primary 15:18
+                                          NAME 15:18 "h"
+                              TERMINAL 15:19 ","
+                              expr 15:21
+                                pipe_expr 15:21
+                                  infix_expr 15:21
+                                    unary_expr 15:21
+                                      postfix_expr 15:21
+                                        primary 15:21
+                                          STRING 15:21 "\"name\""
+                              TERMINAL 15:27 ")"
+                  TERMINAL 15:28 ")"
+  statement 16:1
+    expr_stmt 16:1
+      expr 16:1
+        pipe_expr 16:1
+          infix_expr 16:1
+            unary_expr 16:1
+              postfix_expr 16:1
+                primary 16:1
+                  NAME 16:1 "println"
+                call 16:8
+                  TERMINAL 16:8 "("
+                  expr 16:9
+                    pipe_expr 16:9
+                      infix_expr 16:9
+                        unary_expr 16:9
+                          postfix_expr 16:9
+                            primary 16:9
+                              NAME 16:9 "hash_has"
+                            call 16:17
+                              TERMINAL 16:17 "("
+                              expr 16:18
+                                pipe_expr 16:18
+                                  infix_expr 16:18
+                                    unary_expr 16:18
+                                      postfix_expr 16:18
+                                        primary 16:18
+                                          NAME 16:18 "h"
+                              TERMINAL 16:19 ","
+                              expr 16:21
+                                pipe_expr 16:21
+                                  infix_expr 16:21
+                                    unary_expr 16:21
+                                      postfix_expr 16:21
+                                        primary 16:21
+                                          STRING 16:21 "\"missing\""
+                              TERMINAL 16:30 ")"
+                  TERMINAL 16:31 ")"
