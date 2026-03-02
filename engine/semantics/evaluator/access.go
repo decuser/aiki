@@ -64,6 +64,22 @@ func (e *Evaluator) evalStringIndex(s *value.String, node *syntax.Node, env *val
 }
 
 func (e *Evaluator) evalAccess(val value.Value, node *syntax.Node, env *value.Env) value.Value {
+	// Check for module access first
+	if mod, ok := val.(*value.Module); ok {
+		for _, child := range node.Children {
+			if child.Type == "NAME" {
+				fieldName := child.Value
+				v, ok := mod.Get(fieldName)
+				if !ok {
+					return e.makeError(node, env, "'%s' not exported by module '%s'", fieldName, mod.Name)
+				}
+				return v
+			}
+		}
+		return value.EMPTY
+	}
+
+	// Shape field access
 	list, ok := val.(*value.List)
 	if !ok || list.Shape == "" {
 		return e.makeError(node, env, "cannot access field on %s", val.Type())

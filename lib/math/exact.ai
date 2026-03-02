@@ -1,6 +1,7 @@
 # math/exact - exact rational math functions
 # These use Taylor series with rational arithmetic.
 # Slower but exact. User controls precision via 'terms' parameter.
+package "math/exact"
 
 let _factorial = (n) {
 	if n < 2 {

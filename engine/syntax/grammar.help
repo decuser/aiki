@@ -10,6 +10,12 @@ statement
 
 One of the statement forms: let, assign, if, while, match, return, or expression.
 ===
+package_stmt
+
+Declares the package name for this module. Must appear at the top of a module file.
+
+package "mylib"
+===
 let_stmt
 
 Binds a value to a name, or defines a shape.

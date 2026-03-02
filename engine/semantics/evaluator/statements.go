@@ -39,6 +39,22 @@ func (e *Evaluator) evalExprStmt(node *syntax.Node, env *value.Env) value.Value 
 	return value.EMPTY
 }
 
+func (e *Evaluator) evalPackage(node *syntax.Node, env *value.Env) value.Value {
+	// Extract package name from STRING child
+	for _, child := range node.Children {
+		if child.Type == "STRING" {
+			name := child.Value
+			// Remove quotes
+			if len(name) >= 2 && name[0] == '"' && name[len(name)-1] == '"' {
+				name = name[1 : len(name)-1]
+			}
+			env.SetPackageName(name)
+			return value.EMPTY
+		}
+	}
+	return e.makeError(node, env, "package: missing name")
+}
+
 func (e *Evaluator) evalLet(node *syntax.Node, env *value.Env) value.Value {
 	var name string
 	var valNode *syntax.Node
