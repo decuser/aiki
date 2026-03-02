@@ -72,7 +72,7 @@ func halPrepend(args []value.Value, ctx *hal.EvalContext) value.Value {
 	newElems := make([]value.Value, len(list.Elements)+1)
 	newElems[0] = args[1]
 	copy(newElems[1:], list.Elements)
-	return &value.List{Elements: newElems}
+	return &value.List{Elements: newElems, Shape: list.Shape}
 }
 
 func halAppend(args []value.Value, ctx *hal.EvalContext) value.Value {
@@ -86,7 +86,7 @@ func halAppend(args []value.Value, ctx *hal.EvalContext) value.Value {
 	newElems := make([]value.Value, len(list.Elements)+1)
 	copy(newElems, list.Elements)
 	newElems[len(list.Elements)] = args[1]
-	return &value.List{Elements: newElems}
+	return &value.List{Elements: newElems, Shape: list.Shape}
 }
 
 func halEmpty(args []value.Value, ctx *hal.EvalContext) value.Value {
@@ -138,4 +138,20 @@ func halRange(args []value.Value, ctx *hal.EvalContext) value.Value {
 		elems = append(elems, value.NewNumber(i, 1))
 	}
 	return &value.List{Elements: elems}
+}
+
+// halMakeShapedList creates a shaped list from a shape name and elements list.
+func halMakeShapedList(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 2 {
+		return value.NewError("make_shaped_list: want 2 arguments, got %d", len(args))
+	}
+	sym, ok := args[0].(*value.Symbol)
+	if !ok {
+		return value.NewError("make_shaped_list: expected symbol for shape, got %s", args[0].Type())
+	}
+	list, ok := args[1].(*value.List)
+	if !ok {
+		return value.NewError("make_shaped_list: expected list for elements, got %s", args[1].Type())
+	}
+	return &value.List{Elements: list.Elements, Shape: sym.Val}
 }

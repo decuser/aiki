@@ -1,0 +1,78 @@
+package "math/pure"
+
+# math/pure - pure aiki math functions
+# These use Taylor series with rational arithmetic.
+# User controls precision via 'terms' or 'iterations' parameter.
+
+let _factorial = (n) {
+	if n < 2 {
+		return 1
+	}
+	return n * _factorial(n - 1)
+}
+
+let _pow = (x, n) {
+	if equal(n, 0) {
+		return 1
+	}
+	let result = x
+	let i = 1
+	while i < n {
+		result = result * x
+		i = i + 1
+	}
+	return result
+}
+
+# sin(x, terms) - Taylor series: x - x³/3! + x⁵/5! - ...
+let sin = (x, terms) {
+	let result = 0
+	let i = 0
+	while i < terms {
+		let n = i * 2 + 1
+		let term = _pow(x, n) / _factorial(n)
+		if equal(modulo(i, 2), 0) {
+			result = result + term
+		} else {
+			result = result - term
+		}
+		i = i + 1
+	}
+	return result
+}
+
+# cos(x, terms) - Taylor series: 1 - x²/2! + x⁴/4! - ...
+let cos = (x, terms) {
+	let result = 0
+	let i = 0
+	while i < terms {
+		let n = i * 2
+		let term = _pow(x, n) / _factorial(n)
+		if equal(modulo(i, 2), 0) {
+			result = result + term
+		} else {
+			result = result - term
+		}
+		i = i + 1
+	}
+	return result
+}
+
+# sqrt(x, iterations) - Newton's method with exact rationals
+let sqrt = (x, iterations) {
+	if x < 0 {
+		return [@error, "sqrt of negative"]
+	}
+	if equal(x, 0) {
+		return 0
+	}
+	let guess = x / 2
+	let i = 0
+	while i < iterations {
+		guess = (guess + x / guess) / 2
+		i = i + 1
+	}
+	return guess
+}
+
+export(:sin, :cos, :sqrt)

@@ -1,4 +1,4 @@
-import("math/inexact", :sin, :cos)
+import("math/pragmatic", :sin, :cos)
 
 let canvas_ref = canvas(800, 800)
 let tick = 0
