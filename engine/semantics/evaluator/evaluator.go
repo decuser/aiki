@@ -24,7 +24,8 @@ func init() {
 		// Statements
 		"program":     (*Evaluator).evalProgram,
 		"statement":   (*Evaluator).evalStatement,
-		"let_stmt":    (*Evaluator).evalLet,
+		"package_stmt": (*Evaluator).evalPackage,
+		"let_stmt":     (*Evaluator).evalLet,
 		"assign_stmt": (*Evaluator).evalAssign,
 		"return_stmt": (*Evaluator).evalReturn,
 		"expr_stmt":   (*Evaluator).evalExprStmt,

@@ -32,7 +32,7 @@
         @template "foo, my_var"
         @help "identifier in snake_case"
 
-    KEYWORD     let if else while match return true false and or not
+    KEYWORD     let if else while match return true false and or not package
     OPERATOR    + - * / < > <= >= |> . =
     DELIMITER   ( ) [ ] { } , ; ...
 }
@@ -42,11 +42,16 @@ program = { statement }
     @template "statement ..."
     @help "sequence of statements"
 
-statement = let_stmt | assign_stmt | if_stmt | while_stmt
+statement = package_stmt | let_stmt | assign_stmt | if_stmt | while_stmt
           | match_stmt | return_stmt | expr_stmt
     @error "expected statement"
-    @template "let | assign | if | while | match | return | expr"
+    @template "package | let | assign | if | while | match | return | expr"
     @help "one of the statement forms"
+
+package_stmt = "package" STRING
+    @error "expected 'package \"name\"'"
+    @template "package \"name\""
+    @help "declares the package name for this module"
 
 let_stmt = "let" NAME "=" expr
          | "let" SHAPE "[" [ field { "," field } ] "]"

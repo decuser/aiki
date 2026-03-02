@@ -18,14 +18,15 @@ type StackFrame struct {
 
 // Env holds variable bindings and scope chain.
 type Env struct {
-	store   map[string]Value
-	shapes  map[string]*ShapeDef
-	outer   *Env
-	file    string        // this env's file (not shared)
-	source  string        // this env's source (not shared)
-	stack   *[]StackFrame // shared across enclosed envs
-	scope   Scope
-	exports []string // exported names for modules
+	store       map[string]Value
+	shapes      map[string]*ShapeDef
+	outer       *Env
+	file        string        // this env's file (not shared)
+	source      string        // this env's source (not shared)
+	stack       *[]StackFrame // shared across enclosed envs
+	scope       Scope
+	exports     []string // exported names for modules
+	packageName string   // package name declared by this module
 }
 
 // NewEnv creates a new environment with user scope.
@@ -196,4 +197,14 @@ func (e *Env) SetExports(names []string) {
 // GetExports returns the list of exported names.
 func (e *Env) GetExports() []string {
 	return e.exports
+}
+
+// SetPackageName sets the package name for this module.
+func (e *Env) SetPackageName(name string) {
+	e.packageName = name
+}
+
+// GetPackageName returns the package name declared by this module.
+func (e *Env) GetPackageName() string {
+	return e.packageName
 }

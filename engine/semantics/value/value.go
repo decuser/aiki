@@ -22,6 +22,7 @@ const (
 	ReturnType   Type = "return"
 	HandleType   Type = "handle"
 	ChannelType  Type = "channel"
+	ModuleType   Type = "module"
 	CanvasType   Type = "canvas"
 )
 
@@ -237,6 +238,26 @@ func (c *Channel) Inspect() string { return "<channel>" }
 // NewChannel creates a new unbuffered channel.
 func NewChannel() *Channel {
 	return &Channel{C: make(chan Value)}
+}
+
+// Module holds a loaded package's exports.
+type Module struct {
+	Name    string           // package name
+	Exports map[string]Value // exported bindings
+}
+
+func (m *Module) Type() Type      { return ModuleType }
+func (m *Module) Inspect() string { return "<module " + m.Name + ">" }
+
+// Get retrieves an exported value by name.
+func (m *Module) Get(name string) (Value, bool) {
+	v, ok := m.Exports[name]
+	return v, ok
+}
+
+// NewModule creates a module with the given name and exports.
+func NewModule(name string, exports map[string]Value) *Module {
+	return &Module{Name: name, Exports: exports}
 }
 
 // ExitSignal signals REPL to exit.

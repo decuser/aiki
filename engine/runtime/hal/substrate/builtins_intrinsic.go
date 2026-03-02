@@ -3,6 +3,8 @@ package substrate
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"aiki/engine/runtime/hal"
 	"aiki/engine/semantics/value"
@@ -105,15 +107,15 @@ func halExport(args []value.Value, ctx *hal.EvalContext) value.Value {
 // halImport implements import("module", :name1, :name2, ...).
 // Parses and evaluates the module, then copies exported names into the current environment.
 func halImport(args []value.Value, ctx *hal.EvalContext) value.Value {
-	if len(args) < 2 {
-		return value.NewError("import: want module and at least 1 name")
+	if len(args) < 1 {
+		return value.NewError("import: want at least module name")
 	}
 
 	if ctx == nil || ctx.Env == nil || ctx.Grammar == nil || ctx.Eval == nil {
 		return value.NewError("import: evaluation context not available")
 	}
 
-	// First arg: module name (string)
+	// First arg: module name or path (string)
 	moduleStr, ok := args[0].(*value.String)
 	if !ok {
 		return value.NewError("import: expected string module name, got %s", args[0].Type())
@@ -130,53 +132,22 @@ func halImport(args []value.Value, ctx *hal.EvalContext) value.Value {
 		importNames = append(importNames, sym.Val)
 	}
 
-	// Resolve module path
-	modulePath := resolveModulePath(moduleName, ctx.Env)
-	if modulePath == "" {
-		return value.NewError("import: cannot find module '%s'", moduleName)
+	// Load the module
+	mod, errVal := loadModule(moduleName, ctx)
+	if errVal != nil {
+		return errVal
 	}
 
-	// Read module source
-	data, err := os.ReadFile(modulePath)
-	if err != nil {
-		return value.NewError("import: cannot read '%s': %s", modulePath, err)
+	// If no names specified, return the Module value
+	if len(importNames) == 0 {
+		return mod
 	}
 
-	// Parse module
-	lexer := syntax.NewLexer(ctx.Grammar, modulePath, string(data), nil)
-	tokens, err := lexer.Tokenize()
-	if err != nil {
-		return value.NewError("import: lex error in '%s': %s", modulePath, err)
-	}
-
-	parser := syntax.NewParser(ctx.Grammar, tokens, string(data), nil)
-	ast, err := parser.Parse()
-	if err != nil {
-		return value.NewError("import: parse error in '%s': %s", modulePath, err)
-	}
-
-	// Create module environment enclosed by caller's env chain.
-	// This gives the module access to prelude bindings.
-	modEnv := value.NewEnclosedEnv(ctx.Env)
-	modEnv.SetFile(modulePath)
-	modEnv.SetSource(string(data))
-
-	// Evaluate module
-	result := ctx.Eval(ast, modEnv)
-	if err, ok := result.(*value.Error); ok {
-		return err
-	}
-
-	// Copy requested names into calling environment
-	exports := modEnv.GetExports()
+	// Bind requested names into calling environment
 	for _, name := range importNames {
-		// If module declared exports, only allow those
-		if len(exports) > 0 && !containsStr(exports, name) {
-			return value.NewError("import: '%s' is not exported by '%s'", name, moduleName)
-		}
-		val, ok := modEnv.Get(name)
+		val, ok := mod.Get(name)
 		if !ok {
-			return value.NewError("import: '%s' not defined in '%s'", name, moduleName)
+			return value.NewError("import: '%s' is not exported by '%s'", name, mod.Name)
 		}
 		ctx.Env.Set(name, val)
 	}
@@ -184,7 +155,138 @@ func halImport(args []value.Value, ctx *hal.EvalContext) value.Value {
 	return value.EMPTY
 }
 
-// halLoad implements load(path) - reads and evaluates a file.
+// loadModule loads a module by name or path, using cache if available.
+func loadModule(name string, ctx *hal.EvalContext) (*value.Module, *value.Error) {
+	var modulePath string
+	var pkgName string
+
+	if IsPathImport(name) {
+		// Path-based import: resolve relative to current file
+		modulePath = resolveRelativePath(name, ctx.Env)
+		if modulePath == "" {
+			return nil, value.NewError("import: cannot find '%s'", name)
+		}
+		// Package name will be determined from file
+		pkgName = ""
+	} else {
+		// Registry-based import
+		if GlobalRegistry == nil {
+			return nil, value.NewError("import: module registry not initialized")
+		}
+		
+		// Check cache first
+		if mod, ok := GlobalRegistry.GetCached(name); ok {
+			return mod, nil
+		}
+
+		// Lookup in registry
+		var ok bool
+		modulePath, ok = GlobalRegistry.Lookup(name)
+		if !ok {
+			return nil, value.NewError("import: unknown package '%s'", name)
+		}
+		pkgName = name
+	}
+
+	// Read module source
+	data, err := os.ReadFile(modulePath)
+	if err != nil {
+		return nil, value.NewError("import: cannot read '%s': %s", modulePath, err)
+	}
+
+	// Parse module
+	lexer := syntax.NewLexer(ctx.Grammar, modulePath, string(data), nil)
+	tokens, err := lexer.Tokenize()
+	if err != nil {
+		return nil, value.NewError("import: lex error in '%s': %s", modulePath, err)
+	}
+
+	parser := syntax.NewParser(ctx.Grammar, tokens, string(data), nil)
+	ast, err := parser.Parse()
+	if err != nil {
+		return nil, value.NewError("import: parse error in '%s': %s", modulePath, err)
+	}
+
+	// Create module environment enclosed by prelude env (not caller's env)
+	preludeEnv := ctx.Env.GetPreludeEnv()
+	if preludeEnv == nil {
+		return nil, value.NewError("import: prelude environment not available")
+	}
+	modEnv := value.NewEnclosedEnv(preludeEnv)
+	modEnv.SetFile(modulePath)
+	modEnv.SetSource(string(data))
+
+	// Evaluate module
+	result := ctx.Eval(ast, modEnv)
+	if errVal, ok := result.(*value.Error); ok {
+		return nil, errVal
+	}
+
+	// Get package name from evaluated module
+	declaredPkg := modEnv.GetPackageName()
+	if pkgName == "" {
+		pkgName = declaredPkg
+	} else if declaredPkg != "" && declaredPkg != pkgName {
+		return nil, value.NewError("import: package declares '%s' but expected '%s'", declaredPkg, pkgName)
+	}
+
+	if pkgName == "" {
+		// Use filename as fallback
+		pkgName = filepath.Base(modulePath)
+		pkgName = strings.TrimSuffix(pkgName, ".ai")
+	}
+
+	// Build exports map
+	exports := make(map[string]value.Value)
+	exportNames := modEnv.GetExports()
+	
+	if len(exportNames) == 0 {
+		return nil, value.NewError("import: module '%s' has no exports", pkgName)
+	}
+
+	for _, expName := range exportNames {
+		val, ok := modEnv.Get(expName)
+		if !ok {
+			return nil, value.NewError("import: exported name '%s' not defined in '%s'", expName, pkgName)
+		}
+		exports[expName] = val
+	}
+
+	mod := value.NewModule(pkgName, exports)
+
+	// Cache if registry-based import
+	if GlobalRegistry != nil && !IsPathImport(name) {
+		GlobalRegistry.Cache(pkgName, mod)
+	}
+
+	return mod, nil
+}
+
+// resolveRelativePath resolves a path relative to the current file.
+func resolveRelativePath(name string, env *value.Env) string {
+	currentFile := env.GetFile()
+	
+	// Add .ai extension if not present
+	if !strings.HasSuffix(name, ".ai") {
+		name = name + ".ai"
+	}
+
+	if currentFile != "" {
+		dir := filepath.Dir(currentFile)
+		candidate := filepath.Join(dir, name)
+		if _, err := os.Stat(candidate); err == nil {
+			return candidate
+		}
+	}
+
+	// Try from current directory
+	if _, err := os.Stat(name); err == nil {
+		return name
+	}
+
+	return ""
+}
+
 func halLoad(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
 		return value.NewError("load: want 1 argument, got %d", len(args))

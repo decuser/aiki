@@ -4,6 +4,7 @@ package runner
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -32,6 +33,11 @@ func RunSource(filename, source string) error {
 	g, err := grammar.Load("grammar.ebnfx", syntax.EbnfxSource, "grammar.help", syntax.HelpSource)
 	if err != nil {
 		return fmt.Errorf("loading grammar: %w", err)
+	}
+
+	// Initialize module registry
+	if err := initModuleRegistry(g); err != nil {
+		return fmt.Errorf("initializing registry: %w", err)
 	}
 
 	// Create runtime
@@ -107,6 +113,27 @@ func loadPrelude(g *grammar.Grammar, rt *substrate.GoRuntime, env *value.Env) er
 }
 
 // initHelpRegistry loads prelude help and doc files with validation.
+// initModuleRegistry creates and scans the module registry.
+func initModuleRegistry(g *grammar.Grammar) error {
+	// Default roots: current dir, lib/, vendor/, user lib
+	homeDir, _ := os.UserHomeDir()
+	roots := []string{
+		".",
+		"lib",
+		"vendor",
+	}
+	if homeDir != "" {
+		roots = append(roots, filepath.Join(homeDir, ".aiki", "lib"))
+	}
+
+	registry := substrate.NewModuleRegistry(roots)
+	if err := registry.Scan(g); err != nil {
+		return err
+	}
+	substrate.GlobalRegistry = registry
+	return nil
+}
+
 func initHelpRegistry() error {
 	registry := help.NewRegistry()
 
