@@ -29,8 +29,8 @@ type Builtin struct {
 	runtime *GoRuntime // back-reference for context access
 }
 
-func (b *Builtin) Type() value.Type    { return value.FunctionType }
-func (b *Builtin) Inspect() string     { return fmt.Sprintf("<builtin: %s>", b.name) }
+func (b *Builtin) Type() value.Type { return value.FunctionType }
+func (b *Builtin) Inspect() string  { return fmt.Sprintf("<builtin: %s>", b.name) }
 
 // Call invokes the builtin. Context is retrieved from the runtime's current context.
 func (b *Builtin) Call(args []value.Value) value.Value {
@@ -46,7 +46,7 @@ var _ value.Callable = (*Builtin)(nil)
 type GoRuntime struct {
 	registry   map[string]*Builtin // _print, _read, etc - prelude only
 	mu         sync.RWMutex
-	currentCtx *hal.EvalContext    // set before each builtin call
+	currentCtx *hal.EvalContext // set before each builtin call
 }
 
 // Verify GoRuntime implements RuntimeContract

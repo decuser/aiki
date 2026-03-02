@@ -20,11 +20,11 @@ type Parser struct {
 	grammar  *grammar.Grammar
 	tokens   []Token
 	pos      int
-	furthest int            // furthest position reached
+	furthest int // furthest position reached
 	source   string
 	observer engine.Observer
-	stack    []string       // current production stack
-	failure  *ParseFailure  // best failure so far
+	stack    []string      // current production stack
+	failure  *ParseFailure // best failure so far
 }
 
 func NewParser(g *grammar.Grammar, tokens []Token, source string, observer engine.Observer) *Parser {

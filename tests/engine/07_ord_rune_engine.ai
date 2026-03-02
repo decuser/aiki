@@ -1,9 +1,8 @@
 # 07_ord_rune_engine.ai
 # Rune and ord coverage, no imports.
-
 let println = (val) {
-    print(val, "\n")
-    return true
+	print(val, "\n")
+	return true
 }
 
 println(ord('a'))

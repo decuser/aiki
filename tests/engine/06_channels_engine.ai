@@ -1,19 +1,18 @@
 # 06_channels_engine.ai
 # Concurrency primitives without imports.
-
 let println = (val) {
-    print(val, "\n")
-    return true
+	print(val, "\n")
+	return true
 }
 
 let ch = channel()
 
 let worker = (c) {
-    let x = recv(c)
-    let y = recv(c)
-    send(c, x + y)
-    send(c, x * y)
-    return true
+	let x = recv(c)
+	let y = recv(c)
+	send(c, x + y)
+	send(c, x * y)
+	return true
 }
 
 spawn(worker, ch)

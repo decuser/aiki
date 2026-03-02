@@ -1,9 +1,8 @@
 # 04_lists_shapes_engine.ai
 # List literals, shapes, and list ops.
-
 let println = (val) {
-    print(val, "\n")
-    return true
+	print(val, "\n")
+	return true
 }
 
 let msg = [@ok, "hi", 1, 2/1]

@@ -1,17 +1,16 @@
 # worker.ai - producer/consumer pattern
-
 let work_ch = channel()
 let result_ch = channel()
 
 let worker = (input, output) {
-    while true {
-        let item = recv(input)
-        if equal(shape(item), :done) {
-            send(output, [@done])
-            return true
-        }
-        send(output, item * item)
-    }
+	while true {
+		let item = recv(input)
+		if equal(shape(item), :done) {
+			send(output, [@done])
+			return true
+		}
+		send(output, item * item)
+	}
 }
 
 spawn(worker, work_ch, result_ch)

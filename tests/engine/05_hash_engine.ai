@@ -1,9 +1,8 @@
 # 05_hash_engine.ai
 # Hash basics.
-
 let println = (val) {
-    print(val, "\n")
-    return true
+	print(val, "\n")
+	return true
 }
 
 let h = hash_new()

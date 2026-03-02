@@ -3,98 +3,99 @@ package "bytes/pure"
 # bytes/pure - pure aiki bytes as shaped lists
 # Bytes are represented as @bytes shaped lists where each element is 0-255.
 # Works with standard list operations: first, rest, length, map, etc.
-
 # Helper to create @bytes shaped list
-let _make_bytes = (elements) { _make_shaped_list(:bytes, elements) }
+let _make_bytes = (elements) {
+	_make_shaped_list(:bytes, elements)
+}
 
 # Convert string to bytes (UTF-8 encoding)
 let str_to_bytes = (s) {
-    let result = []
-    let i = 0
-    let len = length(s)
-    while i < len {
-        let r = s[i]
-        let code = ord(r)
-        # UTF-8 encoding
-        if code < 128 {
-            result = append(result, code)
-        } else {
-            if code < 2048 {
-                result = append(result, 192 + floor(code / 64))
-                result = append(result, 128 + modulo(code, 64))
-            } else {
-                if code < 65536 {
-                    result = append(result, 224 + floor(code / 4096))
-                    result = append(result, 128 + modulo(floor(code / 64), 64))
-                    result = append(result, 128 + modulo(code, 64))
-                } else {
-                    result = append(result, 240 + floor(code / 262144))
-                    result = append(result, 128 + modulo(floor(code / 4096), 64))
-                    result = append(result, 128 + modulo(floor(code / 64), 64))
-                    result = append(result, 128 + modulo(code, 64))
-                }
-            }
-        }
-        i = i + 1
-    }
-    return _make_bytes(result)
+	let result = []
+	let i = 0
+	let len = length(s)
+	while i < len {
+		let r = s[i]
+		let code = ord(r)
+		# UTF-8 encoding
+		if code < 128 {
+			result = append(result, code)
+		} else {
+			if code < 2048 {
+				result = append(result, 192 + floor(code / 64))
+				result = append(result, 128 + modulo(code, 64))
+			} else {
+				if code < 65536 {
+					result = append(result, 224 + floor(code / 4096))
+					result = append(result, 128 + modulo(floor(code / 64), 64))
+					result = append(result, 128 + modulo(code, 64))
+				} else {
+					result = append(result, 240 + floor(code / 262144))
+					result = append(result, 128 + modulo(floor(code / 4096), 64))
+					result = append(result, 128 + modulo(floor(code / 64), 64))
+					result = append(result, 128 + modulo(code, 64))
+				}
+			}
+		}
+		i = i + 1
+	}
+	return _make_bytes(result)
 }
 
 # Convert bytes to string (UTF-8 decoding)
 let bytes_to_str = (b) {
-    if not equal(shape(b), :bytes) {
-        return [@error, "expected @bytes shape"]
-    }
-    _bytes_to_str_pure(b)
+	if not equal(shape(b), :bytes) {
+		return [@error, "expected @bytes shape"]
+	}
+	_bytes_to_str_pure(b)
 }
 
 # Create bytes from list of integers
 let bytes_new = (list) {
-    let result = []
-    let i = 0
-    let len = length(list)
-    while i < len {
-        let n = list[i]
-        if n < 0 {
-            return [@error, "byte value must be >= 0"]
-        }
-        if n > 255 {
-            return [@error, "byte value must be <= 255"]
-        }
-        result = append(result, n)
-        i = i + 1
-    }
-    return _make_bytes(result)
+	let result = []
+	let i = 0
+	let len = length(list)
+	while i < len {
+		let n = list[i]
+		if n < 0 {
+			return [@error, "byte value must be >= 0"]
+		}
+		if n > 255 {
+			return [@error, "byte value must be <= 255"]
+		}
+		result = append(result, n)
+		i = i + 1
+	}
+	return _make_bytes(result)
 }
 
 # Get byte at index (returns number 0-255)
 let bytes_get = (b, i) {
-    if not equal(shape(b), :bytes) {
-        return [@error, "expected @bytes shape"]
-    }
-    b[i]
+	if not equal(shape(b), :bytes) {
+		return [@error, "expected @bytes shape"]
+	}
+	b[i]
 }
 
 # Get length of bytes
 let bytes_length = (b) {
-    if not equal(shape(b), :bytes) {
-        return [@error, "expected @bytes shape"]
-    }
-    length(b)
+	if not equal(shape(b), :bytes) {
+		return [@error, "expected @bytes shape"]
+	}
+	length(b)
 }
 
 # Slice bytes from start to end (exclusive)
 let bytes_slice = (b, start, end) {
-    if not equal(shape(b), :bytes) {
-        return [@error, "expected @bytes shape"]
-    }
-    let result = []
-    let i = start
-    while i < end {
-        result = append(result, b[i])
-        i = i + 1
-    }
-    return _make_bytes(result)
+	if not equal(shape(b), :bytes) {
+		return [@error, "expected @bytes shape"]
+	}
+	let result = []
+	let i = start
+	while i < end {
+		result = append(result, b[i])
+		i = i + 1
+	}
+	return _make_bytes(result)
 }
 
 export(:str_to_bytes, :bytes_to_str, :bytes_new, :bytes_get, :bytes_length, :bytes_slice)

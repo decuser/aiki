@@ -3,7 +3,6 @@ package "math/pure"
 # math/pure - pure aiki math functions
 # These use Taylor series with rational arithmetic.
 # User controls precision via 'terms' or 'iterations' parameter.
-
 let _factorial = (n) {
 	if n < 2 {
 		return 1

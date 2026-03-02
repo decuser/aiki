@@ -1,65 +1,77 @@
-program 4:1
-  statement 4:1
-    let_stmt 4:1
-      TERMINAL 4:1 "let"
-      NAME 4:5 "println"
-      TERMINAL 4:13 "="
-      expr 4:15
-        pipe_expr 4:15
-          infix_expr 4:15
-            unary_expr 4:15
-              postfix_expr 4:15
-                primary 4:15
-                  func_literal 4:15
-                    TERMINAL 4:15 "("
-                    params 4:16
-                      param_list 4:16
-                        NAME 4:16 "val"
-                    TERMINAL 4:19 ")"
-                    block 4:21
-                      TERMINAL 4:21 "{"
-                      statement 5:5
-                        expr_stmt 5:5
-                          expr 5:5
-                            pipe_expr 5:5
-                              infix_expr 5:5
-                                unary_expr 5:5
-                                  postfix_expr 5:5
-                                    primary 5:5
-                                      NAME 5:5 "print"
-                                    call 5:10
-                                      TERMINAL 5:10 "("
-                                      expr 5:11
-                                        pipe_expr 5:11
-                                          infix_expr 5:11
-                                            unary_expr 5:11
-                                              postfix_expr 5:11
-                                                primary 5:11
-                                                  NAME 5:11 "val"
-                                      TERMINAL 5:14 ","
-                                      expr 5:16
-                                        pipe_expr 5:16
-                                          infix_expr 5:16
-                                            unary_expr 5:16
-                                              postfix_expr 5:16
-                                                primary 5:16
-                                                  STRING 5:16 "\"\\n\""
-                                      TERMINAL 5:20 ")"
-                      statement 6:5
-                        return_stmt 6:5
-                          TERMINAL 6:5 "return"
-                          expr 6:12
-                            pipe_expr 6:12
-                              infix_expr 6:12
-                                unary_expr 6:12
-                                  postfix_expr 6:12
-                                    primary 6:12
-                                      TERMINAL 6:12 "true"
-                      TERMINAL 7:1 "}"
+program 3:1
+  statement 3:1
+    let_stmt 3:1
+      TERMINAL 3:1 "let"
+      NAME 3:5 "println"
+      TERMINAL 3:13 "="
+      expr 3:15
+        pipe_expr 3:15
+          infix_expr 3:15
+            unary_expr 3:15
+              postfix_expr 3:15
+                primary 3:15
+                  func_literal 3:15
+                    TERMINAL 3:15 "("
+                    params 3:16
+                      param_list 3:16
+                        NAME 3:16 "val"
+                    TERMINAL 3:19 ")"
+                    block 3:21
+                      TERMINAL 3:21 "{"
+                      statement 4:2
+                        expr_stmt 4:2
+                          expr 4:2
+                            pipe_expr 4:2
+                              infix_expr 4:2
+                                unary_expr 4:2
+                                  postfix_expr 4:2
+                                    primary 4:2
+                                      NAME 4:2 "print"
+                                    call 4:7
+                                      TERMINAL 4:7 "("
+                                      expr 4:8
+                                        pipe_expr 4:8
+                                          infix_expr 4:8
+                                            unary_expr 4:8
+                                              postfix_expr 4:8
+                                                primary 4:8
+                                                  NAME 4:8 "val"
+                                      TERMINAL 4:11 ","
+                                      expr 4:13
+                                        pipe_expr 4:13
+                                          infix_expr 4:13
+                                            unary_expr 4:13
+                                              postfix_expr 4:13
+                                                primary 4:13
+                                                  STRING 4:13 "\"\\n\""
+                                      TERMINAL 4:17 ")"
+                      statement 5:2
+                        return_stmt 5:2
+                          TERMINAL 5:2 "return"
+                          expr 5:9
+                            pipe_expr 5:9
+                              infix_expr 5:9
+                                unary_expr 5:9
+                                  postfix_expr 5:9
+                                    primary 5:9
+                                      TERMINAL 5:9 "true"
+                      TERMINAL 6:1 "}"
+  statement 8:1
+    let_stmt 8:1
+      TERMINAL 8:1 "let"
+      NAME 8:5 "a"
+      TERMINAL 8:7 "="
+      expr 8:9
+        pipe_expr 8:9
+          infix_expr 8:9
+            unary_expr 8:9
+              postfix_expr 8:9
+                primary 8:9
+                  NUMBER 8:9 "1"
   statement 9:1
     let_stmt 9:1
       TERMINAL 9:1 "let"
-      NAME 9:5 "a"
+      NAME 9:5 "b"
       TERMINAL 9:7 "="
       expr 9:9
         pipe_expr 9:9
@@ -67,79 +79,67 @@ program 4:1
             unary_expr 9:9
               postfix_expr 9:9
                 primary 9:9
-                  NUMBER 9:9 "1"
+                  NUMBER 9:9 "2.50"
   statement 10:1
     let_stmt 10:1
       TERMINAL 10:1 "let"
-      NAME 10:5 "b"
+      NAME 10:5 "c"
       TERMINAL 10:7 "="
       expr 10:9
         pipe_expr 10:9
           infix_expr 10:9
             unary_expr 10:9
-              postfix_expr 10:9
-                primary 10:9
-                  NUMBER 10:9 "2.50"
-  statement 11:1
-    let_stmt 11:1
-      TERMINAL 11:1 "let"
-      NAME 11:5 "c"
-      TERMINAL 11:7 "="
-      expr 11:9
-        pipe_expr 11:9
-          infix_expr 11:9
-            unary_expr 11:9
-              TERMINAL 11:9 "-"
-              postfix_expr 11:10
-                primary 11:10
-                  NUMBER 11:10 "3"
-  statement 14:1
-    expr_stmt 14:1
-      expr 14:1
-        pipe_expr 14:1
-          infix_expr 14:1
-            unary_expr 14:1
-              postfix_expr 14:1
-                primary 14:1
-                  NAME 14:1 "println"
-                call 14:8
-                  TERMINAL 14:8 "("
-                  expr 14:9
-                    pipe_expr 14:9
-                      infix_expr 14:9
-                        unary_expr 14:9
-                          postfix_expr 14:9
-                            primary 14:9
-                              STRING 14:9 "\"tab=\\t nl=\\n backslash=\\\\ end\""
-                  TERMINAL 14:40 ")"
+              TERMINAL 10:9 "-"
+              postfix_expr 10:10
+                primary 10:10
+                  NUMBER 10:10 "3"
+  statement 13:1
+    expr_stmt 13:1
+      expr 13:1
+        pipe_expr 13:1
+          infix_expr 13:1
+            unary_expr 13:1
+              postfix_expr 13:1
+                primary 13:1
+                  NAME 13:1 "println"
+                call 13:8
+                  TERMINAL 13:8 "("
+                  expr 13:9
+                    pipe_expr 13:9
+                      infix_expr 13:9
+                        unary_expr 13:9
+                          postfix_expr 13:9
+                            primary 13:9
+                              STRING 13:9 "\"tab=\\t nl=\\n backslash=\\\\ end\""
+                  TERMINAL 13:40 ")"
+  statement 16:1
+    let_stmt 16:1
+      TERMINAL 16:1 "let"
+      NAME 16:5 "s"
+      TERMINAL 16:7 "="
+      expr 16:9
+        pipe_expr 16:9
+          infix_expr 16:9
+            unary_expr 16:9
+              postfix_expr 16:9
+                primary 16:9
+                  STRING 16:9 "\"hello\""
   statement 17:1
-    let_stmt 17:1
-      TERMINAL 17:1 "let"
-      NAME 17:5 "s"
-      TERMINAL 17:7 "="
-      expr 17:9
-        pipe_expr 17:9
-          infix_expr 17:9
-            unary_expr 17:9
-              postfix_expr 17:9
-                primary 17:9
-                  STRING 17:9 "\"hello\""
-  statement 18:1
-    expr_stmt 18:1
-      expr 18:1
-        pipe_expr 18:1
-          infix_expr 18:1
-            unary_expr 18:1
-              postfix_expr 18:1
-                primary 18:1
-                  NAME 18:1 "println"
-                call 18:8
-                  TERMINAL 18:8 "("
-                  expr 18:9
-                    pipe_expr 18:9
-                      infix_expr 18:9
-                        unary_expr 18:9
-                          postfix_expr 18:9
-                            primary 18:9
-                              NAME 18:9 "s"
-                  TERMINAL 18:10 ")"
+    expr_stmt 17:1
+      expr 17:1
+        pipe_expr 17:1
+          infix_expr 17:1
+            unary_expr 17:1
+              postfix_expr 17:1
+                primary 17:1
+                  NAME 17:1 "println"
+                call 17:8
+                  TERMINAL 17:8 "("
+                  expr 17:9
+                    pipe_expr 17:9
+                      infix_expr 17:9
+                        unary_expr 17:9
+                          postfix_expr 17:9
+                            primary 17:9
+                              NAME 17:9 "s"
+                  TERMINAL 17:10 ")"

@@ -22,17 +22,17 @@ var handlers map[string]handlerFunc
 func init() {
 	handlers = map[string]handlerFunc{
 		// Statements
-		"program":     (*Evaluator).evalProgram,
-		"statement":   (*Evaluator).evalStatement,
+		"program":      (*Evaluator).evalProgram,
+		"statement":    (*Evaluator).evalStatement,
 		"package_stmt": (*Evaluator).evalPackage,
 		"let_stmt":     (*Evaluator).evalLet,
-		"assign_stmt": (*Evaluator).evalAssign,
-		"return_stmt": (*Evaluator).evalReturn,
-		"expr_stmt":   (*Evaluator).evalExprStmt,
-		"if_stmt":     (*Evaluator).evalIf,
-		"while_stmt":  (*Evaluator).evalWhile,
-		"match_stmt":  (*Evaluator).evalMatch,
-		"block":       (*Evaluator).evalBlock,
+		"assign_stmt":  (*Evaluator).evalAssign,
+		"return_stmt":  (*Evaluator).evalReturn,
+		"expr_stmt":    (*Evaluator).evalExprStmt,
+		"if_stmt":      (*Evaluator).evalIf,
+		"while_stmt":   (*Evaluator).evalWhile,
+		"match_stmt":   (*Evaluator).evalMatch,
+		"block":        (*Evaluator).evalBlock,
 
 		// Expressions
 		"expr":         (*Evaluator).evalExpr,
@@ -128,7 +128,7 @@ func (e *Evaluator) Eval(node *syntax.Node, env *value.Env) value.Value {
 		// Should never happen after validation
 		panic(fmt.Sprintf("no handler for node type: %s", node.Type))
 	}
-	
+
 	// nil handler means delegate to single child
 	if h == nil {
 		if len(node.Children) == 1 {
@@ -136,6 +136,6 @@ func (e *Evaluator) Eval(node *syntax.Node, env *value.Env) value.Value {
 		}
 		return value.EMPTY
 	}
-	
+
 	return h(e, node, env)
 }

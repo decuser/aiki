@@ -36,18 +36,18 @@ func NewRegistry() *Registry {
 // ParseHelpFile parses a .help file with @func, @template, @help entries.
 func ParseHelpFile(file, source string) (map[string]FuncEntry, error) {
 	entries := make(map[string]FuncEntry)
-	
+
 	lines := strings.Split(source, "\n")
 	var current *FuncEntry
-	
+
 	for i, line := range lines {
 		line = strings.TrimSpace(line)
-		
+
 		// Skip empty lines and comments
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
-		
+
 		if strings.HasPrefix(line, "@func ") {
 			// Save previous entry
 			if current != nil {
@@ -56,30 +56,30 @@ func ParseHelpFile(file, source string) (map[string]FuncEntry, error) {
 				}
 				entries[current.Name] = *current
 			}
-			
+
 			name := strings.TrimSpace(strings.TrimPrefix(line, "@func"))
 			if name == "" {
 				return nil, fmt.Errorf("%s:%d: @func missing name", file, i+1)
 			}
 			current = &FuncEntry{Name: name}
-			
+
 		} else if strings.HasPrefix(line, "@template ") {
 			if current == nil {
 				return nil, fmt.Errorf("%s:%d: @template without @func", file, i+1)
 			}
 			current.Template = parseQuoted(strings.TrimPrefix(line, "@template"))
-			
+
 		} else if strings.HasPrefix(line, "@help ") {
 			if current == nil {
 				return nil, fmt.Errorf("%s:%d: @help without @func", file, i+1)
 			}
 			current.Help = parseQuoted(strings.TrimPrefix(line, "@help"))
-			
+
 		} else {
 			return nil, fmt.Errorf("%s:%d: unexpected line: %s", file, i+1, line)
 		}
 	}
-	
+
 	// Save last entry
 	if current != nil {
 		if current.Template == "" || current.Help == "" {
@@ -87,7 +87,7 @@ func ParseHelpFile(file, source string) (map[string]FuncEntry, error) {
 		}
 		entries[current.Name] = *current
 	}
-	
+
 	return entries, nil
 }
 
@@ -95,30 +95,30 @@ func ParseHelpFile(file, source string) (map[string]FuncEntry, error) {
 func ParseDocFile(file, source string) (map[string]DocEntry, error) {
 	entries := make(map[string]DocEntry)
 	parts := strings.Split(source, "\n===\n")
-	
+
 	for _, part := range parts {
 		part = strings.TrimSpace(part)
 		if part == "" {
 			continue
 		}
-		
+
 		lines := strings.SplitN(part, "\n", 2)
 		name := strings.TrimSpace(lines[0])
 		if name == "" {
 			continue
 		}
-		
+
 		var doc string
 		if len(lines) > 1 {
 			doc = strings.TrimSpace(lines[1])
 		}
-		
+
 		if _, exists := entries[name]; exists {
 			return nil, fmt.Errorf("%s: duplicate entry for '%s'", file, name)
 		}
 		entries[name] = DocEntry{Name: name, Doc: doc}
 	}
-	
+
 	return entries, nil
 }
 
