@@ -31,7 +31,16 @@ func NewParser(g *grammar.Grammar, tokens []Token, source string, observer engin
 	if observer == nil {
 		observer = engine.SilentObserver{}
 	}
-	return &Parser{grammar: g, tokens: tokens, pos: 0, furthest: 0, source: source, observer: observer}
+	// Parser skips tokens marked @skip in the grammar (eg WHITESPACE, COMMENT).
+	// Old lexer did not emit these; new grammar lexer does.
+	filtered := make([]Token, 0, len(tokens))
+	for _, tok := range tokens {
+		if def, ok := g.GetToken(tok.Type); ok && def.Skip {
+			continue
+		}
+		filtered = append(filtered, tok)
+	}
+	return &Parser{grammar: g, tokens: filtered, pos: 0, furthest: 0, source: source, observer: observer}
 }
 
 func (p *Parser) Parse() (*Node, error) {

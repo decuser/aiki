@@ -54,18 +54,18 @@ func (r *ModuleRegistry) scanDir(dir string, g *grammar.Grammar) error {
 
 	for _, entry := range entries {
 		path := filepath.Join(dir, entry.Name())
-		
+
 		// Get absolute path to detect duplicates
 		absPath, err := filepath.Abs(path)
 		if err != nil {
 			absPath = path
 		}
-		
+
 		if r.seen[absPath] {
 			continue
 		}
 		r.seen[absPath] = true
-		
+
 		if entry.IsDir() {
 			// Recurse into subdirectories
 			if err := r.scanDir(path, g); err != nil {

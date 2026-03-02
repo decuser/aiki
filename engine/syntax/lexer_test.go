@@ -9,10 +9,25 @@ import (
 	"aiki/engine/syntax/grammar"
 )
 
-// testGrammar creates a minimal grammar for testing.
+// testGrammar creates a grammar that covers what these lexer unit tests feed it.
+// The lexer is grammar driven now, so the test grammar must include keywords,
+// identifiers, operators, delimiters, and skip tokens.
 func testGrammar() *grammar.Grammar {
 	return &grammar.Grammar{
 		Tokens: []grammar.TokenDef{
+			// Skip tokens (new lexer emits them; tests filter them out)
+			{Name: "WHITESPACE", Pattern: mustCompile(`[ \t\r\n]+`), Skip: true},
+			{Name: "COMMENT", Pattern: mustCompile(`#.*`), Skip: true},
+
+			// Order matters: KEYWORD must come before NAME.
+			{Name: "KEYWORD", Literal: "let if else while return match true false not and or"},
+			{Name: "NAME", Pattern: mustCompile(`[a-zA-Z_][a-zA-Z0-9_]*`)},
+
+			// Operators and delimiters needed by the tests.
+			{Name: "OPERATOR", Literal: "= + - * / < > <= >= |>"},
+			{Name: "DELIMITER", Literal: "( ) { } [ ] , ..."},
+
+			// Literals used by the tests.
 			{Name: "NUMBER", Pattern: mustCompile(`[0-9]+(\.[0-9]+)?(\/[0-9]+)?`)},
 			{Name: "STRING", Pattern: mustCompile(`"[^"]*"`)},
 			{Name: "RUNE", Pattern: mustCompile(`'([^'\\]|\\.)'`)},
@@ -27,15 +42,29 @@ func mustCompile(pattern string) *regexp.Regexp {
 	return regexp.MustCompile("^" + pattern)
 }
 
-func TestLexerBasicTokens(t *testing.T) {
+func tokenizeNoSkip(t *testing.T, src string) []Token {
+	t.Helper()
 	g := testGrammar()
-	source := `let x = 42`
-
-	l := NewLexer(g, "test.ai", source, nil)
+	l := NewLexer(g, "test.ai", src, nil)
 	tokens, err := l.Tokenize()
 	if err != nil {
 		t.Fatalf("tokenize error: %v", err)
 	}
+
+	out := make([]Token, 0, len(tokens))
+	for _, tok := range tokens {
+		if tok.Type == "WHITESPACE" || tok.Type == "COMMENT" {
+			continue
+		}
+		out = append(out, tok)
+	}
+	return out
+}
+
+func TestLexerBasicTokens(t *testing.T) {
+	source := `let x = 42`
+
+	tokens := tokenizeNoSkip(t, source)
 
 	expected := []struct {
 		typ    string
@@ -62,14 +91,9 @@ func TestLexerBasicTokens(t *testing.T) {
 }
 
 func TestLexerPosition(t *testing.T) {
-	g := testGrammar()
 	source := "let x = 1\nlet y = 2"
 
-	l := NewLexer(g, "test.ai", source, nil)
-	tokens, err := l.Tokenize()
-	if err != nil {
-		t.Fatalf("tokenize error: %v", err)
-	}
+	tokens := tokenizeNoSkip(t, source)
 
 	// First "let" should be at line 1, col 1
 	if tokens[0].Pos.Line != 1 || tokens[0].Pos.Col != 1 {
@@ -85,14 +109,9 @@ func TestLexerPosition(t *testing.T) {
 }
 
 func TestLexerOperators(t *testing.T) {
-	g := testGrammar()
 	source := `1 + 2 - 3 * 4 / 5 |> f`
 
-	l := NewLexer(g, "test.ai", source, nil)
-	tokens, err := l.Tokenize()
-	if err != nil {
-		t.Fatalf("tokenize error: %v", err)
-	}
+	tokens := tokenizeNoSkip(t, source)
 
 	// Check operators
 	ops := []string{"+", "-", "*", "/", "|>"}
@@ -114,14 +133,9 @@ func TestLexerOperators(t *testing.T) {
 }
 
 func TestLexerDelimiters(t *testing.T) {
-	g := testGrammar()
 	source := `f(x, y) { [1, 2, 3] }`
 
-	l := NewLexer(g, "test.ai", source, nil)
-	tokens, err := l.Tokenize()
-	if err != nil {
-		t.Fatalf("tokenize error: %v", err)
-	}
+	tokens := tokenizeNoSkip(t, source)
 
 	delims := []string{"(", ",", ")", "{", "[", ",", ",", "]", "}"}
 	delimIndex := 0
@@ -139,14 +153,9 @@ func TestLexerDelimiters(t *testing.T) {
 }
 
 func TestLexerKeywords(t *testing.T) {
-	g := testGrammar()
 	source := `if true { return false } else { while not x { let y = match z { } } }`
 
-	l := NewLexer(g, "test.ai", source, nil)
-	tokens, err := l.Tokenize()
-	if err != nil {
-		t.Fatalf("tokenize error: %v", err)
-	}
+	tokens := tokenizeNoSkip(t, source)
 
 	keywords := []string{"if", "true", "return", "false", "else", "while", "not", "let", "match"}
 	kwIndex := 0
@@ -164,14 +173,9 @@ func TestLexerKeywords(t *testing.T) {
 }
 
 func TestLexerLiterals(t *testing.T) {
-	g := testGrammar()
 	source := `42 3.14 1/3 "hello" 'a' :ok @point`
 
-	l := NewLexer(g, "test.ai", source, nil)
-	tokens, err := l.Tokenize()
-	if err != nil {
-		t.Fatalf("tokenize error: %v", err)
-	}
+	tokens := tokenizeNoSkip(t, source)
 
 	expected := []struct {
 		typ    string
@@ -201,19 +205,14 @@ func TestLexerLiterals(t *testing.T) {
 }
 
 func TestLexerComments(t *testing.T) {
-	g := testGrammar()
 	source := `let x = 1 # this is a comment
 let y = 2`
 
-	l := NewLexer(g, "test.ai", source, nil)
-	tokens, err := l.Tokenize()
-	if err != nil {
-		t.Fatalf("tokenize error: %v", err)
-	}
+	tokens := tokenizeNoSkip(t, source)
 
-	// Should not include comment
+	// Should not include comment (we filter COMMENT out above)
 	for _, tok := range tokens {
-		if strings.Contains(tok.Lexeme, "#") || strings.Contains(tok.Lexeme, "comment") {
+		if tok.Type == "COMMENT" || strings.Contains(tok.Lexeme, "#") {
 			t.Errorf("comment leaked into tokens: %v", tok)
 		}
 	}
@@ -231,6 +230,9 @@ func TestLexerObserver(t *testing.T) {
 	var observed []string
 	obs := &testObserver{
 		onLex: func(token, lexeme string, pos engine.Position) {
+			if token == "WHITESPACE" || token == "COMMENT" {
+				return
+			}
 			observed = append(observed, token+":"+lexeme)
 		},
 	}
@@ -273,14 +275,9 @@ func TestLexerError(t *testing.T) {
 }
 
 func TestLexerRestParam(t *testing.T) {
-	g := testGrammar()
 	source := `(...args)`
 
-	l := NewLexer(g, "test.ai", source, nil)
-	tokens, err := l.Tokenize()
-	if err != nil {
-		t.Fatalf("tokenize error: %v", err)
-	}
+	tokens := tokenizeNoSkip(t, source)
 
 	// Should have: ( ... args )
 	expected := []struct {

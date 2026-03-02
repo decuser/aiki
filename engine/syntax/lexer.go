@@ -15,7 +15,19 @@ type Token struct {
 	Pos    engine.Position
 }
 
-// Lexer tokenizes source using grammar definitions.
+type literalCandidate struct {
+	tokName  string
+	lit      string
+	defIndex int
+	litIndex int
+}
+
+// Lexer tokenizes source using only grammar token definitions.
+//
+// It emits every recognized token, including tokens marked @skip.
+//
+// Matching policy: maximal munch (longest match wins). If tied, earlier
+// grammar token wins; if still tied, earlier literal in the token wins.
 type Lexer struct {
 	grammar  *grammar.Grammar
 	source   string
@@ -24,13 +36,34 @@ type Lexer struct {
 	line     int
 	col      int
 	observer engine.Observer
+	literals []literalCandidate
 }
 
-// NewLexer creates a lexer for the given source.
 func NewLexer(g *grammar.Grammar, file, source string, observer engine.Observer) *Lexer {
 	if observer == nil {
 		observer = engine.SilentObserver{}
 	}
+
+	var lits []literalCandidate
+	for di, def := range g.Tokens {
+		if def.Pattern != nil {
+			continue
+		}
+		litStr := strings.TrimSpace(def.Literal)
+		if litStr == "" {
+			continue
+		}
+		parts := strings.Fields(litStr)
+		for li, part := range parts {
+			lits = append(lits, literalCandidate{
+				tokName:  def.Name,
+				lit:      part,
+				defIndex: di,
+				litIndex: li,
+			})
+		}
+	}
+
 	return &Lexer{
 		grammar:  g,
 		source:   source,
@@ -39,13 +72,12 @@ func NewLexer(g *grammar.Grammar, file, source string, observer engine.Observer)
 		line:     1,
 		col:      1,
 		observer: observer,
+		literals: lits,
 	}
 }
 
-// Tokenize returns all tokens from the source.
 func (l *Lexer) Tokenize() ([]Token, error) {
 	var tokens []Token
-
 	for {
 		tok, err := l.Next()
 		if err != nil {
@@ -56,183 +88,79 @@ func (l *Lexer) Tokenize() ([]Token, error) {
 		}
 		tokens = append(tokens, tok)
 	}
-
 	return tokens, nil
 }
 
-// Next returns the next token.
 func (l *Lexer) Next() (Token, error) {
-	// Skip whitespace and comments
-	l.skipIgnored()
-
 	if l.pos >= len(l.source) {
-		tok := Token{
-			Type:   "EOF",
-			Lexeme: "",
-			Pos:    l.position(),
-		}
-		return tok, nil
+		return Token{Type: "EOF", Lexeme: "", Pos: l.position()}, nil
 	}
 
 	startPos := l.position()
 
-	// Try identifier/keyword first (before patterns)
-	if l.isIdentStart(l.peek()) {
-		ident := l.readIdent()
-		tokType := "NAME"
-		if l.isKeyword(ident) {
-			tokType = "KEYWORD"
-		}
-		tok := Token{
-			Type:   tokType,
-			Lexeme: ident,
-			Pos:    startPos,
-		}
-		l.observer.OnLex(tok.Type, tok.Lexeme, tok.Pos)
-		return tok, nil
-	}
+	bestLen := 0
+	bestType := ""
+	bestLex := ""
+	bestDefIndex := int(^uint(0) >> 1)
+	bestLitIndex := int(^uint(0) >> 1)
 
-	// Try each token definition
-	for _, def := range l.grammar.Tokens {
-		if def.Skip {
-			continue // Already handled in skipIgnored
-		}
+	// Pattern tokens
+	for di, def := range l.grammar.Tokens {
 		if def.Pattern == nil {
-			continue // Keywords/operators handled separately
+			continue
 		}
-
 		match := def.Pattern.FindString(l.source[l.pos:])
-		if match != "" {
-			tok := Token{
-				Type:   def.Name,
-				Lexeme: match,
-				Pos:    startPos,
+		if match == "" {
+			continue
+		}
+		mlen := len(match)
+		if mlen > bestLen || (mlen == bestLen && di < bestDefIndex) {
+			bestLen = mlen
+			bestType = def.Name
+			bestLex = match
+			bestDefIndex = di
+			bestLitIndex = 0
+		}
+	}
+
+	// Literal tokens
+	for _, c := range l.literals {
+		if !strings.HasPrefix(l.source[l.pos:], c.lit) {
+			continue
+		}
+		mlen := len(c.lit)
+		if mlen > bestLen {
+			bestLen = mlen
+			bestType = c.tokName
+			bestLex = c.lit
+			bestDefIndex = c.defIndex
+			bestLitIndex = c.litIndex
+			continue
+		}
+		if mlen == bestLen {
+			if c.defIndex < bestDefIndex || (c.defIndex == bestDefIndex && c.litIndex < bestLitIndex) {
+				bestLen = mlen
+				bestType = c.tokName
+				bestLex = c.lit
+				bestDefIndex = c.defIndex
+				bestLitIndex = c.litIndex
 			}
-			l.advance(len(match))
-			l.observer.OnLex(tok.Type, tok.Lexeme, tok.Pos)
-			return tok, nil
 		}
 	}
 
-	// Try delimiters before operators (... must match before .)
-	if delim := l.matchDelimiter(); delim != "" {
-		tok := Token{
-			Type:   "DELIMITER",
-			Lexeme: delim,
-			Pos:    startPos,
-		}
-		l.advance(len(delim))
-		l.observer.OnLex(tok.Type, tok.Lexeme, tok.Pos)
-		return tok, nil
-	}
-
-	if op := l.matchOperator(); op != "" {
-		tok := Token{
-			Type:   "OPERATOR",
-			Lexeme: op,
-			Pos:    startPos,
-		}
-		l.advance(len(op))
-		l.observer.OnLex(tok.Type, tok.Lexeme, tok.Pos)
-		return tok, nil
-	}
-
-	// Unknown character
-	ch := l.source[l.pos]
-	return Token{}, fmt.Errorf("%s", engine.FormatWithCaret(
-		startPos,
-		engine.GetSourceLine(l.source, startPos.Line),
-		fmt.Sprintf("unexpected character '%c'", ch),
-	))
-}
-
-// skipIgnored skips whitespace and comments.
-func (l *Lexer) skipIgnored() {
-	for l.pos < len(l.source) {
+	if bestLen == 0 {
 		ch := l.source[l.pos]
-
-		// Whitespace
-		if ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n' {
-			l.advanceOne()
-			continue
-		}
-
-		// Comment
-		if ch == '#' {
-			for l.pos < len(l.source) && l.source[l.pos] != '\n' {
-				l.advanceOne()
-			}
-			continue
-		}
-
-		break
+		return Token{}, fmt.Errorf("%s", engine.FormatWithCaret(
+			startPos,
+			engine.GetSourceLine(l.source, startPos.Line),
+			fmt.Sprintf("unexpected character '%c'", ch),
+		))
 	}
-}
 
-// readIdent reads an identifier.
-func (l *Lexer) readIdent() string {
-	start := l.pos
-	for l.pos < len(l.source) && l.isIdentChar(l.source[l.pos]) {
-		l.advanceOne()
-	}
-	return l.source[start:l.pos]
-}
-
-// isIdentStart returns true if ch can start an identifier.
-func (l *Lexer) isIdentStart(ch byte) bool {
-	return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_'
-}
-
-// isIdentChar returns true if ch can be in an identifier.
-func (l *Lexer) isIdentChar(ch byte) bool {
-	return l.isIdentStart(ch) || (ch >= '0' && ch <= '9')
-}
-
-// isKeyword returns true if ident is a keyword.
-func (l *Lexer) isKeyword(ident string) bool {
-	keywords := []string{
-		"let", "if", "else", "while", "match", "return",
-		"true", "false", "and", "or", "not",
-	}
-	for _, kw := range keywords {
-		if ident == kw {
-			return true
-		}
-	}
-	return false
-}
-
-// matchOperator tries to match an operator at current position.
-func (l *Lexer) matchOperator() string {
-	// Longer operators first
-	operators := []string{"|>", "<=", ">=", "+", "-", "*", "/", "<", ">", ".", "="}
-	for _, op := range operators {
-		if strings.HasPrefix(l.source[l.pos:], op) {
-			return op
-		}
-	}
-	return ""
-}
-
-// matchDelimiter tries to match a delimiter at current position.
-func (l *Lexer) matchDelimiter() string {
-	// Longer delimiters first
-	delimiters := []string{"...", "(", ")", "[", "]", "{", "}", ",", ";"}
-	for _, d := range delimiters {
-		if strings.HasPrefix(l.source[l.pos:], d) {
-			return d
-		}
-	}
-	return ""
-}
-
-// Helper methods
-
-func (l *Lexer) peek() byte {
-	if l.pos >= len(l.source) {
-		return 0
-	}
-	return l.source[l.pos]
+	tok := Token{Type: bestType, Lexeme: bestLex, Pos: startPos}
+	l.advance(bestLen)
+	l.observer.OnLex(tok.Type, tok.Lexeme, tok.Pos)
+	return tok, nil
 }
 
 func (l *Lexer) advanceOne() {
@@ -254,9 +182,5 @@ func (l *Lexer) advance(n int) {
 }
 
 func (l *Lexer) position() engine.Position {
-	return engine.Position{
-		File: l.file,
-		Line: l.line,
-		Col:  l.col,
-	}
+	return engine.Position{File: l.file, Line: l.line, Col: l.col}
 }

@@ -173,7 +173,7 @@ func loadModule(name string, ctx *hal.EvalContext) (*value.Module, *value.Error)
 		if GlobalRegistry == nil {
 			return nil, value.NewError("import: module registry not initialized")
 		}
-		
+
 		// Check cache first
 		if mod, ok := GlobalRegistry.GetCached(name); ok {
 			return mod, nil
@@ -239,7 +239,7 @@ func loadModule(name string, ctx *hal.EvalContext) (*value.Module, *value.Error)
 	// Build exports map
 	exports := make(map[string]value.Value)
 	exportNames := modEnv.GetExports()
-	
+
 	if len(exportNames) == 0 {
 		return nil, value.NewError("import: module '%s' has no exports", pkgName)
 	}
@@ -265,7 +265,7 @@ func loadModule(name string, ctx *hal.EvalContext) (*value.Module, *value.Error)
 // resolveRelativePath resolves a path relative to the current file.
 func resolveRelativePath(name string, env *value.Env) string {
 	currentFile := env.GetFile()
-	
+
 	// Add .ai extension if not present
 	if !strings.HasSuffix(name, ".ai") {
 		name = name + ".ai"
