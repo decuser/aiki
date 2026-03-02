@@ -31,6 +31,15 @@ func (g *GoRuntime) registerHAL() {
 	g.register("_seed", halSeed)
 	g.register("_random", halRandom)
 
+	// Bytes
+	g.register("_bytes_new", halBytesNew)
+	g.register("_bytes_length", halBytesLength)
+	g.register("_bytes_get", halBytesGet)
+	g.register("_bytes_slice", halBytesSlice)
+	g.register("_str_to_bytes", halStrToBytes)
+	g.register("_bytes_to_str", halBytesToStr)
+	g.register("_bytes_to_str_pure", halBytesToStrPure)
+
 	// Time
 	g.register("_sleep", halSleep)
 
@@ -50,6 +59,7 @@ func (g *GoRuntime) registerHAL() {
 
 	// Convert
 	g.register("_shape", halShape)
+	g.register("_make_shaped_list", halMakeShapedList)
 	g.register("_to_str", halToStr)
 	g.register("_to_decimal", halToDecimal)
 	g.register("_to_number", halToNumber)

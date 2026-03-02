@@ -1,0 +1,11 @@
+package "math/pragmatic"
+
+# math/pragmatic - fast hardware-backed math functions
+# These use host floats internally, returning rational approximations.
+# Use when speed matters more than explicit precision control.
+
+let sin = (x) { _sin_inexact(x) }
+let cos = (x) { _cos_inexact(x) }
+let sqrt = (x) { _sqrt_inexact(x) }
+
+export(:sin, :cos, :sqrt)

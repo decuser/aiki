@@ -15,6 +15,7 @@ const (
 	BooleanType  Type = "boolean"
 	RuneType     Type = "rune"
 	StringType   Type = "string"
+	BytesType    Type = "bytes"
 	SymbolType   Type = "symbol"
 	ListType     Type = "list"
 	FunctionType Type = "function"
@@ -90,6 +91,19 @@ type String struct {
 
 func (s *String) Type() Type      { return StringType }
 func (s *String) Inspect() string { return s.Val }
+
+// Bytes is an immutable sequence of bytes (0-255).
+type Bytes struct {
+	Val []byte
+}
+
+func (b *Bytes) Type() Type { return BytesType }
+func (b *Bytes) Inspect() string {
+	if len(b.Val) <= 20 {
+		return fmt.Sprintf("<bytes:%d %v>", len(b.Val), b.Val)
+	}
+	return fmt.Sprintf("<bytes:%d [%v...]>", len(b.Val), b.Val[:20])
+}
 
 // Symbol
 type Symbol struct {
