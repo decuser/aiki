@@ -1,9 +1,8 @@
 # 01_math_ops_engine.ai
 # Arithmetic and precedence, no equality operators.
-
 let println = (val) {
-    print(val, "\n")
-    return true
+	print(val, "\n")
+	return true
 }
 
 println("ADD")

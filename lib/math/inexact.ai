@@ -3,8 +3,16 @@
 # Use when speed matters more than exactness.
 package "math/inexact"
 
-let sin = (x) { _sin_inexact(x) }
-let cos = (x) { _cos_inexact(x) }
-let sqrt = (x) { _sqrt_inexact(x) }
+let sin = (x) {
+	_sin_inexact(x)
+}
+
+let cos = (x) {
+	_cos_inexact(x)
+}
+
+let sqrt = (x) {
+	_sqrt_inexact(x)
+}
 
 export(:sin, :cos, :sqrt)

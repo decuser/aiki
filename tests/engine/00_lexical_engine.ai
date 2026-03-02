@@ -1,9 +1,8 @@
 # 00_lexical_engine.ai
 # Lexical coverage: whitespace, comments, numbers, strings with backslashes.
-
 let println = (val) {
-    print(val, "\n")
-    return true
+	print(val, "\n")
+	return true
 }
 
 let a = 1

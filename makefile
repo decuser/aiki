@@ -26,7 +26,7 @@ doclint:
 	-./aiki doclint extra/doc extra/status
 
 lint:
-	-./aiki lint ./...
+	./aiki lint ./...
 
 smoke:
 	./aiki smoke ./...
@@ -38,8 +38,11 @@ runsamples: build
 		./aiki "$$i"; \
 	done
 
-enginesmoke: build
+enginesmoke: build fmt
 	./aiki enginesmoke --stage all --check tests/engine
 
-validate: build test smoke runsamples enginesmoke
+enginesmokegold: build fmt
+	./aiki enginesmoke --stage all --gold tests/engine
+
+validate: build fmt lint test smoke runsamples enginesmoke
 

@@ -70,9 +70,9 @@ func (e *Evaluator) applyUserFunction(fn *value.Function, args []value.Value, no
 		funcName = "<anonymous>"
 	}
 	callEnv.PushFrame(funcName, node.Pos.Line, callEnv.GetScope())
-	
+
 	result := e.Eval(body, callEnv)
-	
+
 	callEnv.PopFrame()
 
 	if ret, ok := result.(*value.Return); ok {

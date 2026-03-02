@@ -1,61 +1,166 @@
 # Prelude - minimal standard library
 # This file runs with ScopePrelude, so it can access _prefixed HAL primitives.
 # It defines user-visible wrappers that user code can call.
-
 # Intrinsic wrappers - these need evaluator context
 # Note: import and export are available directly (no wrapper needed)
-let apply = (fn, args) { _apply(fn, args) }
-let load = (path) { _load(path) }
-let spawn = (fn, ...args) { _apply(_spawn, _prepend(args, fn)) }
-let channel = () { _channel() }
-let send = (ch, val) { _send(ch, val) }
-let recv = (ch) { _recv(ch) }
+let apply = (fn, args) {
+	_apply(fn, args)
+}
+
+let load = (path) {
+	_load(path)
+}
+
+let spawn = (fn, ...args) {
+	_apply(_spawn, _prepend(args, fn))
+}
+
+let channel = () {
+	_channel()
+}
+
+let send = (ch, val) {
+	_send(ch, val)
+}
+
+let recv = (ch) {
+	_recv(ch)
+}
 
 # IO wrappers - print uses apply for variadic support
-let print = (...args) { apply(_print, args) }
-let read = () { _read() }
-let input = () { _read() }
+let print = (...args) {
+	apply(_print, args)
+}
+
+let read = () {
+	_read()
+}
+
+let input = () {
+	_read()
+}
 
 # List wrappers
-let first = (list) { _first(list) }
-let rest = (list) { _rest(list) }
-let length = (list) { _length(list) }
-let prepend = (list, val) { _prepend(list, val) }
-let append = (list, val) { _append(list, val) }
-let empty = (list) { _empty(list) }
-let range = (start, end) { _range(start, end) }
+let first = (list) {
+	_first(list)
+}
+
+let rest = (list) {
+	_rest(list)
+}
+
+let length = (list) {
+	_length(list)
+}
+
+let prepend = (list, val) {
+	_prepend(list, val)
+}
+
+let append = (list, val) {
+	_append(list, val)
+}
+
+let empty = (list) {
+	_empty(list)
+}
+
+let range = (start, end) {
+	_range(start, end)
+}
 
 # Type wrappers
-let type = (val) { _type(val) }
-let inspect = (val) { _inspect(val) }
-let equal = (a, b) { _equal(a, b) }
-let ord = (r) { _ord(r) }
+let type = (val) {
+	_type(val)
+}
+
+let inspect = (val) {
+	_inspect(val)
+}
+
+let equal = (a, b) {
+	_equal(a, b)
+}
+
+let ord = (r) {
+	_ord(r)
+}
 
 # Math wrappers
-let floor = (n) { _floor(n) }
-let ceil = (n) { _ceil(n) }
-let modulo = (a, b) { _modulo(a, b) }
+let floor = (n) {
+	_floor(n)
+}
+
+let ceil = (n) {
+	_ceil(n)
+}
+
+let modulo = (a, b) {
+	_modulo(a, b)
+}
 
 # Time wrappers
-let sleep = (ms) { _sleep(ms) }
+let sleep = (ms) {
+	_sleep(ms)
+}
 
 # Random wrappers
-let seed = (n) { _seed(n) }
-let random = (max) { _random(max) }
+let seed = (n) {
+	_seed(n)
+}
+
+let random = (max) {
+	_random(max)
+}
 
 # Canvas wrappers
-let canvas = (w, h) { _canvas(w, h) }
-let dot = (c, x, y, ...rest) { apply(_dot, _prepend(_prepend(_prepend(rest, y), x), c)) }
-let line = (c, x1, y1, x2, y2, ...rest) { apply(_line, _prepend(_prepend(_prepend(_prepend(_prepend(rest, y2), x2), y1), x1), c)) }
-let rect = (c, x, y, w, h, ...rest) { apply(_rect, _prepend(_prepend(_prepend(_prepend(_prepend(rest, h), w), y), x), c)) }
-let fill_rect = (c, x, y, w, h, ...rest) { apply(_fill_rect, _prepend(_prepend(_prepend(_prepend(_prepend(rest, h), w), y), x), c)) }
-let circle = (c, x, y, r, ...rest) { apply(_circle, _prepend(_prepend(_prepend(_prepend(rest, r), y), x), c)) }
-let fill_circle = (c, x, y, r, ...rest) { apply(_fill_circle, _prepend(_prepend(_prepend(_prepend(rest, r), y), x), c)) }
-let clear = (c) { _clear(c) }
-let destroy = (c) { _destroy(c) }
-let set_bg = (c, r, g, b) { _set_bg(c, r, g, b) }
-let set_fg = (c, r, g, b) { _set_fg(c, r, g, b) }
-let pen_size = (c, s) { _pen_size(c, s) }
+let canvas = (w, h) {
+	_canvas(w, h)
+}
+
+let dot = (c, x, y, ...rest) {
+	apply(_dot, _prepend(_prepend(_prepend(rest, y), x), c))
+}
+
+let line = (c, x1, y1, x2, y2, ...rest) {
+	apply(_line, _prepend(_prepend(_prepend(_prepend(_prepend(rest, y2), x2), y1), x1), c))
+}
+
+let rect = (c, x, y, w, h, ...rest) {
+	apply(_rect, _prepend(_prepend(_prepend(_prepend(_prepend(rest, h), w), y), x), c))
+}
+
+let fill_rect = (c, x, y, w, h, ...rest) {
+	apply(_fill_rect, _prepend(_prepend(_prepend(_prepend(_prepend(rest, h), w), y), x), c))
+}
+
+let circle = (c, x, y, r, ...rest) {
+	apply(_circle, _prepend(_prepend(_prepend(_prepend(rest, r), y), x), c))
+}
+
+let fill_circle = (c, x, y, r, ...rest) {
+	apply(_fill_circle, _prepend(_prepend(_prepend(_prepend(rest, r), y), x), c))
+}
+
+let clear = (c) {
+	_clear(c)
+}
+
+let destroy = (c) {
+	_destroy(c)
+}
+
+let set_bg = (c, r, g, b) {
+	_set_bg(c, r, g, b)
+}
+
+let set_fg = (c, r, g, b) {
+	_set_fg(c, r, g, b)
+}
+
+let pen_size = (c, s) {
+	_pen_size(c, s)
+}
 
 # Higher-order functions
 let map = (list, f) {
@@ -117,10 +222,21 @@ let println = (...args) {
 }
 
 # Type conversion wrappers
-let shape = (val) { _shape(val) }
-let to_str = (val) { _to_str(val) }
-let to_decimal = (n, places) { _to_decimal(n, places) }
-let to_number = (s) { _to_number(s) }
+let shape = (val) {
+	_shape(val)
+}
+
+let to_str = (val) {
+	_to_str(val)
+}
+
+let to_decimal = (n, places) {
+	_to_decimal(n, places)
+}
+
+let to_number = (s) {
+	_to_number(s)
+}
 
 # Hash code implementation
 let _hash_string = (s) {
@@ -168,7 +284,9 @@ let _hash_code_impl = (val) {
 	}
 }
 
-let hash_code = (val) { _hash_code_impl(val) }
+let hash_code = (val) {
+	_hash_code_impl(val)
+}
 
 # Hash map implementation
 let _HASH_SIZE = 64
@@ -370,13 +488,22 @@ let min = (list) {
 }
 
 # REPL control
-let quit = () { _quit() }
-let reset = () { _reset() }
-let help = (...args) { 
+let quit = () {
+	_quit()
+}
+
+let reset = () {
+	_reset()
+}
+
+let help = (...args) {
 	if empty(args) {
 		_help("")
 	} else {
 		_help(first(args))
 	}
 }
-let doc = (name) { _doc(name) }
+
+let doc = (name) {
+	_doc(name)
+}
