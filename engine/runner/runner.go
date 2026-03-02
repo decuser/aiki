@@ -4,6 +4,8 @@ package runner
 import (
 	"fmt"
 	"os"
+	"sort"
+	"strings"
 
 	"aiki/engine/runtime/hal/substrate"
 	"aiki/engine/runtime/help"
@@ -104,7 +106,7 @@ func loadPrelude(g *grammar.Grammar, rt *substrate.GoRuntime, env *value.Env) er
 	return nil
 }
 
-// initHelpRegistry loads prelude help and doc files.
+// initHelpRegistry loads prelude help and doc files with validation.
 func initHelpRegistry() error {
 	registry := help.NewRegistry()
 
@@ -118,8 +120,72 @@ func initHelpRegistry() error {
 		return err
 	}
 
+	// Extract function names from prelude source
+	preludeFuncs := extractPreludeFuncs(prelude.Source)
+
+	// Validate 1:1 match
+	if err := validateHelpCoverage(preludeFuncs, funcs, "prelude"); err != nil {
+		return err
+	}
+
 	registry.Merge(funcs, docs)
 	substrate.HelpRegistry = registry
+
+	return nil
+}
+
+// extractPreludeFuncs extracts top-level "let name = " bindings from prelude source.
+// Only captures lets at column 0 (not indented).
+func extractPreludeFuncs(source string) map[string]bool {
+	names := make(map[string]bool)
+	lines := strings.Split(source, "\n")
+	
+	for _, line := range lines {
+		// Only top-level: must start with "let " (no leading whitespace)
+		if !strings.HasPrefix(line, "let ") {
+			continue
+		}
+		
+		// Extract name: "let name = ..." or "let name = (..."
+		rest := strings.TrimPrefix(line, "let ")
+		// Find the name (ends at space or =)
+		var name strings.Builder
+		for _, r := range rest {
+			if r == ' ' || r == '=' {
+				break
+			}
+			name.WriteRune(r)
+		}
+		n := name.String()
+		if n != "" && !strings.HasPrefix(n, "_") {
+			names[n] = true
+		}
+	}
+	return names
+}
+
+// validateHelpCoverage checks that every function has help and vice versa.
+func validateHelpCoverage(funcs map[string]bool, helpEntries map[string]help.FuncEntry, source string) error {
+	var errors []string
+
+	// Check every function has help
+	for name := range funcs {
+		if _, ok := helpEntries[name]; !ok {
+			errors = append(errors, fmt.Sprintf("missing help for '%s'", name))
+		}
+	}
+
+	// Check no orphan help entries
+	for name := range helpEntries {
+		if !funcs[name] {
+			errors = append(errors, fmt.Sprintf("orphan help entry '%s'", name))
+		}
+	}
+
+	if len(errors) > 0 {
+		sort.Strings(errors)
+		return fmt.Errorf("%s help mismatch:\n  %s", source, strings.Join(errors, "\n  "))
+	}
 
 	return nil
 }
