@@ -3,6 +3,7 @@ package substrate
 import (
 	"bytes"
 	"testing"
+	"time"
 
 	"aiki/engine/semantics/value"
 )
@@ -147,5 +148,65 @@ func TestRandomErrors(t *testing.T) {
 	result = halRandom([]value.Value{value.NewNumber(-5, 1)}, nil)
 	if !value.IsError(result) {
 		t.Error("random(-5) should error")
+	}
+}
+
+func TestChannel(t *testing.T) {
+	result := halChannel([]value.Value{}, nil)
+	ch, ok := result.(*value.Channel)
+	if !ok {
+		t.Fatalf("expected Channel, got %T", result)
+	}
+	if ch.C == nil {
+		t.Error("channel is nil")
+	}
+}
+
+func TestSendRecv(t *testing.T) {
+	ch := value.NewChannel()
+	val := value.NewNumber(42, 1)
+
+	// Send in goroutine (blocks until recv)
+	go func() {
+		halSend([]value.Value{ch, val}, nil)
+	}()
+
+	// Recv
+	result := halRecv([]value.Value{ch}, nil)
+	n, ok := result.(*value.Number)
+	if !ok {
+		t.Fatalf("expected Number, got %T", result)
+	}
+	if n.Inspect() != "42" {
+		t.Errorf("got %s, want 42", n.Inspect())
+	}
+}
+
+func TestSendRecvBlocks(t *testing.T) {
+	ch := value.NewChannel()
+	done := make(chan bool)
+
+	go func() {
+		halRecv([]value.Value{ch}, nil)
+		done <- true
+	}()
+
+	// Should not complete yet
+	select {
+	case <-done:
+		t.Error("recv should block")
+	case <-time.After(10 * time.Millisecond):
+		// good
+	}
+
+	// Now send
+	halSend([]value.Value{ch, value.TRUE}, nil)
+
+	// Should complete
+	select {
+	case <-done:
+		// good
+	case <-time.After(100 * time.Millisecond):
+		t.Error("recv should have completed")
 	}
 }
