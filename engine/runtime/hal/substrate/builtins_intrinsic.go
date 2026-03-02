@@ -226,6 +226,7 @@ func halLoad(args []value.Value, ctx *hal.EvalContext) value.Value {
 }
 
 // halSpawn implements spawn(fn, args...) - runs function concurrently.
+// Spawned functions run with isolated env - only args are visible, no closure capture.
 func halSpawn(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) < 1 {
 		return value.NewError("spawn: want at least 1 argument (function)")
@@ -243,9 +244,9 @@ func halSpawn(args []value.Value, ctx *hal.EvalContext) value.Value {
 	// Capture arguments passed to spawn: spawn(fn, arg1, arg2)
 	fnArgs := args[1:]
 
-	// Launch goroutine
+	// Launch goroutine with isolated env
 	go func() {
-		result := applyUserFunction(fn, fnArgs, ctx)
+		result := applyUserFunctionIsolated(fn, fnArgs, ctx)
 		// Log errors from spawned functions (they can't propagate)
 		if err, ok := result.(*value.Error); ok {
 			fmt.Fprintf(os.Stderr, "spawn: %s\n", err.Inspect())
@@ -253,6 +254,54 @@ func halSpawn(args []value.Value, ctx *hal.EvalContext) value.Value {
 	}()
 
 	return value.TRUE
+}
+
+// applyUserFunctionIsolated runs a function with fresh env - no closure capture.
+// Only the passed arguments are visible to the function, plus prelude bindings.
+func applyUserFunctionIsolated(fn *value.Function, args []value.Value, ctx *hal.EvalContext) value.Value {
+	if ctx == nil || ctx.Eval == nil {
+		return value.NewError("spawn: evaluation context not available")
+	}
+
+	// Get prelude env from context - spawned fn can see prelude but not user bindings
+	preludeEnv := ctx.Env.GetPreludeEnv()
+	if preludeEnv == nil {
+		return value.NewError("spawn: could not find prelude environment")
+	}
+
+	// Fresh env enclosed by prelude - sees prelude bindings but not outer user scope
+	callEnv := value.NewEnclosedEnv(preludeEnv)
+
+	// Bind parameters
+	for i, param := range fn.Params {
+		if i < len(args) {
+			callEnv.Set(param, args[i])
+		} else {
+			callEnv.Set(param, value.EMPTY)
+		}
+	}
+
+	// Bind rest parameter
+	if fn.Rest != "" {
+		restStart := len(fn.Params)
+		var restArgs []value.Value
+		if restStart < len(args) {
+			restArgs = args[restStart:]
+		}
+		callEnv.Set(fn.Rest, &value.List{Elements: restArgs})
+	}
+
+	body, ok := fn.Body.(*syntax.Node)
+	if !ok {
+		return value.NewError("spawn: invalid function body")
+	}
+
+	result := ctx.Eval(body, callEnv)
+
+	if ret, ok := result.(*value.Return); ok {
+		return ret.Val
+	}
+	return result
 }
 
 // containsStr checks if a string slice contains a value.

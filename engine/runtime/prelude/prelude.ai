@@ -7,6 +7,9 @@
 let apply = (fn, args) { _apply(fn, args) }
 let load = (path) { _load(path) }
 let spawn = (fn, ...args) { _apply(_spawn, _prepend(args, fn)) }
+let channel = () { _channel() }
+let send = (ch, val) { _send(ch, val) }
+let recv = (ch) { _recv(ch) }
 
 # IO wrappers - print uses apply for variadic support
 let print = (...args) { apply(_print, args) }

@@ -112,6 +112,18 @@ func (e *Env) Update(name string, val Value) bool {
 	return false
 }
 
+// GetPreludeEnv walks up the outer chain to find the prelude env.
+func (e *Env) GetPreludeEnv() *Env {
+	curr := e
+	for curr != nil {
+		if curr.scope == ScopePrelude {
+			return curr
+		}
+		curr = curr.outer
+	}
+	return nil
+}
+
 // DefineShape registers a shape definition.
 func (e *Env) DefineShape(def *ShapeDef) {
 	e.shapes[def.Name] = def

@@ -60,6 +60,9 @@ func (g *GoRuntime) registerHAL() {
 	g.register("_export", halExport)
 	g.register("_load", halLoad)
 	g.register("_spawn", halSpawn)
+	g.register("_channel", halChannel)
+	g.register("_send", halSend)
+	g.register("_recv", halRecv)
 
 	// REPL
 	g.register("_quit", halQuit)

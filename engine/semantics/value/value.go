@@ -228,11 +228,16 @@ func (h *Handle) Inspect() string { return fmt.Sprintf("<handle %s>", h.Name) }
 
 // Channel for concurrency.
 type Channel struct {
-	Ch interface{} // chan Value at runtime
+	C chan Value
 }
 
 func (c *Channel) Type() Type      { return ChannelType }
 func (c *Channel) Inspect() string { return "<channel>" }
+
+// NewChannel creates a new unbuffered channel.
+func NewChannel() *Channel {
+	return &Channel{C: make(chan Value)}
+}
 
 // ExitSignal signals REPL to exit.
 type ExitSignal struct{}
