@@ -8,6 +8,7 @@ import (
 	"aiki/engine/semantics/value"
 )
 
+
 var (
 	openCanvases   []*value.Canvas
 	openCanvasesMu sync.Mutex
@@ -16,6 +17,27 @@ var (
 	DefaultBG = color.RGBA{0, 0, 0, 255}       // black
 	DefaultFG = color.RGBA{255, 255, 255, 255} // white
 )
+
+func colorFromName(name string) (color.RGBA, bool) {
+	colors := map[string]color.RGBA{
+		"black":   {0, 0, 0, 255},
+		"white":   {255, 255, 255, 255},
+		"red":     {255, 0, 0, 255},
+		"green":   {0, 255, 0, 255},
+		"blue":    {0, 0, 255, 255},
+		"yellow":  {255, 255, 0, 255},
+		"cyan":    {0, 255, 255, 255},
+		"magenta": {255, 0, 255, 255},
+		"orange":  {255, 165, 0, 255},
+		"purple":  {128, 0, 128, 255},
+		"pink":    {255, 192, 203, 255},
+		"gray":    {128, 128, 128, 255},
+		"grey":    {128, 128, 128, 255},
+	}
+	c, ok := colors[name]
+	return c, ok
+}
+
 
 func trackCanvas(c *value.Canvas) {
 	openCanvasesMu.Lock()
@@ -302,22 +324,3 @@ func parseColor(v value.Value) (color.RGBA, bool) {
 	return color.RGBA{}, false
 }
 
-func colorFromName(name string) (color.RGBA, bool) {
-	colors := map[string]color.RGBA{
-		"black":   {0, 0, 0, 255},
-		"white":   {255, 255, 255, 255},
-		"red":     {255, 0, 0, 255},
-		"green":   {0, 255, 0, 255},
-		"blue":    {0, 0, 255, 255},
-		"yellow":  {255, 255, 0, 255},
-		"cyan":    {0, 255, 255, 255},
-		"magenta": {255, 0, 255, 255},
-		"orange":  {255, 165, 0, 255},
-		"purple":  {128, 0, 128, 255},
-		"pink":    {255, 192, 203, 255},
-		"gray":    {128, 128, 128, 255},
-		"grey":    {128, 128, 128, 255},
-	}
-	c, ok := colors[name]
-	return c, ok
-}
