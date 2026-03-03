@@ -1,4 +1,4 @@
-.PHONY: build clean install run test fmt doclint lint validate smoke runsamples enginesmoke
+.PHONY: build clean install run test fmt lint validate smoke runsamples enginesmoke
 
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 LDFLAGS := -ldflags "-X main.Version=$(VERSION)"
@@ -21,9 +21,6 @@ test:
 fmt:
 	go fmt ./...
 	./aiki fmt ./...
-
-doclint:
-	-./aiki doclint extra/doc extra/status
 
 lint:
 	./aiki lint ./...

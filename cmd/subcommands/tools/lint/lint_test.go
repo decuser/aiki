@@ -23,7 +23,7 @@ func TestLint_CheckFormatting(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	bad, err := CheckFormatting([]string{dir + "/..."})
+	bad, err := CheckFormatting([]string{dir + "/..."}, false)
 	if err != nil {
 		t.Fatalf("CheckFormatting: %v", err)
 	}
