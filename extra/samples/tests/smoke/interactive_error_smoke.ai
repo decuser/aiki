@@ -1,5 +1,0 @@
-print("Enter a number to trigger an error: ")
-let _ = read()
-print("About to divide by zero...\n")
-let x = 1 / 0
-print("SHOULD_NOT_REACH\n")

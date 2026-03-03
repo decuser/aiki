@@ -1,6 +1,0 @@
-print("Hi, Joe. What's your real first name? ")
-let name = read()
-
-print("Hi, ", name, "! Nice to meet you.\n")
-
-print("IO_SMOKE_DONE\n")

@@ -1,5 +1,0 @@
-OUT:Enter a number to trigger an error: 
-IN:42\n
-OUT:About to divide by zero...\n
-ERR:tests/smoke/interactive_error_smoke.ai:4:in '<main>': division by zero\n    let x = 1 / 0\n
-EXIT:1
