@@ -34,76 +34,88 @@ func (e *Evaluator) applyFunction(fn value.Value, args []value.Value, node *synt
 }
 
 func (e *Evaluator) applyUserFunction(fn *value.Function, args []value.Value, node *syntax.Node, env *value.Env) value.Value {
-	callFn := fn
-	callArgs := args
-	callPos := node.Pos
+	currentFn := fn
+	currentArgs := args
+	callSite := node
+	pushed := false
 
 	for {
-		fnEnv, ok := callFn.Env.(*value.Env)
+		fnEnv, ok := currentFn.Env.(*value.Env)
 		if !ok {
-			return e.makeError(node, env, "invalid function environment")
+			return e.makeError(callSite, env, "invalid function environment")
 		}
 
 		// Check argument count (excluding rest params)
-		if len(callArgs) < len(callFn.Params) {
-			return e.makeError(node, env, "%s: want %d arguments, got %d", callFn.Name, len(callFn.Params), len(callArgs))
+		if len(currentArgs) < len(currentFn.Params) {
+			return e.makeError(callSite, env, "%s: want %d arguments, got %d", currentFn.Name, len(currentFn.Params), len(currentArgs))
 		}
 
 		callEnv := value.NewEnclosedEnv(fnEnv)
 
-		for i, param := range callFn.Params {
-			callEnv.Set(param, callArgs[i])
+		for i, param := range currentFn.Params {
+			callEnv.Set(param, currentArgs[i])
 		}
 
-		if callFn.Rest != "" {
-			restStart := len(callFn.Params)
+		if currentFn.Rest != "" {
+			restStart := len(currentFn.Params)
 			var restArgs []value.Value
-			if restStart < len(callArgs) {
-				restArgs = callArgs[restStart:]
+			if restStart < len(currentArgs) {
+				restArgs = currentArgs[restStart:]
 			}
-			callEnv.Set(callFn.Rest, &value.List{Elements: restArgs})
+			callEnv.Set(currentFn.Rest, &value.List{Elements: restArgs})
 		}
 
-		body, ok := callFn.Body.(*syntax.Node)
+		body, ok := currentFn.Body.(*syntax.Node)
 		if !ok {
-			return e.makeError(node, env, "invalid function body")
+			return e.makeError(callSite, env, "invalid function body")
 		}
 
-		// Enforce stack limit on non tail call frames.
-		limit := callEnv.GetStackLimit()
-		if limit < 1 {
-			return e.makeError(node, env, "stack_limit: must be integer >= 1")
-		}
-		if len(callEnv.CopyStack()) >= limit {
-			// Use the current call position for attribution.
-			return e.makeError(&syntax.Node{Pos: callPos}, callEnv, "stack overflow")
-		}
-
-		// Push stack frame for function call
-		funcName := callFn.Name
+		funcName := currentFn.Name
 		if funcName == "" {
 			funcName = "<anonymous>"
 		}
-		callEnv.PushFrame(funcName, callPos.Line, callEnv.GetScope())
 
-		result := e.Eval(body, callEnv)
+		// Enforce non tail call stack limit on first entry only.
+		if !pushed {
+			limit := callEnv.GetStackLimit()
+			if limit > 0 && callEnv.StackDepth() >= limit {
+				return e.makeError(callSite, callEnv, "stack overflow")
+			}
+			callEnv.PushFrame(funcName, callSite.Pos.Line, callEnv.GetScope())
+			pushed = true
+		} else {
+			// Tail call - reuse the top frame.
+			callEnv.ReplaceTopFrame(funcName, callSite.Pos.Line, callEnv.GetScope())
+		}
 
-		callEnv.PopFrame()
+		result := e.evalTail(body, callEnv)
 
+		// Tail call jump
+		if tc, ok := result.(*tailCallValue); ok {
+			currentFn = tc.Fn
+			currentArgs = tc.Args
+			callSite = tc.Node
+			continue
+		}
+
+		// Return control flow
 		if ret, ok := result.(*value.Return); ok {
-			if tc, ok := ret.Val.(*value.TailCall); ok {
-				nextFn, ok := tc.Fn.(*value.Function)
-				if !ok {
-					return e.makeError(&syntax.Node{Pos: tc.Pos}, callEnv, "not a function: %s", tc.Fn.Type())
-				}
-				callFn = nextFn
-				callArgs = tc.Args
-				callPos = tc.Pos
+			if tc, ok := ret.Val.(*tailCallValue); ok {
+				currentFn = tc.Fn
+				currentArgs = tc.Args
+				callSite = tc.Node
 				continue
 			}
+			callEnv.PopFrame()
 			return ret.Val
 		}
 
+		if value.IsError(result) {
+			callEnv.PopFrame()
+			return result
+		}
+
+		callEnv.PopFrame()
 		return result
 	}
 }

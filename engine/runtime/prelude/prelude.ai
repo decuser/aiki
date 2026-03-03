@@ -11,12 +11,12 @@ let load = (path) {
 	_load(path)
 }
 
-let spawn = (fn, ...args) {
-	_apply(_spawn, _prepend(args, fn))
-}
-
 let stack_limit = (n) {
 	_stack_limit(n)
+}
+
+let spawn = (fn, ...args) {
+	_apply(_spawn, _prepend(args, fn))
 }
 
 let channel = () {

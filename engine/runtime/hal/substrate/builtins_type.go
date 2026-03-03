@@ -70,3 +70,24 @@ func valuesEqual(a, b value.Value) bool {
 		return false
 	}
 }
+
+// halStackLimit sets the evaluator stack limit (non tail call frames).
+// n must be an integer >= 1.
+func halStackLimit(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 1 {
+		return value.NewError("stack_limit: want 1 argument, got %d", len(args))
+	}
+	if ctx == nil || ctx.Env == nil {
+		return value.NewError("stack_limit: environment not available")
+	}
+	num, ok := args[0].(*value.Number)
+	if !ok || !num.Val.IsInt() {
+		return value.NewError("stack_limit: n must be integer >= 1")
+	}
+	n := num.Val.Num().Int64()
+	if n < 1 {
+		return value.NewError("stack_limit: n must be integer >= 1")
+	}
+	ctx.Env.SetStackLimit(int(n))
+	return value.EMPTY
+}

@@ -1,0 +1,13 @@
+# tail_if.ai
+# Tail calls in if branches without explicit return should be optimized.
+stack_limit(10000)
+
+let sum_if = (n, acc) {
+	if (n <= 0) {
+		acc
+	} else {
+		sum_if((n - 1), (acc + n))
+	}
+}
+
+println(sum_if(20000000, 0))

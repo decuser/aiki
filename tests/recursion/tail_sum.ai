@@ -1,5 +1,7 @@
 # tail_sum.ai
-# Tail recursion should not grow stack with proper tail calls.
+# Tail recursion should not grow Go stack with proper tail calls.
+stack_limit(10000)
+
 let sum_tail = (n, acc) {
 	if (n <= 0) {
 		return acc

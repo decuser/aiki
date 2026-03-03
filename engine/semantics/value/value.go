@@ -195,77 +195,13 @@ func (e *Error) Inspect() string {
 	}
 
 	// Stack trace: from file:line:in 'func' (skip innermost, shown above)
-	// Keep output usable: cap frames and compress repeated frames (common in recursion overflows).
-	const maxFrames = 20
-	formatFrame := func(frame StackFrame) string {
-		if frame.File != "" {
-			return fmt.Sprintf("\n        from %s:%d:in '%s'", frame.File, frame.Line, frame.Name)
-		}
-		return fmt.Sprintf("\n        from line %d:in '%s'", frame.Line, frame.Name)
-	}
-
-	// Frames in the order we print them: caller, then its caller, outward.
-	frames := make([]StackFrame, 0, func() int {
-		if len(e.Stack) > 1 {
-			return len(e.Stack) - 1
-		}
-		return 0
-	}())
 	for i := len(e.Stack) - 2; i >= 0; i-- {
-		frames = append(frames, e.Stack[i])
-	}
-
-	printedFrames := 0
-	frameKey := func(f StackFrame) string {
-		return fmt.Sprintf("%s|%d|%s", f.File, f.Line, f.Name)
-	}
-
-	for i := 0; i < len(frames); {
-		// Find run of identical frames.
-		k := frameKey(frames[i])
-		j := i + 1
-		for j < len(frames) && frameKey(frames[j]) == k {
-			j++
-		}
-		runLen := j - i
-
-		// Helper to emit a frame, respecting cap.
-		emitFrame := func(f StackFrame) bool {
-			if printedFrames >= maxFrames {
-				return false
-			}
-			sb.WriteString(formatFrame(f))
-			printedFrames++
-			return true
-		}
-
-		if runLen <= 3 {
-			for x := i; x < j; x++ {
-				if !emitFrame(frames[x]) {
-					break
-				}
-			}
+		frame := e.Stack[i]
+		if frame.File != "" {
+			sb.WriteString(fmt.Sprintf("\n        from %s:%d:in '%s'", frame.File, frame.Line, frame.Name))
 		} else {
-			// Print first two, compress middle, print last one.
-			if emitFrame(frames[i]) {
-				_ = emitFrame(frames[i+1])
-			}
-			repeated := runLen - 3
-			if repeated > 0 && printedFrames < maxFrames {
-				sb.WriteString(fmt.Sprintf("\n        ... repeated %d times", repeated))
-			}
-			_ = emitFrame(frames[j-1])
+			sb.WriteString(fmt.Sprintf("\n        from line %d:in '%s'", frame.Line, frame.Name))
 		}
-
-		if printedFrames >= maxFrames {
-			remaining := len(frames) - printedFrames
-			if remaining > 0 {
-				sb.WriteString(fmt.Sprintf("\n        ... %d more", remaining))
-			}
-			break
-		}
-
-		i = j
 	}
 
 	return sb.String()

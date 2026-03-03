@@ -258,7 +258,13 @@ quit()
 ===
 reset
 Resets the environment to initial state.
+
+reset()
+
+reset()
 ===
+
+
 stack_limit
 
 Sets the maximum non tail call depth for evaluation. Tail calls do not consume stack.
@@ -270,10 +276,3 @@ n must be an integer >= 1.
 Example
 
 stack_limit(10000)
-
-
-
-reset()
-
-reset()
-===

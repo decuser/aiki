@@ -17,6 +17,7 @@ func (g *GoRuntime) registerHAL() {
 
 	// Type
 	g.register("_type", halType)
+	g.register("_stack_limit", halStackLimit)
 	g.register("_inspect", halInspect)
 	g.register("_equal", halEqual)
 	g.register("_ord", halOrd)
@@ -70,7 +71,6 @@ func (g *GoRuntime) registerHAL() {
 	g.register("_export", halExport)
 	g.register("_load", halLoad)
 	g.register("_spawn", halSpawn)
-	g.register("_stack_limit", halStackLimit)
 	g.register("_channel", halChannel)
 	g.register("_send", halSend)
 	g.register("_recv", halRecv)

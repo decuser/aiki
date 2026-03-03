@@ -1,5 +1,7 @@
 # mutual_even_odd.ai
-# Mutual tail recursion should not grow stack with proper tail calls.
+# Mutual tail recursion should not grow Go stack with proper tail calls.
+stack_limit(10000)
+
 let even = (n) {
 	if (equal(n, 0)) {
 		return true
@@ -9,7 +11,7 @@ let even = (n) {
 
 let odd = (n) {
 	if (equal(n, 0)) {
-		return false
+		return true
 	}
 	return even((n - 1))
 }

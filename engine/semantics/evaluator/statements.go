@@ -151,20 +151,13 @@ func (e *Evaluator) evalReturn(node *syntax.Node, env *value.Env) value.Value {
 		if child.Type == "TERMINAL" {
 			continue
 		}
-		if val, ok := e.tryTailCall(child, env); ok {
-			if value.IsError(val) {
-				return val
-			}
-			return &value.Return{Val: val}
-		}
-		val := e.Eval(child, env)
+		val := e.evalTail(child, env)
 		if value.IsError(val) {
 			return val
 		}
 		return &value.Return{Val: val}
 	}
 	return &value.Return{Val: value.EMPTY}
-
 }
 
 func (e *Evaluator) evalIf(node *syntax.Node, env *value.Env) value.Value {

@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"strings"
 	"testing"
 
 	"aiki/engine/runtime/hal/substrate"
@@ -154,4 +155,79 @@ func TestHandlerValidationPassesForRealGrammar(t *testing.T) {
 
 	ev := New(nil, nil)
 	ev.SetGrammar(g) // should not panic
+}
+
+func TestStackLimitNonTailRecursion(t *testing.T) {
+	src := `
+	_stack_limit(50)
+	let down = (n) {
+		if (n <= 0) { return 0 }
+		return (1 + down((n - 1)))
+	}
+	down(1000)
+	`
+	v := eval(t, src)
+	if _, ok := v.(*value.Error); !ok {
+		t.Fatalf("expected error, got %T %s", v, v.Inspect())
+	}
+	if !strings.Contains(v.Inspect(), "stack overflow") {
+		t.Fatalf("expected stack overflow, got %s", v.Inspect())
+	}
+}
+
+func TestProperTailCallExplicitReturn(t *testing.T) {
+	src := `
+	_stack_limit(50)
+	let sum_tail = (n, acc) {
+		if (n <= 0) { return acc }
+		return sum_tail((n - 1), (acc + n))
+	}
+	sum_tail(5000, 0)
+	`
+	v := eval(t, src)
+	if _, ok := v.(*value.Error); ok {
+		t.Fatalf("unexpected error: %s", v.Inspect())
+	}
+	if v.Inspect() != "12502500" {
+		t.Fatalf("got %s", v.Inspect())
+	}
+}
+
+func TestProperTailCallImplicitIf(t *testing.T) {
+	src := `
+	_stack_limit(50)
+	let sum_if = (n, acc) {
+	    if (n <= 0) { return acc }
+	    return sum_if((n - 1), (acc + n))
+	}
+	return sum_if(5000, 0)
+	`
+	v := eval(t, src)
+	if _, ok := v.(*value.Error); ok {
+		t.Fatalf("unexpected error: %s", v.Inspect())
+	}
+	if v.Inspect() != "12502500" {
+		t.Fatalf("got %s", v.Inspect())
+	}
+}
+
+func TestProperTailCallImplicitMatch(t *testing.T) {
+	src := `
+	_stack_limit(50)
+	let sum_match = (n, acc) {
+	    match n {
+		0 { return acc }
+		_ { return sum_match((n - 1), (acc + n)) }
+	    }
+	    return [@error, "unreachable"]
+	}
+	return sum_match(5000, 0)
+	`
+	v := eval(t, src)
+	if _, ok := v.(*value.Error); ok {
+		t.Fatalf("unexpected error: %s", v.Inspect())
+	}
+	if v.Inspect() != "12502500" {
+		t.Fatalf("got %s", v.Inspect())
+	}
 }

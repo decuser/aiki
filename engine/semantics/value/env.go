@@ -24,7 +24,7 @@ type Env struct {
 	file        string        // this env's file (not shared)
 	source      string        // this env's source (not shared)
 	stack       *[]StackFrame // shared across enclosed envs
-	stackLimit  *int          // shared stack limit across envs
+	stackLimit  *int          // shared recursion limit (non tail frames)
 	scope       Scope
 	exports     []string // exported names for modules
 	packageName string   // package name declared by this module
@@ -89,6 +89,40 @@ func (e *Env) CopyStack() []StackFrame {
 	cp := make([]StackFrame, len(*e.stack))
 	copy(cp, *e.stack)
 	return cp
+}
+
+// GetStackLimit returns the current non tail call stack limit.
+func (e *Env) GetStackLimit() int {
+	if e.stackLimit == nil {
+		return 0
+	}
+	return *e.stackLimit
+}
+
+// SetStackLimit sets the non tail call stack limit. Must be >= 1.
+func (e *Env) SetStackLimit(n int) {
+	if e.stackLimit == nil {
+		e.stackLimit = new(int)
+	}
+	*e.stackLimit = n
+}
+
+// StackDepth returns current call stack depth.
+func (e *Env) StackDepth() int {
+	return len(*e.stack)
+}
+
+// ReplaceTopFrame replaces the top stack frame. No effect if stack is empty.
+func (e *Env) ReplaceTopFrame(name string, line int, scope Scope) {
+	if len(*e.stack) == 0 {
+		return
+	}
+	(*e.stack)[len(*e.stack)-1] = StackFrame{
+		Name:  name,
+		File:  e.GetFile(),
+		Line:  line,
+		Scope: scope,
+	}
 }
 
 // Get retrieves a value by name.
@@ -211,20 +245,4 @@ func (e *Env) SetPackageName(name string) {
 // GetPackageName returns the package name declared by this module.
 func (e *Env) GetPackageName() string {
 	return e.packageName
-}
-
-// GetStackLimit returns the configured stack limit.
-func (e *Env) GetStackLimit() int {
-	if e.stackLimit == nil {
-		return 10000
-	}
-	return *e.stackLimit
-}
-
-// SetStackLimit sets the stack limit. n must be >= 1.
-func (e *Env) SetStackLimit(n int) {
-	if e.stackLimit == nil {
-		e.stackLimit = new(int)
-	}
-	*e.stackLimit = n
 }
