@@ -1,0 +1,13 @@
+# Functional: Closures and Function Factories
+let make_adder = (base) {
+	# This inner function "remembers" the base variable
+	return (n) {
+		return base + n
+	}
+}
+
+let add_10 = make_adder(10)
+let add_20 = make_adder(20)
+
+print(add_10(5), "\n")  # Outputs 15
+print(add_20(5), "\n")  # Outputs 25

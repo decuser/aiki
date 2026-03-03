@@ -1,0 +1,18 @@
+import("bytes/pragmatic", :str_to_bytes, :bytes_to_str, :bytes_new, :bytes_get, :bytes_length, :bytes_slice)
+
+let b = str_to_bytes("Hi")
+println(type(b))
+println(bytes_length(b))
+println(bytes_get(b, 0))
+println(bytes_get(b, 1))
+
+let s = bytes_to_str(b)
+println(s)
+
+let b2 = bytes_new([65, 66, 67])
+println(bytes_to_str(b2))
+
+let slice = bytes_slice(b2, 0, 2)
+println(bytes_to_str(slice))
+
+println("BYTES_SMOKE_DONE")

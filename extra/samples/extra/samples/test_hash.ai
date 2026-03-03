@@ -1,0 +1,56 @@
+let println = (val) {
+	print(val, "\n")
+	return true
+}
+
+# Test ord primitive
+println("Testing ord...")
+println(ord('a'))  # 97
+println(ord('A'))  # 65
+println(ord('0'))  # 48
+println(ord('€'))  # 8364
+println(ord('\n'))  # 10
+
+# Test pure Aiki hash_code via hash map
+println("\nTesting hash map with pure hash...")
+
+let h = hash_new()
+let h = hash_put(h, "name", "Mochi")
+let h = hash_put(h, "age", 3)
+let h = hash_put(h, :color, "orange")
+
+println(hash_get(h, "name"))  # Mochi
+println(hash_get(h, "age"))  # 3
+println(hash_get(h, :color))  # orange
+println(hash_has(h, "name"))  # true
+println(hash_has(h, "missing"))  # false
+
+# Test hash with numbers as keys
+let h2 = hash_new()
+let h2 = hash_put(h2, 1, "one")
+let h2 = hash_put(h2, 2, "two")
+println(hash_get(h2, 1))  # one
+println(hash_get(h2, 2))  # two
+
+# Test hash update
+let h3 = hash_new()
+let h3 = hash_put(h3, "x", 1)
+let h3 = hash_put(h3, "x", 2)
+println(hash_get(h3, "x"))  # 2 (updated)
+
+# Test hash_del
+let h4 = hash_put(hash_new(), "a", 1)
+let h4 = hash_put(h4, "b", 2)
+println(hash_has(h4, "a"))  # true
+let h4 = hash_del(h4, "a")
+println(hash_has(h4, "a"))  # false
+println(hash_has(h4, "b"))  # true
+
+# Test hash_keys and hash_values
+let h5 = hash_new()
+let h5 = hash_put(h5, "x", 10)
+let h5 = hash_put(h5, "y", 20)
+println(length(hash_keys(h5)))  # 2
+println(length(hash_values(h5)))  # 2
+
+println("\nAll tests passed!")

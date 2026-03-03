@@ -1,0 +1,18 @@
+# 1. Atomic tools
+let square = (x) {
+	return x * x
+}
+
+let is_even = (x) {
+	return equal(modulo(x, 2), 0)
+}
+
+print("PIPELINE\n")
+
+range(1, 11) |>
+filter(is_even) |>
+map(square) |>
+sum() |>
+print("\n")
+
+print("PIPELINE_SMOKE_DONE\n")

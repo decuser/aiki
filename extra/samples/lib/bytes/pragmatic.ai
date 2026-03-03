@@ -1,0 +1,36 @@
+package "bytes/pragmatic"
+
+# bytes/pragmatic - fast opaque bytes using host arrays
+# Bytes are an opaque type backed by Go []byte.
+# Use specialized functions: bytes_get, bytes_length, bytes_slice.
+# Convert string to bytes (UTF-8 encoding)
+let str_to_bytes = (s) {
+	_str_to_bytes(s)
+}
+
+# Convert bytes to string (UTF-8 decoding)
+let bytes_to_str = (b) {
+	_bytes_to_str(b)
+}
+
+# Create bytes from list of integers (0-255)
+let bytes_new = (list) {
+	_bytes_new(list)
+}
+
+# Get byte at index (returns number 0-255)
+let bytes_get = (b, i) {
+	_bytes_get(b, i)
+}
+
+# Get length of bytes
+let bytes_length = (b) {
+	_bytes_length(b)
+}
+
+# Slice bytes from start to end (exclusive)
+let bytes_slice = (b, start, end) {
+	_bytes_slice(b, start, end)
+}
+
+export(:str_to_bytes, :bytes_to_str, :bytes_new, :bytes_get, :bytes_length, :bytes_slice)

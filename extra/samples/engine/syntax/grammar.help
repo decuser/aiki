@@ -1,0 +1,315 @@
+program
+
+A program is a sequence of statements executed in order.
+
+let x = 1
+let y = 2
+print(x + y)
+===
+statement
+
+One of the statement forms: let, assign, if, while, match, return, or expression.
+===
+package_stmt
+
+Declares the package name for this module. Must appear at the top of a module file.
+
+package "mylib"
+===
+let_stmt
+
+Binds a value to a name, or defines a shape.
+
+let count = 0
+let name = "aiki"
+let @point [x, y]
+let @person [name, @point]
+===
+field
+
+Field in a shape definition. Either a name or embedded shape.
+
+let @point [x, y]
+let @rect [@point, width, height]
+===
+assign_stmt
+
+Assigns a new value to an existing binding. Errors if name not found.
+
+let x = 1
+x = 2
+x = x + 1
+===
+if_stmt
+
+Conditional execution. Guard clause style preferred over nesting.
+
+if x < 0 {
+    return :negative
+}
+if x > 0 {
+    return :positive
+}
+return :zero
+===
+while_stmt
+
+Loop while condition is true. Use higher-order functions when possible.
+
+let i = 0
+while i < 10 {
+    print(i)
+    i = i + 1
+}
+===
+match_stmt
+
+Pattern match on values. Exhaustive by convention.
+
+match result {
+    [@ok, val] {
+        print(val)
+    }
+    [@error, msg] {
+        print("error: " + msg)
+    }
+    _ {
+        print("unknown")
+    }
+}
+===
+pattern
+
+Pattern for matching: wildcard, name, literal, list, or shaped list.
+
+match x {
+    _ { print("any") }
+    n { print(n) }
+    42 { print("forty-two") }
+    [a, b] { print(a + b) }
+    [@point, x, y] { print(x) }
+}
+===
+return_stmt
+
+Returns a value from a function. Required in every code path.
+
+let abs = (n) {
+    if n < 0 {
+        return -n
+    }
+    return n
+}
+===
+expr_stmt
+
+Expression as statement. Value discarded.
+
+print("hello")
+f()
+===
+expr
+
+Any expression.
+===
+pipe_expr
+
+Left-to-right pipeline. Left becomes first argument of right.
+
+data |> filter(is_valid) |> map(transform) |> each(print)
+
+Errors short-circuit:
+
+read_file("x.txt") |> parse() |> validate()
+===
+infix_expr
+
+Left-to-right binary operations. No precedence.
+
+1 + 2 * 3      # equals 9, not 7
+(1 + 2) * 3    # equals 9
+1 + (2 * 3)    # equals 7
+===
+unary_expr
+
+Prefix unary operators: not, -
+
+not true       # false
+-42            # negative forty-two
+===
+postfix_expr
+
+Call, index, or field access chained after primary.
+
+f()
+list[0]
+point.x
+data[i].name()
+===
+call
+
+Function call with arguments.
+
+print("hello")
+add(1, 2)
+f()
+===
+index
+
+List or string index. Zero-based.
+
+list[0]
+str[i]
+===
+access
+
+Shaped list field access.
+
+point.x
+person.name
+===
+primary
+
+Literal, name, or grouped expression.
+
+42
+"hello"
+'r'
+:symbol
+my_var
+true
+[]
+(a + b)
+===
+list_literal
+
+Raw or shaped list.
+
+let nums = [1, 2, 3]
+let point = [@point, 10, 20]
+let empty = []
+===
+func_literal
+
+Anonymous function. Same syntax as named.
+
+let add = (a, b) { return a + b }
+map(nums, (x) { return x * 2 })
+===
+params
+
+Function parameters. Optional rest parameter.
+
+(a, b)
+(a, b, ...rest)
+(...args)
+===
+param_list
+
+List of parameter names.
+
+a, b, c
+===
+rest_param
+
+Rest parameter collects remaining arguments.
+
+let sum = (...nums) {
+    return reduce(nums, 0, (acc, n) { return acc + n })
+}
+sum(1, 2, 3, 4, 5)
+===
+block
+
+Block of statements in braces.
+
+{
+    let x = 1
+    print(x)
+}
+===
+literal
+
+Literal value: number, string, rune, symbol, boolean.
+
+42
+"hello"
+'a'
+:ok
+true
+===
+BINOP
+
+Binary operator. All same precedence, left-to-right.
+
++ - * / < > <= >= and or
+===
+NUMBER
+
+Integer, decimal, or rational. Exact arithmetic.
+
+42
+3.14
+1/3
+===
+STRING
+
+Double-quoted text.
+
+"hello"
+"line one\nline two"
+===
+RUNE
+
+Single character in single quotes.
+
+'a'
+'\n'
+'\t'
+===
+SYMBOL
+
+Colon-prefixed atomic identifier. Compared by identity.
+
+:ok
+:error
+:point
+===
+SHAPE
+
+At-prefixed shape name.
+
+@point
+@error
+@person
+===
+NAME
+
+Identifier in snake_case.
+
+foo
+my_var
+_internal
+===
+WHITESPACE
+
+Spaces, tabs, and newlines. Ignored between tokens.
+===
+COMMENT
+
+Text from # to end of line. Ignored.
+
+# this is a comment
+===
+KEYWORD
+
+Reserved words: let, if, else, while, match, return, true, false, and, or, not.
+===
+OPERATOR
+
+Operators: + - * / < > <= >= |> . =
+===
+DELIMITER
+
+Punctuation: ( ) [ ] { } , ; ...
+===

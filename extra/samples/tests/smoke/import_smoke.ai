@@ -1,0 +1,6 @@
+import("import_target", :ANSWER, :add_two)
+
+print("IMPORT\n")
+print(ANSWER, "\n")
+print(add_two(40), "\n")
+print("IMPORT_SMOKE_DONE\n")

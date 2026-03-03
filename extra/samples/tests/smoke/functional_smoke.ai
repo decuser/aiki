@@ -1,0 +1,14 @@
+# Closures and function factories
+let make_adder = (base) {
+	return (n) {
+		return base + n
+	}
+}
+
+let add_10 = make_adder(10)
+let add_20 = make_adder(20)
+
+print("FUNCTIONAL\n")
+print(add_10(5), "\n")
+print(add_20(5), "\n")
+print("FUNCTIONAL_SMOKE_DONE\n")
