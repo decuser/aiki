@@ -1,6 +1,6 @@
-package "bytes/pragmatic"
+package "bytes/ffi"
 
-# bytes/pragmatic - fast opaque bytes using host arrays
+# bytes/ffi - fast opaque bytes using host arrays
 # Bytes are an opaque type backed by Go []byte.
 # Use specialized functions: bytes_get, bytes_length, bytes_slice.
 # Convert string to bytes (UTF-8 encoding)

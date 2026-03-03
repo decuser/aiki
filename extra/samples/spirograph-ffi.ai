@@ -1,4 +1,4 @@
-import("math/inexact", :sin, :cos)
+import("math/ffi", :sin, :cos)
 
 let c = canvas(800, 800)
 let tick = 0

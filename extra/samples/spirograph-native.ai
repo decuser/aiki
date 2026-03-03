@@ -1,4 +1,4 @@
-import("math/exact", :sin, :cos)
+import("math/native", :sin, :cos)
 
 let c = canvas(800, 800)
 let tick = 0

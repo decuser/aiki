@@ -1,8 +1,8 @@
-# math/exact - exact rational math functions
-# These use Taylor series with rational arithmetic.
-# Slower but exact. User controls precision via 'terms' parameter.
-package "math/exact"
+package "math/native"
 
+# math/native - pure aiki math functions
+# These use Taylor series with rational arithmetic.
+# User controls precision via 'terms' or 'iterations' parameter.
 let _factorial = (n) {
 	if n < 2 {
 		return 1

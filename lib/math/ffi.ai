@@ -1,6 +1,6 @@
-package "math/pragmatic"
+package "math/ffi"
 
-# math/pragmatic - fast hardware-backed math functions
+# math/ffi - fast hardware-backed math functions
 # These use host floats internally, returning rational approximations.
 # Use when speed matters more than explicit precision control.
 let sin = (x) {

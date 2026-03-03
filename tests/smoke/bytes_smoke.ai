@@ -1,4 +1,4 @@
-import("bytes/pragmatic", :str_to_bytes, :bytes_to_str, :bytes_new, :bytes_get, :bytes_length, :bytes_slice)
+import("bytes/ffi", :str_to_bytes, :bytes_to_str, :bytes_new, :bytes_get, :bytes_length, :bytes_slice)
 
 let b = str_to_bytes("Hi")
 println(type(b))

@@ -1,6 +1,6 @@
-package "bytes/pure"
+package "bytes/native"
 
-# bytes/pure - pure aiki bytes as shaped lists
+# bytes/native - pure aiki bytes as shaped lists
 # Bytes are represented as @bytes shaped lists where each element is 0-255.
 # Works with standard list operations: first, rest, length, map, etc.
 # Helper to create @bytes shaped list

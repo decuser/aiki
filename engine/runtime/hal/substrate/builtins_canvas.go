@@ -8,7 +8,6 @@ import (
 	"aiki/engine/semantics/value"
 )
 
-
 var (
 	openCanvases   []*value.Canvas
 	openCanvasesMu sync.Mutex
@@ -37,7 +36,6 @@ func colorFromName(name string) (color.RGBA, bool) {
 	c, ok := colors[name]
 	return c, ok
 }
-
 
 func trackCanvas(c *value.Canvas) {
 	openCanvasesMu.Lock()
@@ -323,4 +321,3 @@ func parseColor(v value.Value) (color.RGBA, bool) {
 	}
 	return color.RGBA{}, false
 }
-
