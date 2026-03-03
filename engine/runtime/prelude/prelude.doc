@@ -258,6 +258,20 @@ quit()
 ===
 reset
 Resets the environment to initial state.
+===
+stack_limit
+
+Sets the maximum non tail call depth for evaluation. Tail calls do not consume stack.
+
+stack_limit(n)
+
+n must be an integer >= 1.
+
+Example
+
+stack_limit(10000)
+
+
 
 reset()
 

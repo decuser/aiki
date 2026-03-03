@@ -1,9 +1,10 @@
 # tail_sum.ai
 # Tail recursion should not grow stack with proper tail calls.
-
 let sum_tail = (n, acc) {
-    if (n <= 0) { return acc }
-    return sum_tail((n - 1), (acc + n))
+	if (n <= 0) {
+		return acc
+	}
+	return sum_tail((n - 1), (acc + n))
 }
 
 println(sum_tail(20000000, 0))

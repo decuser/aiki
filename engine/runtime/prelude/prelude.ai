@@ -15,6 +15,10 @@ let spawn = (fn, ...args) {
 	_apply(_spawn, _prepend(args, fn))
 }
 
+let stack_limit = (n) {
+	_stack_limit(n)
+}
+
 let channel = () {
 	_channel()
 }

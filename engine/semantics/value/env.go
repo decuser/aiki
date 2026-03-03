@@ -24,6 +24,7 @@ type Env struct {
 	file        string        // this env's file (not shared)
 	source      string        // this env's source (not shared)
 	stack       *[]StackFrame // shared across enclosed envs
+	stackLimit  *int          // shared stack limit across envs
 	scope       Scope
 	exports     []string // exported names for modules
 	packageName string   // package name declared by this module
@@ -32,11 +33,13 @@ type Env struct {
 // NewEnv creates a new environment with user scope.
 func NewEnv() *Env {
 	stack := make([]StackFrame, 0)
+	limit := 10000
 	return &Env{
-		store:  make(map[string]Value),
-		shapes: make(map[string]*ShapeDef),
-		scope:  ScopeUser,
-		stack:  &stack,
+		store:      make(map[string]Value),
+		shapes:     make(map[string]*ShapeDef),
+		scope:      ScopeUser,
+		stack:      &stack,
+		stackLimit: &limit,
 	}
 }
 
@@ -50,11 +53,12 @@ func NewEnvWithScope(scope Scope) *Env {
 // NewEnclosedEnv creates a child environment, inheriting scope and shared state.
 func NewEnclosedEnv(outer *Env) *Env {
 	return &Env{
-		store:  make(map[string]Value),
-		shapes: make(map[string]*ShapeDef),
-		outer:  outer,
-		scope:  outer.scope,
-		stack:  outer.stack,
+		store:      make(map[string]Value),
+		shapes:     make(map[string]*ShapeDef),
+		outer:      outer,
+		scope:      outer.scope,
+		stack:      outer.stack,
+		stackLimit: outer.stackLimit,
 	}
 }
 
@@ -207,4 +211,20 @@ func (e *Env) SetPackageName(name string) {
 // GetPackageName returns the package name declared by this module.
 func (e *Env) GetPackageName() string {
 	return e.packageName
+}
+
+// GetStackLimit returns the configured stack limit.
+func (e *Env) GetStackLimit() int {
+	if e.stackLimit == nil {
+		return 10000
+	}
+	return *e.stackLimit
+}
+
+// SetStackLimit sets the stack limit. n must be >= 1.
+func (e *Env) SetStackLimit(n int) {
+	if e.stackLimit == nil {
+		e.stackLimit = new(int)
+	}
+	*e.stackLimit = n
 }

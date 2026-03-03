@@ -1,14 +1,17 @@
 # mutual_even_odd.ai
 # Mutual tail recursion should not grow stack with proper tail calls.
-
 let even = (n) {
-    if (equal(n, 0)) { return true }
-    return odd((n - 1))
+	if (equal(n, 0)) {
+		return true
+	}
+	return odd((n - 1))
 }
 
 let odd = (n) {
-    if (equal(n, 0)) { return false }
-    return even((n - 1))
+	if (equal(n, 0)) {
+		return false
+	}
+	return even((n - 1))
 }
 
 println(even(20000000))

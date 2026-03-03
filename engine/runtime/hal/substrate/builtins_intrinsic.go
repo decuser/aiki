@@ -415,3 +415,20 @@ func containsStr(slice []string, s string) bool {
 	}
 	return false
 }
+
+// halStackLimit implements stack_limit(n) via HAL, setting the evaluator stack limit.
+func halStackLimit(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 1 {
+		return value.NewError("stack_limit: want 1 argument")
+	}
+	n, ok := args[0].(*value.Number)
+	if !ok || !n.Val.IsInt() {
+		return value.NewError("stack_limit: must be integer >= 1")
+	}
+	limit64 := n.Val.Num().Int64()
+	if limit64 < 1 {
+		return value.NewError("stack_limit: must be integer >= 1")
+	}
+	ctx.Env.SetStackLimit(int(limit64))
+	return value.EMPTY
+}

@@ -34,52 +34,78 @@ func (e *Evaluator) applyFunction(fn value.Value, args []value.Value, node *synt
 }
 
 func (e *Evaluator) applyUserFunction(fn *value.Function, args []value.Value, node *syntax.Node, env *value.Env) value.Value {
-	fnEnv, ok := fn.Env.(*value.Env)
-	if !ok {
-		return e.makeError(node, env, "invalid function environment")
-	}
+	callFn := fn
+	callArgs := args
+	callPos := node.Pos
 
-	// Check argument count (excluding rest params)
-	if len(args) < len(fn.Params) {
-		return e.makeError(node, env, "%s: want %d arguments, got %d", fn.Name, len(fn.Params), len(args))
-	}
-
-	callEnv := value.NewEnclosedEnv(fnEnv)
-
-	for i, param := range fn.Params {
-		callEnv.Set(param, args[i])
-	}
-
-	if fn.Rest != "" {
-		restStart := len(fn.Params)
-		var restArgs []value.Value
-		if restStart < len(args) {
-			restArgs = args[restStart:]
+	for {
+		fnEnv, ok := callFn.Env.(*value.Env)
+		if !ok {
+			return e.makeError(node, env, "invalid function environment")
 		}
-		callEnv.Set(fn.Rest, &value.List{Elements: restArgs})
+
+		// Check argument count (excluding rest params)
+		if len(callArgs) < len(callFn.Params) {
+			return e.makeError(node, env, "%s: want %d arguments, got %d", callFn.Name, len(callFn.Params), len(callArgs))
+		}
+
+		callEnv := value.NewEnclosedEnv(fnEnv)
+
+		for i, param := range callFn.Params {
+			callEnv.Set(param, callArgs[i])
+		}
+
+		if callFn.Rest != "" {
+			restStart := len(callFn.Params)
+			var restArgs []value.Value
+			if restStart < len(callArgs) {
+				restArgs = callArgs[restStart:]
+			}
+			callEnv.Set(callFn.Rest, &value.List{Elements: restArgs})
+		}
+
+		body, ok := callFn.Body.(*syntax.Node)
+		if !ok {
+			return e.makeError(node, env, "invalid function body")
+		}
+
+		// Enforce stack limit on non tail call frames.
+		limit := callEnv.GetStackLimit()
+		if limit < 1 {
+			return e.makeError(node, env, "stack_limit: must be integer >= 1")
+		}
+		if len(callEnv.CopyStack()) >= limit {
+			// Use the current call position for attribution.
+			return e.makeError(&syntax.Node{Pos: callPos}, callEnv, "stack overflow")
+		}
+
+		// Push stack frame for function call
+		funcName := callFn.Name
+		if funcName == "" {
+			funcName = "<anonymous>"
+		}
+		callEnv.PushFrame(funcName, callPos.Line, callEnv.GetScope())
+
+		result := e.Eval(body, callEnv)
+
+		callEnv.PopFrame()
+
+		if ret, ok := result.(*value.Return); ok {
+			if tc, ok := ret.Val.(*value.TailCall); ok {
+				nextFn, ok := tc.Fn.(*value.Function)
+				if !ok {
+					return e.makeError(&syntax.Node{Pos: tc.Pos}, callEnv, "not a function: %s", tc.Fn.Type())
+				}
+				callFn = nextFn
+				callArgs = tc.Args
+				callPos = tc.Pos
+				continue
+			}
+			return ret.Val
+		}
+
+		return result
 	}
-
-	body, ok := fn.Body.(*syntax.Node)
-	if !ok {
-		return e.makeError(node, env, "invalid function body")
-	}
-
-	// Push stack frame for function call
-	funcName := fn.Name
-	if funcName == "" {
-		funcName = "<anonymous>"
-	}
-	callEnv.PushFrame(funcName, node.Pos.Line, callEnv.GetScope())
-
-	result := e.Eval(body, callEnv)
-
-	callEnv.PopFrame()
-
-	if ret, ok := result.(*value.Return); ok {
-		return ret.Val
-	}
-
-	return result
 }
 
 func (e *Evaluator) extractParams(node *syntax.Node) ([]string, string) {

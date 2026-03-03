@@ -26,6 +26,12 @@
 @template "recv(ch)"
 @help "Receives value from channel, blocks until sent."
 
+# Recursion
+
+@func stack_limit
+@template "stack_limit(n)"
+@help "Sets the maximum non tail call depth. n must be an integer >= 1."
+
 # IO
 @func print
 @template "print(val, ...)"
