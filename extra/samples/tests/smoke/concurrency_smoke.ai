@@ -1,0 +1,28 @@
+let ch = channel()
+
+# worker receives, computes, sends back
+let worker = (input, output) {
+	let x = recv(input)
+	let y = recv(input)
+	send(output, x + y)
+	send(output, x * y)
+}
+
+spawn(worker, ch, ch)
+
+send(ch, 3)
+send(ch, 7)
+
+println(recv(ch))
+println(recv(ch))
+
+# test isolation - this should NOT see outer scope
+let secret = 999
+let isolated = (out) {
+	send(out, 42)
+}
+
+spawn(isolated, ch)
+println(recv(ch))
+
+println("done")

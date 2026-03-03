@@ -1,0 +1,75 @@
+TOKENS
+  COMMENT	skip=true	pattern="^#[^\\n]*"
+  DELIMITER	skip=false	literal="( ) [ ] { } , ; ..."
+  KEYWORD	skip=false	literal="let if else while match return true false and or not package"
+  NAME	skip=false	pattern="^[a-zA-Z_][a-zA-Z0-9_]*"	error="expected name"	template="foo, my_var"
+  NUMBER	skip=false	pattern="^[0-9]+(\\.[0-9]+)?(\\/[0-9]+)?"	error="expected number"	template="42, 3.14, 1/3"
+  OPERATOR	skip=false	literal="+ - * / < > <= >= |> . ="
+  RUNE	skip=false	pattern="^'([^'\\\\]|\\\\.)'"	error="expected rune"	template="'a', '\\\\n'"
+  SHAPE	skip=false	pattern="^@[a-zA-Z_][a-zA-Z0-9_]*"	error="expected shape"	template="@point, @error"
+  STRING	skip=false	pattern="^\"[^\"]*\""	error="expected string"	template="\\\"hello\\\""
+  SYMBOL	skip=false	pattern="^:[a-zA-Z_][a-zA-Z0-9_]*"	error="expected symbol"	template=":name, :ok, :error"
+  WHITESPACE	skip=true	pattern="^[ \\t\\r\\n]+"
+
+PRODUCTIONS
+  BINOP	= "+" | "-" | "*" | "/" | "<" | ">" | "<=" | ">=" | "and" | "or"	error="expected operator"	template="+ - * / < > <= >= and or"
+  access	= "." NAME	error="expected '.field'"	template=".field"
+  assign_stmt	= NAME "=" expr	error="expected 'name = expr'"	template="name = expr"
+  block	= "{" {statement} "}"	error="expected '{ ... }'"	template="{ statement ... }"
+  call	= "(" [expr {"," expr}] ")"	error="expected '(args)'"	template="(arg, arg, ...)"
+  expr	= pipe_expr	error="expected expression"	template="expr"
+  expr_stmt	= expr	error="expected expression"	template="expr"
+  field	= NAME | SHAPE	error="expected field name or embedded shape"	template="name | @shape"
+  func_literal	= "(" params ")" block	error="expected '(params) { body }'"	template="(a, b) { return a + b }"
+  if_stmt	= "if" expr block ["else" (if_stmt | block)]	error="expected 'if expr { ... }'"	template="if cond { ... } [else { ... }]"
+  index	= "[" expr "]"	error="expected '[index]'"	template="[i]"
+  infix_expr	= unary_expr {BINOP unary_expr}	error="expected expression"	template="expr op expr op expr"
+  let_stmt	= "let" NAME "=" expr | "let" SHAPE "[" [field {"," field}] "]"	error="expected 'let name = expr' or 'let @shape [fields]'"	template="let name = expr | let @shape [fields]"
+  list_literal	= "[" [expr {"," expr}] "]" | "[" SHAPE {"," expr} "]"	error="expected list '[expr, ...]' or '[@shape, expr, ...]'"	template="[a, b], [@point, x, y]"
+  literal	= NUMBER | STRING | RUNE | SYMBOL | "true" | "false"	error="expected literal"	template="42, \\\"str\\\", 'r', :sym, true, false"
+  match_stmt	= "match" expr "{" {pattern block} "}"	error="expected 'match expr { pattern { ... } ... }'"	template="match expr { pattern { ... } }"
+  package_stmt	= "package" STRING	error="expected 'package \\\"name\\\"'"	template="package \\\"name\\\""
+  param_list	= NAME {"," NAME}	error="expected parameter names"	template="a, b, c"
+  params	= [param_list ["," rest_param] | rest_param]	error="expected parameters"	template="a, b, ...rest"
+  pattern	= "_" | NAME | literal | "[" [pattern {"," pattern}] "]" | "[" SHAPE {"," pattern} "]"	error="expected pattern"	template="_, name, literal, [patterns], [@shape, patterns]"
+  pipe_expr	= infix_expr {"|>" postfix_expr}	error="expected expression"	template="expr |> func |> func"
+  postfix_expr	= primary {call | index | access}	error="expected expression"	template="expr(), expr[i], expr.field"
+  primary	= NUMBER | STRING | RUNE | SYMBOL | NAME | "true" | "false" | list_literal | func_literal | "(" expr ")"	error="expected value"	template="42, \\\"str\\\", 'r', :sym, name, true, [], (), (expr)"
+  program	= {statement}	error="expected statement"	template="statement ..."
+  rest_param	= "..." NAME	error="expected '...name'"	template="...args"
+  return_stmt	= "return" expr	error="expected 'return expr'"	template="return expr"
+  statement	= package_stmt | let_stmt | assign_stmt | if_stmt | while_stmt | match_stmt | return_stmt | expr_stmt	error="expected statement"	template="package | let | assign | if | while | match | return | expr"
+  unary_expr	= {"not" | "-"} postfix_expr	error="expected expression"	template="not expr, -expr"
+  while_stmt	= "while" expr block	error="expected 'while expr { ... }'"	template="while cond { ... }"
+
+GRAMMARHASH 4979a4b9850e5af10e68d33173cc63aac718314369ef5c9bd8116e7d5883795a
+RULEHASHES
+  BINOP bb042b633d47f072d22362db220397ea669212162a671236a2fa96c81415a92a
+  access 9e9f531344c4934f5878cc643a74feacb4087e3fdb949d9579e40a80ec83e86f
+  assign_stmt 5dbb262b390bbbcc757c53c4b1aeca8979608a0a03c263a9b6a82e0ea7ad82a3
+  block 433532e27df9efd8bbe5ac4214d2032fbfd605e30f445da422dd5d16092aa3c6
+  call aeb03fc8dc5bf964ab3e071ffd33c5441b4d93a37ae806cb5c30067f9a06b0a8
+  expr fc544777dc6fc871673d9e8cc5868c3da441d353b22e59cf5c412699768fcb4d
+  expr_stmt 5b6b9e679aeaea173f66ed841abb3e6bfd730f739950b22d1d5190b8c3572b7b
+  field af681381e7d71c109748f7e9c87f716dbf04aace5233fdf03d74e52ff6b8b4ee
+  func_literal 003ed94b6659c36d9a28684689dca3551516e29c8663e2cca2c951fb90aa73ab
+  if_stmt 868b54f480556b9b883842e2b01c538fc17823b84a8a16dd404583256fdd9c4c
+  index 913ea34208236a04d47046b619250d29a586be97e33f3cbc7fceb718bee7097b
+  infix_expr 95873831928d986603612a023273f317d19196ee67aa01b5eec32f7f568001fb
+  let_stmt d89d80c464f789772b32b2969b2451e4194247cee9c3847915a7db735a54997b
+  list_literal 0dc668a64178d089efbcff9ced597dc78af3645d983f2fb3fb65bda59f9d87a6
+  literal 808a2cafea8c2d4098abf56a05e6311ede6110a6986485ccf9c65da3a2d9ed37
+  match_stmt 4313f8582535620140b88b266f9817beaa2d5464b98fa78cf03338bdd0cfe466
+  package_stmt c47897ed3b69172dc991a858f6300c54a577629f56603485c37df00518efc83c
+  param_list f75d277b145ce64da1bd77f6dc87403fabffd16b9a57eacff5e5b3dc9965e8c5
+  params 7183b8cbecd6c33de295418750a1e584b846141ee149e0ddd1ee7f61a30580cc
+  pattern 6b0707742d78d246ba0bc6aa2b3011f7dd5b5b026630dd6a95561e3646b6b721
+  pipe_expr 1806d4e63880831952abd3266129da809e3edd10379964f25ee9888058f5fba6
+  postfix_expr 7d57a3d66d895603e4fe9b3122aa2de1aa2e011d18c11e3dc06bb0df318d928f
+  primary 8bc19a1ac74578150e3e499c4b09aa6017f99d201e62f07fcd8c56f7dd238114
+  program 735d7585433cd759d0586291e8db1e8444a45661cfd5c1472b5f2b176c0a0364
+  rest_param 96e8c70deca5c5c2407888b33a9812dff645c5c8479b5314dffee03680b8cc81
+  return_stmt 8a010d9dd21825a73519b5c93d4598ee943070054ad9c3aaa288bd1916210cac
+  statement fbeb8a1d0bc0180da739d85d8d2548b1e8e38f80413ec58af5ff30bff566f060
+  unary_expr 023cdeeee8e5ea475ad31173f2262825ed3996a61b3bfbccac7e7420eeb05900
+  while_stmt 0e3e8565173b14c745ba8099cc587bf4d894979ef4a7594eee5ff4aa7fc0d0cd

@@ -1,0 +1,13 @@
+let println = (val) {
+	print(val, "\n")
+	return true
+}
+
+println("Testing ord...")
+println(ord('a'))  # 97
+println(ord('A'))  # 65
+println(ord('0'))  # 48
+println(ord('€'))  # 8364
+println(ord('\n'))  # 10
+
+println("\nord_smoke done")

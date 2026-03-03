@@ -1,0 +1,20 @@
+# 01_math_ops_engine.ai
+# Arithmetic and precedence, no equality operators.
+let println = (val) {
+	print(val, "\n")
+	return true
+}
+
+println("ADD")
+println(1 + 1)
+
+println("RAT_ONE_THIRD_TIMES_THREE")
+println((1 / 3) * 3)
+
+println("LEFT_TO_RIGHT_ONE_PLUS_TWO_TIMES_THREE")
+println(1 + 2 * 3)
+
+println("NEG_RATIONAL_ADD")
+println((-1 / 2) + (3 / 2))
+
+println("MATH_DONE")

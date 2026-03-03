@@ -13,7 +13,7 @@ import (
 
 // CheckFormatting returns the list of files that are not already formatted.
 // It does not rewrite files.
-func CheckFormatting(args []string, includePrelude bool) ([]string, error) {
+func CheckFormatting(args []string) ([]string, error) {
 	g, err := grammar.Load("grammar.ebnfx", syntax.EbnfxSource, "grammar.help", syntax.HelpSource)
 	if err != nil {
 		return nil, err
@@ -26,14 +26,11 @@ func CheckFormatting(args []string, includePrelude bool) ([]string, error) {
 			if dir == "" {
 				dir = "."
 			}
-			b, err := checkDir(g, dir, includePrelude)
+			b, err := checkDir(g, dir)
 			if err != nil {
 				return nil, err
 			}
 			bad = append(bad, b...)
-			continue
-		}
-		if !includePrelude && strings.HasSuffix(a, "engine/runtime/prelude/prelude.ai") {
 			continue
 		}
 		ok, err := checkFile(g, a)
@@ -47,7 +44,7 @@ func CheckFormatting(args []string, includePrelude bool) ([]string, error) {
 	return bad, nil
 }
 
-func checkDir(g *grammar.Grammar, dir string, includePrelude bool) ([]string, error) {
+func checkDir(g *grammar.Grammar, dir string) ([]string, error) {
 	var bad []string
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -60,9 +57,6 @@ func checkDir(g *grammar.Grammar, dir string, includePrelude bool) ([]string, er
 			return nil
 		}
 		if !strings.HasSuffix(path, ".ai") {
-			return nil
-		}
-		if !includePrelude && strings.HasSuffix(path, "engine/runtime/prelude/prelude.ai") {
 			return nil
 		}
 		ok, err := checkFile(g, path)

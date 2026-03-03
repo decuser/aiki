@@ -1,0 +1,5 @@
+OUT:Hi, Joe. What's your real first name? 
+IN:Will\n
+OUT:Hi, Will! Nice to meet you.\n
+OUT:IO_SMOKE_DONE
+

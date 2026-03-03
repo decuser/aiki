@@ -1,0 +1,16 @@
+# 03_while_engine.ai
+# while loop and assignment.
+let println = (val) {
+	print(val, "\n")
+	return true
+}
+
+let i = 0
+let acc = 0
+
+while i < 5 {
+	acc = acc + i
+	i = i + 1
+}
+
+println(acc)
