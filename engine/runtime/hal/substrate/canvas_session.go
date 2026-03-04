@@ -13,6 +13,9 @@ import (
 	"aiki/engine/semantics/value"
 )
 
+// canvasExecCommand allows tests to inject a fake child process.
+var canvasExecCommand = exec.Command
+
 type canvasSession struct {
 	cmd   *exec.Cmd
 	stdin io.WriteCloser
@@ -73,7 +76,7 @@ func startCanvasSession(cvs *value.Canvas) error {
 		fmt.Sprintf("-canvash=%d", cvs.Height),
 	}
 
-	cmd := exec.Command(exe, args...)
+	cmd := canvasExecCommand(exe, args...)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return err
