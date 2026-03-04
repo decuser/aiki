@@ -6,8 +6,6 @@ import (
 	"aiki/engine/semantics/value"
 	"aiki/engine/syntax"
 	"aiki/engine/syntax/grammar"
-	"os"
-	"path/filepath"
 )
 
 // Session holds the persistent state for a REPL session.
@@ -25,7 +23,7 @@ func NewSession() (*Session, error) {
 		return nil, err
 	}
 
-	if err := initModuleRegistryForSession(g); err != nil {
+	if err := initModuleRegistry(g); err != nil {
 		return nil, err
 	}
 	rt := substrate.NewGoRuntime()
@@ -71,7 +69,7 @@ func (s *Session) Eval(source string) value.Value {
 
 // Reset creates a fresh environment with prelude reloaded.
 func (s *Session) Reset() error {
-	if err := initModuleRegistryForSession(s.Grammar); err != nil {
+	if err := initModuleRegistry(s.Grammar); err != nil {
 		return err
 	}
 
@@ -80,24 +78,5 @@ func (s *Session) Reset() error {
 		return err
 	}
 	s.Env = value.NewEnclosedEnv(preludeEnv)
-	return nil
-}
-
-func initModuleRegistryForSession(g *grammar.Grammar) error {
-	if substrate.GlobalRegistry != nil {
-		return nil
-	}
-
-	homeDir, _ := os.UserHomeDir()
-	roots := []string{".", "lib", "vendor"}
-	if homeDir != "" {
-		roots = append(roots, filepath.Join(homeDir, ".aiki", "lib"))
-	}
-
-	reg := substrate.NewModuleRegistry(roots)
-	if err := reg.Scan(g); err != nil {
-		return err
-	}
-	substrate.GlobalRegistry = reg
 	return nil
 }
