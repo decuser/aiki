@@ -14,13 +14,13 @@ let my_sqrt = (x) {
 		let old_z = z
 		# PRECEDENCE FIX: Explicitly group division
 		# Formula: z_new = (z + (x / z)) / 2
-		z = z + x / z / 2.0
+		z = (z + (x / z)) / 2
 		delta = abs(z - old_z)
 	}
 	return z
 }
 
-# Test
-let result = my_sqrt(2)
-print(result, "\n")
-print(to_decimal(result, 6), "\n")
+print(my_sqrt(9), "\n")
+print(my_sqrt(2), "\n")
+print(to_decimal(my_sqrt(9), 6), "\n")
+print(to_decimal(my_sqrt(2), 6), "\n")
