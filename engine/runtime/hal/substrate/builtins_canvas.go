@@ -90,7 +90,10 @@ func halCanvas(args []value.Value, ctx *hal.EvalContext) value.Value {
 	}
 
 	trackCanvas(cvs)
-	go RunEbiten(cvs)
+	if err := startCanvasSession(cvs); err != nil {
+		untrackCanvas(cvs)
+		return value.NewError("canvas: %v", err)
+	}
 	<-cvs.Ready
 
 	return cvs
@@ -255,6 +258,7 @@ func halSetBG(args []value.Value, ctx *hal.EvalContext) value.Value {
 		return value.NewError("set_bg: invalid color")
 	}
 	cvs.BG = clr
+	sendCanvasMsg(cvs, CanvasIPCMsg{Op: "set_bg", RGBA: []int{int(clr.R), int(clr.G), int(clr.B), int(clr.A)}})
 	return value.TRUE
 }
 
@@ -271,6 +275,7 @@ func halSetFG(args []value.Value, ctx *hal.EvalContext) value.Value {
 		return value.NewError("set_fg: invalid color")
 	}
 	cvs.FG = clr
+	sendCanvasMsg(cvs, CanvasIPCMsg{Op: "set_fg", RGBA: []int{int(clr.R), int(clr.G), int(clr.B), int(clr.A)}})
 	return value.TRUE
 }
 
