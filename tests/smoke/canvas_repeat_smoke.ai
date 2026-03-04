@@ -1,0 +1,13 @@
+let c1 = canvas(300, 300)
+set_bg(c1, :black)
+set_fg(c1, :cyan)
+line(c1, 10, 10, 290, 290)
+sleep(100)
+destroy(c1)
+
+let c2 = canvas(300, 300)
+set_bg(c2, :black)
+set_fg(c2, :red)
+circle(c2, 150, 150, 80)
+sleep(100)
+destroy(c2)

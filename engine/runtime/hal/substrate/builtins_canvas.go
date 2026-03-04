@@ -57,15 +57,19 @@ func untrackCanvas(c *value.Canvas) {
 // CloseAllCanvases closes all open canvases.
 func CloseAllCanvases() {
 	openCanvasesMu.Lock()
-	for _, c := range openCanvases {
+	cs := make([]*value.Canvas, len(openCanvases))
+	copy(cs, openCanvases)
+	openCanvases = nil
+	openCanvasesMu.Unlock()
+
+	for _, c := range cs {
 		select {
 		case <-c.Done:
 		default:
 			close(c.Done)
 		}
+		sendCanvasClose(c)
 	}
-	openCanvases = nil
-	openCanvasesMu.Unlock()
 }
 
 func halCanvas(args []value.Value, ctx *hal.EvalContext) value.Value {
@@ -106,6 +110,9 @@ func halDot(args []value.Value, ctx *hal.EvalContext) value.Value {
 	cvs, ok := args[0].(*value.Canvas)
 	if !ok {
 		return value.NewError("dot: expected canvas")
+		if errv := requireCanvasActive("dot", cvs); errv != nil {
+			return errv
+		}
 	}
 	x, ok1 := toInt(args[1])
 	y, ok2 := toInt(args[2])
@@ -130,6 +137,9 @@ func halLine(args []value.Value, ctx *hal.EvalContext) value.Value {
 	cvs, ok := args[0].(*value.Canvas)
 	if !ok {
 		return value.NewError("line: expected canvas")
+		if errv := requireCanvasActive("line", cvs); errv != nil {
+			return errv
+		}
 	}
 	x1, ok1 := toInt(args[1])
 	y1, ok2 := toInt(args[2])
@@ -164,6 +174,9 @@ func rectHelper(op string, args []value.Value) value.Value {
 	cvs, ok := args[0].(*value.Canvas)
 	if !ok {
 		return value.NewError("%s: expected canvas", op)
+		if errv := requireCanvasActive(op, cvs); errv != nil {
+			return errv
+		}
 	}
 	x, ok1 := toInt(args[1])
 	y, ok2 := toInt(args[2])
@@ -198,6 +211,9 @@ func circleHelper(op string, args []value.Value) value.Value {
 	cvs, ok := args[0].(*value.Canvas)
 	if !ok {
 		return value.NewError("%s: expected canvas", op)
+		if errv := requireCanvasActive(op, cvs); errv != nil {
+			return errv
+		}
 	}
 	x, ok1 := toInt(args[1])
 	y, ok2 := toInt(args[2])
@@ -223,6 +239,9 @@ func halClear(args []value.Value, ctx *hal.EvalContext) value.Value {
 	cvs, ok := args[0].(*value.Canvas)
 	if !ok {
 		return value.NewError("clear: expected canvas")
+		if errv := requireCanvasActive("clear", cvs); errv != nil {
+			return errv
+		}
 	}
 	cvs.Commands <- value.CanvasCmd{Op: "clear"}
 	return value.TRUE
@@ -241,6 +260,8 @@ func halDestroy(args []value.Value, ctx *hal.EvalContext) value.Value {
 	default:
 		close(cvs.Done)
 	}
+	// Close and reap the child deterministically.
+	sendCanvasClose(cvs)
 	untrackCanvas(cvs)
 	return value.TRUE
 }
@@ -252,6 +273,9 @@ func halSetBG(args []value.Value, ctx *hal.EvalContext) value.Value {
 	cvs, ok := args[0].(*value.Canvas)
 	if !ok {
 		return value.NewError("set_bg: expected canvas")
+		if errv := requireCanvasActive("set_bg", cvs); errv != nil {
+			return errv
+		}
 	}
 	clr, ok := parseColor(args[1])
 	if !ok {
@@ -269,6 +293,9 @@ func halSetFG(args []value.Value, ctx *hal.EvalContext) value.Value {
 	cvs, ok := args[0].(*value.Canvas)
 	if !ok {
 		return value.NewError("set_fg: expected canvas")
+		if errv := requireCanvasActive("set_fg", cvs); errv != nil {
+			return errv
+		}
 	}
 	clr, ok := parseColor(args[1])
 	if !ok {
@@ -286,6 +313,9 @@ func halPenSize(args []value.Value, ctx *hal.EvalContext) value.Value {
 	cvs, ok := args[0].(*value.Canvas)
 	if !ok {
 		return value.NewError("pen_size: expected canvas")
+		if errv := requireCanvasActive("pen_size", cvs); errv != nil {
+			return errv
+		}
 	}
 	size, ok := toInt(args[1])
 	if !ok || size < 1 {
@@ -296,6 +326,13 @@ func halPenSize(args []value.Value, ctx *hal.EvalContext) value.Value {
 }
 
 // Helper functions
+
+func requireCanvasActive(op string, cvs *value.Canvas) value.Value {
+	if !canvasSessionAlive(cvs) {
+		return value.NewError("%s: canvas closed", op)
+	}
+	return nil
+}
 
 func toInt(v value.Value) (int, bool) {
 	n, ok := v.(*value.Number)

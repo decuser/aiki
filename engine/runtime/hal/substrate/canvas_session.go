@@ -17,12 +17,42 @@ type canvasSession struct {
 	cmd   *exec.Cmd
 	stdin io.WriteCloser
 	mu    sync.Mutex
+
+	waitOnce sync.Once
+	waitErr  error
+	waitCh   chan struct{}
+}
+
+func (s *canvasSession) wait() error {
+	s.waitOnce.Do(func() {
+		s.waitErr = s.cmd.Wait()
+		close(s.waitCh)
+	})
+	<-s.waitCh
+	return s.waitErr
 }
 
 var (
 	sessionsMu sync.Mutex
 	sessions   = map[*value.Canvas]*canvasSession{}
 )
+
+func canvasSessionAlive(cvs *value.Canvas) bool {
+	sessionsMu.Lock()
+	_, ok := sessions[cvs]
+	sessionsMu.Unlock()
+	return ok
+}
+
+func waitCanvasSession(cvs *value.Canvas) {
+	sessionsMu.Lock()
+	sess := sessions[cvs]
+	sessionsMu.Unlock()
+	if sess == nil {
+		return
+	}
+	_ = sess.wait()
+}
 
 func startCanvasSession(cvs *value.Canvas) error {
 	sessionsMu.Lock()
@@ -68,7 +98,7 @@ func startCanvasSession(cvs *value.Canvas) error {
 	// Drain any remaining stdout so the pipe does not fill.
 	go io.Copy(io.Discard, stdout)
 
-	sess := &canvasSession{cmd: cmd, stdin: stdin}
+	sess := &canvasSession{cmd: cmd, stdin: stdin, waitCh: make(chan struct{})}
 	sessionsMu.Lock()
 	sessions[cvs] = sess
 	sessionsMu.Unlock()
@@ -76,9 +106,27 @@ func startCanvasSession(cvs *value.Canvas) error {
 	close(cvs.Ready)
 
 	go bridgeCanvasCommands(cvs)
+
+	// Parent requested close.
 	go func() {
 		<-cvs.Done
 		sendCanvasClose(cvs)
+	}()
+
+	// Child exited on its own (window closed). Mark canvas as done.
+	go func() {
+		_ = sess.wait()
+		sessionsMu.Lock()
+		_, ok := sessions[cvs]
+		delete(sessions, cvs)
+		sessionsMu.Unlock()
+		if ok {
+			select {
+			case <-cvs.Done:
+			default:
+				close(cvs.Done)
+			}
+		}
 	}()
 
 	return nil
@@ -151,5 +199,5 @@ func sendCanvasClose(cvs *value.Canvas) {
 	}()
 
 	_ = sess.stdin.Close()
-	_ = sess.cmd.Wait()
+	_ = sess.wait()
 }

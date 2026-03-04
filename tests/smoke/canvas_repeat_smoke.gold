@@ -1,0 +1,2 @@
+EXIT:0
+DISPLAY:Two canvas windows appear sequentially. Each closes automatically and control returns to the REPL without restarting.
