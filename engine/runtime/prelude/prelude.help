@@ -253,12 +253,21 @@
 @help "Closes canvas window."
 
 @func set_bg
-@template "set_bg(c, r, g, b)"
-@help "Sets background color (0-255 each)."
+@template "set_bg(c, color)"
+@help "Sets background color. Color can be a symbol like :black or a list like [r g b] or [r g b a]."
 
 @func set_fg
-@template "set_fg(c, r, g, b)"
-@help "Sets foreground/drawing color."
+@template "set_fg(c, color)"
+@help "Sets foreground or drawing color. Color can be a symbol like :white or a list like [r g b] or [r g b a]."
+
+@func set_bg_rgb
+@template "set_bg_rgb(c, r, g, b)"
+@help "Convenience wrapper for set_bg using numeric RGB (0-255 each)."
+
+@func set_fg_rgb
+@template "set_fg_rgb(c, r, g, b)"
+@help "Convenience wrapper for set_fg using numeric RGB (0-255 each)."
+
 
 @func pen_size
 @template "pen_size(c, size)"

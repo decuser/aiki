@@ -154,12 +154,20 @@ let destroy = (c) {
 	_destroy(c)
 }
 
-let set_bg = (c, r, g, b) {
-	_set_bg(c, r, g, b)
+let set_bg = (c, color) {
+	_set_bg(c, color)
 }
 
-let set_fg = (c, r, g, b) {
-	_set_fg(c, r, g, b)
+let set_fg = (c, color) {
+	_set_fg(c, color)
+}
+
+let set_bg_rgb = (c, r, g, b) {
+	_set_bg(c, [r, g, b])
+}
+
+let set_fg_rgb = (c, r, g, b) {
+	_set_fg(c, [r, g, b])
 }
 
 let pen_size = (c, s) {
