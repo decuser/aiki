@@ -16,13 +16,13 @@ func (e *Evaluator) evalProgram(node *syntax.Node, env *value.Env) value.Value {
 	for _, child := range node.Children {
 		result = e.Eval(child, env)
 		if ret, ok := result.(*value.Return); ok {
-			return ret.Val
+			return e.resolveTailCalls(ret.Val, env)
 		}
 		if value.IsError(result) {
-			return result
+			return e.resolveTailCalls(result, env)
 		}
 	}
-	return result
+	return e.resolveTailCalls(result, env)
 }
 
 func (e *Evaluator) evalStatement(node *syntax.Node, env *value.Env) value.Value {

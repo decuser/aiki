@@ -3,6 +3,7 @@ package evaluator
 import (
 	"aiki/engine/semantics/value"
 	"aiki/engine/syntax"
+	"strings"
 )
 
 // tailCallValue is an internal sentinel used to implement proper tail calls.
@@ -16,28 +17,42 @@ type tailCallValue struct {
 func (t *tailCallValue) Type() value.Type { return value.Type("tailcall") }
 func (t *tailCallValue) Inspect() string  { return "<tailcall>" }
 
+func countNonTerminalChildren(node *syntax.Node) (nonterm []*syntax.Node, terms []string) {
+	for _, ch := range node.Children {
+		if ch.Type == "TERMINAL" {
+			if ch.Value != "" {
+				terms = append(terms, ch.Value)
+			}
+			continue
+		}
+		nonterm = append(nonterm, ch)
+	}
+	return nonterm, terms
+}
+
+func harmlessTerminals(terms []string) bool {
+	for _, t := range terms {
+		if t != "(" && t != ")" {
+			return false
+		}
+	}
+	return true
+}
+
 // evalTail evaluates a node in tail position context.
 // It returns either a normal value, a *value.Return, an *value.Error, or a *tailCallValue.
 func (e *Evaluator) evalTail(node *syntax.Node, env *value.Env) value.Value {
+
+	// Unwrap simple expression wrapper nodes that contain a single non terminal child
+	// and only harmless terminals like parentheses.
+	if strings.HasSuffix(node.Type, "_expr") || node.Type == "expr" || node.Type == "primary" {
+		nonterm, terms := countNonTerminalChildren(node)
+		if len(nonterm) == 1 && harmlessTerminals(terms) {
+			return e.evalTail(nonterm[0], env)
+		}
+	}
+
 	switch node.Type {
-	case "expr":
-		// expr is a wrapper production. Evaluate its first non terminal child in tail context.
-		for _, ch := range node.Children {
-			if ch.Type == "TERMINAL" {
-				continue
-			}
-			return e.evalTail(ch, env)
-		}
-		return value.EMPTY
-	case "primary":
-		// primary is also a wrapper in many paths.
-		for _, ch := range node.Children {
-			if ch.Type == "TERMINAL" {
-				continue
-			}
-			return e.evalTail(ch, env)
-		}
-		return value.EMPTY
 	case "block":
 		return e.evalBlockTail(node, env)
 	case "return_stmt":

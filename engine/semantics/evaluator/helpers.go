@@ -33,3 +33,14 @@ func isOperator(s string) bool {
 	}
 	return false
 }
+
+// resolveTailCalls drains internal tail call sentinels so they never escape evaluator boundaries.
+func (e *Evaluator) resolveTailCalls(v value.Value, env *value.Env) value.Value {
+	for {
+		tc, ok := v.(*tailCallValue)
+		if !ok {
+			return v
+		}
+		v = e.applyUserFunction(tc.Fn, tc.Args, tc.Node, env)
+	}
+}

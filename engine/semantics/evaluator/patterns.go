@@ -17,7 +17,7 @@ func (e *Evaluator) matchPattern(pattern *syntax.Node, val value.Value, bindings
 		return e.matchPattern(pattern.Children[0], val, bindings, env)
 	}
 
-	if pattern.Type == "NAME" && pattern.Value == "_" {
+	if (pattern.Type == "NAME" || pattern.Type == "TERMINAL") && pattern.Value == "_" {
 		return true
 	}
 
