@@ -36,8 +36,9 @@ func runCanvasChild(opts Options) {
 }
 
 func canvasStdinLoop(r io.Reader, cvs *value.Canvas) {
+	dec := substrate.NewCanvasDecoder(r)
 	for {
-		cmd, err := substrate.CanvasReadCommand(r)
+		cmd, err := dec.Read()
 		if err != nil {
 			break
 		}
@@ -52,6 +53,11 @@ func canvasStdinLoop(r io.Reader, cvs *value.Canvas) {
 
 func handleCanvasWire(cmd any, cvs *value.Canvas) {
 	switch m := cmd.(type) {
+	case substrate.CanvasWireBatch:
+		for _, one := range m.Cmds {
+			handleCanvasWire(one, cvs)
+		}
+		return
 	case substrate.CanvasWireClose:
 		select {
 		case <-cvs.Done:

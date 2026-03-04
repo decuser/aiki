@@ -2,6 +2,7 @@ package substrate
 
 import (
 	"bufio"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"image/color"
@@ -18,9 +19,18 @@ import (
 var canvasExecCommand = exec.Command
 
 type canvasSession struct {
-	cmd   *exec.Cmd
-	stdin io.WriteCloser
-	mu    sync.Mutex
+	cmd     *exec.Cmd
+	stdin   io.WriteCloser
+	bw      *bufio.Writer
+	stateMu sync.Mutex
+
+	sendCh chan any
+	doneCh chan struct{}
+
+	lastBG color.RGBA
+	lastFG color.RGBA
+	hasBG  bool
+	hasFG  bool
 
 	waitOnce sync.Once
 	waitErr  error
@@ -102,7 +112,15 @@ func startCanvasSession(cvs *value.Canvas) error {
 	// Drain any remaining stdout so the pipe does not fill.
 	go io.Copy(io.Discard, stdout)
 
-	sess := &canvasSession{cmd: cmd, stdin: stdin, waitCh: make(chan struct{})}
+	sess := &canvasSession{
+		cmd:    cmd,
+		stdin:  stdin,
+		bw:     bufio.NewWriterSize(stdin, 64*1024),
+		waitCh: make(chan struct{}),
+		sendCh: make(chan any, 4096),
+		doneCh: make(chan struct{}),
+	}
+	go sess.writerLoop()
 	sessionsMu.Lock()
 	sessions[cvs] = sess
 	sessionsMu.Unlock()
@@ -180,16 +198,45 @@ func sendCanvasWire(cvs *value.Canvas, msg any) {
 	if sess == nil {
 		return
 	}
-	sess.mu.Lock()
-	_ = CanvasWriteFrame(sess.stdin, msg)
-	sess.mu.Unlock()
+	select {
+	case sess.sendCh <- msg:
+	case <-sess.doneCh:
+	}
 }
 
 func sendCanvasSetBG(cvs *value.Canvas, rgba color.RGBA) {
+	sessionsMu.Lock()
+	sess := sessions[cvs]
+	sessionsMu.Unlock()
+	if sess == nil {
+		return
+	}
+	sess.stateMu.Lock()
+	if sess.hasBG && sess.lastBG == rgba {
+		sess.stateMu.Unlock()
+		return
+	}
+	sess.hasBG = true
+	sess.lastBG = rgba
+	sess.stateMu.Unlock()
 	sendCanvasWire(cvs, CanvasWireSetBG{RGBA: rgba})
 }
 
 func sendCanvasSetFG(cvs *value.Canvas, rgba color.RGBA) {
+	sessionsMu.Lock()
+	sess := sessions[cvs]
+	sessionsMu.Unlock()
+	if sess == nil {
+		return
+	}
+	sess.stateMu.Lock()
+	if sess.hasFG && sess.lastFG == rgba {
+		sess.stateMu.Unlock()
+		return
+	}
+	sess.hasFG = true
+	sess.lastFG = rgba
+	sess.stateMu.Unlock()
 	sendCanvasWire(cvs, CanvasWireSetFG{RGBA: rgba})
 }
 
@@ -202,12 +249,83 @@ func sendCanvasClose(cvs *value.Canvas) {
 		return
 	}
 
-	func() {
-		sess.mu.Lock()
-		defer sess.mu.Unlock()
-		_ = CanvasWriteFrame(sess.stdin, CanvasWireClose{})
-	}()
-
+	// Ask writer to flush close and exit.
+	select {
+	case sess.sendCh <- CanvasWireClose{}:
+	case <-sess.doneCh:
+	}
+	close(sess.sendCh)
+	<-sess.doneCh
 	_ = sess.stdin.Close()
 	_ = sess.wait()
+}
+
+func (s *canvasSession) writerLoop() {
+	defer close(s.doneCh)
+	enc := canvasNewEncoder()
+	batch := make([]any, 0, 4096)
+
+	writeOne := func(msg any) {
+		payload, err := enc.encodePayload(msg)
+		if err != nil {
+			return
+		}
+		var hdr [4]byte
+		binary.LittleEndian.PutUint32(hdr[:], uint32(len(payload)))
+		_, _ = s.bw.Write(hdr[:])
+		_, _ = s.bw.Write(payload)
+		_ = s.bw.Flush()
+	}
+
+	flushBatch := func() {
+		if len(batch) == 0 {
+			return
+		}
+		msg := batch[0]
+		if len(batch) > 1 {
+			msg = CanvasWireBatch{Cmds: batch}
+		}
+		writeOne(msg)
+		batch = batch[:0]
+	}
+
+	const maxBatch = 4096
+
+	for {
+		m, ok := <-s.sendCh
+		if !ok {
+			flushBatch()
+			return
+		}
+		if _, isClose := m.(CanvasWireClose); isClose {
+			flushBatch()
+			writeOne(m)
+			return
+		}
+		batch = append(batch, m)
+
+		for len(batch) < maxBatch {
+			select {
+			case m2, ok2 := <-s.sendCh:
+				if !ok2 {
+					flushBatch()
+					return
+				}
+				if _, isClose := m2.(CanvasWireClose); isClose {
+					flushBatch()
+					writeOne(m2)
+					return
+				}
+				batch = append(batch, m2)
+			default:
+				flushBatch()
+				goto next
+			}
+		}
+		flushBatch()
+
+		// Continue and block for the next item.
+
+	next:
+	}
 }

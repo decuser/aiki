@@ -1,0 +1,186 @@
+File: aiki
+Build ID: 48c9a96ce14c0b6577744e1f9e35778ba5ae2494
+Type: cpu
+Time: 2026-03-04 11:06:25 CST
+Duration: 4.62s, Total samples = 6.49s (140.54%)
+Showing nodes accounting for 5.25s, 80.89% of 6.49s total
+Dropped 183 nodes (cum <= 0.03s)
+      flat  flat%   sum%        cum   cum%
+     0.32s  4.93%  4.93%      4.18s 64.41%  aiki/engine/semantics/evaluator.(*Evaluator).Eval
+     0.12s  1.85%  6.78%      4.02s 61.94%  aiki/engine/semantics/evaluator.(*Evaluator).evalExpr
+     0.04s  0.62%  7.40%         4s 61.63%  aiki/engine/semantics/evaluator.(*Evaluator).evalPipe
+     0.02s  0.31%  7.70%      3.94s 60.71%  aiki/engine/semantics/evaluator.(*Evaluator).evalStatement
+     0.08s  1.23%  8.94%      3.93s 60.55%  aiki/engine/semantics/evaluator.(*Evaluator).evalInfix
+     0.03s  0.46%  9.40%      3.65s 56.24%  aiki/engine/semantics/evaluator.(*Evaluator).evalUnary
+     0.05s  0.77% 10.17%      3.58s 55.16%  aiki/engine/semantics/evaluator.(*Evaluator).evalPostfix
+     0.01s  0.15% 10.32%      2.71s 41.76%  aiki/engine/semantics/evaluator.(*Evaluator).evalBlock
+     0.01s  0.15% 10.48%      2.65s 40.83%  aiki/engine/semantics/evaluator.(*Evaluator).evalPrimary
+         0     0% 10.48%      2.60s 40.06%  aiki/engine/semantics/evaluator.(*Evaluator).evalWhile
+         0     0% 10.48%      2.36s 36.36%  aiki/engine/semantics/evaluator.(*Evaluator).evalProgram
+         0     0% 10.48%      2.24s 34.51%  aiki/engine/runner.RunSource
+         0     0% 10.48%      2.18s 33.59%  aiki/engine/runner.Run
+         0     0% 10.48%      2.10s 32.36%  main.runFile
+         0     0% 10.48%         2s 30.82%  main.main
+     0.02s  0.31% 10.79%      1.95s 30.05%  aiki/engine/semantics/evaluator.(*Evaluator).applyFunction
+     0.04s  0.62% 11.40%      1.93s 29.74%  aiki/engine/semantics/evaluator.(*Evaluator).applyUserFunction
+         0     0% 11.40%      1.89s 29.12%  runtime.main
+         0     0% 11.40%      1.86s 28.66%  aiki/engine/semantics/evaluator.(*Evaluator).evalLet
+     0.02s  0.31% 11.71%      1.84s 28.35%  aiki/engine/semantics/evaluator.(*Evaluator).evalExprStmt
+         0     0% 11.71%      1.65s 25.42%  runtime.systemstack
+     0.01s  0.15% 11.86%      1.59s 24.50%  aiki/engine/semantics/evaluator.(*Evaluator).evalBlockTail
+     0.01s  0.15% 12.02%      1.59s 24.50%  aiki/engine/semantics/evaluator.(*Evaluator).evalTail
+         0     0% 12.02%      1.43s 22.03%  runtime.gcBgMarkWorker
+         0     0% 12.02%      1.40s 21.57%  runtime.gcBgMarkWorker.func2
+     0.09s  1.39% 13.41%      1.40s 21.57%  runtime.gcDrain
+     0.51s  7.86% 21.26%      1.18s 18.18%  runtime.scanobject
+     0.11s  1.69% 22.96%      0.95s 14.64%  runtime.mallocgc
+     0.01s  0.15% 23.11%      0.94s 14.48%  aiki/engine/semantics/evaluator.(*Evaluator).evalCallArgs
+     0.32s  4.93% 28.04%      0.93s 14.33%  runtime.mapaccess2_faststr
+         0     0% 28.04%      0.92s 14.18%  runtime.gcDrainMarkWorkerDedicated (inline)
+         0     0% 28.04%      0.87s 13.41%  aiki/engine/semantics/evaluator.(*Evaluator).applyOperator
+         0     0% 28.04%      0.85s 13.10%  aiki/engine/semantics/evaluator.(*Evaluator).evalIf
+         0     0% 28.04%      0.59s  9.09%  aiki/engine/runtime/hal/substrate.(*Builtin).Call
+         0     0% 28.04%      0.56s  8.63%  runtime.schedule
+         0     0% 28.04%      0.54s  8.32%  runtime.mcall
+         0     0% 28.04%      0.54s  8.32%  runtime.park_m
+     0.02s  0.31% 28.35%      0.53s  8.17%  math/big.(*Rat).norm
+         0     0% 28.35%      0.50s  7.70%  runtime.findRunnable
+     0.12s  1.85% 30.20%      0.50s  7.70%  runtime.mallocgcSmallScanNoHeader
+         0     0% 30.20%      0.48s  7.40%  runtime.gcDrainMarkWorkerIdle (inline)
+     0.04s  0.62% 30.82%      0.41s  6.32%  runtime.newobject
+     0.19s  2.93% 33.74%      0.40s  6.16%  math/big.(*Int).lehmerGCD
+     0.01s  0.15% 33.90%      0.39s  6.01%  math/big.nat.make (inline)
+     0.04s  0.62% 34.51%      0.39s  6.01%  runtime.makeslice
+     0.01s  0.15% 34.67%      0.35s  5.39%  aiki/engine/semantics/evaluator.(*Evaluator).opMul
+     0.33s  5.08% 39.75%      0.33s  5.08%  runtime.futex
+     0.02s  0.31% 40.06%      0.30s  4.62%  math/big.(*Rat).Mul
+     0.01s  0.15% 40.22%      0.29s  4.47%  math/big.nat.mulAddWW
+     0.16s  2.47% 42.68%      0.29s  4.47%  runtime.findObject
+         0     0% 42.68%      0.26s  4.01%  runtime.futexsleep
+         0     0% 42.68%      0.26s  4.01%  runtime.mPark (inline)
+         0     0% 42.68%      0.26s  4.01%  runtime.notesleep
+         0     0% 42.68%      0.26s  4.01%  runtime.stopm
+         0     0% 42.68%      0.25s  3.85%  aiki/engine/semantics/evaluator.(*Evaluator).opAdd
+     0.01s  0.15% 42.84%      0.23s  3.54%  math/big.nat.mul
+     0.23s  3.54% 46.38%      0.23s  3.54%  runtime.nextFreeFast (inline)
+         0     0% 46.38%      0.22s  3.39%  aiki/engine/runtime/hal/substrate.halSin
+     0.02s  0.31% 46.69%      0.22s  3.39%  aiki/engine/semantics/evaluator.(*Evaluator).evalName
+     0.01s  0.15% 46.84%      0.22s  3.39%  math/big.(*Rat).Add
+         0     0% 46.84%      0.22s  3.39%  runtime.bgsweep
+     0.07s  1.08% 47.92%      0.22s  3.39%  runtime.stealWork
+     0.17s  2.62% 50.54%      0.21s  3.24%  aiki/engine/semantics/value.IsError (inline)
+     0.06s  0.92% 51.46%      0.21s  3.24%  runtime.greyobject
+         0     0% 51.46%      0.21s  3.24%  runtime.sweepone
+         0     0% 51.46%      0.19s  2.93%  aiki/engine/runtime/hal/substrate.halCos
+     0.02s  0.31% 51.77%      0.19s  2.93%  aiki/engine/semantics/value.NewEnclosedEnv (inline)
+     0.03s  0.46% 52.23%      0.19s  2.93%  runtime.mapassign_faststr
+         0     0% 52.23%      0.18s  2.77%  math/big.(*Rat).Float64
+     0.18s  2.77% 55.01%      0.18s  2.77%  memeqbody
+     0.04s  0.62% 55.62%      0.18s  2.77%  runtime.(*sweepLocked).sweep
+         0     0% 55.62%      0.17s  2.62%  aiki/engine/runtime/hal/substrate.halApply
+         0     0% 55.62%      0.17s  2.62%  aiki/engine/runtime/hal/substrate.halDot
+         0     0% 55.62%      0.17s  2.62%  aiki/engine/semantics/evaluator.(*Evaluator).evalNumber
+     0.02s  0.31% 55.93%      0.17s  2.62%  aiki/engine/semantics/value.(*Env).Get
+         0     0% 55.93%      0.17s  2.62%  aiki/engine/semantics/value.(*Env).Set (inline)
+         0     0% 55.93%      0.17s  2.62%  aiki/engine/semantics/value.NewNumberFromString
+     0.06s  0.92% 56.86%      0.17s  2.62%  runtime.mallocgcSmallNoscan
+     0.01s  0.15% 57.01%      0.16s  2.47%  math/big.(*Rat).SetFloat64
+         0     0% 57.01%      0.16s  2.47%  math/big.(*Rat).SetString
+     0.01s  0.15% 57.16%      0.16s  2.47%  math/big.quotToFloat64
+         0     0% 57.16%      0.15s  2.31%  aiki/engine/semantics/evaluator.(*Evaluator).opSub
+     0.03s  0.46% 57.63%      0.15s  2.31%  math/big.nat.div
+         0     0% 57.63%      0.14s  2.16%  internal/runtime/maps.newGroups (inline)
+         0     0% 57.63%      0.14s  2.16%  internal/runtime/maps.newarray
+         0     0% 57.63%      0.14s  2.16%  math/big.(*Rat).Sub
+     0.01s  0.15% 57.78%      0.14s  2.16%  runtime.newarray
+         0     0% 57.78%      0.13s  2.00%  internal/runtime/maps.(*Map).growToSmall
+     0.13s  2.00% 59.78%      0.13s  2.00%  internal/runtime/maps.ctrlGroup.matchH2 (inline)
+         0     0% 59.78%      0.13s  2.00%  math/big.(*Int).scaleDenom
+     0.01s  0.15% 59.94%      0.13s  2.00%  runtime.growslice
+     0.05s  0.77% 60.71%      0.13s  2.00%  runtime.mallocgcTiny
+     0.13s  2.00% 62.71%      0.13s  2.00%  runtime.spanOf (inline)
+     0.01s  0.15% 62.87%      0.12s  1.85%  math/big.getStack (inline)
+     0.02s  0.31% 63.17%      0.12s  1.85%  math/big.nat.divW
+     0.12s  1.85% 65.02%      0.12s  1.85%  math/big.nat.norm (inline)
+     0.12s  1.85% 66.87%      0.12s  1.85%  runtime.memclrNoHeapPointers
+     0.03s  0.46% 67.33%      0.12s  1.85%  runtime.runqsteal
+     0.01s  0.15% 67.49%      0.11s  1.69%  sync.(*Pool).Get
+     0.10s  1.54% 69.03%      0.10s  1.54%  aeshashbody
+     0.01s  0.15% 69.18%      0.10s  1.54%  aiki/engine/semantics/evaluator.(*Evaluator).opDiv
+     0.02s  0.31% 69.49%      0.10s  1.54%  math/big.(*Int).Set (inline)
+     0.01s  0.15% 69.65%      0.09s  1.39%  aiki/engine/semantics/evaluator.(*Evaluator).evalAssign
+         0     0% 69.65%      0.09s  1.39%  runtime.markroot
+     0.01s  0.15% 69.80%      0.09s  1.39%  runtime.runqgrab
+         0     0% 69.80%      0.08s  1.23%  internal/runtime/maps.NewEmptyMap (inline)
+         0     0% 69.80%      0.08s  1.23%  math/big.(*Rat).Quo
+     0.02s  0.31% 70.11%      0.08s  1.23%  math/big.(*stack).free
+         0     0% 70.11%      0.08s  1.23%  math/big.lehmerUpdate
+     0.01s  0.15% 70.26%      0.08s  1.23%  math/big.nat.set (inline)
+         0     0% 70.26%      0.08s  1.23%  runtime.(*mheap).freeSpan (inline)
+     0.01s  0.15% 70.42%      0.08s  1.23%  runtime.(*sweepLocked).sweep.(*mheap).freeSpan.func2
+         0     0% 70.42%      0.08s  1.23%  runtime.makemap_small
+     0.08s  1.23% 71.65%      0.08s  1.23%  runtime.usleep
+         0     0% 71.65%      0.07s  1.08%  math/big.(*Int).Abs (inline)
+         0     0% 71.65%      0.07s  1.08%  math/big.(*Int).Add
+         0     0% 71.65%      0.07s  1.08%  runtime.(*mcache).nextFree
+     0.01s  0.15% 71.80%      0.07s  1.08%  runtime.(*mcache).refill
+     0.01s  0.15% 71.96%      0.07s  1.08%  runtime.(*mheap).freeSpanLocked
+     0.01s  0.15% 72.11%      0.07s  1.08%  runtime.chansend
+         0     0% 72.11%      0.07s  1.08%  runtime.chansend1
+         0     0% 72.11%      0.07s  1.08%  runtime.futexwakeup
+         0     0% 72.11%      0.07s  1.08%  runtime.markrootBlock
+         0     0% 72.11%      0.07s  1.08%  runtime.notewakeup
+     0.03s  0.46% 72.57%      0.07s  1.08%  runtime.scanblock
+         0     0% 72.57%      0.07s  1.08%  runtime.startm
+         0     0% 72.57%      0.07s  1.08%  runtime.wakep
+     0.03s  0.46% 73.04%      0.07s  1.08%  sync.(*Pool).pin
+         0     0% 73.04%      0.06s  0.92%  math/big.mulDenom
+         0     0% 73.04%      0.06s  0.92%  math/big.mulW (inline)
+     0.06s  0.92% 73.96%      0.06s  0.92%  runtime.(*gcBits).bitp (inline)
+         0     0% 73.96%      0.06s  0.92%  runtime.(*mspan).markBitsForIndex (inline)
+     0.03s  0.46% 74.42%      0.06s  0.92%  runtime.(*mspan).typePointersOfUnchecked
+     0.06s  0.92% 75.35%      0.06s  0.92%  runtime.typePointers.nextFast (inline)
+     0.02s  0.31% 75.65%      0.06s  0.92%  sync.(*Pool).Put
+         0     0% 75.65%      0.05s  0.77%  aiki/engine/runtime/hal/substrate.(*canvasSession).writerLoop
+         0     0% 75.65%      0.05s  0.77%  aiki/engine/runtime/hal/substrate.(*canvasSession).writerLoop.func2 (inline)
+         0     0% 75.65%      0.05s  0.77%  aiki/engine/runtime/hal/substrate.colorFromName
+         0     0% 75.65%      0.05s  0.77%  aiki/engine/runtime/hal/substrate.parseColor
+         0     0% 75.65%      0.05s  0.77%  aiki/engine/runtime/hal/substrate.toInt
+     0.03s  0.46% 76.12%      0.05s  0.77%  internal/runtime/maps.(*Map).getWithoutKeySmallFastStr
+     0.05s  0.77% 76.89%      0.05s  0.77%  internal/runtime/maps.(*groupReference).key (inline)
+     0.01s  0.15% 77.04%      0.05s  0.77%  math/big.nat.add
+     0.02s  0.31% 77.35%      0.05s  0.77%  math/big.nat.scan
+         0     0% 77.35%      0.05s  0.77%  runtime.(*gcWork).balance
+         0     0% 77.35%      0.05s  0.77%  runtime.(*mcentral).cacheSpan
+         0     0% 77.35%      0.05s  0.77%  runtime.(*mcentral).grow
+         0     0% 77.35%      0.05s  0.77%  runtime.(*mheap).alloc
+         0     0% 77.35%      0.05s  0.77%  runtime.(*mheap).alloc.func1
+         0     0% 77.35%      0.05s  0.77%  runtime.(*mheap).allocSpan
+     0.05s  0.77% 78.12%      0.05s  0.77%  runtime.(*mspan).writeHeapBitsSmall
+         0     0% 78.12%      0.05s  0.77%  runtime.(*pageAlloc).free
+         0     0% 78.12%      0.05s  0.77%  runtime.heapSetTypeNoHeader (inline)
+     0.05s  0.77% 78.89%      0.05s  0.77%  runtime.spanOfUnchecked (inline)
+     0.04s  0.62% 79.51%      0.05s  0.77%  runtime.typePointers.next
+         0     0% 79.51%      0.05s  0.77%  sync.(*poolChain).popHead
+     0.03s  0.46% 79.97%      0.05s  0.77%  sync.(*poolDequeue).popHead
+         0     0% 79.97%      0.04s  0.62%  aiki/engine/runtime/hal/substrate.(*GoRuntime).GetBuiltin
+         0     0% 79.97%      0.04s  0.62%  aiki/engine/runtime/hal/substrate.(*canvasSession).writerLoop.func1
+         0     0% 79.97%      0.04s  0.62%  bufio.(*Writer).Flush
+         0     0% 79.97%      0.04s  0.62%  internal/poll.ignoringEINTRIO (inline)
+         0     0% 79.97%      0.04s  0.62%  math/big.(*Int).mul
+         0     0% 79.97%      0.04s  0.62%  math/big.nat.lsh
+     0.01s  0.15% 80.12%      0.04s  0.62%  math/big.nat.setWord (inline)
+     0.01s  0.15% 80.28%      0.04s  0.62%  os.(*File).Write
+     0.01s  0.15% 80.43%      0.04s  0.62%  runtime.(*scavengeIndex).free
+         0     0% 80.43%      0.04s  0.62%  runtime.deductAssistCredit
+         0     0% 80.43%      0.04s  0.62%  runtime.gcAssistAlloc
+         0     0% 80.43%      0.04s  0.62%  runtime.gcAssistAlloc.func2
+         0     0% 80.43%      0.04s  0.62%  runtime.gcAssistAlloc1
+         0     0% 80.43%      0.04s  0.62%  runtime.gcDrainN
+         0     0% 80.43%      0.04s  0.62%  runtime.goready (inline)
+     0.01s  0.15% 80.59%      0.04s  0.62%  runtime.newMarkBits
+         0     0% 80.59%      0.04s  0.62%  runtime.ready
+         0     0% 80.59%      0.04s  0.62%  runtime.send
+         0     0% 80.59%      0.04s  0.62%  runtime.send.goready.func1
+     0.02s  0.31% 80.89%      0.04s  0.62%  sync.runtime_procPin
+         0     0% 80.89%      0.04s  0.62%  syscall.Syscall
