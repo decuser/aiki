@@ -1,10 +1,11 @@
 package main
 
 import (
-	"strings"
+	"bytes"
 	"testing"
 	"time"
 
+	"aiki/engine/runtime/hal/substrate"
 	"aiki/engine/semantics/value"
 )
 
@@ -17,10 +18,10 @@ func TestCanvasStdinLoopClose(t *testing.T) {
 		Ready:    make(chan struct{}),
 	}
 
-	in := `{"op":"nope"}
-{"op":"close"}
-`
-	go canvasStdinLoop(strings.NewReader(in), cvs)
+	var b bytes.Buffer
+	_ = substrate.CanvasWriteFrame(&b, substrate.CanvasWireCmd{Op: "nope"})
+	_ = substrate.CanvasWriteFrame(&b, substrate.CanvasWireClose{})
+	go canvasStdinLoop(bytes.NewReader(b.Bytes()), cvs)
 
 	select {
 	case <-cvs.Done:
@@ -38,10 +39,10 @@ func TestCanvasStdinLoopSetBGEnqueuesClear(t *testing.T) {
 		Ready:    make(chan struct{}),
 	}
 
-	in := `{"op":"set_bg","rgba":[0,0,0,255]}
-{"op":"close"}
-`
-	go canvasStdinLoop(strings.NewReader(in), cvs)
+	var b bytes.Buffer
+	_ = substrate.CanvasWriteFrame(&b, substrate.CanvasWireSetBG{RGBA: substrate.DefaultBG})
+	_ = substrate.CanvasWriteFrame(&b, substrate.CanvasWireClose{})
+	go canvasStdinLoop(bytes.NewReader(b.Bytes()), cvs)
 
 	select {
 	case cmd := <-cvs.Commands:
@@ -62,7 +63,7 @@ func TestCanvasStdinLoopEOFClosesDone(t *testing.T) {
 		Ready:    make(chan struct{}),
 	}
 
-	go canvasStdinLoop(strings.NewReader(""), cvs)
+	go canvasStdinLoop(bytes.NewReader(nil), cvs)
 
 	select {
 	case <-cvs.Done:

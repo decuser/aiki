@@ -1,12 +1,10 @@
 package substrate
 
 import (
-	"bufio"
-	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
-	"strings"
 	"testing"
 	"time"
 
@@ -25,17 +23,15 @@ func TestCanvasFakeChild(t *testing.T) {
 		os.Exit(0)
 	}
 
-	sc := bufio.NewScanner(os.Stdin)
-	for sc.Scan() {
-		line := strings.TrimSpace(sc.Text())
-		if line == "" {
-			continue
+	for {
+		cmd, err := CanvasReadCommand(os.Stdin)
+		if err != nil {
+			if err == io.EOF {
+				os.Exit(0)
+			}
+			os.Exit(0)
 		}
-		var m CanvasIPCMsg
-		if err := json.Unmarshal([]byte(line), &m); err != nil {
-			continue
-		}
-		if m.Op == "close" {
+		if _, ok := cmd.(CanvasWireClose); ok {
 			os.Exit(0)
 		}
 	}
@@ -139,14 +135,14 @@ func TestChildExitEarlyDoesNotPanicOnSend(t *testing.T) {
 	// Sending should not block or panic even if process is gone.
 	done := make(chan struct{})
 	go func() {
-		sendCanvasMsg(cvs, CanvasIPCMsg{Op: "dot", Args: []int{1, 2}})
+		sendCanvasWire(cvs, CanvasWireCmd{Op: "dot", Args: []int32{1, 2}})
 		close(done)
 	}()
 
 	select {
 	case <-done:
 	case <-time.After(1 * time.Second):
-		t.Fatalf("sendCanvasMsg blocked after child exit")
+		t.Fatalf("sendCanvasWire blocked after child exit")
 	}
 
 	// Close session if still present to avoid leakage.

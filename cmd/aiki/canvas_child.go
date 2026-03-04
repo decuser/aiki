@@ -1,13 +1,9 @@
 package main
 
 import (
-	"bufio"
-	"encoding/json"
 	"fmt"
-	"image/color"
 	"io"
 	"os"
-	"strings"
 
 	"aiki/engine/runtime/hal/substrate"
 	"aiki/engine/semantics/value"
@@ -40,17 +36,12 @@ func runCanvasChild(opts Options) {
 }
 
 func canvasStdinLoop(r io.Reader, cvs *value.Canvas) {
-	sc := bufio.NewScanner(r)
-	for sc.Scan() {
-		line := strings.TrimSpace(sc.Text())
-		if line == "" {
-			continue
+	for {
+		cmd, err := substrate.CanvasReadCommand(r)
+		if err != nil {
+			break
 		}
-		var msg substrate.CanvasIPCMsg
-		if err := json.Unmarshal([]byte(line), &msg); err != nil {
-			continue
-		}
-		handleCanvasIPC(msg, cvs)
+		handleCanvasWire(cmd, cvs)
 	}
 	select {
 	case <-cvs.Done:
@@ -59,54 +50,38 @@ func canvasStdinLoop(r io.Reader, cvs *value.Canvas) {
 	}
 }
 
-func handleCanvasIPC(msg substrate.CanvasIPCMsg, cvs *value.Canvas) {
-	if msg.Proto != 0 && msg.Proto != 1 {
-		return
-	}
-	switch msg.Op {
-	case "close":
+func handleCanvasWire(cmd any, cvs *value.Canvas) {
+	switch m := cmd.(type) {
+	case substrate.CanvasWireClose:
 		select {
 		case <-cvs.Done:
 		default:
 			close(cvs.Done)
 		}
 		return
-	case "set_bg":
-		if c, ok := rgbaFromMsg(msg); ok {
-			cvs.BG = c
-			cvs.Commands <- value.CanvasCmd{Op: "clear"}
-		}
+	case substrate.CanvasWireSetBG:
+		cvs.BG = m.RGBA
+		cvs.Commands <- value.CanvasCmd{Op: "clear"}
 		return
-	case "set_fg":
-		if c, ok := rgbaFromMsg(msg); ok {
-			cvs.FG = c
+	case substrate.CanvasWireSetFG:
+		cvs.FG = m.RGBA
+		return
+	case substrate.CanvasWireCmd:
+		clr := cvs.FG
+		if m.HasRGBA {
+			clr = m.RGBA
 		}
+		pen := m.Pen
+		if pen <= 0 {
+			pen = cvs.PenSize
+		}
+		args := make([]int, len(m.Args))
+		for i, a := range m.Args {
+			args[i] = int(a)
+		}
+		cvs.Commands <- value.CanvasCmd{Op: m.Op, Args: args, Color: clr, PenSize: pen}
+		return
+	default:
 		return
 	}
-
-	clr := cvs.FG
-	if c, ok := rgbaFromMsg(msg); ok {
-		clr = c
-	}
-
-	pen := float32(msg.Pen)
-	if pen <= 0 {
-		pen = cvs.PenSize
-	}
-
-	cvs.Commands <- value.CanvasCmd{Op: msg.Op, Args: msg.Args, Color: clr, PenSize: pen}
-}
-
-func rgbaFromMsg(msg substrate.CanvasIPCMsg) (color.RGBA, bool) {
-	if len(msg.RGBA) != 4 {
-		return color.RGBA{}, false
-	}
-	r := msg.RGBA[0]
-	g := msg.RGBA[1]
-	b := msg.RGBA[2]
-	a := msg.RGBA[3]
-	if r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255 || a < 0 || a > 255 {
-		return color.RGBA{}, false
-	}
-	return color.RGBA{uint8(r), uint8(g), uint8(b), uint8(a)}, true
 }

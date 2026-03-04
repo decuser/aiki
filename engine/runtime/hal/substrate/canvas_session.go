@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"image/color"
 	"io"
 	"os"
 	"os/exec"
@@ -161,25 +162,35 @@ func bridgeCanvasCommands(cvs *value.Canvas) {
 }
 
 func sendCanvasCmd(cvs *value.Canvas, cmd value.CanvasCmd) {
-	msg := CanvasIPCMsg{Op: cmd.Op, Args: cmd.Args, Pen: int(cmd.PenSize)}
-	msg.RGBA = []int{int(cmd.Color.R), int(cmd.Color.G), int(cmd.Color.B), int(cmd.Color.A)}
-	sendCanvasMsg(cvs, msg)
+	args := make([]int32, len(cmd.Args))
+	for i, a := range cmd.Args {
+		args[i] = int32(a)
+	}
+	w := CanvasWireCmd{Op: cmd.Op, Args: args, Pen: cmd.PenSize}
+	// CanvasCmd always carries a color; preserve it.
+	w.HasRGBA = true
+	w.RGBA = cmd.Color
+	sendCanvasWire(cvs, w)
 }
 
-func sendCanvasMsg(cvs *value.Canvas, msg CanvasIPCMsg) {
+func sendCanvasWire(cvs *value.Canvas, msg any) {
 	sessionsMu.Lock()
 	sess := sessions[cvs]
 	sessionsMu.Unlock()
 	if sess == nil {
 		return
 	}
-	line, err := msg.encodeLine()
-	if err != nil {
-		return
-	}
 	sess.mu.Lock()
-	_, _ = sess.stdin.Write(line)
+	_ = CanvasWriteFrame(sess.stdin, msg)
 	sess.mu.Unlock()
+}
+
+func sendCanvasSetBG(cvs *value.Canvas, rgba color.RGBA) {
+	sendCanvasWire(cvs, CanvasWireSetBG{RGBA: rgba})
+}
+
+func sendCanvasSetFG(cvs *value.Canvas, rgba color.RGBA) {
+	sendCanvasWire(cvs, CanvasWireSetFG{RGBA: rgba})
 }
 
 func sendCanvasClose(cvs *value.Canvas) {
@@ -194,11 +205,7 @@ func sendCanvasClose(cvs *value.Canvas) {
 	func() {
 		sess.mu.Lock()
 		defer sess.mu.Unlock()
-		line, err := (CanvasIPCMsg{Op: "close"}).encodeLine()
-		if err != nil {
-			return
-		}
-		_, _ = sess.stdin.Write(line)
+		_ = CanvasWriteFrame(sess.stdin, CanvasWireClose{})
 	}()
 
 	_ = sess.stdin.Close()

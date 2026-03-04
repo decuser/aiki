@@ -17,12 +17,10 @@ while tick < steps {
 	let angle = tick / angle_scale
 	let x = 400 + ((diff * cos(angle)) + (d * cos(ratio * angle)))
 	let y = 400 + ((diff * sin(angle)) - (d * sin(ratio * angle)))
-
 	if tick < (steps / 2) {
 		dot(c, x, y, :cyan)
 	} else {
 		dot(c, x, y, :red)
 	}
-
 	tick = tick + 1
 }

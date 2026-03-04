@@ -322,7 +322,7 @@ func halSetBG(args []value.Value, ctx *hal.EvalContext) value.Value {
 		return value.NewError("set_bg: invalid color")
 	}
 	cvs.BG = clr
-	sendCanvasMsg(cvs, CanvasIPCMsg{Op: "set_bg", RGBA: []int{int(clr.R), int(clr.G), int(clr.B), int(clr.A)}})
+	sendCanvasSetBG(cvs, clr)
 	return value.TRUE
 }
 
@@ -342,7 +342,7 @@ func halSetFG(args []value.Value, ctx *hal.EvalContext) value.Value {
 		return value.NewError("set_fg: invalid color")
 	}
 	cvs.FG = clr
-	sendCanvasMsg(cvs, CanvasIPCMsg{Op: "set_fg", RGBA: []int{int(clr.R), int(clr.G), int(clr.B), int(clr.A)}})
+	sendCanvasSetFG(cvs, clr)
 	return value.TRUE
 }
 
