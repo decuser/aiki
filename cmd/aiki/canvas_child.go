@@ -60,6 +60,9 @@ func canvasStdinLoop(r io.Reader, cvs *value.Canvas) {
 }
 
 func handleCanvasIPC(msg substrate.CanvasIPCMsg, cvs *value.Canvas) {
+	if msg.Proto != 0 && msg.Proto != 1 {
+		return
+	}
 	switch msg.Op {
 	case "close":
 		select {

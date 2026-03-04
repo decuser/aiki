@@ -39,7 +39,7 @@ func NewSession(out io.Writer, debug bool) (*Session, error) {
 	}
 
 	tracker := &TrackingWriter{Out: out, EndedWithNewline: true}
-	substrate.Stdout = tracker
+	substrate.SetStdout(tracker)
 
 	return &Session{
 		out:     out,

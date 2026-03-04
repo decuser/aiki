@@ -69,7 +69,7 @@ func (s *Session) Eval(source string) value.Value {
 
 // Reset creates a fresh environment with prelude reloaded.
 func (s *Session) Reset() error {
-	substrate.GlobalRegistry = nil
+	substrate.ResetModuleRegistry()
 	if err := initModuleRegistry(s.Grammar); err != nil {
 		return err
 	}

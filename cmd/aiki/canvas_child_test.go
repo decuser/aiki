@@ -52,3 +52,21 @@ func TestCanvasStdinLoopSetBGEnqueuesClear(t *testing.T) {
 		t.Fatalf("expected a command to be enqueued")
 	}
 }
+
+func TestCanvasStdinLoopEOFClosesDone(t *testing.T) {
+	cvs := &value.Canvas{
+		Width:    10,
+		Height:   10,
+		Commands: make(chan value.CanvasCmd, 10),
+		Done:     make(chan struct{}),
+		Ready:    make(chan struct{}),
+	}
+
+	go canvasStdinLoop(strings.NewReader(""), cvs)
+
+	select {
+	case <-cvs.Done:
+	case <-time.After(1 * time.Second):
+		t.Fatalf("Done not closed on EOF")
+	}
+}

@@ -113,6 +113,46 @@ func halDot(args []value.Value, ctx *hal.EvalContext) value.Value {
 		if errv := requireCanvasActive("dot", cvs); errv != nil {
 			return errv
 		}
+
+		if v := canvasAliveOrError(cvs, "pen_size"); v != nil {
+			return v
+		}
+
+		if v := canvasAliveOrError(cvs, "set_fg"); v != nil {
+			return v
+		}
+
+		if v := canvasAliveOrError(cvs, "set_bg"); v != nil {
+			return v
+		}
+
+		if v := canvasAliveOrError(cvs, "clear"); v != nil {
+			return v
+		}
+
+		if v := canvasAliveOrError(cvs, "fill_circle"); v != nil {
+			return v
+		}
+
+		if v := canvasAliveOrError(cvs, "circle"); v != nil {
+			return v
+		}
+
+		if v := canvasAliveOrError(cvs, "fill_rect"); v != nil {
+			return v
+		}
+
+		if v := canvasAliveOrError(cvs, "rect"); v != nil {
+			return v
+		}
+
+		if v := canvasAliveOrError(cvs, "line"); v != nil {
+			return v
+		}
+
+		if v := canvasAliveOrError(cvs, "dot"); v != nil {
+			return v
+		}
 	}
 	x, ok1 := toInt(args[1])
 	y, ok2 := toInt(args[2])
@@ -362,4 +402,13 @@ func parseColor(v value.Value) (color.RGBA, bool) {
 		}
 	}
 	return color.RGBA{}, false
+}
+
+// canvasAliveOrError returns an error value if the canvas session is closed.
+// This is used by builtins to fail fast when the user closes the window manually.
+func canvasAliveOrError(cvs *value.Canvas, name string) value.Value {
+	if !canvasSessionAlive(cvs) {
+		return value.NewError("%s: canvas closed", name)
+	}
+	return nil
 }
