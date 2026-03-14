@@ -97,6 +97,10 @@
 @template "shape(val)"
 @help "Returns shape name of list, or :list."
 
+@func is_error
+@template "is_error(val)"
+@help "Returns true if val is a shaped error [@error, ...]."
+
 @func ord
 @template "ord(rune)"
 @help "Returns integer code point of rune."

@@ -21,17 +21,6 @@ func (e *Evaluator) nonTerminalChildren(node *syntax.Node) []*syntax.Node {
 	return result
 }
 
-func (e *Evaluator) makeError(node *syntax.Node, env *value.Env, format string, args ...interface{}) *value.Error {
-	return value.NewErrorAt(
-		env.GetFile(),
-		node.Pos.Line,
-		env.GetSourceLine(node.Pos.Line),
-		env.CopyStack(),
-		format,
-		args...,
-	)
-}
-
 func (e *Evaluator) makeFault(node *syntax.Node, env *value.Env, format string, args ...interface{}) *value.Fault {
 	return value.NewFaultAt(
 		env.GetFile(),

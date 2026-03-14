@@ -146,32 +146,20 @@ func TestFaultInspect(t *testing.T) {
 
 func TestIsFault(t *testing.T) {
 	fault := NewFault("test")
-	err := NewError("test")
 	num := NewNumber(1, 1)
+	shapedErr := NewShapedError("test", "test error")
 
 	if !IsFault(fault) {
 		t.Error("IsFault should return true for Fault")
 	}
-	if IsFault(err) {
-		t.Error("IsFault should return false for Error")
+	if IsFault(shapedErr) {
+		t.Error("IsFault should return false for shaped error")
 	}
 	if IsFault(num) {
 		t.Error("IsFault should return false for Number")
 	}
 	if IsFault(nil) {
 		t.Error("IsFault should return false for nil")
-	}
-}
-
-func TestIsErrorNotFault(t *testing.T) {
-	fault := NewFault("test")
-	err := NewError("test")
-
-	if IsError(fault) {
-		t.Error("IsError should return false for Fault")
-	}
-	if !IsError(err) {
-		t.Error("IsError should return true for Error")
 	}
 }
 
@@ -233,10 +221,10 @@ func TestIsShapedError(t *testing.T) {
 		t.Error("IsShapedError should return false for Fault")
 	}
 
-	// Not a shaped error: old Error type
-	oldErr := NewError("test")
-	if IsShapedError(oldErr) {
-		t.Error("IsShapedError should return false for old Error type")
+	// Not a shaped error: plain number
+	num := NewNumber(1, 1)
+	if IsShapedError(num) {
+		t.Error("IsShapedError should return false for Number")
 	}
 }
 

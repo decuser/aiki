@@ -238,6 +238,10 @@ let shape = (val) {
 	_shape(val)
 }
 
+let is_error = (val) {
+	_equal(_shape(val), :error)
+}
+
 let to_str = (val) {
 	_to_str(val)
 }

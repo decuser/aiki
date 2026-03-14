@@ -55,13 +55,13 @@ func (s *Session) Eval(source string) value.Value {
 	lexer := syntax.NewLexer(s.Grammar, "<repl>", source, nil)
 	tokens, err := lexer.Tokenize()
 	if err != nil {
-		return value.NewError("%s", err)
+		return value.NewFault("%s", err)
 	}
 
 	parser := syntax.NewParser(s.Grammar, tokens, source, nil)
 	ast, err := parser.Parse()
 	if err != nil {
-		return value.NewError("%s", err)
+		return value.NewFault("%s", err)
 	}
 
 	return s.Evaluator.Eval(ast, s.Env)

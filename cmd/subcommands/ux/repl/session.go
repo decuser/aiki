@@ -107,16 +107,7 @@ func (s *Session) Run() {
 		}
 
 		if result != nil && result != value.EMPTY {
-			// Don't print errors twice - they're already printed
-			if _, ok := result.(*value.Error); !ok {
-				if _, ok := result.(*value.Fault); !ok {
-					fmt.Fprintln(s.out, result.Inspect())
-				} else {
-					fmt.Fprintln(s.out, result.Inspect())
-				}
-			} else {
-				fmt.Fprintln(s.out, result.Inspect())
-			}
+			fmt.Fprintln(s.out, result.Inspect())
 		} else if !s.tracker.EndedWithNewline {
 			fmt.Fprintln(s.out)
 		}

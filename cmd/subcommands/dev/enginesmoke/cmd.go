@@ -334,9 +334,6 @@ func dumpEval(g *grammar.Grammar, file, source string) ([]byte, error) {
 	ev := evaluator.New(rt, nil)
 	ev.SetGrammar(g)
 	result := ev.Eval(ast, userEnv)
-	if errV, ok := result.(*value.Error); ok {
-		return nil, fmt.Errorf("%s", errV.Inspect())
-	}
 	if faultV, ok := result.(*value.Fault); ok {
 		return nil, fmt.Errorf("%s", faultV.Inspect())
 	}
@@ -361,9 +358,6 @@ func loadPrelude(g *grammar.Grammar, rt *substrate.GoRuntime, env *value.Env) er
 	ev := evaluator.New(rt, nil)
 	ev.SetGrammar(g)
 	result := ev.Eval(ast, env)
-	if errV, ok := result.(*value.Error); ok {
-		return fmt.Errorf("%s", errV.Inspect())
-	}
 	if faultV, ok := result.(*value.Fault); ok {
 		return fmt.Errorf("%s", faultV.Inspect())
 	}

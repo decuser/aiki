@@ -19,7 +19,6 @@ const (
 	SymbolType   Type = "symbol"
 	ListType     Type = "list"
 	FunctionType Type = "function"
-	ErrorType    Type = "error"
 	FaultType    Type = "fault"
 	ReturnType   Type = "return"
 	HandleType   Type = "handle"
@@ -155,73 +154,6 @@ type Callable interface {
 	Call(args []Value) Value
 }
 
-// Error
-type Error struct {
-	Message string
-	File    string
-	Line    int
-	Source  string // source line for context
-	Stack   []StackFrame
-}
-
-func (e *Error) Type() Type { return ErrorType }
-
-// Inspect returns Ruby-style error format:
-// file:line:in 'func': message
-//
-//	source line
-//	    from file:line:in 'func'
-func (e *Error) Inspect() string {
-	var sb strings.Builder
-
-	// Find the innermost visible frame for the header
-	funcName := "<main>"
-	if len(e.Stack) > 0 {
-		// Use the innermost (last) frame's name
-		funcName = e.Stack[len(e.Stack)-1].Name
-	}
-
-	// First line: file:line:in 'func': message
-	if e.File != "" && e.Line > 0 {
-		sb.WriteString(fmt.Sprintf("%s:%d:in '%s': %s", e.File, e.Line, funcName, e.Message))
-	} else if e.Line > 0 {
-		sb.WriteString(fmt.Sprintf("line %d:in '%s': %s", e.Line, funcName, e.Message))
-	} else {
-		sb.WriteString(e.Message)
-	}
-
-	// Second line: source code (indented)
-	if e.Source != "" {
-		sb.WriteString(fmt.Sprintf("\n    %s", strings.TrimSpace(e.Source)))
-	}
-
-	// Stack trace: from file:line:in 'func' (skip innermost, shown above)
-	for i := len(e.Stack) - 2; i >= 0; i-- {
-		frame := e.Stack[i]
-		if frame.File != "" {
-			sb.WriteString(fmt.Sprintf("\n        from %s:%d:in '%s'", frame.File, frame.Line, frame.Name))
-		} else {
-			sb.WriteString(fmt.Sprintf("\n        from line %d:in '%s'", frame.Line, frame.Name))
-		}
-	}
-
-	return sb.String()
-}
-
-func NewError(format string, args ...interface{}) *Error {
-	return &Error{Message: fmt.Sprintf(format, args...)}
-}
-
-func NewErrorAt(file string, line int, source string, stack []StackFrame, format string, args ...interface{}) *Error {
-	return &Error{
-		Message: fmt.Sprintf(format, args...),
-		File:    file,
-		Line:    line,
-		Source:  source,
-		Stack:   stack,
-	}
-}
-
 // EMPTY is the empty list singleton, used as "no value".
 var EMPTY = &List{Elements: []Value{}}
 
@@ -314,13 +246,9 @@ func IsTruthy(v Value) bool {
 	}
 }
 
-func IsError(v Value) bool {
-	return v != nil && v.Type() == ErrorType
-}
-
 // Fault represents an internal evaluation failure that halts execution.
-// Unlike Error (which is a shaped recoverable value), Fault is not
-// an ordinary Aiki value - evaluation halts immediately when one occurs.
+// Fault is not an ordinary Aiki value - evaluation halts immediately when one occurs.
+// For recoverable errors, use shaped lists: [@error, :kind, "message"]
 type Fault struct {
 	Message string
 	File    string

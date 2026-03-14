@@ -145,11 +145,6 @@ func runExpr(expr string, opts Options) {
 		return
 	}
 
-	if e, ok := result.(*value.Error); ok {
-		fmt.Fprintln(os.Stderr, e.Inspect())
-		os.Exit(1)
-	}
-
 	if f, ok := result.(*value.Fault); ok {
 		fmt.Fprintln(os.Stderr, f.Inspect())
 		os.Exit(1)
