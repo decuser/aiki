@@ -7,21 +7,21 @@ import (
 
 func halType(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
-		return value.NewError("type: want 1 argument, got %d", len(args))
+		return value.NewFault("type: want 1 argument, got %d", len(args))
 	}
 	return &value.Symbol{Val: string(args[0].Type())}
 }
 
 func halInspect(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
-		return value.NewError("inspect: want 1 argument, got %d", len(args))
+		return value.NewFault("inspect: want 1 argument, got %d", len(args))
 	}
 	return &value.String{Val: args[0].Inspect()}
 }
 
 func halEqual(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 2 {
-		return value.NewError("equal: want 2 arguments, got %d", len(args))
+		return value.NewFault("equal: want 2 arguments, got %d", len(args))
 	}
 	if valuesEqual(args[0], args[1]) {
 		return value.TRUE
@@ -31,7 +31,7 @@ func halEqual(args []value.Value, ctx *hal.EvalContext) value.Value {
 
 func halOrd(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
-		return value.NewError("ord: want 1 argument")
+		return value.NewFault("ord: want 1 argument")
 	}
 	switch v := args[0].(type) {
 	case *value.Rune:
@@ -42,7 +42,7 @@ func halOrd(args []value.Value, ctx *hal.EvalContext) value.Value {
 		}
 		return value.NewNumber(int64([]rune(v.Val)[0]), 1)
 	default:
-		return value.NewError("ord: expected rune or string")
+		return value.NewFault("ord: expected rune or string")
 	}
 }
 
@@ -75,18 +75,18 @@ func valuesEqual(a, b value.Value) bool {
 // n must be an integer >= 1.
 func halStackLimit(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
-		return value.NewError("stack_limit: want 1 argument, got %d", len(args))
+		return value.NewFault("stack_limit: want 1 argument, got %d", len(args))
 	}
 	if ctx == nil || ctx.Env == nil {
-		return value.NewError("stack_limit: environment not available")
+		return value.NewFault("stack_limit: environment not available")
 	}
 	num, ok := args[0].(*value.Number)
 	if !ok || !num.Val.IsInt() {
-		return value.NewError("stack_limit: n must be integer >= 1")
+		return value.NewFault("stack_limit: n must be integer >= 1")
 	}
 	n := num.Val.Num().Int64()
 	if n < 1 {
-		return value.NewError("stack_limit: n must be integer >= 1")
+		return value.NewFault("stack_limit: n must be integer >= 1")
 	}
 	ctx.Env.SetStackLimit(int(n))
 	return value.EMPTY

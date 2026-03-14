@@ -21,13 +21,13 @@ func TestBoundaryUserCannotSeeHAL(t *testing.T) {
 		t.Fatalf("eval error: %v", err)
 	}
 
-	// Should be an error about undefined _print
-	if !value.IsError(result) {
-		t.Errorf("expected error for _print in user scope, got: %s", result.Inspect())
+	// Should be a fault about undefined _print
+	if !value.IsFault(result) {
+		t.Errorf("expected fault for _print in user scope, got: %s", result.Inspect())
 	}
-	errVal := result.(*value.Error)
-	if errVal.Message != "undefined: _print" {
-		t.Errorf("expected 'undefined: _print', got: %s", errVal.Message)
+	faultVal := result.(*value.Fault)
+	if faultVal.Message != "undefined: _print" {
+		t.Errorf("expected 'undefined: _print', got: %s", faultVal.Message)
 	}
 }
 
@@ -40,9 +40,9 @@ func TestBoundaryUserCanSeePrintAfterPrelude(t *testing.T) {
 		t.Fatalf("eval error: %v", err)
 	}
 
-	// Should resolve to function from prelude, not error
-	if value.IsError(result) {
-		t.Errorf("expected print to resolve in user scope after prelude, got error: %s", result.Inspect())
+	// Should resolve to function from prelude, not fault
+	if value.IsFault(result) {
+		t.Errorf("expected print to resolve in user scope after prelude, got fault: %s", result.Inspect())
 	}
 }
 
@@ -56,8 +56,8 @@ func TestBoundaryUserCannotSeePrintWithoutPrelude(t *testing.T) {
 	}
 
 	// Should be undefined without prelude
-	if !value.IsError(result) {
-		t.Errorf("expected error for print without prelude, got: %s", result.Inspect())
+	if !value.IsFault(result) {
+		t.Errorf("expected fault for print without prelude, got: %s", result.Inspect())
 	}
 }
 
@@ -70,9 +70,9 @@ func TestBoundaryPreludeCanSeeHAL(t *testing.T) {
 		t.Fatalf("eval error: %v", err)
 	}
 
-	// Should resolve to builtin, not error
-	if value.IsError(result) {
-		t.Errorf("expected _print to resolve in prelude scope, got error: %s", result.Inspect())
+	// Should resolve to builtin, not fault
+	if value.IsFault(result) {
+		t.Errorf("expected _print to resolve in prelude scope, got fault: %s", result.Inspect())
 	}
 }
 
@@ -86,7 +86,7 @@ func TestBoundaryPreludeCannotSeeNonPrefixed(t *testing.T) {
 	}
 
 	// Without prelude loading, print is not defined
-	if !value.IsError(result) {
+	if !value.IsFault(result) {
 		t.Errorf("expected print to be undefined in prelude scope without prelude, got: %s", result.Inspect())
 	}
 }
@@ -180,8 +180,8 @@ func loadPreludeInto(g *grammar.Grammar, rt *substrate.GoRuntime, env *value.Env
 
 	ev := evaluator.New(rt, nil)
 	result := ev.Eval(ast, env)
-	if errVal, ok := result.(*value.Error); ok {
-		return fmt.Errorf("%s", errVal.Message)
+	if faultVal, ok := result.(*value.Fault); ok {
+		return fmt.Errorf("%s", faultVal.Message)
 	}
 
 	return nil

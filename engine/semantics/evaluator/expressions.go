@@ -46,11 +46,19 @@ func (e *Evaluator) evalPipe(node *syntax.Node, env *value.Env) value.Value {
 			if shouldHalt(result) {
 				return result
 			}
+			// Short-circuit on shaped error
+			if value.IsShapedError(result) {
+				return result
+			}
 			continue
 		}
 
 		result = e.applyPipe(child, result, env)
 		if shouldHalt(result) {
+			return result
+		}
+		// Short-circuit on shaped error
+		if value.IsShapedError(result) {
 			return result
 		}
 	}
@@ -92,7 +100,7 @@ func (e *Evaluator) evalUnary(node *syntax.Node, env *value.Env) value.Value {
 				neg := new(big.Rat).Neg(num.Val)
 				operand = &value.Number{Val: neg}
 			} else {
-				return e.makeError(node, env, "cannot negate %s", operand.Type())
+				return e.makeFault(node, env, "cannot negate %s", operand.Type())
 			}
 		}
 	}

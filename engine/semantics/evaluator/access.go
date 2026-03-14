@@ -11,7 +11,7 @@ func (e *Evaluator) evalIndex(val value.Value, node *syntax.Node, env *value.Env
 		if s, ok := val.(*value.String); ok {
 			return e.evalStringIndex(s, node, env)
 		}
-		return e.makeError(node, env, "cannot index %s", val.Type())
+		return e.makeFault(node, env, "cannot index %s", val.Type())
 	}
 
 	for _, child := range node.Children {
@@ -22,14 +22,14 @@ func (e *Evaluator) evalIndex(val value.Value, node *syntax.Node, env *value.Env
 			}
 			num, ok := idx.(*value.Number)
 			if !ok {
-				return e.makeError(node, env, "index must be a number")
+				return e.makeFault(node, env, "index must be a number")
 			}
 			if !num.Val.IsInt() {
-				return e.makeError(node, env, "index must be an integer")
+				return e.makeFault(node, env, "index must be an integer")
 			}
 			i := int(num.Val.Num().Int64())
 			if i < 0 || i >= len(list.Elements) {
-				return e.makeError(node, env, "index out of bounds: %d", i)
+				return e.makeFault(node, env, "index out of bounds: %d", i)
 			}
 			return list.Elements[i]
 		}
@@ -47,15 +47,15 @@ func (e *Evaluator) evalStringIndex(s *value.String, node *syntax.Node, env *val
 			}
 			num, ok := idx.(*value.Number)
 			if !ok {
-				return e.makeError(node, env, "index must be a number")
+				return e.makeFault(node, env, "index must be a number")
 			}
 			if !num.Val.IsInt() {
-				return e.makeError(node, env, "index must be an integer")
+				return e.makeFault(node, env, "index must be an integer")
 			}
 			i := int(num.Val.Num().Int64())
 			runes := []rune(s.Val)
 			if i < 0 || i >= len(runes) {
-				return e.makeError(node, env, "index out of bounds: %d", i)
+				return e.makeFault(node, env, "index out of bounds: %d", i)
 			}
 			return &value.Rune{Val: runes[i]}
 		}
@@ -71,7 +71,7 @@ func (e *Evaluator) evalAccess(val value.Value, node *syntax.Node, env *value.En
 				fieldName := child.Value
 				v, ok := mod.Get(fieldName)
 				if !ok {
-					return e.makeError(node, env, "'%s' not exported by module '%s'", fieldName, mod.Name)
+					return e.makeFault(node, env, "'%s' not exported by module '%s'", fieldName, mod.Name)
 				}
 				return v
 			}
@@ -82,7 +82,7 @@ func (e *Evaluator) evalAccess(val value.Value, node *syntax.Node, env *value.En
 	// Shape field access
 	list, ok := val.(*value.List)
 	if !ok || list.Shape == "" {
-		return e.makeError(node, env, "cannot access field on %s", val.Type())
+		return e.makeFault(node, env, "cannot access field on %s", val.Type())
 	}
 
 	for _, child := range node.Children {
@@ -90,14 +90,14 @@ func (e *Evaluator) evalAccess(val value.Value, node *syntax.Node, env *value.En
 			fieldName := child.Value
 			shapeDef, ok := env.GetShape(list.Shape)
 			if !ok {
-				return e.makeError(node, env, "unknown shape: %s", list.Shape)
+				return e.makeFault(node, env, "unknown shape: %s", list.Shape)
 			}
 			for i, f := range shapeDef.Fields {
 				if f == fieldName && i < len(list.Elements) {
 					return list.Elements[i]
 				}
 			}
-			return e.makeError(node, env, "no field %s in @%s", fieldName, list.Shape)
+			return e.makeFault(node, env, "no field %s in @%s", fieldName, list.Shape)
 		}
 	}
 

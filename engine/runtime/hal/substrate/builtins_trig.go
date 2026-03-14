@@ -11,11 +11,11 @@ import (
 
 func halCos(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
-		return value.NewError("cos: want 1 argument, got %d", len(args))
+		return value.NewFault("cos: want 1 argument, got %d", len(args))
 	}
 	n, ok := args[0].(*value.Number)
 	if !ok {
-		return value.NewError("cos: expected number")
+		return value.NewFault("cos: expected number")
 	}
 	f, _ := n.Val.Float64()
 	r := new(big.Rat).SetFloat64(math.Cos(f))
@@ -24,11 +24,11 @@ func halCos(args []value.Value, ctx *hal.EvalContext) value.Value {
 
 func halSin(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
-		return value.NewError("sin: want 1 argument, got %d", len(args))
+		return value.NewFault("sin: want 1 argument, got %d", len(args))
 	}
 	n, ok := args[0].(*value.Number)
 	if !ok {
-		return value.NewError("sin: expected number")
+		return value.NewFault("sin: expected number")
 	}
 	f, _ := n.Val.Float64()
 	r := new(big.Rat).SetFloat64(math.Sin(f))
@@ -37,11 +37,11 @@ func halSin(args []value.Value, ctx *hal.EvalContext) value.Value {
 
 func halSleep(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
-		return value.NewError("sleep: want 1 argument, got %d", len(args))
+		return value.NewFault("sleep: want 1 argument, got %d", len(args))
 	}
 	n, ok := args[0].(*value.Number)
 	if !ok {
-		return value.NewError("sleep: expected number (milliseconds)")
+		return value.NewFault("sleep: expected number (milliseconds)")
 	}
 	ms, _ := n.Val.Float64()
 	time.Sleep(time.Duration(ms) * time.Millisecond)

@@ -11,7 +11,7 @@ import (
 func (e *Evaluator) evalNumber(node *syntax.Node, env *value.Env) value.Value {
 	num, err := value.NewNumberFromString(node.Value)
 	if err != nil {
-		return e.makeError(node, env, "invalid number: %s", node.Value)
+		return e.makeFault(node, env, "invalid number: %s", node.Value)
 	}
 	return num
 }
@@ -19,7 +19,7 @@ func (e *Evaluator) evalNumber(node *syntax.Node, env *value.Env) value.Value {
 func (e *Evaluator) evalString(node *syntax.Node, env *value.Env) value.Value {
 	s, err := strconv.Unquote(node.Value)
 	if err != nil {
-		return e.makeError(node, env, "invalid string: %s", node.Value)
+		return e.makeFault(node, env, "invalid string: %s", node.Value)
 	}
 	return &value.String{Val: s}
 }
@@ -74,7 +74,7 @@ func (e *Evaluator) evalName(node *syntax.Node, env *value.Env) value.Value {
 		}
 	}
 
-	return e.makeError(node, env, "undefined: %s", name)
+	return e.makeFault(node, env, "undefined: %s", name)
 }
 
 func (e *Evaluator) evalTerminal(node *syntax.Node, env *value.Env) value.Value {

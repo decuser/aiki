@@ -17,7 +17,7 @@ func TestCanvasAliveOrError(t *testing.T) {
 
 	// Not started, so no session should exist.
 	v := canvasAliveOrError(cvs, "dot")
-	if v == nil || v.Type() != value.ErrorType {
-		t.Fatalf("expected error for closed canvas, got %v", v)
+	if v == nil || !value.IsShapedError(v) {
+		t.Fatalf("expected shaped error for closed canvas, got %v", v)
 	}
 }

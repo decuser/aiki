@@ -20,16 +20,16 @@ func (e *Evaluator) applyFunction(fn value.Value, args []value.Value, node *synt
 		}
 		e.runtime.SetContext(ctx)
 		result := f.Call(args)
-		// Annotate HAL errors with call site location
-		if err, ok := result.(*value.Error); ok && err.File == "" {
-			err.File = env.GetFile()
-			err.Line = node.Pos.Line
-			err.Source = env.GetSourceLine(node.Pos.Line)
-			err.Stack = env.CopyStack()
+		// Annotate HAL faults with call site location
+		if fault, ok := result.(*value.Fault); ok && fault.File == "" {
+			fault.File = env.GetFile()
+			fault.Line = node.Pos.Line
+			fault.Source = env.GetSourceLine(node.Pos.Line)
+			fault.Stack = env.CopyStack()
 		}
 		return result
 	default:
-		return e.makeError(node, env, "not a function: %s", fn.Type())
+		return e.makeFault(node, env, "not a function: %s", fn.Type())
 	}
 }
 
@@ -42,12 +42,12 @@ func (e *Evaluator) applyUserFunction(fn *value.Function, args []value.Value, no
 	for {
 		fnEnv, ok := currentFn.Env.(*value.Env)
 		if !ok {
-			return e.makeError(callSite, env, "invalid function environment")
+			return e.makeFault(callSite, env, "invalid function environment")
 		}
 
 		// Check argument count (excluding rest params)
 		if len(currentArgs) < len(currentFn.Params) {
-			return e.makeError(callSite, env, "%s: want %d arguments, got %d", currentFn.Name, len(currentFn.Params), len(currentArgs))
+			return e.makeFault(callSite, env, "%s: want %d arguments, got %d", currentFn.Name, len(currentFn.Params), len(currentArgs))
 		}
 
 		callEnv := value.NewEnclosedEnv(fnEnv)
@@ -67,7 +67,7 @@ func (e *Evaluator) applyUserFunction(fn *value.Function, args []value.Value, no
 
 		body, ok := currentFn.Body.(*syntax.Node)
 		if !ok {
-			return e.makeError(callSite, env, "invalid function body")
+			return e.makeFault(callSite, env, "invalid function body")
 		}
 
 		funcName := currentFn.Name
@@ -79,7 +79,7 @@ func (e *Evaluator) applyUserFunction(fn *value.Function, args []value.Value, no
 		if !pushed {
 			limit := callEnv.GetStackLimit()
 			if limit > 0 && callEnv.StackDepth() >= limit {
-				return e.makeError(callSite, callEnv, "stack overflow")
+				return e.makeFault(callSite, callEnv, "stack overflow")
 			}
 			callEnv.PushFrame(funcName, callSite.Pos.Line, callEnv.GetScope())
 			pushed = true

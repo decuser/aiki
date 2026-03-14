@@ -140,14 +140,14 @@ func TestSeedReproducible(t *testing.T) {
 func TestRandomErrors(t *testing.T) {
 	// zero max
 	result := halRandom([]value.Value{value.NewNumber(0, 1)}, nil)
-	if !value.IsError(result) {
-		t.Error("random(0) should error")
+	if !value.IsFault(result) {
+		t.Error("random(0) should fault")
 	}
 
 	// negative max
 	result = halRandom([]value.Value{value.NewNumber(-5, 1)}, nil)
-	if !value.IsError(result) {
-		t.Error("random(-5) should error")
+	if !value.IsFault(result) {
+		t.Error("random(-5) should fault")
 	}
 }
 

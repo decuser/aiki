@@ -20,7 +20,7 @@ func halQuit(args []value.Value, ctx *hal.EvalContext) value.Value {
 
 func halReset(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 0 {
-		return value.NewError("reset: want 0 arguments, got %d", len(args))
+		return value.NewFault("reset: want 0 arguments, got %d", len(args))
 	}
 	CloseAllCanvases()
 	return value.RESET
@@ -33,7 +33,7 @@ func halHelp(args []value.Value, ctx *hal.EvalContext) value.Value {
 
 	s, ok := args[0].(*value.String)
 	if !ok {
-		return value.NewError("help: expected string, got %s", args[0].Type())
+		return value.NewFault("help: expected string, got %s", args[0].Type())
 	}
 
 	if s.Val == "" {
@@ -45,12 +45,12 @@ func halHelp(args []value.Value, ctx *hal.EvalContext) value.Value {
 
 func halDoc(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
-		return value.NewError("doc: want 1 argument, got %d", len(args))
+		return value.NewFault("doc: want 1 argument, got %d", len(args))
 	}
 
 	s, ok := args[0].(*value.String)
 	if !ok {
-		return value.NewError("doc: expected string, got %s", args[0].Type())
+		return value.NewFault("doc: expected string, got %s", args[0].Type())
 	}
 
 	return showDoc(s.Val, ctx)

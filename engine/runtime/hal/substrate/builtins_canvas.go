@@ -74,12 +74,12 @@ func CloseAllCanvases() {
 
 func halCanvas(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 2 {
-		return value.NewError("canvas: want 2 arguments, got %d", len(args))
+		return value.NewFault("canvas: want 2 arguments, got %d", len(args))
 	}
 	width, ok1 := toInt(args[0])
 	height, ok2 := toInt(args[1])
 	if !ok1 || !ok2 {
-		return value.NewError("canvas: width and height must be numbers")
+		return value.NewFault("canvas: width and height must be numbers")
 	}
 
 	cvs := &value.Canvas{
@@ -96,7 +96,7 @@ func halCanvas(args []value.Value, ctx *hal.EvalContext) value.Value {
 	trackCanvas(cvs)
 	if err := startCanvasSession(cvs); err != nil {
 		untrackCanvas(cvs)
-		return value.NewError("canvas: %v", err)
+		return value.NewShapedError("canvas", "canvas: %v", err)
 	}
 	<-cvs.Ready
 
@@ -105,11 +105,11 @@ func halCanvas(args []value.Value, ctx *hal.EvalContext) value.Value {
 
 func halDot(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) < 3 || len(args) > 4 {
-		return value.NewError("dot: want 3 or 4 arguments, got %d", len(args))
+		return value.NewFault("dot: want 3 or 4 arguments, got %d", len(args))
 	}
 	cvs, ok := args[0].(*value.Canvas)
 	if !ok {
-		return value.NewError("dot: expected canvas")
+		return value.NewFault("dot: expected canvas")
 		if errv := requireCanvasActive("dot", cvs); errv != nil {
 			return errv
 		}
@@ -157,13 +157,13 @@ func halDot(args []value.Value, ctx *hal.EvalContext) value.Value {
 	x, ok1 := toInt(args[1])
 	y, ok2 := toInt(args[2])
 	if !ok1 || !ok2 {
-		return value.NewError("dot: coordinates must be numbers")
+		return value.NewFault("dot: coordinates must be numbers")
 	}
 	clr := cvs.FG
 	if len(args) == 4 {
 		clr, ok = parseColor(args[3])
 		if !ok {
-			return value.NewError("dot: invalid color")
+			return value.NewFault("dot: invalid color")
 		}
 	}
 	cvs.Commands <- value.CanvasCmd{Op: "dot", Args: []int{x, y}, Color: clr}
@@ -172,11 +172,11 @@ func halDot(args []value.Value, ctx *hal.EvalContext) value.Value {
 
 func halLine(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) < 5 || len(args) > 6 {
-		return value.NewError("line: want 5 or 6 arguments, got %d", len(args))
+		return value.NewFault("line: want 5 or 6 arguments, got %d", len(args))
 	}
 	cvs, ok := args[0].(*value.Canvas)
 	if !ok {
-		return value.NewError("line: expected canvas")
+		return value.NewFault("line: expected canvas")
 		if errv := requireCanvasActive("line", cvs); errv != nil {
 			return errv
 		}
@@ -186,13 +186,13 @@ func halLine(args []value.Value, ctx *hal.EvalContext) value.Value {
 	x2, ok3 := toInt(args[3])
 	y2, ok4 := toInt(args[4])
 	if !ok1 || !ok2 || !ok3 || !ok4 {
-		return value.NewError("line: coordinates must be numbers")
+		return value.NewFault("line: coordinates must be numbers")
 	}
 	clr := cvs.FG
 	if len(args) == 6 {
 		clr, ok = parseColor(args[5])
 		if !ok {
-			return value.NewError("line: invalid color")
+			return value.NewFault("line: invalid color")
 		}
 	}
 	cvs.Commands <- value.CanvasCmd{Op: "line", Args: []int{x1, y1, x2, y2}, Color: clr, PenSize: cvs.PenSize}
@@ -209,11 +209,11 @@ func halFillRect(args []value.Value, ctx *hal.EvalContext) value.Value {
 
 func rectHelper(op string, args []value.Value) value.Value {
 	if len(args) < 5 || len(args) > 6 {
-		return value.NewError("%s: want 5 or 6 arguments, got %d", op, len(args))
+		return value.NewFault("%s: want 5 or 6 arguments, got %d", op, len(args))
 	}
 	cvs, ok := args[0].(*value.Canvas)
 	if !ok {
-		return value.NewError("%s: expected canvas", op)
+		return value.NewFault("%s: expected canvas", op)
 		if errv := requireCanvasActive(op, cvs); errv != nil {
 			return errv
 		}
@@ -223,13 +223,13 @@ func rectHelper(op string, args []value.Value) value.Value {
 	w, ok3 := toInt(args[3])
 	h, ok4 := toInt(args[4])
 	if !ok1 || !ok2 || !ok3 || !ok4 {
-		return value.NewError("%s: dimensions must be numbers", op)
+		return value.NewFault("%s: dimensions must be numbers", op)
 	}
 	clr := cvs.FG
 	if len(args) == 6 {
 		clr, ok = parseColor(args[5])
 		if !ok {
-			return value.NewError("%s: invalid color", op)
+			return value.NewFault("%s: invalid color", op)
 		}
 	}
 	cvs.Commands <- value.CanvasCmd{Op: op, Args: []int{x, y, w, h}, Color: clr, PenSize: cvs.PenSize}
@@ -246,11 +246,11 @@ func halFillCircle(args []value.Value, ctx *hal.EvalContext) value.Value {
 
 func circleHelper(op string, args []value.Value) value.Value {
 	if len(args) < 4 || len(args) > 5 {
-		return value.NewError("%s: want 4 or 5 arguments, got %d", op, len(args))
+		return value.NewFault("%s: want 4 or 5 arguments, got %d", op, len(args))
 	}
 	cvs, ok := args[0].(*value.Canvas)
 	if !ok {
-		return value.NewError("%s: expected canvas", op)
+		return value.NewFault("%s: expected canvas", op)
 		if errv := requireCanvasActive(op, cvs); errv != nil {
 			return errv
 		}
@@ -259,13 +259,13 @@ func circleHelper(op string, args []value.Value) value.Value {
 	y, ok2 := toInt(args[2])
 	r, ok3 := toInt(args[3])
 	if !ok1 || !ok2 || !ok3 {
-		return value.NewError("%s: dimensions must be numbers", op)
+		return value.NewFault("%s: dimensions must be numbers", op)
 	}
 	clr := cvs.FG
 	if len(args) == 5 {
 		clr, ok = parseColor(args[4])
 		if !ok {
-			return value.NewError("%s: invalid color", op)
+			return value.NewFault("%s: invalid color", op)
 		}
 	}
 	cvs.Commands <- value.CanvasCmd{Op: op, Args: []int{x, y, r}, Color: clr, PenSize: cvs.PenSize}
@@ -274,11 +274,11 @@ func circleHelper(op string, args []value.Value) value.Value {
 
 func halClear(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
-		return value.NewError("clear: want 1 argument, got %d", len(args))
+		return value.NewFault("clear: want 1 argument, got %d", len(args))
 	}
 	cvs, ok := args[0].(*value.Canvas)
 	if !ok {
-		return value.NewError("clear: expected canvas")
+		return value.NewFault("clear: expected canvas")
 		if errv := requireCanvasActive("clear", cvs); errv != nil {
 			return errv
 		}
@@ -289,11 +289,11 @@ func halClear(args []value.Value, ctx *hal.EvalContext) value.Value {
 
 func halDestroy(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
-		return value.NewError("destroy: want 1 argument, got %d", len(args))
+		return value.NewFault("destroy: want 1 argument, got %d", len(args))
 	}
 	cvs, ok := args[0].(*value.Canvas)
 	if !ok {
-		return value.NewError("destroy: expected canvas")
+		return value.NewFault("destroy: expected canvas")
 	}
 	select {
 	case <-cvs.Done:
@@ -308,18 +308,18 @@ func halDestroy(args []value.Value, ctx *hal.EvalContext) value.Value {
 
 func halSetBG(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 2 {
-		return value.NewError("set_bg: want 2 arguments, got %d", len(args))
+		return value.NewFault("set_bg: want 2 arguments, got %d", len(args))
 	}
 	cvs, ok := args[0].(*value.Canvas)
 	if !ok {
-		return value.NewError("set_bg: expected canvas")
+		return value.NewFault("set_bg: expected canvas")
 		if errv := requireCanvasActive("set_bg", cvs); errv != nil {
 			return errv
 		}
 	}
 	clr, ok := parseColor(args[1])
 	if !ok {
-		return value.NewError("set_bg: invalid color")
+		return value.NewFault("set_bg: invalid color")
 	}
 	cvs.BG = clr
 	sendCanvasSetBG(cvs, clr)
@@ -328,18 +328,18 @@ func halSetBG(args []value.Value, ctx *hal.EvalContext) value.Value {
 
 func halSetFG(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 2 {
-		return value.NewError("set_fg: want 2 arguments, got %d", len(args))
+		return value.NewFault("set_fg: want 2 arguments, got %d", len(args))
 	}
 	cvs, ok := args[0].(*value.Canvas)
 	if !ok {
-		return value.NewError("set_fg: expected canvas")
+		return value.NewFault("set_fg: expected canvas")
 		if errv := requireCanvasActive("set_fg", cvs); errv != nil {
 			return errv
 		}
 	}
 	clr, ok := parseColor(args[1])
 	if !ok {
-		return value.NewError("set_fg: invalid color")
+		return value.NewFault("set_fg: invalid color")
 	}
 	cvs.FG = clr
 	sendCanvasSetFG(cvs, clr)
@@ -348,18 +348,18 @@ func halSetFG(args []value.Value, ctx *hal.EvalContext) value.Value {
 
 func halPenSize(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 2 {
-		return value.NewError("pen_size: want 2 arguments, got %d", len(args))
+		return value.NewFault("pen_size: want 2 arguments, got %d", len(args))
 	}
 	cvs, ok := args[0].(*value.Canvas)
 	if !ok {
-		return value.NewError("pen_size: expected canvas")
+		return value.NewFault("pen_size: expected canvas")
 		if errv := requireCanvasActive("pen_size", cvs); errv != nil {
 			return errv
 		}
 	}
 	size, ok := toInt(args[1])
 	if !ok || size < 1 {
-		return value.NewError("pen_size: size must be a positive number")
+		return value.NewFault("pen_size: size must be a positive number")
 	}
 	cvs.PenSize = float32(size)
 	return value.TRUE
@@ -369,7 +369,7 @@ func halPenSize(args []value.Value, ctx *hal.EvalContext) value.Value {
 
 func requireCanvasActive(op string, cvs *value.Canvas) value.Value {
 	if !canvasSessionAlive(cvs) {
-		return value.NewError("%s: canvas closed", op)
+		return value.NewShapedError("canvas", "%s: canvas closed", op)
 	}
 	return nil
 }
@@ -408,7 +408,7 @@ func parseColor(v value.Value) (color.RGBA, bool) {
 // This is used by builtins to fail fast when the user closes the window manually.
 func canvasAliveOrError(cvs *value.Canvas, name string) value.Value {
 	if !canvasSessionAlive(cvs) {
-		return value.NewError("%s: canvas closed", name)
+		return value.NewShapedError("canvas", "%s: canvas closed", name)
 	}
 	return nil
 }

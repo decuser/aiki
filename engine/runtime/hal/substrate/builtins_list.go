@@ -7,28 +7,28 @@ import (
 
 func halFirst(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
-		return value.NewError("first: want 1 argument, got %d", len(args))
+		return value.NewFault("first: want 1 argument, got %d", len(args))
 	}
 	switch a := args[0].(type) {
 	case *value.List:
 		if len(a.Elements) == 0 {
-			return value.NewError("first: empty list")
+			return value.NewFault("first: empty list")
 		}
 		return a.Elements[0]
 	case *value.String:
 		runes := []rune(a.Val)
 		if len(runes) == 0 {
-			return value.NewError("first: empty string")
+			return value.NewFault("first: empty string")
 		}
 		return &value.Rune{Val: runes[0]}
 	default:
-		return value.NewError("first: expected list or string")
+		return value.NewFault("first: expected list or string")
 	}
 }
 
 func halRest(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
-		return value.NewError("rest: want 1 argument, got %d", len(args))
+		return value.NewFault("rest: want 1 argument, got %d", len(args))
 	}
 	switch a := args[0].(type) {
 	case *value.List:
@@ -43,13 +43,13 @@ func halRest(args []value.Value, ctx *hal.EvalContext) value.Value {
 		}
 		return &value.String{Val: string(runes[1:])}
 	default:
-		return value.NewError("rest: expected list or string")
+		return value.NewFault("rest: expected list or string")
 	}
 }
 
 func halLength(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
-		return value.NewError("length: want 1 argument, got %d", len(args))
+		return value.NewFault("length: want 1 argument, got %d", len(args))
 	}
 	switch a := args[0].(type) {
 	case *value.List:
@@ -57,17 +57,17 @@ func halLength(args []value.Value, ctx *hal.EvalContext) value.Value {
 	case *value.String:
 		return value.NewNumber(int64(len([]rune(a.Val))), 1)
 	default:
-		return value.NewError("length: expected list or string")
+		return value.NewFault("length: expected list or string")
 	}
 }
 
 func halPrepend(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 2 {
-		return value.NewError("prepend: want 2 arguments, got %d", len(args))
+		return value.NewFault("prepend: want 2 arguments, got %d", len(args))
 	}
 	list, ok := args[0].(*value.List)
 	if !ok {
-		return value.NewError("prepend: first argument must be list")
+		return value.NewFault("prepend: first argument must be list")
 	}
 	newElems := make([]value.Value, len(list.Elements)+1)
 	newElems[0] = args[1]
@@ -77,11 +77,11 @@ func halPrepend(args []value.Value, ctx *hal.EvalContext) value.Value {
 
 func halAppend(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 2 {
-		return value.NewError("append: want 2 arguments, got %d", len(args))
+		return value.NewFault("append: want 2 arguments, got %d", len(args))
 	}
 	list, ok := args[0].(*value.List)
 	if !ok {
-		return value.NewError("append: first argument must be list")
+		return value.NewFault("append: first argument must be list")
 	}
 	newElems := make([]value.Value, len(list.Elements)+1)
 	copy(newElems, list.Elements)
@@ -91,7 +91,7 @@ func halAppend(args []value.Value, ctx *hal.EvalContext) value.Value {
 
 func halEmpty(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
-		return value.NewError("empty: want 1 argument, got %d", len(args))
+		return value.NewFault("empty: want 1 argument, got %d", len(args))
 	}
 	switch a := args[0].(type) {
 	case *value.List:
@@ -105,30 +105,30 @@ func halEmpty(args []value.Value, ctx *hal.EvalContext) value.Value {
 		}
 		return value.FALSE
 	default:
-		return value.NewError("empty: expected list or string")
+		return value.NewFault("empty: expected list or string")
 	}
 }
 
 func halRange(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) < 1 || len(args) > 2 {
-		return value.NewError("range: want 1 or 2 arguments")
+		return value.NewFault("range: want 1 or 2 arguments")
 	}
 	var start, end int64
 	if len(args) == 1 {
 		n, ok := args[0].(*value.Number)
 		if !ok || !n.Val.IsInt() {
-			return value.NewError("range: expected integer")
+			return value.NewFault("range: expected integer")
 		}
 		start = 0
 		end = n.Val.Num().Int64()
 	} else {
 		s, ok := args[0].(*value.Number)
 		if !ok || !s.Val.IsInt() {
-			return value.NewError("range: expected integer")
+			return value.NewFault("range: expected integer")
 		}
 		e, ok := args[1].(*value.Number)
 		if !ok || !e.Val.IsInt() {
-			return value.NewError("range: expected integer")
+			return value.NewFault("range: expected integer")
 		}
 		start = s.Val.Num().Int64()
 		end = e.Val.Num().Int64()
@@ -143,15 +143,15 @@ func halRange(args []value.Value, ctx *hal.EvalContext) value.Value {
 // halMakeShapedList creates a shaped list from a shape name and elements list.
 func halMakeShapedList(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 2 {
-		return value.NewError("make_shaped_list: want 2 arguments, got %d", len(args))
+		return value.NewFault("make_shaped_list: want 2 arguments, got %d", len(args))
 	}
 	sym, ok := args[0].(*value.Symbol)
 	if !ok {
-		return value.NewError("make_shaped_list: expected symbol for shape, got %s", args[0].Type())
+		return value.NewFault("make_shaped_list: expected symbol for shape, got %s", args[0].Type())
 	}
 	list, ok := args[1].(*value.List)
 	if !ok {
-		return value.NewError("make_shaped_list: expected list for elements, got %s", args[1].Type())
+		return value.NewFault("make_shaped_list: expected list for elements, got %s", args[1].Type())
 	}
 	return &value.List{Elements: list.Elements, Shape: sym.Val}
 }

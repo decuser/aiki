@@ -14,7 +14,7 @@ import (
 // halApply implements apply(fn, list) - spreads list as args.
 func halApply(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 2 {
-		return value.NewError("apply: want 2 arguments, got %d", len(args))
+		return value.NewFault("apply: want 2 arguments, got %d", len(args))
 	}
 
 	fn := args[0]
@@ -22,7 +22,7 @@ func halApply(args []value.Value, ctx *hal.EvalContext) value.Value {
 
 	list, ok := listVal.(*value.List)
 	if !ok {
-		return value.NewError("apply: second argument must be list, got %s", listVal.Type())
+		return value.NewFault("apply: second argument must be list, got %s", listVal.Type())
 	}
 
 	// Dispatch based on function type
@@ -32,19 +32,19 @@ func halApply(args []value.Value, ctx *hal.EvalContext) value.Value {
 	case value.Callable:
 		return f.Call(list.Elements)
 	default:
-		return value.NewError("apply: first argument must be function, got %s", fn.Type())
+		return value.NewFault("apply: first argument must be function, got %s", fn.Type())
 	}
 }
 
 // applyUserFunction calls a user-defined function with args.
 func applyUserFunction(fn *value.Function, args []value.Value, ctx *hal.EvalContext) value.Value {
 	if ctx == nil || ctx.Eval == nil {
-		return value.NewError("apply: evaluation context not available")
+		return value.NewFault("apply: evaluation context not available")
 	}
 
 	fnEnv, ok := fn.Env.(*value.Env)
 	if !ok {
-		return value.NewError("apply: invalid function environment")
+		return value.NewFault("apply: invalid function environment")
 	}
 
 	callEnv := value.NewEnclosedEnv(fnEnv)
@@ -68,7 +68,7 @@ func applyUserFunction(fn *value.Function, args []value.Value, ctx *hal.EvalCont
 
 	body, ok := fn.Body.(*syntax.Node)
 	if !ok {
-		return value.NewError("apply: invalid function body")
+		return value.NewFault("apply: invalid function body")
 	}
 
 	result := ctx.Eval(body, callEnv)
@@ -84,18 +84,18 @@ func applyUserFunction(fn *value.Function, args []value.Value, ctx *hal.EvalCont
 // Records exported names on the environment.
 func halExport(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) == 0 {
-		return value.NewError("export: want at least 1 argument")
+		return value.NewFault("export: want at least 1 argument")
 	}
 
 	if ctx == nil || ctx.Env == nil {
-		return value.NewError("export: environment not available")
+		return value.NewFault("export: environment not available")
 	}
 
 	var names []string
 	for _, arg := range args {
 		sym, ok := arg.(*value.Symbol)
 		if !ok {
-			return value.NewError("export: expected symbol, got %s", arg.Type())
+			return value.NewFault("export: expected symbol, got %s", arg.Type())
 		}
 		names = append(names, sym.Val)
 	}
@@ -108,17 +108,17 @@ func halExport(args []value.Value, ctx *hal.EvalContext) value.Value {
 // Parses and evaluates the module, then copies exported names into the current environment.
 func halImport(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) < 1 {
-		return value.NewError("import: want at least module name")
+		return value.NewFault("import: want at least module name")
 	}
 
 	if ctx == nil || ctx.Env == nil || ctx.Grammar == nil || ctx.Eval == nil {
-		return value.NewError("import: evaluation context not available")
+		return value.NewFault("import: evaluation context not available")
 	}
 
 	// First arg: module name or path (string)
 	moduleStr, ok := args[0].(*value.String)
 	if !ok {
-		return value.NewError("import: expected string module name, got %s", args[0].Type())
+		return value.NewFault("import: expected string module name, got %s", args[0].Type())
 	}
 	moduleName := moduleStr.Val
 
@@ -127,7 +127,7 @@ func halImport(args []value.Value, ctx *hal.EvalContext) value.Value {
 	for _, arg := range args[1:] {
 		sym, ok := arg.(*value.Symbol)
 		if !ok {
-			return value.NewError("import: expected symbol, got %s", arg.Type())
+			return value.NewFault("import: expected symbol, got %s", arg.Type())
 		}
 		importNames = append(importNames, sym.Val)
 	}
@@ -147,7 +147,7 @@ func halImport(args []value.Value, ctx *hal.EvalContext) value.Value {
 	for _, name := range importNames {
 		val, ok := mod.Get(name)
 		if !ok {
-			return value.NewError("import: '%s' is not exported by '%s'", name, mod.Name)
+			return value.NewShapedError("import", "import: '%s' is not exported by '%s'", name, mod.Name)
 		}
 		ctx.Env.Set(name, val)
 	}
@@ -156,7 +156,7 @@ func halImport(args []value.Value, ctx *hal.EvalContext) value.Value {
 }
 
 // loadModule loads a module by name or path, using cache if available.
-func loadModule(name string, ctx *hal.EvalContext) (*value.Module, *value.Error) {
+func loadModule(name string, ctx *hal.EvalContext) (*value.Module, value.Value) {
 	var modulePath string
 	var pkgName string
 
@@ -164,14 +164,14 @@ func loadModule(name string, ctx *hal.EvalContext) (*value.Module, *value.Error)
 		// Path-based import: resolve relative to current file
 		modulePath = resolveRelativePath(name, ctx.Env)
 		if modulePath == "" {
-			return nil, value.NewError("import: cannot find '%s'", name)
+			return nil, value.NewShapedError("import", "import: cannot find '%s'", name)
 		}
 		// Package name will be determined from file
 		pkgName = ""
 	} else {
 		// Registry-based import
 		if GlobalRegistry == nil {
-			return nil, value.NewError("import: module registry not initialized")
+			return nil, value.NewFault("import: module registry not initialized")
 		}
 
 		// Check cache first
@@ -183,7 +183,7 @@ func loadModule(name string, ctx *hal.EvalContext) (*value.Module, *value.Error)
 		var ok bool
 		modulePath, ok = GlobalRegistry.Lookup(name)
 		if !ok {
-			return nil, value.NewError("import: unknown package '%s'", name)
+			return nil, value.NewShapedError("import", "import: unknown package '%s'", name)
 		}
 		pkgName = name
 	}
@@ -191,26 +191,26 @@ func loadModule(name string, ctx *hal.EvalContext) (*value.Module, *value.Error)
 	// Read module source
 	data, err := os.ReadFile(modulePath)
 	if err != nil {
-		return nil, value.NewError("import: cannot read '%s': %s", modulePath, err)
+		return nil, value.NewShapedError("import", "import: cannot read '%s': %s", modulePath, err)
 	}
 
 	// Parse module
 	lexer := syntax.NewLexer(ctx.Grammar, modulePath, string(data), nil)
 	tokens, err := lexer.Tokenize()
 	if err != nil {
-		return nil, value.NewError("import: lex error in '%s': %s", modulePath, err)
+		return nil, value.NewShapedError("import", "import: lex error in '%s': %s", modulePath, err)
 	}
 
 	parser := syntax.NewParser(ctx.Grammar, tokens, string(data), nil)
 	ast, err := parser.Parse()
 	if err != nil {
-		return nil, value.NewError("import: parse error in '%s': %s", modulePath, err)
+		return nil, value.NewShapedError("import", "import: parse error in '%s': %s", modulePath, err)
 	}
 
 	// Create module environment enclosed by prelude env (not caller's env)
 	preludeEnv := ctx.Env.GetPreludeEnv()
 	if preludeEnv == nil {
-		return nil, value.NewError("import: prelude environment not available")
+		return nil, value.NewFault("import: prelude environment not available")
 	}
 	modEnv := value.NewEnclosedEnv(preludeEnv)
 	modEnv.SetFile(modulePath)
@@ -218,8 +218,8 @@ func loadModule(name string, ctx *hal.EvalContext) (*value.Module, *value.Error)
 
 	// Evaluate module
 	result := ctx.Eval(ast, modEnv)
-	if errVal, ok := result.(*value.Error); ok {
-		return nil, errVal
+	if value.IsFault(result) {
+		return nil, result
 	}
 
 	// Get package name from evaluated module
@@ -227,7 +227,7 @@ func loadModule(name string, ctx *hal.EvalContext) (*value.Module, *value.Error)
 	if pkgName == "" {
 		pkgName = declaredPkg
 	} else if declaredPkg != "" && declaredPkg != pkgName {
-		return nil, value.NewError("import: package declares '%s' but expected '%s'", declaredPkg, pkgName)
+		return nil, value.NewFault("import: package declares '%s' but expected '%s'", declaredPkg, pkgName)
 	}
 
 	if pkgName == "" {
@@ -241,13 +241,13 @@ func loadModule(name string, ctx *hal.EvalContext) (*value.Module, *value.Error)
 	exportNames := modEnv.GetExports()
 
 	if len(exportNames) == 0 {
-		return nil, value.NewError("import: module '%s' has no exports", pkgName)
+		return nil, value.NewFault("import: module '%s' has no exports", pkgName)
 	}
 
 	for _, expName := range exportNames {
 		val, ok := modEnv.Get(expName)
 		if !ok {
-			return nil, value.NewError("import: exported name '%s' not defined in '%s'", expName, pkgName)
+			return nil, value.NewFault("import: exported name '%s' not defined in '%s'", expName, pkgName)
 		}
 		exports[expName] = val
 	}
@@ -289,38 +289,38 @@ func resolveRelativePath(name string, env *value.Env) string {
 
 func halLoad(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
-		return value.NewError("load: want 1 argument, got %d", len(args))
+		return value.NewFault("load: want 1 argument, got %d", len(args))
 	}
 
 	if ctx == nil || ctx.Grammar == nil || ctx.Eval == nil || ctx.Env == nil {
-		return value.NewError("load: evaluation context not available")
+		return value.NewFault("load: evaluation context not available")
 	}
 
 	pathStr, ok := args[0].(*value.String)
 	if !ok {
-		return value.NewError("load: expected string path, got %s", args[0].Type())
+		return value.NewFault("load: expected string path, got %s", args[0].Type())
 	}
 
 	modulePath := resolveModulePath(pathStr.Val, ctx.Env)
 	if modulePath == "" {
-		return value.NewError("load: cannot find '%s'", pathStr.Val)
+		return value.NewShapedError("load", "load: cannot find '%s'", pathStr.Val)
 	}
 
 	data, err := os.ReadFile(modulePath)
 	if err != nil {
-		return value.NewError("load: cannot read '%s': %s", modulePath, err)
+		return value.NewShapedError("load", "load: cannot read '%s': %s", modulePath, err)
 	}
 
 	lexer := syntax.NewLexer(ctx.Grammar, modulePath, string(data), nil)
 	tokens, err := lexer.Tokenize()
 	if err != nil {
-		return value.NewError("load: lex error in '%s': %s", modulePath, err)
+		return value.NewShapedError("load", "load: lex error in '%s': %s", modulePath, err)
 	}
 
 	parser := syntax.NewParser(ctx.Grammar, tokens, string(data), nil)
 	ast, err := parser.Parse()
 	if err != nil {
-		return value.NewError("load: parse error in '%s': %s", modulePath, err)
+		return value.NewShapedError("load", "load: parse error in '%s': %s", modulePath, err)
 	}
 
 	// Evaluate in current environment
@@ -331,16 +331,16 @@ func halLoad(args []value.Value, ctx *hal.EvalContext) value.Value {
 // Spawned functions run with isolated env - only args are visible, no closure capture.
 func halSpawn(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) < 1 {
-		return value.NewError("spawn: want at least 1 argument (function)")
+		return value.NewFault("spawn: want at least 1 argument (function)")
 	}
 
 	if ctx == nil || ctx.Eval == nil {
-		return value.NewError("spawn: evaluation context not available")
+		return value.NewFault("spawn: evaluation context not available")
 	}
 
 	fn, ok := args[0].(*value.Function)
 	if !ok {
-		return value.NewError("spawn: expected function as first argument, got %s", args[0].Type())
+		return value.NewFault("spawn: expected function as first argument, got %s", args[0].Type())
 	}
 
 	// Capture arguments passed to spawn: spawn(fn, arg1, arg2)
@@ -349,9 +349,9 @@ func halSpawn(args []value.Value, ctx *hal.EvalContext) value.Value {
 	// Launch goroutine with isolated env
 	go func() {
 		result := applyUserFunctionIsolated(fn, fnArgs, ctx)
-		// Log errors from spawned functions (they can't propagate)
-		if err, ok := result.(*value.Error); ok {
-			fmt.Fprintf(os.Stderr, "spawn: %s\n", err.Inspect())
+		// Log faults from spawned functions (they can't propagate)
+		if fault, ok := result.(*value.Fault); ok {
+			fmt.Fprintf(os.Stderr, "spawn: %s\n", fault.Inspect())
 		}
 	}()
 
@@ -362,13 +362,13 @@ func halSpawn(args []value.Value, ctx *hal.EvalContext) value.Value {
 // Only the passed arguments are visible to the function, plus prelude bindings.
 func applyUserFunctionIsolated(fn *value.Function, args []value.Value, ctx *hal.EvalContext) value.Value {
 	if ctx == nil || ctx.Eval == nil {
-		return value.NewError("spawn: evaluation context not available")
+		return value.NewFault("spawn: evaluation context not available")
 	}
 
 	// Get prelude env from context - spawned fn can see prelude but not user bindings
 	preludeEnv := ctx.Env.GetPreludeEnv()
 	if preludeEnv == nil {
-		return value.NewError("spawn: could not find prelude environment")
+		return value.NewFault("spawn: could not find prelude environment")
 	}
 
 	// Fresh env enclosed by prelude - sees prelude bindings but not outer user scope
@@ -395,7 +395,7 @@ func applyUserFunctionIsolated(fn *value.Function, args []value.Value, ctx *hal.
 
 	body, ok := fn.Body.(*syntax.Node)
 	if !ok {
-		return value.NewError("spawn: invalid function body")
+		return value.NewFault("spawn: invalid function body")
 	}
 
 	result := ctx.Eval(body, callEnv)

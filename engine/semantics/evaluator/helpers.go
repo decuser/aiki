@@ -6,9 +6,9 @@ import (
 )
 
 // shouldHalt returns true if evaluation should halt on this value.
-// During the shadow period, this checks both Fault (new) and Error (old).
+// Only Fault halts evaluation. Shaped errors flow as data.
 func shouldHalt(v value.Value) bool {
-	return value.IsError(v) || value.IsFault(v)
+	return value.IsFault(v)
 }
 
 func (e *Evaluator) nonTerminalChildren(node *syntax.Node) []*syntax.Node {

@@ -79,8 +79,8 @@ func (g *GoRuntime) Execute(name string, args []value.Value, ctx *hal.EvalContex
 	}
 
 	result := b.fn(args, ctx)
-	if err, ok := result.(*value.Error); ok {
-		return nil, fmt.Errorf("%s", err.Message)
+	if fault, ok := result.(*value.Fault); ok {
+		return nil, fmt.Errorf("%s", fault.Message)
 	}
 	return result, nil
 }

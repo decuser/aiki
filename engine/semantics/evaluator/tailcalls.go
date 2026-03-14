@@ -142,7 +142,7 @@ func (e *Evaluator) evalIfTail(node *syntax.Node, env *value.Env) value.Value {
 	}
 
 	if cond == nil || thenBlock == nil {
-		return e.makeError(node, env, "if: invalid syntax")
+		return e.makeFault(node, env, "if: invalid syntax")
 	}
 
 	condVal := e.Eval(cond, env)
@@ -175,7 +175,7 @@ func (e *Evaluator) evalMatchTail(node *syntax.Node, env *value.Env) value.Value
 	}
 
 	if matchExpr == nil {
-		return e.makeError(node, env, "match: missing expression")
+		return e.makeFault(node, env, "match: missing expression")
 	}
 
 	matchVal := e.Eval(matchExpr, env)
@@ -217,6 +217,10 @@ func (e *Evaluator) evalPipeTail(node *syntax.Node, env *value.Env) value.Value 
 	if shouldHalt(result) {
 		return result
 	}
+	// Short-circuit on shaped error
+	if value.IsShapedError(result) {
+		return result
+	}
 	for i := 1; i < len(parts); i++ {
 		// last application in tail context
 		if i == len(parts)-1 {
@@ -235,6 +239,10 @@ func (e *Evaluator) evalPipeTail(node *syntax.Node, env *value.Env) value.Value 
 		// non tail intermediate step
 		result = e.applyPipe(parts[i], result, env)
 		if shouldHalt(result) {
+			return result
+		}
+		// Short-circuit on shaped error
+		if value.IsShapedError(result) {
 			return result
 		}
 	}

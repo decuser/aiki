@@ -167,8 +167,8 @@ func TestStackLimitNonTailRecursion(t *testing.T) {
 	down(1000)
 	`
 	v := eval(t, src)
-	if _, ok := v.(*value.Error); !ok {
-		t.Fatalf("expected error, got %T %s", v, v.Inspect())
+	if !value.IsFault(v) {
+		t.Fatalf("expected fault, got %T %s", v, v.Inspect())
 	}
 	if !strings.Contains(v.Inspect(), "stack overflow") {
 		t.Fatalf("expected stack overflow, got %s", v.Inspect())
@@ -185,8 +185,8 @@ func TestProperTailCallExplicitReturn(t *testing.T) {
 	sum_tail(5000, 0)
 	`
 	v := eval(t, src)
-	if _, ok := v.(*value.Error); ok {
-		t.Fatalf("unexpected error: %s", v.Inspect())
+	if value.IsFault(v) {
+		t.Fatalf("unexpected fault: %s", v.Inspect())
 	}
 	if v.Inspect() != "12502500" {
 		t.Fatalf("got %s", v.Inspect())
@@ -203,8 +203,8 @@ func TestProperTailCallImplicitIf(t *testing.T) {
 	return sum_if(5000, 0)
 	`
 	v := eval(t, src)
-	if _, ok := v.(*value.Error); ok {
-		t.Fatalf("unexpected error: %s", v.Inspect())
+	if value.IsFault(v) {
+		t.Fatalf("unexpected fault: %s", v.Inspect())
 	}
 	if v.Inspect() != "12502500" {
 		t.Fatalf("got %s", v.Inspect())
@@ -224,8 +224,8 @@ func TestProperTailCallImplicitMatch(t *testing.T) {
 	return sum_match(5000, 0)
 	`
 	v := eval(t, src)
-	if _, ok := v.(*value.Error); ok {
-		t.Fatalf("unexpected error: %s", v.Inspect())
+	if value.IsFault(v) {
+		t.Fatalf("unexpected fault: %s", v.Inspect())
 	}
 	if v.Inspect() != "12502500" {
 		t.Fatalf("got %s", v.Inspect())

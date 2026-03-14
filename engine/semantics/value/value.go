@@ -304,6 +304,10 @@ func IsTruthy(v Value) bool {
 	case *Boolean:
 		return val.Val
 	case *List:
+		// Shaped errors are falsy
+		if val.Shape == "error" {
+			return false
+		}
 		return len(val.Elements) > 0
 	default:
 		return true
@@ -382,4 +386,30 @@ func NewFaultAt(file string, line int, source string, stack []StackFrame, format
 func IsFault(v Value) bool {
 	_, ok := v.(*Fault)
 	return ok
+}
+
+// IsShapedError returns true for shaped recoverable errors: [@error, :kind, "message"]
+func IsShapedError(v Value) bool {
+	list, ok := v.(*List)
+	if !ok || list.Shape != "error" {
+		return false
+	}
+	// Must have exactly 2 elements: :kind and "message"
+	if len(list.Elements) != 2 {
+		return false
+	}
+	_, kindOk := list.Elements[0].(*Symbol)
+	_, msgOk := list.Elements[1].(*String)
+	return kindOk && msgOk
+}
+
+// NewShapedError creates a shaped recoverable error: [@error, :kind, "message"]
+func NewShapedError(kind string, format string, args ...interface{}) *List {
+	return &List{
+		Shape: "error",
+		Elements: []Value{
+			&Symbol{Val: kind},
+			&String{Val: fmt.Sprintf(format, args...)},
+		},
+	}
 }

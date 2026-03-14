@@ -36,7 +36,7 @@ func (e *Evaluator) applyOperator(op string, left, right value.Value, node *synt
 		}
 		return right
 	default:
-		return e.makeError(node, env, "unknown operator: %s", op)
+		return e.makeFault(node, env, "unknown operator: %s", op)
 	}
 }
 
@@ -52,7 +52,7 @@ func (e *Evaluator) opAdd(left, right value.Value, node *syntax.Node, env *value
 			return &value.String{Val: ls.Val + rs.Val}
 		}
 	}
-	return e.makeError(node, env, "cannot add %s and %s", left.Type(), right.Type())
+	return e.makeFault(node, env, "cannot add %s and %s", left.Type(), right.Type())
 }
 
 func (e *Evaluator) opSub(left, right value.Value, node *syntax.Node, env *value.Env) value.Value {
@@ -62,7 +62,7 @@ func (e *Evaluator) opSub(left, right value.Value, node *syntax.Node, env *value
 			return &value.Number{Val: result}
 		}
 	}
-	return e.makeError(node, env, "cannot subtract %s and %s", left.Type(), right.Type())
+	return e.makeFault(node, env, "cannot subtract %s and %s", left.Type(), right.Type())
 }
 
 func (e *Evaluator) opMul(left, right value.Value, node *syntax.Node, env *value.Env) value.Value {
@@ -72,20 +72,20 @@ func (e *Evaluator) opMul(left, right value.Value, node *syntax.Node, env *value
 			return &value.Number{Val: result}
 		}
 	}
-	return e.makeError(node, env, "cannot multiply %s and %s", left.Type(), right.Type())
+	return e.makeFault(node, env, "cannot multiply %s and %s", left.Type(), right.Type())
 }
 
 func (e *Evaluator) opDiv(left, right value.Value, node *syntax.Node, env *value.Env) value.Value {
 	if ln, ok := left.(*value.Number); ok {
 		if rn, ok := right.(*value.Number); ok {
 			if rn.Val.Sign() == 0 {
-				return e.makeError(node, env, "division by zero")
+				return e.makeFault(node, env, "division by zero")
 			}
 			result := new(big.Rat).Quo(ln.Val, rn.Val)
 			return &value.Number{Val: result}
 		}
 	}
-	return e.makeError(node, env, "cannot divide %s and %s", left.Type(), right.Type())
+	return e.makeFault(node, env, "cannot divide %s and %s", left.Type(), right.Type())
 }
 
 func (e *Evaluator) opLt(left, right value.Value, node *syntax.Node, env *value.Env) value.Value {
@@ -97,7 +97,7 @@ func (e *Evaluator) opLt(left, right value.Value, node *syntax.Node, env *value.
 			return value.FALSE
 		}
 	}
-	return e.makeError(node, env, "cannot compare %s and %s", left.Type(), right.Type())
+	return e.makeFault(node, env, "cannot compare %s and %s", left.Type(), right.Type())
 }
 
 func (e *Evaluator) opGt(left, right value.Value, node *syntax.Node, env *value.Env) value.Value {
@@ -109,7 +109,7 @@ func (e *Evaluator) opGt(left, right value.Value, node *syntax.Node, env *value.
 			return value.FALSE
 		}
 	}
-	return e.makeError(node, env, "cannot compare %s and %s", left.Type(), right.Type())
+	return e.makeFault(node, env, "cannot compare %s and %s", left.Type(), right.Type())
 }
 
 func (e *Evaluator) opLte(left, right value.Value, node *syntax.Node, env *value.Env) value.Value {
@@ -121,7 +121,7 @@ func (e *Evaluator) opLte(left, right value.Value, node *syntax.Node, env *value
 			return value.FALSE
 		}
 	}
-	return e.makeError(node, env, "cannot compare %s and %s", left.Type(), right.Type())
+	return e.makeFault(node, env, "cannot compare %s and %s", left.Type(), right.Type())
 }
 
 func (e *Evaluator) opGte(left, right value.Value, node *syntax.Node, env *value.Env) value.Value {
@@ -133,5 +133,5 @@ func (e *Evaluator) opGte(left, right value.Value, node *syntax.Node, env *value
 			return value.FALSE
 		}
 	}
-	return e.makeError(node, env, "cannot compare %s and %s", left.Type(), right.Type())
+	return e.makeFault(node, env, "cannot compare %s and %s", left.Type(), right.Type())
 }

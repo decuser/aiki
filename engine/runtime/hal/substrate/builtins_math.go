@@ -14,11 +14,11 @@ var rng = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 func halFloor(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
-		return value.NewError("floor: want 1 argument, got %d", len(args))
+		return value.NewFault("floor: want 1 argument, got %d", len(args))
 	}
 	n, ok := args[0].(*value.Number)
 	if !ok {
-		return value.NewError("floor: expected number")
+		return value.NewFault("floor: expected number")
 	}
 	num := n.Val.Num()
 	denom := n.Val.Denom()
@@ -32,11 +32,11 @@ func halFloor(args []value.Value, ctx *hal.EvalContext) value.Value {
 
 func halCeil(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
-		return value.NewError("ceil: want 1 argument, got %d", len(args))
+		return value.NewFault("ceil: want 1 argument, got %d", len(args))
 	}
 	n, ok := args[0].(*value.Number)
 	if !ok {
-		return value.NewError("ceil: expected number")
+		return value.NewFault("ceil: expected number")
 	}
 	num := n.Val.Num()
 	denom := n.Val.Denom()
@@ -50,18 +50,18 @@ func halCeil(args []value.Value, ctx *hal.EvalContext) value.Value {
 
 func halModulo(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 2 {
-		return value.NewError("modulo: want 2 arguments, got %d", len(args))
+		return value.NewFault("modulo: want 2 arguments, got %d", len(args))
 	}
 	left, ok1 := args[0].(*value.Number)
 	right, ok2 := args[1].(*value.Number)
 	if !ok1 || !ok2 {
-		return value.NewError("modulo: expected numbers")
+		return value.NewFault("modulo: expected numbers")
 	}
 	if !left.Val.IsInt() || !right.Val.IsInt() {
-		return value.NewError("modulo: requires integers")
+		return value.NewFault("modulo: requires integers")
 	}
 	if right.Val.Sign() == 0 {
-		return value.NewError("modulo: division by zero")
+		return value.NewFault("modulo: division by zero")
 	}
 	l := left.Val.Num()
 	r := right.Val.Num()
@@ -71,15 +71,15 @@ func halModulo(args []value.Value, ctx *hal.EvalContext) value.Value {
 
 func halSqrt(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
-		return value.NewError("sqrt: want 1 argument, got %d", len(args))
+		return value.NewFault("sqrt: want 1 argument, got %d", len(args))
 	}
 	n, ok := args[0].(*value.Number)
 	if !ok {
-		return value.NewError("sqrt: expected number")
+		return value.NewFault("sqrt: expected number")
 	}
 	f, _ := n.Val.Float64()
 	if f < 0 {
-		return value.NewError("sqrt: negative number")
+		return value.NewFault("sqrt: negative number")
 	}
 	r := new(big.Rat).SetFloat64(math.Sqrt(f))
 	return &value.Number{Val: r}
@@ -87,14 +87,14 @@ func halSqrt(args []value.Value, ctx *hal.EvalContext) value.Value {
 
 func halSeed(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
-		return value.NewError("seed: want 1 argument, got %d", len(args))
+		return value.NewFault("seed: want 1 argument, got %d", len(args))
 	}
 	n, ok := args[0].(*value.Number)
 	if !ok {
-		return value.NewError("seed: expected number")
+		return value.NewFault("seed: expected number")
 	}
 	if !n.Val.IsInt() {
-		return value.NewError("seed: expected integer")
+		return value.NewFault("seed: expected integer")
 	}
 	seed := n.Val.Num().Int64()
 	rng = rand.New(rand.NewSource(seed))
@@ -103,18 +103,18 @@ func halSeed(args []value.Value, ctx *hal.EvalContext) value.Value {
 
 func halRandom(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
-		return value.NewError("random: want 1 argument, got %d", len(args))
+		return value.NewFault("random: want 1 argument, got %d", len(args))
 	}
 	n, ok := args[0].(*value.Number)
 	if !ok {
-		return value.NewError("random: expected number")
+		return value.NewFault("random: expected number")
 	}
 	if !n.Val.IsInt() {
-		return value.NewError("random: expected integer")
+		return value.NewFault("random: expected integer")
 	}
 	max := n.Val.Num().Int64()
 	if max <= 0 {
-		return value.NewError("random: max must be positive")
+		return value.NewFault("random: max must be positive")
 	}
 	result := rng.Int63n(max)
 	return &value.Number{Val: big.NewRat(result, 1)}

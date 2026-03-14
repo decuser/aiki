@@ -33,7 +33,7 @@ func halRead(args []value.Value, ctx *hal.EvalContext) value.Value {
 			}
 			return &value.String{Val: line}
 		}
-		return value.NewError("read: %v", err)
+		return value.NewShapedError("io", "read: %v", err)
 	}
 	if len(line) > 0 && line[len(line)-1] == '\n' {
 		line = line[:len(line)-1]

@@ -52,6 +52,25 @@ func TestIsTruthy(t *testing.T) {
 	}
 }
 
+func TestShapedErrorFalsy(t *testing.T) {
+	se := NewShapedError("io", "test error")
+	if IsTruthy(se) {
+		t.Error("shaped error should be falsy")
+	}
+
+	// Regular non-empty list should still be truthy
+	list := &List{Elements: []Value{NewNumber(1, 1)}}
+	if !IsTruthy(list) {
+		t.Error("non-empty list should be truthy")
+	}
+
+	// Other shaped lists should still be truthy
+	other := &List{Shape: "point", Elements: []Value{NewNumber(1, 1), NewNumber(2, 1)}}
+	if !IsTruthy(other) {
+		t.Error("non-error shaped list should be truthy")
+	}
+}
+
 func TestEnv(t *testing.T) {
 	e := NewEnv()
 	e.Set("x", NewNumber(1, 1))
@@ -153,6 +172,79 @@ func TestIsErrorNotFault(t *testing.T) {
 	}
 	if !IsError(err) {
 		t.Error("IsError should return true for Error")
+	}
+}
+
+func TestNewShapedError(t *testing.T) {
+	se := NewShapedError("io", "file not found: %s", "test.txt")
+
+	if se.Shape != "error" {
+		t.Errorf("expected shape 'error', got %s", se.Shape)
+	}
+	if len(se.Elements) != 2 {
+		t.Fatalf("expected 2 elements, got %d", len(se.Elements))
+	}
+
+	kind, ok := se.Elements[0].(*Symbol)
+	if !ok || kind.Val != "io" {
+		t.Errorf("expected :io, got %v", se.Elements[0])
+	}
+
+	msg, ok := se.Elements[1].(*String)
+	if !ok || msg.Val != "file not found: test.txt" {
+		t.Errorf("expected message, got %v", se.Elements[1])
+	}
+}
+
+func TestIsShapedError(t *testing.T) {
+	se := NewShapedError("io", "test")
+
+	if !IsShapedError(se) {
+		t.Error("IsShapedError should return true for shaped error")
+	}
+
+	// Not a shaped error: regular list
+	list := &List{Elements: []Value{NewNumber(1, 1)}}
+	if IsShapedError(list) {
+		t.Error("IsShapedError should return false for regular list")
+	}
+
+	// Not a shaped error: wrong shape name
+	wrongShape := &List{Shape: "other", Elements: []Value{&Symbol{Val: "x"}, &String{Val: "y"}}}
+	if IsShapedError(wrongShape) {
+		t.Error("IsShapedError should return false for wrong shape")
+	}
+
+	// Not a shaped error: wrong element types
+	wrongTypes := &List{Shape: "error", Elements: []Value{&String{Val: "x"}, &String{Val: "y"}}}
+	if IsShapedError(wrongTypes) {
+		t.Error("IsShapedError should return false for wrong element types")
+	}
+
+	// Not a shaped error: wrong element count
+	wrongCount := &List{Shape: "error", Elements: []Value{&Symbol{Val: "x"}}}
+	if IsShapedError(wrongCount) {
+		t.Error("IsShapedError should return false for wrong element count")
+	}
+
+	// Not a shaped error: Fault
+	fault := NewFault("test")
+	if IsShapedError(fault) {
+		t.Error("IsShapedError should return false for Fault")
+	}
+
+	// Not a shaped error: old Error type
+	oldErr := NewError("test")
+	if IsShapedError(oldErr) {
+		t.Error("IsShapedError should return false for old Error type")
+	}
+}
+
+func TestShapedErrorInspect(t *testing.T) {
+	se := NewShapedError("hal", "resource closed")
+	expected := "[@error, :hal, resource closed]"
+	if se.Inspect() != expected {
+		t.Errorf("expected %s, got %s", expected, se.Inspect())
 	}
 }
 

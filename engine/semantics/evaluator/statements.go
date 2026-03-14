@@ -52,7 +52,7 @@ func (e *Evaluator) evalPackage(node *syntax.Node, env *value.Env) value.Value {
 			return value.EMPTY
 		}
 	}
-	return e.makeError(node, env, "package: missing name")
+	return e.makeFault(node, env, "package: missing name")
 }
 
 func (e *Evaluator) evalLet(node *syntax.Node, env *value.Env) value.Value {
@@ -90,14 +90,14 @@ func (e *Evaluator) evalLet(node *syntax.Node, env *value.Env) value.Value {
 	}
 
 	if name == "" {
-		return e.makeError(node, env, "let: missing name")
+		return e.makeFault(node, env, "let: missing name")
 	}
 	if valNode == nil {
-		return e.makeError(node, env, "let: missing value")
+		return e.makeFault(node, env, "let: missing value")
 	}
 
 	if e.runtime != nil && e.runtime.HasBuiltin(name, env.GetScope()) {
-		return e.makeError(node, env, "cannot shadow builtin: %s", name)
+		return e.makeFault(node, env, "cannot shadow builtin: %s", name)
 	}
 
 	val := e.Eval(valNode, env)
@@ -127,11 +127,11 @@ func (e *Evaluator) evalAssign(node *syntax.Node, env *value.Env) value.Value {
 	}
 
 	if name == "" || valNode == nil {
-		return e.makeError(node, env, "assign: invalid statement")
+		return e.makeFault(node, env, "assign: invalid statement")
 	}
 
 	if _, ok := env.Get(name); !ok {
-		return e.makeError(node, env, "undefined variable: %s", name)
+		return e.makeFault(node, env, "undefined variable: %s", name)
 	}
 
 	val := e.Eval(valNode, env)
@@ -140,7 +140,7 @@ func (e *Evaluator) evalAssign(node *syntax.Node, env *value.Env) value.Value {
 	}
 
 	if !env.Update(name, val) {
-		return e.makeError(node, env, "cannot assign to: %s", name)
+		return e.makeFault(node, env, "cannot assign to: %s", name)
 	}
 
 	return value.EMPTY
@@ -184,7 +184,7 @@ func (e *Evaluator) evalIf(node *syntax.Node, env *value.Env) value.Value {
 	}
 
 	if cond == nil || thenBlock == nil {
-		return e.makeError(node, env, "if: invalid syntax")
+		return e.makeFault(node, env, "if: invalid syntax")
 	}
 
 	condVal := e.Eval(cond, env)
@@ -217,7 +217,7 @@ func (e *Evaluator) evalWhile(node *syntax.Node, env *value.Env) value.Value {
 	}
 
 	if cond == nil || body == nil {
-		return e.makeError(node, env, "while: invalid syntax")
+		return e.makeFault(node, env, "while: invalid syntax")
 	}
 
 	var result value.Value = value.EMPTY
@@ -256,7 +256,7 @@ func (e *Evaluator) evalMatch(node *syntax.Node, env *value.Env) value.Value {
 	}
 
 	if matchExpr == nil {
-		return e.makeError(node, env, "match: missing expression")
+		return e.makeFault(node, env, "match: missing expression")
 	}
 
 	matchVal := e.Eval(matchExpr, env)
