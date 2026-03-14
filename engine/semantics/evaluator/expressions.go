@@ -26,7 +26,7 @@ func (e *Evaluator) evalExpr(node *syntax.Node, env *value.Env) value.Value {
 	var result value.Value = value.EMPTY
 	for _, child := range node.Children {
 		result = e.Eval(child, env)
-		if value.IsError(result) {
+		if shouldHalt(result) {
 			return result
 		}
 	}
@@ -43,14 +43,14 @@ func (e *Evaluator) evalPipe(node *syntax.Node, env *value.Env) value.Value {
 
 		if result == nil {
 			result = e.Eval(child, env)
-			if value.IsError(result) {
+			if shouldHalt(result) {
 				return result
 			}
 			continue
 		}
 
 		result = e.applyPipe(child, result, env)
-		if value.IsError(result) {
+		if shouldHalt(result) {
 			return result
 		}
 	}
@@ -70,7 +70,7 @@ func (e *Evaluator) evalUnary(node *syntax.Node, env *value.Env) value.Value {
 			}
 		}
 		operand = e.Eval(child, env)
-		if value.IsError(operand) {
+		if shouldHalt(operand) {
 			return operand
 		}
 	}
@@ -106,7 +106,7 @@ func (e *Evaluator) evalPostfix(node *syntax.Node, env *value.Env) value.Value {
 	for _, child := range node.Children {
 		if result == nil {
 			result = e.Eval(child, env)
-			if value.IsError(result) {
+			if shouldHalt(result) {
 				return result
 			}
 			continue
@@ -116,7 +116,7 @@ func (e *Evaluator) evalPostfix(node *syntax.Node, env *value.Env) value.Value {
 		case "call":
 			args := e.evalCallArgs(child, env)
 			for _, a := range args {
-				if value.IsError(a) {
+				if shouldHalt(a) {
 					return a
 				}
 			}
@@ -127,7 +127,7 @@ func (e *Evaluator) evalPostfix(node *syntax.Node, env *value.Env) value.Value {
 			result = e.evalAccess(result, child, env)
 		}
 
-		if value.IsError(result) {
+		if shouldHalt(result) {
 			return result
 		}
 	}
@@ -137,7 +137,7 @@ func (e *Evaluator) evalPostfix(node *syntax.Node, env *value.Env) value.Value {
 
 func (e *Evaluator) applyPipe(node *syntax.Node, arg value.Value, env *value.Env) value.Value {
 	fn := e.evalToFunction(node, env)
-	if value.IsError(fn) {
+	if shouldHalt(fn) {
 		return fn
 	}
 
@@ -166,7 +166,7 @@ func (e *Evaluator) evalInfix(node *syntax.Node, env *value.Env) value.Value {
 		}
 
 		val := e.Eval(child, env)
-		if value.IsError(val) {
+		if shouldHalt(val) {
 			return val
 		}
 
@@ -174,7 +174,7 @@ func (e *Evaluator) evalInfix(node *syntax.Node, env *value.Env) value.Value {
 			result = val
 		} else if op != "" {
 			result = e.applyOperator(op, result, val, node, env)
-			if value.IsError(result) {
+			if shouldHalt(result) {
 				return result
 			}
 			op = ""

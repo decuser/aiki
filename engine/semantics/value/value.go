@@ -20,6 +20,7 @@ const (
 	ListType     Type = "list"
 	FunctionType Type = "function"
 	ErrorType    Type = "error"
+	FaultType    Type = "fault"
 	ReturnType   Type = "return"
 	HandleType   Type = "handle"
 	ChannelType  Type = "channel"
@@ -311,4 +312,74 @@ func IsTruthy(v Value) bool {
 
 func IsError(v Value) bool {
 	return v != nil && v.Type() == ErrorType
+}
+
+// Fault represents an internal evaluation failure that halts execution.
+// Unlike Error (which is a shaped recoverable value), Fault is not
+// an ordinary Aiki value - evaluation halts immediately when one occurs.
+type Fault struct {
+	Message string
+	File    string
+	Line    int
+	Source  string // source line for context
+	Stack   []StackFrame
+}
+
+func (f *Fault) Type() Type { return FaultType }
+
+// Inspect returns Ruby-style error format matching Error.Inspect.
+func (f *Fault) Inspect() string {
+	var sb strings.Builder
+
+	// Find the innermost visible frame for the header
+	funcName := "<main>"
+	if len(f.Stack) > 0 {
+		funcName = f.Stack[len(f.Stack)-1].Name
+	}
+
+	// First line: file:line:in 'func': message
+	if f.File != "" && f.Line > 0 {
+		sb.WriteString(fmt.Sprintf("%s:%d:in '%s': %s", f.File, f.Line, funcName, f.Message))
+	} else if f.Line > 0 {
+		sb.WriteString(fmt.Sprintf("line %d:in '%s': %s", f.Line, funcName, f.Message))
+	} else {
+		sb.WriteString(f.Message)
+	}
+
+	// Second line: source code (indented)
+	if f.Source != "" {
+		sb.WriteString(fmt.Sprintf("\n    %s", strings.TrimSpace(f.Source)))
+	}
+
+	// Stack trace: from file:line:in 'func' (skip innermost, shown above)
+	for i := len(f.Stack) - 2; i >= 0; i-- {
+		frame := f.Stack[i]
+		if frame.File != "" {
+			sb.WriteString(fmt.Sprintf("\n        from %s:%d:in '%s'", frame.File, frame.Line, frame.Name))
+		} else {
+			sb.WriteString(fmt.Sprintf("\n        from line %d:in '%s'", frame.Line, frame.Name))
+		}
+	}
+
+	return sb.String()
+}
+
+func NewFault(format string, args ...interface{}) *Fault {
+	return &Fault{Message: fmt.Sprintf(format, args...)}
+}
+
+func NewFaultAt(file string, line int, source string, stack []StackFrame, format string, args ...interface{}) *Fault {
+	return &Fault{
+		Message: fmt.Sprintf(format, args...),
+		File:    file,
+		Line:    line,
+		Source:  source,
+		Stack:   stack,
+	}
+}
+
+// IsFault returns true only for internal halting failures.
+func IsFault(v Value) bool {
+	_, ok := v.(*Fault)
+	return ok
 }

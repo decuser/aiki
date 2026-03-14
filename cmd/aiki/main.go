@@ -150,6 +150,11 @@ func runExpr(expr string, opts Options) {
 		os.Exit(1)
 	}
 
+	if f, ok := result.(*value.Fault); ok {
+		fmt.Fprintln(os.Stderr, f.Inspect())
+		os.Exit(1)
+	}
+
 	if opts.Debug {
 		fmt.Println(result.Inspect())
 	}

@@ -118,7 +118,7 @@ func (e *Evaluator) evalList(node *syntax.Node, env *value.Env) value.Value {
 			shape = strings.TrimPrefix(child.Value, "@")
 		} else if child.Type != "TERMINAL" {
 			val := e.Eval(child, env)
-			if value.IsError(val) {
+			if shouldHalt(val) {
 				return val
 			}
 			elements = append(elements, val)

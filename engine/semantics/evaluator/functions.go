@@ -110,7 +110,7 @@ func (e *Evaluator) applyUserFunction(fn *value.Function, args []value.Value, no
 			return ret.Val
 		}
 
-		if value.IsError(result) {
+		if shouldHalt(result) {
 			callEnv.PopFrame()
 			return result
 		}

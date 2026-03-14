@@ -77,6 +77,9 @@ func RunSource(filename, source string) error {
 	if err, ok := result.(*value.Error); ok {
 		return fmt.Errorf("%s", err.Inspect())
 	}
+	if fault, ok := result.(*value.Fault); ok {
+		return fmt.Errorf("%s", fault.Inspect())
+	}
 
 	return nil
 }
@@ -107,6 +110,9 @@ func loadPrelude(g *grammar.Grammar, rt *substrate.GoRuntime, env *value.Env) er
 	result := ev.Eval(ast, env)
 	if err, ok := result.(*value.Error); ok {
 		return fmt.Errorf("%s", err.Inspect())
+	}
+	if fault, ok := result.(*value.Fault); ok {
+		return fmt.Errorf("%s", fault.Inspect())
 	}
 
 	return nil
@@ -254,6 +260,9 @@ func RunExpr(expr string) (string, error) {
 	result := ev.Eval(ast, userEnv)
 	if err, ok := result.(*value.Error); ok {
 		return "", fmt.Errorf("%s", err.Inspect())
+	}
+	if fault, ok := result.(*value.Fault); ok {
+		return "", fmt.Errorf("%s", fault.Inspect())
 	}
 
 	return result.Inspect(), nil

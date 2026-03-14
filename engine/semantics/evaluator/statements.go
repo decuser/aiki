@@ -18,7 +18,7 @@ func (e *Evaluator) evalProgram(node *syntax.Node, env *value.Env) value.Value {
 		if ret, ok := result.(*value.Return); ok {
 			return e.resolveTailCalls(ret.Val, env)
 		}
-		if value.IsError(result) {
+		if shouldHalt(result) {
 			return e.resolveTailCalls(result, env)
 		}
 	}
@@ -101,7 +101,7 @@ func (e *Evaluator) evalLet(node *syntax.Node, env *value.Env) value.Value {
 	}
 
 	val := e.Eval(valNode, env)
-	if value.IsError(val) {
+	if shouldHalt(val) {
 		return val
 	}
 
@@ -135,7 +135,7 @@ func (e *Evaluator) evalAssign(node *syntax.Node, env *value.Env) value.Value {
 	}
 
 	val := e.Eval(valNode, env)
-	if value.IsError(val) {
+	if shouldHalt(val) {
 		return val
 	}
 
@@ -152,7 +152,7 @@ func (e *Evaluator) evalReturn(node *syntax.Node, env *value.Env) value.Value {
 			continue
 		}
 		val := e.evalTail(child, env)
-		if value.IsError(val) {
+		if shouldHalt(val) {
 			return val
 		}
 		return &value.Return{Val: val}
@@ -188,7 +188,7 @@ func (e *Evaluator) evalIf(node *syntax.Node, env *value.Env) value.Value {
 	}
 
 	condVal := e.Eval(cond, env)
-	if value.IsError(condVal) {
+	if shouldHalt(condVal) {
 		return condVal
 	}
 
@@ -223,7 +223,7 @@ func (e *Evaluator) evalWhile(node *syntax.Node, env *value.Env) value.Value {
 	var result value.Value = value.EMPTY
 	for {
 		condVal := e.Eval(cond, env)
-		if value.IsError(condVal) {
+		if shouldHalt(condVal) {
 			return condVal
 		}
 		if !value.IsTruthy(condVal) {
@@ -233,7 +233,7 @@ func (e *Evaluator) evalWhile(node *syntax.Node, env *value.Env) value.Value {
 		if ret, ok := result.(*value.Return); ok {
 			return ret
 		}
-		if value.IsError(result) {
+		if shouldHalt(result) {
 			return result
 		}
 	}
@@ -260,7 +260,7 @@ func (e *Evaluator) evalMatch(node *syntax.Node, env *value.Env) value.Value {
 	}
 
 	matchVal := e.Eval(matchExpr, env)
-	if value.IsError(matchVal) {
+	if shouldHalt(matchVal) {
 		return matchVal
 	}
 
@@ -291,7 +291,7 @@ func (e *Evaluator) evalBlock(node *syntax.Node, env *value.Env) value.Value {
 		if ret, ok := result.(*value.Return); ok {
 			return ret
 		}
-		if value.IsError(result) {
+		if shouldHalt(result) {
 			return result
 		}
 	}

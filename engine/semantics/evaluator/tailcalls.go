@@ -62,7 +62,7 @@ func (e *Evaluator) evalTail(node *syntax.Node, env *value.Env) value.Value {
 				continue
 			}
 			v := e.evalTail(child, env)
-			if value.IsError(v) {
+			if shouldHalt(v) {
 				return v
 			}
 			return &value.Return{Val: v}
@@ -109,7 +109,7 @@ func (e *Evaluator) evalBlockTail(node *syntax.Node, env *value.Env) value.Value
 		if ret, ok := res.(*value.Return); ok {
 			return ret
 		}
-		if value.IsError(res) {
+		if shouldHalt(res) {
 			return res
 		}
 	}
@@ -146,7 +146,7 @@ func (e *Evaluator) evalIfTail(node *syntax.Node, env *value.Env) value.Value {
 	}
 
 	condVal := e.Eval(cond, env)
-	if value.IsError(condVal) {
+	if shouldHalt(condVal) {
 		return condVal
 	}
 
@@ -179,7 +179,7 @@ func (e *Evaluator) evalMatchTail(node *syntax.Node, env *value.Env) value.Value
 	}
 
 	matchVal := e.Eval(matchExpr, env)
-	if value.IsError(matchVal) {
+	if shouldHalt(matchVal) {
 		return matchVal
 	}
 
@@ -214,14 +214,14 @@ func (e *Evaluator) evalPipeTail(node *syntax.Node, env *value.Env) value.Value 
 	}
 	// first part normal
 	result := e.Eval(parts[0], env)
-	if value.IsError(result) {
+	if shouldHalt(result) {
 		return result
 	}
 	for i := 1; i < len(parts); i++ {
 		// last application in tail context
 		if i == len(parts)-1 {
 			fn := e.evalToFunction(parts[i], env)
-			if value.IsError(fn) {
+			if shouldHalt(fn) {
 				return fn
 			}
 			args := []value.Value{result}
@@ -234,7 +234,7 @@ func (e *Evaluator) evalPipeTail(node *syntax.Node, env *value.Env) value.Value 
 		}
 		// non tail intermediate step
 		result = e.applyPipe(parts[i], result, env)
-		if value.IsError(result) {
+		if shouldHalt(result) {
 			return result
 		}
 	}
@@ -252,7 +252,7 @@ func (e *Evaluator) tryTailCall(node *syntax.Node, env *value.Env) value.Value {
 	}
 	// evaluate callee and any preceding postfix ops except last call
 	result := e.Eval(node.Children[0], env)
-	if value.IsError(result) {
+	if shouldHalt(result) {
 		return result
 	}
 	for _, child := range node.Children[1 : len(node.Children)-1] {
@@ -265,19 +265,19 @@ func (e *Evaluator) tryTailCall(node *syntax.Node, env *value.Env) value.Value {
 			// intermediate call is not tail, evaluate normally
 			args := e.evalCallArgs(child, env)
 			for _, a := range args {
-				if value.IsError(a) {
+				if shouldHalt(a) {
 					return a
 				}
 			}
 			result = e.applyFunction(result, args, child, env)
 		}
-		if value.IsError(result) {
+		if shouldHalt(result) {
 			return result
 		}
 	}
 	args := e.evalCallArgs(last, env)
 	for _, a := range args {
-		if value.IsError(a) {
+		if shouldHalt(a) {
 			return a
 		}
 	}

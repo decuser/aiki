@@ -17,7 +17,7 @@ func (e *Evaluator) evalIndex(val value.Value, node *syntax.Node, env *value.Env
 	for _, child := range node.Children {
 		if child.Type != "TERMINAL" {
 			idx := e.Eval(child, env)
-			if value.IsError(idx) {
+			if shouldHalt(idx) {
 				return idx
 			}
 			num, ok := idx.(*value.Number)
@@ -42,7 +42,7 @@ func (e *Evaluator) evalStringIndex(s *value.String, node *syntax.Node, env *val
 	for _, child := range node.Children {
 		if child.Type != "TERMINAL" {
 			idx := e.Eval(child, env)
-			if value.IsError(idx) {
+			if shouldHalt(idx) {
 				return idx
 			}
 			num, ok := idx.(*value.Number)
