@@ -332,7 +332,7 @@ let hash_get = (h, key) {
 		}
 		i = i + 1
 	}
-	return [@error, "key not found"]
+	return [@error, :key, "key not found"]
 }
 
 let hash_put = (h, key, val) {
@@ -448,7 +448,7 @@ let find = (list, f) {
 		}
 		i = i + 1
 	}
-	return [@error, "not found"]
+	return [@error, :lookup, "not found"]
 }
 
 let any = (list, f) {
@@ -475,7 +475,7 @@ let all = (list, f) {
 
 let max = (list) {
 	if _empty(list) {
-		return [@error, "empty list"]
+		return [@error, :empty, "empty list"]
 	}
 	let result = list[0]
 	let i = 1
@@ -490,7 +490,7 @@ let max = (list) {
 
 let min = (list) {
 	if _empty(list) {
-		return [@error, "empty list"]
+		return [@error, :empty, "empty list"]
 	}
 	let result = list[0]
 	let i = 1

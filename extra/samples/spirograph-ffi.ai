@@ -1,26 +1,20 @@
 import("math/ffi", :sin, :cos)
-
 let c = canvas(800, 800)
-set_bg(c, :black)
-
+set_bg(c, :white)
+pen_size(c, 2)
 let tick = 0
-let steps = 200000
-let angle_scale = 2000
-
-let R = 220
-let r = 77
-let d = 160
+let R = 200
+let r = 80
+let d = 150
 let diff = R - r
 let ratio = diff / r
-
-while tick < steps {
-	let angle = tick / angle_scale
+while tick < 5028 {
+	let angle = tick / 100
 	let x = 400 + ((diff * cos(angle)) + (d * cos(ratio * angle)))
 	let y = 400 + ((diff * sin(angle)) - (d * sin(ratio * angle)))
-	if tick < (steps / 2) {
-		dot(c, x, y, :cyan)
-	} else {
-		dot(c, x, y, :red)
-	}
+	dot(c, x, y, :black)
 	tick = tick + 1
 }
+sleep(1000)
+
+
