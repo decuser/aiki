@@ -1,0 +1,53 @@
+# list - higher-order functions and list utilities
+
+@func map
+@template "map(list, f)"
+@help "Returns new list with f applied to each element."
+
+@func filter
+@template "filter(list, f)"
+@help "Returns new list with elements where f returns true."
+
+@func reduce
+@template "reduce(list, acc, f)"
+@help "Reduces list to single value using f(acc, elem)."
+
+@func each
+@template "each(list, f)"
+@help "Calls f on each element for side effects."
+
+@func sum
+@template "sum(list)"
+@help "Returns sum of all elements."
+
+@func max
+@template "max(list)"
+@help "Returns maximum element."
+
+@func min
+@template "min(list)"
+@help "Returns minimum element."
+
+@func reverse
+@template "reverse(list)"
+@help "Returns list in reverse order."
+
+@func find
+@template "find(list, f)"
+@help "Returns first element where f returns true, or [@error]."
+
+@func any
+@template "any(list, f)"
+@help "Returns true if f returns true for any element."
+
+@func all
+@template "all(list, f)"
+@help "Returns true if f returns true for all elements."
+
+@func concat
+@template "concat(a, b)"
+@help "Returns new list with elements of a followed by b."
+
+@func range
+@template "range(start, end)"
+@help "Returns list of integers from start to end-1."

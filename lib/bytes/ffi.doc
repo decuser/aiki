@@ -1,0 +1,43 @@
+===
+str_to_bytes
+Converts a string to a list of byte values (integers 0-255).
+Each character is converted to its UTF-8 byte representation.
+
+str_to_bytes(s)
+
+str_to_bytes("ABC")    # [65, 66, 67]
+===
+bytes_to_str
+Converts a list of byte values back to a string.
+
+bytes_to_str(bytes)
+
+bytes_to_str([65, 66, 67])    # "ABC"
+===
+bytes_new
+Creates a new byte list of the given size, filled with the specified value.
+
+bytes_new(size, val)
+
+bytes_new(4, 0)    # [0, 0, 0, 0]
+===
+bytes_get
+Returns the byte value at the given index.
+
+bytes_get(bytes, i)
+
+bytes_get([65, 66, 67], 1)    # 66
+===
+bytes_length
+Returns the length of a byte list.
+
+bytes_length(bytes)
+
+bytes_length([65, 66, 67])    # 3
+===
+bytes_slice
+Returns a slice of the byte list from start (inclusive) to end (exclusive).
+
+bytes_slice(bytes, start, end)
+
+bytes_slice([65, 66, 67, 68], 1, 3)    # [66, 67]

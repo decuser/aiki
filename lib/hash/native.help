@@ -1,0 +1,33 @@
+# hash/native - pure Aiki hash map
+
+@func hash_code
+@template "hash_code(val)"
+@help "Returns hash code for a value."
+
+@func new
+@template "new()"
+@help "Creates a new empty hash map."
+
+@func get
+@template "get(h, key)"
+@help "Returns value for key, or [@error] if not found."
+
+@func put
+@template "put(h, key, val)"
+@help "Returns new hash map with key set to val."
+
+@func has
+@template "has(h, key)"
+@help "Returns true if key exists in hash map."
+
+@func del
+@template "del(h, key)"
+@help "Returns new hash map with key removed."
+
+@func keys
+@template "keys(h)"
+@help "Returns list of all keys."
+
+@func values
+@template "values(h)"
+@help "Returns list of all values."

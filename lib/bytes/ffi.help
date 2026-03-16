@@ -1,0 +1,25 @@
+# bytes/ffi - HAL-accelerated byte operations
+
+@func str_to_bytes
+@template "str_to_bytes(s)"
+@help "Converts string to list of byte values."
+
+@func bytes_to_str
+@template "bytes_to_str(bytes)"
+@help "Converts list of byte values to string."
+
+@func bytes_new
+@template "bytes_new(size, val)"
+@help "Creates new byte list of given size filled with val."
+
+@func bytes_get
+@template "bytes_get(bytes, i)"
+@help "Returns byte at index i."
+
+@func bytes_length
+@template "bytes_length(bytes)"
+@help "Returns length of byte list."
+
+@func bytes_slice
+@template "bytes_slice(bytes, start, end)"
+@help "Returns slice from start to end-1."

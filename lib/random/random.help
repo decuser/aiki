@@ -1,0 +1,9 @@
+# random - pseudo-random number generation
+
+@func seed
+@template "seed(n)"
+@help "Seeds the random number generator."
+
+@func random
+@template "random()"
+@help "Returns a random number between 0 and 1."

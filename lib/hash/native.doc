@@ -1,0 +1,71 @@
+===
+hash_code
+Returns an integer hash code for any value. Used internally by the
+hash map for bucket assignment.
+
+hash_code(val)
+
+hash_code("hello")    # returns an integer
+hash_code(42)         # returns an integer
+===
+new
+Creates a new empty hash map.
+
+new()
+
+let h = new()
+===
+get
+Returns the value associated with the key in the hash map.
+Returns [@error, :not_found] if key does not exist.
+
+get(h, key)
+
+let h = put(new(), "name", "Alice")
+get(h, "name")    # "Alice"
+get(h, "age")     # [@error, :not_found]
+===
+put
+Returns a new hash map with the key set to the given value.
+Does not modify the original hash map.
+
+put(h, key, val)
+
+let h1 = new()
+let h2 = put(h1, "name", "Alice")
+===
+has
+Returns true if the key exists in the hash map, false otherwise.
+
+has(h, key)
+
+let h = put(new(), "name", "Alice")
+has(h, "name")    # true
+has(h, "age")     # false
+===
+del
+Returns a new hash map with the key removed.
+Does not modify the original hash map.
+
+del(h, key)
+
+let h1 = put(new(), "name", "Alice")
+let h2 = del(h1, "name")
+===
+keys
+Returns a list of all keys in the hash map.
+Order is not guaranteed.
+
+keys(h)
+
+let h = put(put(new(), "a", 1), "b", 2)
+keys(h)    # ["a", "b"] or ["b", "a"]
+===
+values
+Returns a list of all values in the hash map.
+Order is not guaranteed.
+
+values(h)
+
+let h = put(put(new(), "a", 1), "b", 2)
+values(h)    # [1, 2] or [2, 1]

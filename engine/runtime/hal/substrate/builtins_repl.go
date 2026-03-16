@@ -76,9 +76,6 @@ func showHelpIndex(ctx *hal.EvalContext) value.Value {
 			"IO":          {},
 			"List":        {},
 			"Type":        {},
-			"Math":        {},
-			"HOF":         {},
-			"Canvas":      {},
 			"Concurrency": {},
 			"REPL":        {},
 			"Other":       {},
@@ -88,41 +85,56 @@ func showHelpIndex(ctx *hal.EvalContext) value.Value {
 			switch {
 			case contains([]string{"print", "println", "read", "input"}, name):
 				categories["IO"] = append(categories["IO"], name)
-			case contains([]string{"first", "rest", "length", "prepend", "append", "empty", "range", "reverse"}, name):
+			case contains([]string{"first", "rest", "length", "prepend", "append", "empty"}, name):
 				categories["List"] = append(categories["List"], name)
-			case contains([]string{"type", "inspect", "equal", "shape", "ord", "to_str", "to_number", "to_decimal"}, name):
+			case contains([]string{"type", "inspect", "equal", "shape", "ord", "chr", "is_error", "to_str", "to_number", "to_decimal"}, name):
 				categories["Type"] = append(categories["Type"], name)
-			case contains([]string{"floor", "ceil", "modulo", "sum", "max", "min", "seed", "random"}, name):
-				categories["Math"] = append(categories["Math"], name)
-			case contains([]string{"map", "filter", "reduce", "each", "find", "any", "all"}, name):
-				categories["HOF"] = append(categories["HOF"], name)
-			case strings.HasPrefix(name, "canvas") || strings.HasPrefix(name, "dot") || strings.HasPrefix(name, "line") || strings.HasPrefix(name, "rect") || strings.HasPrefix(name, "circle") || strings.HasPrefix(name, "fill") || strings.HasPrefix(name, "clear") || strings.HasPrefix(name, "destroy") || strings.HasPrefix(name, "set_") || strings.HasPrefix(name, "pen"):
-				categories["Canvas"] = append(categories["Canvas"], name)
 			case contains([]string{"spawn", "channel", "send", "recv"}, name):
 				categories["Concurrency"] = append(categories["Concurrency"], name)
-			case contains([]string{"quit", "reset", "help", "doc"}, name):
+			case contains([]string{"quit", "reset", "delete", "help", "doc", "apply", "load", "stack_limit"}, name):
 				categories["REPL"] = append(categories["REPL"], name)
 			default:
 				categories["Other"] = append(categories["Other"], name)
 			}
 		}
 
-		sb.WriteString("Functions:\n")
-		for _, cat := range []string{"IO", "List", "Type", "Math", "HOF", "Canvas", "Concurrency", "REPL", "Other"} {
+		sb.WriteString("Prelude Functions:\n")
+		for _, cat := range []string{"IO", "List", "Type", "Concurrency", "REPL", "Other"} {
 			if len(categories[cat]) > 0 {
 				sb.WriteString(fmt.Sprintf("  %s: %s\n", cat, strings.Join(categories[cat], ", ")))
 			}
 		}
 	}
 
-	sb.WriteString("\nUse help(\"name\") for quick reference, doc(\"name\") for full documentation.\n")
+	// Modules from GlobalRegistry
+	if GlobalRegistry != nil {
+		pkgs := GlobalRegistry.ListPackages()
+		if len(pkgs) > 0 {
+			sb.WriteString("\nModules:\n")
+			sb.WriteString(fmt.Sprintf("  %s\n", strings.Join(pkgs, ", ")))
+		}
+	}
+
+	sb.WriteString("\nUse help(\"name\") for prelude functions, help(\"module\") for module info,\n")
+	sb.WriteString("help(\"module.func\") for module functions.\n")
+	sb.WriteString("Use doc(\"name\") for full documentation.\n")
 
 	fmt.Fprint(Stdout, sb.String())
 	return value.EMPTY
 }
 
 func showHelp(name string, ctx *hal.EvalContext) value.Value {
-	// Check function registry first
+	// Check for qualified name (module.func)
+	if strings.Contains(name, ".") {
+		return showModuleFuncHelp(name)
+	}
+
+	// Check if it's a module name
+	if GlobalRegistry != nil && GlobalRegistry.HasPackage(name) {
+		return showModuleHelp(name)
+	}
+
+	// Check prelude function registry
 	if HelpRegistry != nil {
 		if entry := HelpRegistry.GetHelp(name); entry != nil {
 			var sb strings.Builder
@@ -169,8 +181,92 @@ func showHelp(name string, ctx *hal.EvalContext) value.Value {
 	return value.EMPTY
 }
 
+func showModuleHelp(pkgName string) value.Value {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("Module: %s\n\n", pkgName))
+
+	mh := GlobalRegistry.GetModuleHelp(pkgName)
+	if mh == nil || len(mh.Funcs) == 0 {
+		sb.WriteString("  No help available.\n")
+		sb.WriteString(fmt.Sprintf("  Use import(\"%s\") to load this module.\n", pkgName))
+	} else {
+		sb.WriteString("Exports:\n")
+		// Sort function names
+		names := make([]string, 0, len(mh.Funcs))
+		for name := range mh.Funcs {
+			names = append(names, name)
+		}
+		sort.Strings(names)
+
+		for _, name := range names {
+			entry := mh.Funcs[name]
+			sb.WriteString(fmt.Sprintf("  %s - %s\n", entry.Template, entry.Help))
+		}
+		sb.WriteString(fmt.Sprintf("\nUse help(\"%s.func\") for details on a specific function.\n", pkgName))
+	}
+
+	fmt.Fprint(Stdout, sb.String())
+	return value.EMPTY
+}
+
+func showModuleFuncHelp(qualName string) value.Value {
+	parts := strings.SplitN(qualName, ".", 2)
+	if len(parts) != 2 {
+		fmt.Fprintf(Stdout, "Invalid qualified name '%s'\n", qualName)
+		return value.EMPTY
+	}
+
+	pkgName := parts[0]
+	funcName := parts[1]
+
+	// Handle nested package names like "hash/ffi.new"
+	// The package name might be "hash/ffi" not "hash"
+	// Try progressively longer package names
+	if GlobalRegistry != nil {
+		// First try exact split
+		if !GlobalRegistry.HasPackage(pkgName) {
+			// Maybe the dot is in the middle of a path-like name
+			// For "hash/ffi.new", we want pkg="hash/ffi", func="new"
+			// This is already handled by SplitN with limit 2
+		}
+	}
+
+	if GlobalRegistry == nil || !GlobalRegistry.HasPackage(pkgName) {
+		fmt.Fprintf(Stdout, "Unknown module '%s'\n", pkgName)
+		return value.EMPTY
+	}
+
+	mh := GlobalRegistry.GetModuleHelp(pkgName)
+	if mh == nil {
+		fmt.Fprintf(Stdout, "No help available for module '%s'\n", pkgName)
+		return value.EMPTY
+	}
+
+	if entry, ok := mh.Funcs[funcName]; ok {
+		var sb strings.Builder
+		sb.WriteString(fmt.Sprintf("%s.%s\n", pkgName, entry.Name))
+		sb.WriteString(fmt.Sprintf("  %s\n\n", entry.Help))
+		sb.WriteString(fmt.Sprintf("Syntax: %s\n", entry.Template))
+		fmt.Fprint(Stdout, sb.String())
+		return value.EMPTY
+	}
+
+	fmt.Fprintf(Stdout, "No help for '%s' in module '%s'\n", funcName, pkgName)
+	return value.EMPTY
+}
+
 func showDoc(name string, ctx *hal.EvalContext) value.Value {
-	// Check function registry first
+	// Check for qualified name (module.func)
+	if strings.Contains(name, ".") {
+		return showModuleFuncDoc(name)
+	}
+
+	// Check if it's a module name
+	if GlobalRegistry != nil && GlobalRegistry.HasPackage(name) {
+		return showModuleDoc(name)
+	}
+
+	// Check prelude function registry
 	if HelpRegistry != nil {
 		if entry := HelpRegistry.GetDoc(name); entry != nil {
 			var sb strings.Builder
@@ -210,6 +306,68 @@ func showDoc(name string, ctx *hal.EvalContext) value.Value {
 	}
 
 	fmt.Fprintf(Stdout, "No documentation for '%s'\n", name)
+	return value.EMPTY
+}
+
+func showModuleDoc(pkgName string) value.Value {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("Module: %s\n\n", pkgName))
+
+	mh := GlobalRegistry.GetModuleHelp(pkgName)
+	if mh == nil || len(mh.Docs) == 0 {
+		sb.WriteString("No documentation available.\n")
+	} else {
+		// Show all function docs
+		names := make([]string, 0, len(mh.Docs))
+		for name := range mh.Docs {
+			names = append(names, name)
+		}
+		sort.Strings(names)
+
+		for i, name := range names {
+			entry := mh.Docs[name]
+			sb.WriteString(fmt.Sprintf("%s\n%s\n", entry.Name, entry.Doc))
+			if i < len(names)-1 {
+				sb.WriteString("\n---\n\n")
+			}
+		}
+	}
+
+	fmt.Fprint(Stdout, sb.String())
+	return value.EMPTY
+}
+
+func showModuleFuncDoc(qualName string) value.Value {
+	parts := strings.SplitN(qualName, ".", 2)
+	if len(parts) != 2 {
+		fmt.Fprintf(Stdout, "Invalid qualified name '%s'\n", qualName)
+		return value.EMPTY
+	}
+
+	pkgName := parts[0]
+	funcName := parts[1]
+
+	if GlobalRegistry == nil || !GlobalRegistry.HasPackage(pkgName) {
+		fmt.Fprintf(Stdout, "Unknown module '%s'\n", pkgName)
+		return value.EMPTY
+	}
+
+	mh := GlobalRegistry.GetModuleHelp(pkgName)
+	if mh == nil {
+		fmt.Fprintf(Stdout, "No documentation available for module '%s'\n", pkgName)
+		return value.EMPTY
+	}
+
+	if entry, ok := mh.Docs[funcName]; ok {
+		var sb strings.Builder
+		sb.WriteString(fmt.Sprintf("%s.%s\n\n", pkgName, entry.Name))
+		sb.WriteString(entry.Doc)
+		sb.WriteString("\n")
+		fmt.Fprint(Stdout, sb.String())
+		return value.EMPTY
+	}
+
+	fmt.Fprintf(Stdout, "No documentation for '%s' in module '%s'\n", funcName, pkgName)
 	return value.EMPTY
 }
 

@@ -1,0 +1,49 @@
+===
+floor
+Returns the largest integer less than or equal to x.
+
+floor(x)
+
+floor(3.7)     # 3
+floor(-2.3)    # -3
+===
+ceil
+Returns the smallest integer greater than or equal to x.
+
+ceil(x)
+
+ceil(3.2)     # 4
+ceil(-2.7)    # -2
+===
+modulo
+Returns the remainder of a divided by b.
+
+modulo(a, b)
+
+modulo(10, 3)    # 1
+modulo(7, 2)     # 1
+===
+sin
+Returns the sine of x, where x is in radians.
+
+sin(x)
+
+sin(0)           # 0
+sin(3.14159/2)   # approximately 1
+===
+cos
+Returns the cosine of x, where x is in radians.
+
+cos(x)
+
+cos(0)           # 1
+cos(3.14159)     # approximately -1
+===
+sqrt
+Returns the square root of x.
+Returns [@error] for negative input.
+
+sqrt(x)
+
+sqrt(4)     # 2
+sqrt(2)     # approximately 1.414

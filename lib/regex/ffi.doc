@@ -1,0 +1,45 @@
+===
+matches
+Returns true if the regular expression pattern matches the entire string.
+
+matches(pattern, s)
+
+matches("[0-9]+", "123")      # true
+matches("[0-9]+", "abc123")   # false
+===
+find
+Returns the first substring matching the pattern.
+Returns [@error, :not_found] if no match.
+
+find(pattern, s)
+
+find("[0-9]+", "abc123def")    # "123"
+find("[0-9]+", "abcdef")       # [@error, :not_found]
+===
+find_all
+Returns a list of all substrings matching the pattern.
+
+find_all(pattern, s)
+
+find_all("[0-9]+", "a1b2c3")    # ["1", "2", "3"]
+===
+replace
+Replaces all occurrences of the pattern with the replacement string.
+
+replace(pattern, s, repl)
+
+replace("[0-9]", "a1b2c3", "X")    # "aXbXcX"
+===
+replace_first
+Replaces only the first occurrence of the pattern.
+
+replace_first(pattern, s, repl)
+
+replace_first("[0-9]", "a1b2c3", "X")    # "aXb2c3"
+===
+split
+Splits the string by the pattern and returns a list of parts.
+
+split(pattern, s)
+
+split(",\\s*", "a, b, c")    # ["a", "b", "c"]

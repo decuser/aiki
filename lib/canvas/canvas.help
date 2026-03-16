@@ -1,0 +1,57 @@
+# canvas - graphics primitives
+
+@func canvas
+@template "canvas(width, height, title)"
+@help "Creates a new canvas window."
+
+@func dot
+@template "dot(c, x, y)"
+@help "Draws a dot at (x, y)."
+
+@func line
+@template "line(c, x1, y1, x2, y2)"
+@help "Draws a line from (x1, y1) to (x2, y2)."
+
+@func rect
+@template "rect(c, x, y, w, h)"
+@help "Draws a rectangle outline."
+
+@func fill_rect
+@template "fill_rect(c, x, y, w, h)"
+@help "Draws a filled rectangle."
+
+@func circle
+@template "circle(c, x, y, r)"
+@help "Draws a circle outline."
+
+@func fill_circle
+@template "fill_circle(c, x, y, r)"
+@help "Draws a filled circle."
+
+@func clear
+@template "clear(c)"
+@help "Clears the canvas to background color."
+
+@func destroy
+@template "destroy(c)"
+@help "Closes the canvas window."
+
+@func set_bg
+@template "set_bg(c, color)"
+@help "Sets background color by name."
+
+@func set_fg
+@template "set_fg(c, color)"
+@help "Sets foreground color by name."
+
+@func set_bg_rgb
+@template "set_bg_rgb(c, r, g, b)"
+@help "Sets background color by RGB values."
+
+@func set_fg_rgb
+@template "set_fg_rgb(c, r, g, b)"
+@help "Sets foreground color by RGB values."
+
+@func pen_size
+@template "pen_size(c, size)"
+@help "Sets the pen/line thickness."

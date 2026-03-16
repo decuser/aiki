@@ -1,0 +1,25 @@
+# regex/ffi - regular expression operations
+
+@func matches
+@template "matches(pattern, s)"
+@help "Returns true if pattern matches entire string."
+
+@func find
+@template "find(pattern, s)"
+@help "Returns first match or [@error] if not found."
+
+@func find_all
+@template "find_all(pattern, s)"
+@help "Returns list of all matches."
+
+@func replace
+@template "replace(pattern, s, repl)"
+@help "Replaces all matches with replacement."
+
+@func replace_first
+@template "replace_first(pattern, s, repl)"
+@help "Replaces first match with replacement."
+
+@func split
+@template "split(pattern, s)"
+@help "Splits string by pattern into list."

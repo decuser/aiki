@@ -3,6 +3,15 @@ package "math/native"
 # math/native - pure aiki math functions
 # These use Taylor series with rational arithmetic.
 # User controls precision via 'terms' or 'iterations' parameter.
+# Pure even check - subtract 2 until < 2, check if 0
+let _is_even = (n) {
+	let r = n
+	while r >= 2 {
+		r = r - 2
+	}
+	return equal(r, 0)
+}
+
 let _factorial = (n) {
 	if n < 2 {
 		return 1
@@ -30,7 +39,7 @@ let sin = (x, terms) {
 	while i < terms {
 		let n = i * 2 + 1
 		let term = _pow(x, n) / _factorial(n)
-		if equal(_modulo(i, 2), 0) {
+		if _is_even(i) {
 			result = result + term
 		} else {
 			result = result - term
@@ -47,7 +56,7 @@ let cos = (x, terms) {
 	while i < terms {
 		let n = i * 2
 		let term = _pow(x, n) / _factorial(n)
-		if equal(_modulo(i, 2), 0) {
+		if _is_even(i) {
 			result = result + term
 		} else {
 			result = result - term

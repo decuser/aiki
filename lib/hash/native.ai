@@ -5,15 +5,27 @@ package "hash/native"
 let _HASH_SIZE = 64
 
 # Pure modulo for positive integers
-let _modulo = (a, b) {
-	let result = a
-	while result >= b {
-		result = result - b
+# Works by subtracting b until result < b
+# For large values, uses repeated doubling to speed up
+let pure_modulo = (a, b) {
+	if a < 0 {
+		# Handle negative: add b until positive, then normal modulo
+		let r = a
+		while r < 0 {
+			r = r + b
+		}
+		return pure_modulo(r, b)
 	}
-	while result < 0 {
-		result = result + b
+	if a < b {
+		return a
 	}
-	return result
+	# Find largest power of b that fits
+	let sub = b
+	while sub + sub <= a {
+		sub = sub + sub
+	}
+	# Subtract it and recurse
+	return pure_modulo(a - sub, b)
 }
 
 let _hash_string = (s) {
@@ -66,7 +78,7 @@ let hash_code = (val) {
 }
 
 let _bucket_index = (key) {
-	return _modulo(hash_code(key), _HASH_SIZE)
+	return pure_modulo(hash_code(key), _HASH_SIZE)
 }
 
 let new = () {

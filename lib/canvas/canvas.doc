@@ -1,0 +1,105 @@
+===
+canvas
+Creates a new canvas window with the specified dimensions and title.
+Returns a canvas handle for use with other drawing functions.
+
+canvas(width, height, title)
+
+let c = canvas(800, 600, "My Drawing")
+===
+dot
+Draws a single dot at the specified coordinates using the current
+foreground color and pen size.
+
+dot(c, x, y)
+
+dot(c, 100, 100)
+===
+line
+Draws a line from point (x1, y1) to point (x2, y2) using the current
+foreground color and pen size.
+
+line(c, x1, y1, x2, y2)
+
+line(c, 0, 0, 100, 100)
+===
+rect
+Draws a rectangle outline with top-left corner at (x, y) and the
+specified width and height.
+
+rect(c, x, y, w, h)
+
+rect(c, 50, 50, 200, 100)
+===
+fill_rect
+Draws a filled rectangle with top-left corner at (x, y) and the
+specified width and height.
+
+fill_rect(c, x, y, w, h)
+
+fill_rect(c, 50, 50, 200, 100)
+===
+circle
+Draws a circle outline centered at (x, y) with the given radius.
+
+circle(c, x, y, r)
+
+circle(c, 200, 200, 50)
+===
+fill_circle
+Draws a filled circle centered at (x, y) with the given radius.
+
+fill_circle(c, x, y, r)
+
+fill_circle(c, 200, 200, 50)
+===
+clear
+Clears the entire canvas to the current background color.
+
+clear(c)
+
+clear(c)
+===
+destroy
+Closes the canvas window and releases resources.
+
+destroy(c)
+
+destroy(c)
+===
+set_bg
+Sets the background color using a color name.
+Supported: black, white, red, green, blue, yellow, cyan, magenta, gray.
+
+set_bg(c, color)
+
+set_bg(c, "black")
+===
+set_fg
+Sets the foreground (drawing) color using a color name.
+Supported: black, white, red, green, blue, yellow, cyan, magenta, gray.
+
+set_fg(c, color)
+
+set_fg(c, "red")
+===
+set_bg_rgb
+Sets the background color using RGB values (0-255 each).
+
+set_bg_rgb(c, r, g, b)
+
+set_bg_rgb(c, 30, 30, 30)
+===
+set_fg_rgb
+Sets the foreground (drawing) color using RGB values (0-255 each).
+
+set_fg_rgb(c, r, g, b)
+
+set_fg_rgb(c, 255, 128, 0)
+===
+pen_size
+Sets the pen thickness for subsequent drawing operations.
+
+pen_size(c, size)
+
+pen_size(c, 3)

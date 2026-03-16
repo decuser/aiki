@@ -1,0 +1,84 @@
+===
+upper
+Returns a new string with all characters converted to uppercase.
+
+upper(s)
+
+upper("hello")    # "HELLO"
+===
+lower
+Returns a new string with all characters converted to lowercase.
+
+lower(s)
+
+lower("HELLO")    # "hello"
+===
+split
+Splits the string by the delimiter and returns a list of parts.
+
+split(s, delim)
+
+split("a,b,c", ",")    # ["a", "b", "c"]
+===
+join
+Joins a list of strings with the delimiter between each.
+
+join(list, delim)
+
+join(["a", "b", "c"], "-")    # "a-b-c"
+===
+trim
+Removes leading and trailing whitespace from the string.
+
+trim(s)
+
+trim("  hello  ")    # "hello"
+===
+starts_with
+Returns true if the string starts with the given prefix.
+
+starts_with(s, prefix)
+
+starts_with("hello", "he")    # true
+===
+ends_with
+Returns true if the string ends with the given suffix.
+
+ends_with(s, suffix)
+
+ends_with("hello", "lo")    # true
+===
+contains
+Returns true if the string contains the substring.
+
+contains(s, sub)
+
+contains("hello", "ell")    # true
+===
+replace
+Replaces all occurrences of old with new in the string.
+
+replace(s, old, new)
+
+replace("hello", "l", "L")    # "heLLo"
+===
+slice
+Returns a substring from start (inclusive) to end (exclusive).
+
+slice(s, start, end)
+
+slice("hello", 1, 4)    # "ell"
+===
+pad_left
+Pads the string on the left to reach the given width.
+
+pad_left(s, width, char)
+
+pad_left("42", 5, "0")    # "00042"
+===
+pad_right
+Pads the string on the right to reach the given width.
+
+pad_right(s, width, char)
+
+pad_right("hi", 5, ".")    # "hi..."

@@ -1,0 +1,99 @@
+===
+map
+Applies a function to each element of a list and returns a new list
+containing the results.
+
+map(list, f)
+
+map([1, 2, 3], (x) { x * 2 })    # [2, 4, 6]
+===
+filter
+Returns a new list containing only elements for which the predicate
+function returns true.
+
+filter(list, f)
+
+filter([1, 2, 3, 4], (x) { x > 2 })    # [3, 4]
+===
+reduce
+Reduces a list to a single value by applying a function that takes
+an accumulator and each element.
+
+reduce(list, initial, f)
+
+reduce([1, 2, 3], 0, (acc, x) { acc + x })    # 6
+===
+each
+Iterates over each element calling the function for side effects.
+Returns the original list.
+
+each(list, f)
+
+each([1, 2, 3], (x) { println(x) })
+===
+sum
+Returns the sum of all elements in the list.
+
+sum(list)
+
+sum([1, 2, 3, 4])    # 10
+===
+max
+Returns the maximum element in the list.
+Returns [@error] for empty list.
+
+max(list)
+
+max([3, 1, 4, 1, 5])    # 5
+===
+min
+Returns the minimum element in the list.
+Returns [@error] for empty list.
+
+min(list)
+
+min([3, 1, 4, 1, 5])    # 1
+===
+reverse
+Returns a new list with elements in reverse order.
+
+reverse(list)
+
+reverse([1, 2, 3])    # [3, 2, 1]
+===
+find
+Returns the first element for which the predicate returns true.
+Returns [@error, :not_found] if no element matches.
+
+find(list, f)
+
+find([1, 2, 3, 4], (x) { x > 2 })    # 3
+===
+any
+Returns true if the predicate returns true for any element.
+
+any(list, f)
+
+any([1, 2, 3], (x) { x > 2 })    # true
+===
+all
+Returns true if the predicate returns true for all elements.
+
+all(list, f)
+
+all([2, 4, 6], (x) { equal(modulo(x, 2), 0) })    # true
+===
+concat
+Returns a new list with all elements of a followed by all elements of b.
+
+concat(a, b)
+
+concat([1, 2], [3, 4])    # [1, 2, 3, 4]
+===
+range
+Returns a list of integers from start (inclusive) to end (exclusive).
+
+range(start, end)
+
+range(0, 5)    # [0, 1, 2, 3, 4]
+range(3, 7)    # [3, 4, 5, 6]

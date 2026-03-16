@@ -1,0 +1,18 @@
+===
+seed
+Seeds the pseudo-random number generator with the given value.
+Using the same seed produces the same sequence of random numbers.
+
+seed(n)
+
+seed(42)
+===
+random
+Returns a pseudo-random number between 0 (inclusive) and 1 (exclusive).
+Call seed() first to initialize the generator.
+
+random()
+
+seed(42)
+random()    # 0.374540...
+random()    # 0.950714...

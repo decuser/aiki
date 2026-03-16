@@ -1,0 +1,25 @@
+# math/ffi - HAL-accelerated math functions
+
+@func floor
+@template "floor(x)"
+@help "Returns largest integer <= x."
+
+@func ceil
+@template "ceil(x)"
+@help "Returns smallest integer >= x."
+
+@func modulo
+@template "modulo(a, b)"
+@help "Returns remainder of a divided by b."
+
+@func sin
+@template "sin(x)"
+@help "Returns sine of x (radians)."
+
+@func cos
+@template "cos(x)"
+@help "Returns cosine of x (radians)."
+
+@func sqrt
+@template "sqrt(x)"
+@help "Returns square root of x."

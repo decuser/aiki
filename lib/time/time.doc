@@ -1,0 +1,8 @@
+===
+sleep
+Pauses execution for the specified number of milliseconds.
+
+sleep(ms)
+
+sleep(1000)    # pause for 1 second
+sleep(100)     # pause for 100 milliseconds

@@ -1,0 +1,49 @@
+# string - string manipulation functions
+
+@func upper
+@template "upper(s)"
+@help "Returns string with all characters uppercase."
+
+@func lower
+@template "lower(s)"
+@help "Returns string with all characters lowercase."
+
+@func split
+@template "split(s, delim)"
+@help "Splits string by delimiter into list."
+
+@func join
+@template "join(list, delim)"
+@help "Joins list of strings with delimiter."
+
+@func trim
+@template "trim(s)"
+@help "Removes leading and trailing whitespace."
+
+@func starts_with
+@template "starts_with(s, prefix)"
+@help "Returns true if s starts with prefix."
+
+@func ends_with
+@template "ends_with(s, suffix)"
+@help "Returns true if s ends with suffix."
+
+@func contains
+@template "contains(s, sub)"
+@help "Returns true if s contains substring."
+
+@func replace
+@template "replace(s, old, new)"
+@help "Replaces all occurrences of old with new."
+
+@func slice
+@template "slice(s, start, end)"
+@help "Returns substring from start to end-1."
+
+@func pad_left
+@template "pad_left(s, width, char)"
+@help "Pads string on left to given width."
+
+@func pad_right
+@template "pad_right(s, width, char)"
+@help "Pads string on right to given width."

@@ -4,19 +4,28 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
+	"aiki/engine/runtime/help"
 	"aiki/engine/semantics/value"
 	"aiki/engine/syntax"
 	"aiki/engine/syntax/grammar"
 )
 
+// ModuleHelp holds help and doc data for a module.
+type ModuleHelp struct {
+	Funcs map[string]help.FuncEntry // function name -> help entry
+	Docs  map[string]help.DocEntry  // function name -> doc entry
+}
+
 // ModuleRegistry maps package names to their file paths and caches loaded modules.
 type ModuleRegistry struct {
-	paths   map[string]string        // package name -> file path
-	modules map[string]*value.Module // package name -> loaded module
-	roots   []string                 // directories to scan
-	seen    map[string]bool          // absolute paths already scanned
+	paths    map[string]string        // package name -> file path
+	modules  map[string]*value.Module // package name -> loaded module
+	helpData map[string]*ModuleHelp   // package name -> help data
+	roots    []string                 // directories to scan
+	seen     map[string]bool          // absolute paths already scanned
 }
 
 // GlobalRegistry is the module registry used by import.
@@ -25,10 +34,11 @@ var GlobalRegistry *ModuleRegistry
 // NewModuleRegistry creates a new registry with the given roots.
 func NewModuleRegistry(roots []string) *ModuleRegistry {
 	return &ModuleRegistry{
-		paths:   make(map[string]string),
-		modules: make(map[string]*value.Module),
-		roots:   roots,
-		seen:    make(map[string]bool),
+		paths:    make(map[string]string),
+		modules:  make(map[string]*value.Module),
+		helpData: make(map[string]*ModuleHelp),
+		roots:    roots,
+		seen:     make(map[string]bool),
 	}
 }
 
@@ -95,8 +105,67 @@ func (r *ModuleRegistry) scanDir(dir string, g *grammar.Grammar) error {
 		}
 
 		r.paths[pkgName] = path
+
+		// Load sibling .help and .doc files (required for lib packages)
+		if err := r.loadModuleHelp(pkgName, path); err != nil {
+			return err
+		}
 	}
 
+	return nil
+}
+
+// isLibPackage returns true if the path is under lib/ or contrib/lib/.
+func isLibPackage(path string) bool {
+	return strings.Contains(path, "/lib/") || strings.HasPrefix(path, "lib/")
+}
+
+// loadModuleHelp loads .help and .doc files adjacent to the .ai file.
+// For lib packages, both files are required.
+func (r *ModuleRegistry) loadModuleHelp(pkgName, aiPath string) error {
+	// Derive sibling paths: foo.ai -> foo.help, foo.doc
+	base := strings.TrimSuffix(aiPath, ".ai")
+	helpPath := base + ".help"
+	docPath := base + ".doc"
+
+	mh := &ModuleHelp{
+		Funcs: make(map[string]help.FuncEntry),
+		Docs:  make(map[string]help.DocEntry),
+	}
+
+	// Check if this is a lib package (requires both files)
+	requireDocs := isLibPackage(aiPath)
+
+	// Load .help file
+	helpData, helpErr := os.ReadFile(helpPath)
+	if helpErr != nil {
+		if requireDocs {
+			return fmt.Errorf("package '%s' missing required %s", pkgName, helpPath)
+		}
+	} else {
+		funcs, err := help.ParseHelpFile(helpPath, string(helpData))
+		if err != nil {
+			return fmt.Errorf("package '%s': %v", pkgName, err)
+		}
+		mh.Funcs = funcs
+	}
+
+	// Load .doc file
+	docData, docErr := os.ReadFile(docPath)
+	if docErr != nil {
+		if requireDocs {
+			return fmt.Errorf("package '%s' missing required %s", pkgName, docPath)
+		}
+	} else {
+		docs, err := help.ParseDocFile(docPath, string(docData))
+		if err != nil {
+			return fmt.Errorf("package '%s': %v", pkgName, err)
+		}
+		mh.Docs = docs
+	}
+
+	// Store help data
+	r.helpData[pkgName] = mh
 	return nil
 }
 
@@ -172,6 +241,27 @@ func (r *ModuleRegistry) GetCached(name string) (*value.Module, bool) {
 // Cache stores a loaded module.
 func (r *ModuleRegistry) Cache(name string, mod *value.Module) {
 	r.modules[name] = mod
+}
+
+// ListPackages returns all registered package names, sorted.
+func (r *ModuleRegistry) ListPackages() []string {
+	names := make([]string, 0, len(r.paths))
+	for name := range r.paths {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
+}
+
+// GetModuleHelp returns help data for a package, or nil if none.
+func (r *ModuleRegistry) GetModuleHelp(pkgName string) *ModuleHelp {
+	return r.helpData[pkgName]
+}
+
+// HasPackage returns true if the package is registered.
+func (r *ModuleRegistry) HasPackage(name string) bool {
+	_, ok := r.paths[name]
+	return ok
 }
 
 // IsPathImport returns true if the import string looks like a path.

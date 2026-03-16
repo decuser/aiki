@@ -1,0 +1,13 @@
+# math/native - pure Aiki math functions using Taylor series
+
+@func sin
+@template "sin(x, terms)"
+@help "Returns sine of x using Taylor series with given terms."
+
+@func cos
+@template "cos(x, terms)"
+@help "Returns cosine of x using Taylor series with given terms."
+
+@func sqrt
+@template "sqrt(x, iterations)"
+@help "Returns square root using Newton's method with given iterations."

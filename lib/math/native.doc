@@ -1,0 +1,27 @@
+===
+sin
+Returns the sine of x using Taylor series expansion.
+The terms parameter controls precision (more terms = more accuracy).
+
+sin(x, terms)
+
+sin(0, 5)           # 0
+sin(3.14159/2, 10)  # approximately 1
+===
+cos
+Returns the cosine of x using Taylor series expansion.
+The terms parameter controls precision (more terms = more accuracy).
+
+cos(x, terms)
+
+cos(0, 5)           # 1
+cos(3.14159, 10)    # approximately -1
+===
+sqrt
+Returns the square root of x using Newton's method.
+The iterations parameter controls precision.
+
+sqrt(x, iterations)
+
+sqrt(4, 10)     # 2
+sqrt(2, 10)     # approximately 1.414
