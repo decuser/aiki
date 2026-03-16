@@ -72,6 +72,14 @@ func (g *GoRuntime) registerHAL() {
 	g.register("_upper_rune", halUpperRune)
 	g.register("_lower_rune", halLowerRune)
 
+	// Regex
+	g.register("_regex_match", halRegexMatch)
+	g.register("_regex_find", halRegexFind)
+	g.register("_regex_find_all", halRegexFindAll)
+	g.register("_regex_replace", halRegexReplace)
+	g.register("_regex_replace_first", halRegexReplaceFirst)
+	g.register("_regex_split", halRegexSplit)
+
 	// Intrinsics - these use evaluation context
 	g.register("_apply", halApply)
 	g.register("_import", halImport)

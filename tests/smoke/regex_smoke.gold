@@ -1,0 +1,14 @@
+OUT:Testing regex...\n
+OUT:true\n
+OUT:false\n
+OUT:true\n
+OUT:[@match, 4, 7, \"123\"]\n
+OUT:[[@match, 1, 2, \"1\"], [@match, 3, 4, \"2\"], [@match, 5, 6, \"3\"]]\n
+OUT:aXbXcX\n
+OUT:aXb2c3\n
+OUT:[\"a\", \"b\", \"\", \"c\"]\n
+OUT:[\"one\", \"two\", \"three\"]\n
+OUT:true\n
+OUT:aNbNcN\n
+OUT:[@error, :regex, \"invalid pattern: error parsing regexp: missing closing ]: `[`\"]\n
+OUT:REGEX_SMOKE_DONE\n
