@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"aiki/engine/runtime/help"
+	"aiki/engine/runtime/libpath"
 	"aiki/engine/semantics/value"
 	"aiki/engine/syntax"
 	"aiki/engine/syntax/grammar"
@@ -115,11 +116,6 @@ func (r *ModuleRegistry) scanDir(dir string, g *grammar.Grammar) error {
 	return nil
 }
 
-// isLibPackage returns true if the path is under lib/ or contrib/lib/.
-func isLibPackage(path string) bool {
-	return strings.Contains(path, "/lib/") || strings.HasPrefix(path, "lib/")
-}
-
 // loadModuleHelp loads .help and .doc files adjacent to the .ai file.
 // For lib packages, both files are required.
 func (r *ModuleRegistry) loadModuleHelp(pkgName, aiPath string) error {
@@ -134,7 +130,7 @@ func (r *ModuleRegistry) loadModuleHelp(pkgName, aiPath string) error {
 	}
 
 	// Check if this is a lib package (requires both files)
-	requireDocs := isLibPackage(aiPath)
+	requireDocs := libpath.IsBlessedLibPath(aiPath)
 
 	// Load .help file
 	helpData, helpErr := os.ReadFile(helpPath)

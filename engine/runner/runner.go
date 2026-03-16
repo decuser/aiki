@@ -10,6 +10,7 @@ import (
 
 	"aiki/engine/runtime/hal/substrate"
 	"aiki/engine/runtime/help"
+	"aiki/engine/runtime/libpath"
 	"aiki/engine/runtime/prelude"
 	"aiki/engine/semantics/evaluator"
 	"aiki/engine/semantics/value"
@@ -55,7 +56,7 @@ func RunSource(filename, source string) error {
 	// Files in /lib/ or /contrib/lib/ get ScopePrelude (HAL access)
 	// All other files get ScopeUser
 	userScope := value.ScopeUser
-	if isBlessedLibPath(filename) {
+	if libpath.IsBlessedLibPath(filename) {
 		userScope = value.ScopePrelude
 	}
 	userEnv := value.NewEnclosedEnvWithScope(preludeEnv, userScope)
@@ -85,14 +86,6 @@ func RunSource(filename, source string) error {
 	}
 
 	return nil
-}
-
-// isBlessedLibPath checks if a file path is in a blessed lib directory.
-// Files in /lib/ or /contrib/lib/ get ScopePrelude (HAL access).
-func isBlessedLibPath(filePath string) bool {
-	normalized := filepath.ToSlash(filePath)
-	return strings.Contains(normalized, "/lib/") ||
-		strings.HasPrefix(normalized, "lib/")
 }
 
 // loadPrelude parses and evaluates the prelude.
