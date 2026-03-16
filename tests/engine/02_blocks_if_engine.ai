@@ -1,10 +1,5 @@
 # 02_blocks_if_engine.ai
 # Blocks, if, return.
-let println = (val) {
-	print(val, "\n")
-	return true
-}
-
 let abs = (n) {
 	if n < 0 {
 		return -n

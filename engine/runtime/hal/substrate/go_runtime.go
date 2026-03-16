@@ -15,8 +15,9 @@ import (
 
 // Stdout and Stdin for I/O redirection.
 var (
-	Stdout io.Writer = os.Stdout
-	Stdin  io.Reader = os.Stdin
+	Stdout  io.Writer  = os.Stdout
+	Stdin   io.Reader  = os.Stdin
+	UserEnv *value.Env // Set by REPL session for delete() to access
 )
 
 // BuiltinFunc is a HAL-level function that may use evaluation context.

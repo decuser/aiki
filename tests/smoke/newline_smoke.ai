@@ -7,9 +7,9 @@ let y = 2
 println(x + y)
 
 # Continuation: line ends with operator
-let sum = 1 + 2 + 3
+let total = 1 + 2 + 3
 
-println(sum)
+println(total)
 
 # Continuation: line ends with comma (in call)
 let result = max([10, 20, 30])

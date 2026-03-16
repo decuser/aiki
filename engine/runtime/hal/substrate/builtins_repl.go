@@ -213,6 +213,24 @@ func showDoc(name string, ctx *hal.EvalContext) value.Value {
 	return value.EMPTY
 }
 
+func halDelete(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 1 {
+		return value.NewFault("delete: want 1 argument, got %d", len(args))
+	}
+	s, ok := args[0].(*value.String)
+	if !ok {
+		return value.NewFault("delete: expected string, got %s", args[0].Type())
+	}
+	name := s.Val
+	if UserEnv == nil {
+		return value.NewFault("delete: no user environment (only available in REPL)")
+	}
+	if UserEnv.Delete(name) {
+		return value.TRUE
+	}
+	return value.FALSE
+}
+
 func contains(slice []string, s string) bool {
 	for _, item := range slice {
 		if item == s {

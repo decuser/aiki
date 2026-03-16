@@ -516,6 +516,10 @@ let reset = () {
 	_reset()
 }
 
+let delete = (name) {
+	_delete(name)
+}
+
 let help = (...args) {
 	if empty(args) {
 		_help("")

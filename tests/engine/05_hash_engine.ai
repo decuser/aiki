@@ -1,10 +1,5 @@
 # 05_hash_engine.ai
 # Hash basics.
-let println = (val) {
-	print(val, "\n")
-	return true
-}
-
 let h = hash_new()
 let h = hash_put(h, "name", "Mochi")
 let h = hash_put(h, :age, 3)

@@ -67,6 +67,11 @@ func (e *Env) GetScope() Scope {
 	return e.scope
 }
 
+// Outer returns the enclosing environment, or nil if none.
+func (e *Env) Outer() *Env {
+	return e.outer
+}
+
 // PushFrame adds a stack frame.
 func (e *Env) PushFrame(name string, line int, scope Scope) {
 	*e.stack = append(*e.stack, StackFrame{
@@ -151,12 +156,33 @@ func (e *Env) Update(name string, val Value) bool {
 	return false
 }
 
+// Delete removes a binding from the current scope only.
+// Returns true if the binding existed and was deleted.
+// This allows shadowed outer bindings (e.g., prelude) to show through again.
+func (e *Env) Delete(name string) bool {
+	if _, ok := e.store[name]; ok {
+		delete(e.store, name)
+		return true
+	}
+	return false
+}
+
+// HasOwn checks if a binding exists in this scope only (not outer scopes).
+func (e *Env) HasOwn(name string) bool {
+	_, ok := e.store[name]
+	return ok
+}
+
 // GetPreludeEnv walks up the outer chain to find the prelude env.
+// This is the root prelude env, not function call envs that inherit ScopePrelude.
 func (e *Env) GetPreludeEnv() *Env {
 	curr := e
 	for curr != nil {
 		if curr.scope == ScopePrelude {
-			return curr
+			// Check if this is the actual prelude root (outer is nil or non-prelude)
+			if curr.outer == nil || curr.outer.scope != ScopePrelude {
+				return curr
+			}
 		}
 		curr = curr.outer
 	}

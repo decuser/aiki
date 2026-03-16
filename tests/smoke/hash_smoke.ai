@@ -1,8 +1,3 @@
-let println = (val) {
-	print(val, "\n")
-	return true
-}
-
 println("Testing hash map...")
 
 let h = hash_new()

@@ -85,6 +85,7 @@ func (g *GoRuntime) registerHAL() {
 	// REPL
 	g.register("_quit", halQuit)
 	g.register("_reset", halReset)
+	g.register("_delete", halDelete)
 	g.register("_help", halHelp)
 	g.register("_doc", halDoc)
 }

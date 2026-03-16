@@ -38,6 +38,7 @@ func NewSession() (*Session, error) {
 
 	// Create user environment enclosed by prelude
 	userEnv := value.NewEnclosedEnv(preludeEnv)
+	substrate.UserEnv = userEnv
 
 	ev := evaluator.New(rt, nil)
 	ev.SetGrammar(g)
@@ -81,5 +82,6 @@ func (s *Session) Reset() error {
 		return err
 	}
 	s.Env = value.NewEnclosedEnv(preludeEnv)
+	substrate.UserEnv = s.Env
 	return nil
 }

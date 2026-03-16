@@ -1,6 +1,8 @@
 package evaluator
 
 import (
+	"fmt"
+	"os"
 	"strings"
 
 	"aiki/engine/semantics/value"
@@ -104,6 +106,16 @@ func (e *Evaluator) evalLet(node *syntax.Node, env *value.Env) value.Value {
 		return e.makeFault(node, env, "cannot shadow builtin: %s", name)
 	}
 
+	// Warn if shadowing a prelude binding at top level (not inside functions/blocks)
+	if preludeEnv := env.GetPreludeEnv(); preludeEnv != nil {
+		if _, exists := preludeEnv.Get(name); exists {
+			// Only warn if env is directly enclosed by prelude (top-level user scope)
+			if env.Outer() == preludeEnv {
+				fmt.Fprintf(os.Stderr, "warning: shadowing prelude function '%s'\n", name)
+			}
+		}
+	}
+
 	val := e.Eval(valNode, env)
 	if shouldHalt(val) {
 		return val
@@ -136,6 +148,24 @@ func (e *Evaluator) evalAssign(node *syntax.Node, env *value.Env) value.Value {
 
 	if _, ok := env.Get(name); !ok {
 		return e.makeFault(node, env, "undefined variable: %s", name)
+	}
+
+	// Block assignment to prelude bindings - use let to shadow instead
+	// Only applies to user code (env != preludeEnv), not prelude/test code
+	if preludeEnv := env.GetPreludeEnv(); preludeEnv != nil && env != preludeEnv {
+		if _, exists := preludeEnv.Get(name); exists {
+			// Check if there's a binding in a non-prelude scope that shadows it
+			found := false
+			for e := env; e != nil && e != preludeEnv; e = e.Outer() {
+				if e.HasOwn(name) {
+					found = true
+					break
+				}
+			}
+			if !found {
+				return e.makeFault(node, env, "cannot assign to prelude function '%s'; use let to shadow", name)
+			}
+		}
 	}
 
 	val := e.Eval(valNode, env)

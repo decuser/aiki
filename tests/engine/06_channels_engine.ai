@@ -1,10 +1,5 @@
 # 06_channels_engine.ai
 # Concurrency primitives without imports.
-let println = (val) {
-	print(val, "\n")
-	return true
-}
-
 let ch = channel()
 
 let worker = (c) {

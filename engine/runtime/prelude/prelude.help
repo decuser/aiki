@@ -294,6 +294,10 @@
 @template "reset()"
 @help "Resets the environment."
 
+@func delete
+@template "delete(name)"
+@help "Deletes a user binding, restoring shadowed prelude function."
+
 @func help
 @template "help(name)"
 @help "Shows help for name."

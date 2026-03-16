@@ -8,8 +8,8 @@ print("I'm thinking of a number between 1 and 100.\n")
 
 while not guessed {
 	print("Enter your guess: ")
-	let input = read()
-	let guess = to_number(input)
+	let user_input = read()
+	let guess = to_number(user_input)
 	attempts = attempts + 1
 	if equal(guess, secret) {
 		print("Correct! You found it in ")

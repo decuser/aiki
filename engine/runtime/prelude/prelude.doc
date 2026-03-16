@@ -264,6 +264,20 @@ reset()
 reset()
 ===
 
+delete
+Deletes a user binding by name, allowing a shadowed prelude function to be visible again.
+
+delete(name)
+
+name must be a string.
+
+Returns true if a binding was deleted, false otherwise.
+
+let print = 1
+delete("print")
+print("restored!")
+===
+
 
 stack_limit
 
