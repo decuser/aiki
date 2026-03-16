@@ -64,6 +64,8 @@ func (s *Session) Eval(source string) value.Value {
 		return value.NewFault("%s", err)
 	}
 
+	s.Env.SetFile("<repl>")
+	s.Env.SetSource(source)
 	return s.Evaluator.Eval(ast, s.Env)
 }
 

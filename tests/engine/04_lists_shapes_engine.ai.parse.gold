@@ -45,6 +45,7 @@ program 3:1
                                                 primary 4:13
                                                   STRING 4:13 "\"\\n\""
                                       TERMINAL 4:17 ")"
+                      TERMINAL 4:18 ";"
                       statement 5:2
                         return_stmt 5:2
                           TERMINAL 5:2 "return"
@@ -55,6 +56,7 @@ program 3:1
                                   postfix_expr 5:9
                                     primary 5:9
                                       TERMINAL 5:9 "true"
+                      TERMINAL 5:13 ";"
                       TERMINAL 6:1 "}"
   statement 8:1
     let_stmt 8:1

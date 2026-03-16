@@ -33,24 +33,25 @@ func NewParser(g *grammar.Grammar, tokens []Token, source string, observer engin
 	}
 	// Filter tokens: skip @skip tokens and insert semicolons.
 	// Go-style rule: insert ";" after complete token when followed by newline,
-	// but only at bracket depth 0 (not inside [], (), {}).
+	// but not inside () or [] (function calls, list literals).
+	// {} blocks DO get semicolons - that's where statements live.
 	filtered := make([]Token, 0, len(tokens))
-	depth := 0
+	parenDepth := 0
 	for _, tok := range tokens {
 		// Skip tokens marked @skip (WHITESPACE, COMMENT)
 		if def, ok := g.GetToken(tok.Type); ok && def.Skip {
 			continue
 		}
-		// Track bracket depth
+		// Track paren/bracket depth (not braces)
 		switch tok.Lexeme {
-		case "(", "[", "{":
-			depth++
-		case ")", "]", "}":
-			depth--
+		case "(", "[":
+			parenDepth++
+		case ")", "]":
+			parenDepth--
 		}
-		// Check for newline after complete token - insert semicolon only at depth 0
+		// Check for newline after complete token - insert semicolon only outside parens/brackets
 		if tok.Type == "NEWLINE" {
-			if depth == 0 && len(filtered) > 0 && isComplete(filtered[len(filtered)-1]) {
+			if parenDepth == 0 && len(filtered) > 0 && isComplete(filtered[len(filtered)-1]) {
 				// Insert semicolon with position of the newline
 				filtered = append(filtered, Token{
 					Type:   "DELIMITER",

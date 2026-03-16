@@ -45,6 +45,7 @@ program 3:1
                                                 primary 4:13
                                                   STRING 4:13 "\"\\n\""
                                       TERMINAL 4:17 ")"
+                      TERMINAL 4:18 ";"
                       statement 5:2
                         return_stmt 5:2
                           TERMINAL 5:2 "return"
@@ -55,6 +56,7 @@ program 3:1
                                   postfix_expr 5:9
                                     primary 5:9
                                       TERMINAL 5:9 "true"
+                      TERMINAL 5:13 ";"
                       TERMINAL 6:1 "}"
   statement 8:1
     let_stmt 8:1
@@ -113,6 +115,7 @@ program 3:1
                                                 primary 11:15
                                                   NAME 11:15 "c"
                                       TERMINAL 11:16 ")"
+                      TERMINAL 11:17 ";"
                       statement 12:2
                         let_stmt 12:2
                           TERMINAL 12:2 "let"
@@ -135,6 +138,7 @@ program 3:1
                                                 primary 12:15
                                                   NAME 12:15 "c"
                                       TERMINAL 12:16 ")"
+                      TERMINAL 12:17 ";"
                       statement 13:2
                         expr_stmt 13:2
                           expr 13:2
@@ -168,6 +172,7 @@ program 3:1
                                                 primary 13:14
                                                   NAME 13:14 "y"
                                       TERMINAL 13:15 ")"
+                      TERMINAL 13:16 ";"
                       statement 14:2
                         expr_stmt 14:2
                           expr 14:2
@@ -201,6 +206,7 @@ program 3:1
                                                 primary 14:14
                                                   NAME 14:14 "y"
                                       TERMINAL 14:15 ")"
+                      TERMINAL 14:16 ";"
                       statement 15:2
                         return_stmt 15:2
                           TERMINAL 15:2 "return"
@@ -211,6 +217,7 @@ program 3:1
                                   postfix_expr 15:9
                                     primary 15:9
                                       TERMINAL 15:9 "true"
+                      TERMINAL 15:13 ";"
                       TERMINAL 16:1 "}"
   statement 18:1
     expr_stmt 18:1

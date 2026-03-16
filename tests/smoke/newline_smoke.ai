@@ -35,7 +35,6 @@ reduce(0, (a, b) {
 	a + b
 })
 
-
 println(piped)
 
 # Function definition spans lines (block continues)
