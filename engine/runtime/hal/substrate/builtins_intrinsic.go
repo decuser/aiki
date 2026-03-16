@@ -212,7 +212,15 @@ func loadModule(name string, ctx *hal.EvalContext) (*value.Module, value.Value) 
 	if preludeEnv == nil {
 		return nil, value.NewFault("import: prelude environment not available")
 	}
-	modEnv := value.NewEnclosedEnv(preludeEnv)
+
+	// Determine scope based on module path
+	// Modules in /lib/ or /contrib/lib/ get ScopePrelude (HAL access)
+	// All other modules get ScopeUser (no direct HAL access)
+	modScope := value.ScopeUser
+	if isBlessedLibPath(modulePath) {
+		modScope = value.ScopePrelude
+	}
+	modEnv := value.NewEnclosedEnvWithScope(preludeEnv, modScope)
 	modEnv.SetFile(modulePath)
 	modEnv.SetSource(string(data))
 
@@ -263,6 +271,17 @@ func loadModule(name string, ctx *hal.EvalContext) (*value.Module, value.Value) 
 }
 
 // resolveRelativePath resolves a path relative to the current file.
+// isBlessedLibPath checks if a module path is in a blessed lib directory.
+// Modules in /lib/ or /contrib/lib/ get ScopePrelude (HAL access).
+func isBlessedLibPath(modulePath string) bool {
+	// Normalize path separators
+	normalized := filepath.ToSlash(modulePath)
+
+	// Check for /lib/ or /contrib/lib/ in path
+	return strings.Contains(normalized, "/lib/") ||
+		strings.HasPrefix(normalized, "lib/")
+}
+
 func resolveRelativePath(name string, env *value.Env) string {
 	currentFile := env.GetFile()
 

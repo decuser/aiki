@@ -37,7 +37,7 @@ func NewSession() (*Session, error) {
 	}
 
 	// Create user environment enclosed by prelude
-	userEnv := value.NewEnclosedEnv(preludeEnv)
+	userEnv := value.NewEnclosedEnvWithScope(preludeEnv, value.ScopeUser)
 	substrate.UserEnv = userEnv
 
 	ev := evaluator.New(rt, nil)
@@ -81,7 +81,7 @@ func (s *Session) Reset() error {
 	if err := loadPrelude(s.Grammar, s.Runtime, preludeEnv); err != nil {
 		return err
 	}
-	s.Env = value.NewEnclosedEnv(preludeEnv)
+	s.Env = value.NewEnclosedEnvWithScope(preludeEnv, value.ScopeUser)
 	substrate.UserEnv = s.Env
 	return nil
 }

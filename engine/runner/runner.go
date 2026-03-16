@@ -51,8 +51,14 @@ func RunSource(filename, source string) error {
 		return fmt.Errorf("loading prelude: %w", err)
 	}
 
-	// Create user environment enclosed by prelude, with ScopeUser
-	userEnv := value.NewEnclosedEnv(preludeEnv)
+	// Create user environment enclosed by prelude
+	// Files in /lib/ or /contrib/lib/ get ScopePrelude (HAL access)
+	// All other files get ScopeUser
+	userScope := value.ScopeUser
+	if isBlessedLibPath(filename) {
+		userScope = value.ScopePrelude
+	}
+	userEnv := value.NewEnclosedEnvWithScope(preludeEnv, userScope)
 
 	// Lex user code
 	lexer := syntax.NewLexer(g, filename, source, nil)
@@ -79,6 +85,14 @@ func RunSource(filename, source string) error {
 	}
 
 	return nil
+}
+
+// isBlessedLibPath checks if a file path is in a blessed lib directory.
+// Files in /lib/ or /contrib/lib/ get ScopePrelude (HAL access).
+func isBlessedLibPath(filePath string) bool {
+	normalized := filepath.ToSlash(filePath)
+	return strings.Contains(normalized, "/lib/") ||
+		strings.HasPrefix(normalized, "lib/")
 }
 
 // loadPrelude parses and evaluates the prelude.
@@ -235,7 +249,7 @@ func RunExpr(expr string) (string, error) {
 	}
 
 	// Create user environment enclosed by prelude
-	userEnv := value.NewEnclosedEnv(preludeEnv)
+	userEnv := value.NewEnclosedEnvWithScope(preludeEnv, value.ScopeUser)
 
 	lexer := syntax.NewLexer(g, "<expr>", expr, nil)
 	tokens, err := lexer.Tokenize()

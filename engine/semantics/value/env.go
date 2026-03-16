@@ -62,6 +62,19 @@ func NewEnclosedEnv(outer *Env) *Env {
 	}
 }
 
+// NewEnclosedEnvWithScope creates a child environment with an explicit scope.
+// Used to create user-scope envs enclosed by prelude-scope envs.
+func NewEnclosedEnvWithScope(outer *Env, scope Scope) *Env {
+	return &Env{
+		store:      make(map[string]Value),
+		shapes:     make(map[string]*ShapeDef),
+		outer:      outer,
+		scope:      scope,
+		stack:      outer.stack,
+		stackLimit: outer.stackLimit,
+	}
+}
+
 // GetScope returns the scope.
 func (e *Env) GetScope() Scope {
 	return e.scope
