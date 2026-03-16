@@ -24,10 +24,9 @@ println(re.replace_first("a1b2c3", "\\d", "X"))
 println(re.split("a,b,,c", ","))
 println(re.split("one  two   three", "\\s+"))
 
-# pipes work with direct import
-import("regex/ffi", :matches, :replace)
-println("hello world" |> matches("^hello"))
-println("a1b2c3" |> replace("\\d+", "N"))
+# pipes work with qualified access
+println("hello world" |> re.matches("^hello"))
+println("a1b2c3" |> re.replace("\\d+", "N"))
 
 # error case - invalid pattern
 println(re.find("test", "["))

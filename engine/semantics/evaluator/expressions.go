@@ -220,6 +220,11 @@ func (e *Evaluator) evalPrimary(node *syntax.Node, env *value.Env) value.Value {
 }
 
 func (e *Evaluator) evalToFunction(node *syntax.Node, env *value.Env) value.Value {
+	// For postfix_expr like "str.trim()", we need to evaluate "str.trim" (not just "str")
+	// Walk through primary and accesses, stopping before any call
+	if node.Type == "postfix_expr" || node.Type == "infix_expr" || node.Type == "unary_expr" || node.Type == "pipe_expr" {
+		return e.evalPostfixToFunction(node, env)
+	}
 	for _, child := range node.Children {
 		if child.Type == "NAME" {
 			return e.evalName(child, env)
@@ -229,6 +234,62 @@ func (e *Evaluator) evalToFunction(node *syntax.Node, env *value.Env) value.Valu
 		}
 	}
 	return e.Eval(node, env)
+}
+
+// evalPostfixToFunction evaluates a postfix expression up to but not including the call.
+// For "str.trim()", returns the trim function. For "str.foo.bar()", returns bar.
+func (e *Evaluator) evalPostfixToFunction(node *syntax.Node, env *value.Env) value.Value {
+	// Unwrap to postfix_expr
+	for node.Type == "infix_expr" || node.Type == "unary_expr" || node.Type == "pipe_expr" {
+		for _, child := range node.Children {
+			if child.Type != "TERMINAL" {
+				node = child
+				break
+			}
+		}
+	}
+
+	if node.Type != "postfix_expr" {
+		// Fall back to regular eval for primary
+		return e.evalToFunction(node, env)
+	}
+
+	var result value.Value
+	for _, child := range node.Children {
+		// Skip the call - we want the function, not the result of calling it
+		if child.Type == "call" {
+			break
+		}
+
+		if result == nil {
+			// Evaluate primary (first element)
+			result = e.Eval(child, env)
+			if shouldHalt(result) {
+				return result
+			}
+			continue
+		}
+
+		// Handle access (module.method)
+		if child.Type == "access" {
+			result = e.evalAccess(result, child, env)
+			if shouldHalt(result) {
+				return result
+			}
+		}
+		// Handle index (though unusual in pipe context)
+		if child.Type == "index" {
+			result = e.evalIndex(result, child, env)
+			if shouldHalt(result) {
+				return result
+			}
+		}
+	}
+
+	if result == nil {
+		return e.Eval(node, env)
+	}
+	return result
 }
 
 func (e *Evaluator) collectCallArgs(node *syntax.Node, env *value.Env) []value.Value {
