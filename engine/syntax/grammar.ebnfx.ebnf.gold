@@ -7,7 +7,7 @@ TOKENS
   OPERATOR	skip=false	literal="+ - * / < > <= >= |> . ="
   RUNE	skip=false	pattern="^'([^'\\\\]|\\\\.)'"	error="expected rune"	template="'a', '\\\\n'"
   SHAPE	skip=false	pattern="^@[a-zA-Z_][a-zA-Z0-9_]*"	error="expected shape"	template="@point, @error"
-  STRING	skip=false	pattern="^\"[^\"]*\""	error="expected string"	template="\\\"hello\\\""
+  STRING	skip=false	pattern="^\"([^\"\\\\]|\\\\.)*\""	error="expected string"	template="\\\"hello\\\""
   SYMBOL	skip=false	pattern="^:[a-zA-Z_][a-zA-Z0-9_]*"	error="expected symbol"	template=":name, :ok, :error"
   WHITESPACE	skip=true	pattern="^[ \\t\\r\\n]+"
 
@@ -42,7 +42,7 @@ PRODUCTIONS
   unary_expr	= {"not" | "-"} postfix_expr	error="expected expression"	template="not expr, -expr"
   while_stmt	= "while" expr block	error="expected 'while expr { ... }'"	template="while cond { ... }"
 
-GRAMMARHASH 4979a4b9850e5af10e68d33173cc63aac718314369ef5c9bd8116e7d5883795a
+GRAMMARHASH b90fa42475db9bbcc33d8067eb7eb51306057d4c02937b8b5862203a1601d788
 RULEHASHES
   BINOP bb042b633d47f072d22362db220397ea669212162a671236a2fa96c81415a92a
   access 9e9f531344c4934f5878cc643a74feacb4087e3fdb949d9579e40a80ec83e86f

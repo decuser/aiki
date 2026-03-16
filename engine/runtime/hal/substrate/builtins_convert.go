@@ -22,12 +22,34 @@ func halShape(args []value.Value, ctx *hal.EvalContext) value.Value {
 	return &value.Symbol{Val: list.Shape}
 }
 
-// halToStr converts any value to a string.
+// halToStr converts a value to its string representation.
+// Unlike Inspect(), this returns the value content, not display format.
+// - Rune 'A' becomes "A" (not "'A'")
+// - String "hi" becomes "hi" (not "\"hi\"")
+// - Number, boolean, symbol use their natural representation
+// - List, function, etc. use Inspect() as fallback
 func halToStr(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
 		return value.NewFault("to_str: want 1 argument, got %d", len(args))
 	}
-	return &value.String{Val: args[0].Inspect()}
+	switch v := args[0].(type) {
+	case *value.Rune:
+		return &value.String{Val: string(v.Val)}
+	case *value.String:
+		return v
+	case *value.Number:
+		return &value.String{Val: v.Val.RatString()}
+	case *value.Boolean:
+		if v.Val {
+			return &value.String{Val: "true"}
+		}
+		return &value.String{Val: "false"}
+	case *value.Symbol:
+		return &value.String{Val: ":" + v.Val}
+	default:
+		// List, function, etc. - use Inspect as fallback
+		return &value.String{Val: args[0].Inspect()}
+	}
 }
 
 // halToDecimal formats a number with specified decimal places.

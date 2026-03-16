@@ -1,0 +1,183 @@
+# string_utils.ai - string manipulation using rune operations
+#
+# Demonstrates that strings are rune sequences and can be
+# manipulated with list operations plus to_str/chr/ord.
+# slice(s, start, end) - extract substring
+let slice = (s, start, end) {
+	let result = ""
+	let i = start
+	while i < end {
+		result = result + to_str(s[i])
+		i = i + 1
+	}
+	return result
+}
+
+# starts_with(s, prefix) - check prefix
+let starts_with = (s, prefix) {
+	if length(prefix) > length(s) {
+		return false
+	}
+	let i = 0
+	while i < length(prefix) {
+		if not equal(s[i], prefix[i]) {
+			return false
+		}
+		i = i + 1
+	}
+	return true
+}
+
+# ends_with(s, suffix) - check suffix
+let ends_with = (s, suffix) {
+	if length(suffix) > length(s) {
+		return false
+	}
+	let offset = length(s) - length(suffix)
+	let i = 0
+	while i < length(suffix) {
+		if not equal(s[offset + i], suffix[i]) {
+			return false
+		}
+		i = i + 1
+	}
+	return true
+}
+
+# contains(s, sub) - check substring
+let contains = (s, sub) {
+	if length(sub) > length(s) {
+		return false
+	}
+	let limit = length(s) - length(sub)
+	let i = 0
+	while i <= limit {
+		if equal(slice(s, i, i + length(sub)), sub) {
+			return true
+		}
+		i = i + 1
+	}
+	return false
+}
+
+# join(list, delim) - join strings with delimiter
+let join = (list, delim) {
+	if empty(list) {
+		return ""
+	}
+	reduce(rest(list), first(list), (acc, x) {
+		acc + delim + x
+	})
+}
+
+# split(s, delim) - split string by delimiter
+let split = (s, delim) {
+	let result = []
+	let current = ""
+	let i = 0
+	let dlen = length(delim)
+	while i < length(s) {
+		if i + dlen <= length(s) {
+			if equal(slice(s, i, i + dlen), delim) {
+				result = append(result, current)
+				current = ""
+				i = i + dlen
+			} else {
+				current = current + to_str(s[i])
+				i = i + 1
+			}
+		} else {
+			current = current + to_str(s[i])
+			i = i + 1
+		}
+	}
+	return append(result, current)
+}
+
+# replace(s, old, new) - replace all occurrences
+let replace = (s, old, new) {
+	join(split(s, old), new)
+}
+
+# trim helpers
+let is_whitespace = (r) {
+	equal(r, ' ') or equal(r, chr(9)) or equal(r, chr(10)) or equal(r, chr(13))
+}
+
+let trim_start = (s) {
+	let i = 0
+	while i < length(s) {
+		if not is_whitespace(s[i]) {
+			return slice(s, i, length(s))
+		}
+		i = i + 1
+	}
+	return ""
+}
+
+let trim_end = (s) {
+	let i = length(s) - 1
+	while i >= 0 {
+		if not is_whitespace(s[i]) {
+			return slice(s, 0, i + 1)
+		}
+		i = i - 1
+	}
+	return ""
+}
+
+# trim(s) - remove leading/trailing whitespace
+let trim = (s) {
+	trim_end(trim_start(s))
+}
+
+# Demo
+println("=== String Utils Demo ===")
+println("")
+
+println("slice hello world 0 5:")
+println(slice("hello world", 0, 5))
+println("")
+
+println("starts_with hello hel:")
+println(starts_with("hello", "hel"))
+println("")
+
+println("ends_with hello llo:")
+println(ends_with("hello", "llo"))
+println("")
+
+println("contains hello world wor:")
+println(contains("hello world", "wor"))
+println("")
+
+println("split a,b,c by comma:")
+println(split("a,b,c", ","))
+println("")
+
+println("join a b c with dash:")
+println(join(["a", "b", "c"], "-"))
+println("")
+
+println("replace world with aiki:")
+println(replace("hello world", "world", "aiki"))
+println("")
+
+println("trim with spaces:")
+print("[")
+print(trim("  hello  "))
+println("]")
+println("")
+
+# Unicode works too
+println("Korean split/join:")
+let korean = "안녕하세요"
+let runes = []
+let i = 0
+while i < length(korean) {
+	runes = append(runes, to_str(korean[i]))
+	i = i + 1
+}
+
+println(runes)
+println(join(runes, "-"))

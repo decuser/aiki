@@ -1,11 +1,11 @@
 # Build a Korean greeting from code points
-let annyeong = concat(
-    [chr(50504), chr(45397)],
-    [chr(54616), chr(49464), chr(50836)]
-)
+let annyeong = concat([chr(50504), chr(45397)], [chr(54616), chr(49464), chr(50836)])
 
 # Print it
-each(annyeong, (r) { print(r) })
+each(annyeong, (r) {
+	print(r)
+})
+
 println("")
 
 # Round-trip check
