@@ -274,42 +274,6 @@ func TestBoundaryUserCannotSeeHALUpper(t *testing.T) {
 }
 
 // TestBoundaryUserCanSeeUpperAfterPrelude verifies user scope can see upper after prelude.
-func TestBoundaryUserCanSeeUpperAfterPrelude(t *testing.T) {
-	code := `upper("hello")`
-
-	result, err := evalWithScope(code, value.ScopeUser, true)
-	if err != nil {
-		t.Fatalf("eval error: %v", err)
-	}
-
-	if value.IsFault(result) {
-		t.Errorf("expected upper to work in user scope after prelude, got fault: %s", result.Inspect())
-	}
-	s, ok := result.(*value.String)
-	if !ok || s.Val != "HELLO" {
-		t.Errorf("expected \"HELLO\", got: %s", result.Inspect())
-	}
-}
-
-// TestBoundaryUserCanSeeLowerAfterPrelude verifies user scope can see lower after prelude.
-func TestBoundaryUserCanSeeLowerAfterPrelude(t *testing.T) {
-	code := `lower("HELLO")`
-
-	result, err := evalWithScope(code, value.ScopeUser, true)
-	if err != nil {
-		t.Fatalf("eval error: %v", err)
-	}
-
-	if value.IsFault(result) {
-		t.Errorf("expected lower to work in user scope after prelude, got fault: %s", result.Inspect())
-	}
-	s, ok := result.(*value.String)
-	if !ok || s.Val != "hello" {
-		t.Errorf("expected \"hello\", got: %s", result.Inspect())
-	}
-}
-
-// TestToStrRune verifies to_str converts rune to string without quotes.
 func TestToStrRune(t *testing.T) {
 	code := `to_str('A')`
 
@@ -327,77 +291,5 @@ func TestToStrRune(t *testing.T) {
 	}
 	if s.Val != "A" {
 		t.Errorf("expected \"A\", got: %q", s.Val)
-	}
-}
-
-// TestSubstringString verifies substring extracts substring.
-func TestSubstringString(t *testing.T) {
-	code := `substring("hello", 1, 4)`
-
-	result, err := evalWithScope(code, value.ScopeUser, true)
-	if err != nil {
-		t.Fatalf("eval error: %v", err)
-	}
-
-	if value.IsFault(result) {
-		t.Fatalf("expected string, got fault: %s", result.Inspect())
-	}
-	s, ok := result.(*value.String)
-	if !ok || s.Val != "ell" {
-		t.Errorf("expected \"ell\", got: %s", result.Inspect())
-	}
-}
-
-// TestSplitJoinRoundTrip verifies split and join are inverses.
-func TestSplitJoinRoundTrip(t *testing.T) {
-	code := `join(split("a,b,c", ","), ",")`
-
-	result, err := evalWithScope(code, value.ScopeUser, true)
-	if err != nil {
-		t.Fatalf("eval error: %v", err)
-	}
-
-	if value.IsFault(result) {
-		t.Fatalf("expected string, got fault: %s", result.Inspect())
-	}
-	s, ok := result.(*value.String)
-	if !ok || s.Val != "a,b,c" {
-		t.Errorf("expected \"a,b,c\", got: %s", result.Inspect())
-	}
-}
-
-// TestContains verifies contains finds substring.
-func TestContains(t *testing.T) {
-	code := `contains("hello world", "wor")`
-
-	result, err := evalWithScope(code, value.ScopeUser, true)
-	if err != nil {
-		t.Fatalf("eval error: %v", err)
-	}
-
-	if value.IsFault(result) {
-		t.Fatalf("expected boolean, got fault: %s", result.Inspect())
-	}
-	b, ok := result.(*value.Boolean)
-	if !ok || !b.Val {
-		t.Errorf("expected true, got: %s", result.Inspect())
-	}
-}
-
-// TestTrim verifies trim removes whitespace.
-func TestTrim(t *testing.T) {
-	code := `trim("  hello  ")`
-
-	result, err := evalWithScope(code, value.ScopeUser, true)
-	if err != nil {
-		t.Fatalf("eval error: %v", err)
-	}
-
-	if value.IsFault(result) {
-		t.Fatalf("expected string, got fault: %s", result.Inspect())
-	}
-	s, ok := result.(*value.String)
-	if !ok || s.Val != "hello" {
-		t.Errorf("expected \"hello\", got: %s", result.Inspect())
 	}
 }

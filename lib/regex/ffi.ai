@@ -1,43 +1,49 @@
 package "regex/ffi"
 
 # regex/ffi - RE2-syntax regular expressions backed by Go's regexp
-# String-first argument order for pipe compatibility:
-#   "hello world" |> regex_match("^hello")
-# regex_match(string, pattern) -> bool
+#
+# Usage:
+#   let re = import("regex/ffi")
+#   re.matches("hello world", "^hello")
+#   "hello" |> re.matches("^h")
+#
+# Or import specific functions:
+#   import("regex/ffi", :matches, :find, :replace)
+# matches(string, pattern) -> bool
 # Returns true if pattern matches anywhere in string.
-let regex_match = (s, pattern) {
+let matches = (s, pattern) {
 	_regex_match(s, pattern)
 }
 
-# regex_find(string, pattern) -> [@match, start, end, text] or [@error, :regex, reason]
+# find(string, pattern) -> [@match, start, end, text] or [@error, :regex, reason]
 # Finds the first match of pattern in string.
-let regex_find = (s, pattern) {
+let find = (s, pattern) {
 	_regex_find(s, pattern)
 }
 
-# regex_find_all(string, pattern) -> list of [@match, start, end, text]
+# find_all(string, pattern) -> list of [@match, start, end, text]
 # Finds all non-overlapping matches.
-let regex_find_all = (s, pattern) {
+let find_all = (s, pattern) {
 	_regex_find_all(s, pattern)
 }
 
-# regex_replace(string, pattern, replacement) -> string
+# replace(string, pattern, replacement) -> string
 # Replaces all matches of pattern with replacement.
 # Use $1, $2 etc. in replacement to refer to capture groups.
-let regex_replace = (s, pattern, replacement) {
+let replace = (s, pattern, replacement) {
 	_regex_replace(s, pattern, replacement)
 }
 
-# regex_replace_first(string, pattern, replacement) -> string
+# replace_first(string, pattern, replacement) -> string
 # Replaces only the first match.
-let regex_replace_first = (s, pattern, replacement) {
+let replace_first = (s, pattern, replacement) {
 	_regex_replace_first(s, pattern, replacement)
 }
 
-# regex_split(string, pattern) -> list of strings
+# split(string, pattern) -> list of strings
 # Splits string by pattern.
-let regex_split = (s, pattern) {
+let split = (s, pattern) {
 	_regex_split(s, pattern)
 }
 
-export(:regex_match, :regex_find, :regex_find_all, :regex_replace, :regex_replace_first, :regex_split)
+export(:matches, :find, :find_all, :replace, :replace_first, :split)

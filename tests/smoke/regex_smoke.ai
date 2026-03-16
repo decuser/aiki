@@ -1,34 +1,35 @@
-# Regex smoke test
-import("regex/ffi", :regex_match, :regex_find, :regex_find_all, :regex_replace, :regex_replace_first, :regex_split)
+# Regex smoke test - qualified import
+let re = import("regex/ffi")
 
 println("Testing regex...")
 
-# regex_match
-println(regex_match("hello world", "^hello"))
-println(regex_match("hello world", "^world"))
-println(regex_match("hello world", "world$"))
+# matches
+println(re.matches("hello world", "^hello"))
+println(re.matches("hello world", "^world"))
+println(re.matches("hello world", "world$"))
 
-# regex_find
-println(regex_find("abc 123 def", "\\d+"))
+# find
+println(re.find("abc 123 def", "\\d+"))
 
-# regex_find_all
-println(regex_find_all("a1b2c3", "\\d"))
+# find_all
+println(re.find_all("a1b2c3", "\\d"))
 
-# regex_replace
-println(regex_replace("a1b2c3", "\\d", "X"))
+# replace
+println(re.replace("a1b2c3", "\\d", "X"))
 
-# regex_replace_first
-println(regex_replace_first("a1b2c3", "\\d", "X"))
+# replace_first
+println(re.replace_first("a1b2c3", "\\d", "X"))
 
-# regex_split
-println(regex_split("a,b,,c", ","))
-println(regex_split("one  two   three", "\\s+"))
+# split
+println(re.split("a,b,,c", ","))
+println(re.split("one  two   three", "\\s+"))
 
-# pipes
-println("hello world" |> regex_match("^hello"))
-println("a1b2c3" |> regex_replace("\\d+", "N"))
+# pipes work with direct import
+import("regex/ffi", :matches, :replace)
+println("hello world" |> matches("^hello"))
+println("a1b2c3" |> replace("\\d+", "N"))
 
 # error case - invalid pattern
-println(regex_find("test", "["))
+println(re.find("test", "["))
 
 println("REGEX_SMOKE_DONE")

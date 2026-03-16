@@ -107,11 +107,14 @@ func (e *Evaluator) evalLet(node *syntax.Node, env *value.Env) value.Value {
 	}
 
 	// Warn if shadowing a prelude binding at top level (not inside functions/blocks)
-	if preludeEnv := env.GetPreludeEnv(); preludeEnv != nil {
-		if _, exists := preludeEnv.Get(name); exists {
-			// Only warn if env is directly enclosed by prelude (top-level user scope)
-			if env.Outer() == preludeEnv {
-				fmt.Fprintf(os.Stderr, "warning: shadowing prelude function '%s'\n", name)
+	// Only warn for user scope (ScopeUser), not for libs (ScopePrelude)
+	if env.GetScope() == value.ScopeUser {
+		if preludeEnv := env.GetPreludeEnv(); preludeEnv != nil {
+			if _, exists := preludeEnv.Get(name); exists {
+				// Only warn if env is directly enclosed by prelude (top-level user scope)
+				if env.Outer() == preludeEnv {
+					fmt.Fprintf(os.Stderr, "warning: shadowing prelude function '%s'\n", name)
+				}
 			}
 		}
 	}
