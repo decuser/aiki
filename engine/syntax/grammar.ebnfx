@@ -37,7 +37,7 @@
         @help "identifier in snake_case"
 }
 
-program = { statement }
+program = { statement [ ";" ] }
     @error "expected statement"
     @template "statement ..."
     @help "sequence of statements"
@@ -176,7 +176,7 @@ rest_param = "..." NAME
     @template "...args"
     @help "rest parameter"
 
-block = "{" { statement } "}"
+block = "{" { statement [ ";" ] } "}"
     @error "expected '{ ... }'"
     @template "{ statement ... }"
     @help "block of statements"

@@ -15,7 +15,7 @@ PRODUCTIONS
   BINOP	= "+" | "-" | "*" | "/" | "<" | ">" | "<=" | ">=" | "and" | "or"	error="expected operator"	template="+ - * / < > <= >= and or"
   access	= "." NAME	error="expected '.field'"	template=".field"
   assign_stmt	= NAME "=" expr	error="expected 'name = expr'"	template="name = expr"
-  block	= "{" {statement} "}"	error="expected '{ ... }'"	template="{ statement ... }"
+  block	= "{" {statement [";"]} "}"	error="expected '{ ... }'"	template="{ statement ... }"
   call	= "(" [expr {"," expr}] ")"	error="expected '(args)'"	template="(arg, arg, ...)"
   expr	= pipe_expr	error="expected expression"	template="expr"
   expr_stmt	= expr	error="expected expression"	template="expr"
@@ -35,19 +35,19 @@ PRODUCTIONS
   pipe_expr	= infix_expr {"|>" postfix_expr}	error="expected expression"	template="expr |> func |> func"
   postfix_expr	= primary {call | index | access}	error="expected expression"	template="expr(), expr[i], expr.field"
   primary	= NUMBER | STRING | RUNE | SYMBOL | NAME | "true" | "false" | list_literal | func_literal | "(" expr ")"	error="expected value"	template="42, \\\"str\\\", 'r', :sym, name, true, [], (), (expr)"
-  program	= {statement}	error="expected statement"	template="statement ..."
+  program	= {statement [";"]}	error="expected statement"	template="statement ..."
   rest_param	= "..." NAME	error="expected '...name'"	template="...args"
   return_stmt	= "return" expr	error="expected 'return expr'"	template="return expr"
   statement	= package_stmt | let_stmt | assign_stmt | if_stmt | while_stmt | match_stmt | return_stmt | expr_stmt	error="expected statement"	template="package | let | assign | if | while | match | return | expr"
   unary_expr	= {"not" | "-"} postfix_expr	error="expected expression"	template="not expr, -expr"
   while_stmt	= "while" expr block	error="expected 'while expr { ... }'"	template="while cond { ... }"
 
-GRAMMARHASH b90fa42475db9bbcc33d8067eb7eb51306057d4c02937b8b5862203a1601d788
+GRAMMARHASH b8ed2ea9b97a1791032ad58de6c155a2c29b1c15fde95379cee1761e0e20b64a
 RULEHASHES
   BINOP bb042b633d47f072d22362db220397ea669212162a671236a2fa96c81415a92a
   access 9e9f531344c4934f5878cc643a74feacb4087e3fdb949d9579e40a80ec83e86f
   assign_stmt 5dbb262b390bbbcc757c53c4b1aeca8979608a0a03c263a9b6a82e0ea7ad82a3
-  block 433532e27df9efd8bbe5ac4214d2032fbfd605e30f445da422dd5d16092aa3c6
+  block a20b446fbcc004e8f8c2d2c4d255558dac83871c1c1c22e22bc823d75db61a1f
   call aeb03fc8dc5bf964ab3e071ffd33c5441b4d93a37ae806cb5c30067f9a06b0a8
   expr fc544777dc6fc871673d9e8cc5868c3da441d353b22e59cf5c412699768fcb4d
   expr_stmt 5b6b9e679aeaea173f66ed841abb3e6bfd730f739950b22d1d5190b8c3572b7b
@@ -67,7 +67,7 @@ RULEHASHES
   pipe_expr 1806d4e63880831952abd3266129da809e3edd10379964f25ee9888058f5fba6
   postfix_expr 7d57a3d66d895603e4fe9b3122aa2de1aa2e011d18c11e3dc06bb0df318d928f
   primary 8bc19a1ac74578150e3e499c4b09aa6017f99d201e62f07fcd8c56f7dd238114
-  program 735d7585433cd759d0586291e8db1e8444a45661cfd5c1472b5f2b176c0a0364
+  program d47f7d469d3ef148a3263a05a3f4bd8a5cd9eecac311caaa45292ad97d680563
   rest_param 96e8c70deca5c5c2407888b33a9812dff645c5c8479b5314dffee03680b8cc81
   return_stmt 8a010d9dd21825a73519b5c93d4598ee943070054ad9c3aaa288bd1916210cac
   statement fbeb8a1d0bc0180da739d85d8d2548b1e8e38f80413ec58af5ff30bff566f060

@@ -83,7 +83,7 @@ func isEOLComment(tokens []syntax.Token, idx int) bool {
 		if t.Pos.Line != line {
 			return false
 		}
-		if t.Type == "WHITESPACE" {
+		if t.Type == "WHITESPACE" || t.Type == "NEWLINE" {
 			continue
 		}
 		if t.Type == "COMMENT" {
