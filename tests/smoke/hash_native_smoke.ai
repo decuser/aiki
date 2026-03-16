@@ -1,0 +1,19 @@
+# hash/native smoke test
+let hash = import("hash/native")
+
+let h = hash.new()
+let h = hash.put(h, "name", "Mochi")
+let h = hash.put(h, :age, 3)
+let h = hash.put(h, 42, "answer")
+
+println(hash.get(h, "name"))
+println(hash.get(h, :age))
+println(hash.get(h, 42))
+println(hash.has(h, "name"))
+println(hash.has(h, "missing"))
+
+let h = hash.del(h, "name")
+println(hash.has(h, "name"))
+
+println(length(hash.keys(h)))
+println(length(hash.values(h)))

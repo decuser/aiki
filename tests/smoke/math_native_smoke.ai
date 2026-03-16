@@ -1,0 +1,16 @@
+# math/native smoke test
+let math = import("math/native")
+
+# sin(0) = 0
+println(math.sin(0, 5))
+
+# cos(0) = 1
+println(math.cos(0, 5))
+
+# sqrt(4) ≈ 2
+let s = math.sqrt(4, 10)
+println(s > 1)
+println(s < 3)
+
+# sqrt(0) = 0
+println(math.sqrt(0, 5))
