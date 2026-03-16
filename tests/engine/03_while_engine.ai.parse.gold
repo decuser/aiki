@@ -68,6 +68,7 @@ program 3:1
               postfix_expr 8:9
                 primary 8:9
                   NUMBER 8:9 "0"
+  TERMINAL 8:10 ";"
   statement 9:1
     let_stmt 9:1
       TERMINAL 9:1 "let"
@@ -80,6 +81,7 @@ program 3:1
               postfix_expr 9:11
                 primary 9:11
                   NUMBER 9:11 "0"
+  TERMINAL 9:12 ";"
   statement 11:1
     while_stmt 11:1
       TERMINAL 11:1 "while"
@@ -152,3 +154,4 @@ program 3:1
                             primary 16:9
                               NAME 16:9 "acc"
                   TERMINAL 16:12 ")"
+  TERMINAL 16:13 ";"

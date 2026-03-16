@@ -293,7 +293,11 @@ _internal
 ===
 WHITESPACE
 
-Spaces, tabs, and newlines. Ignored between tokens.
+Spaces and tabs. Ignored between tokens.
+===
+NEWLINE
+
+Line ending. Ends statements unless line ends with operator or open bracket.
 ===
 COMMENT
 

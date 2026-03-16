@@ -14,6 +14,10 @@ func (e *Evaluator) evalProgram(node *syntax.Node, env *value.Env) value.Value {
 
 	var result value.Value = value.EMPTY
 	for _, child := range node.Children {
+		// Skip TERMINAL nodes (semicolons, newlines)
+		if child.Type == "TERMINAL" || child.Type == "NEWLINE" {
+			continue
+		}
 		result = e.Eval(child, env)
 		if ret, ok := result.(*value.Return); ok {
 			return e.resolveTailCalls(ret.Val, env)
@@ -284,7 +288,7 @@ func (e *Evaluator) evalMatch(node *syntax.Node, env *value.Env) value.Value {
 func (e *Evaluator) evalBlock(node *syntax.Node, env *value.Env) value.Value {
 	var result value.Value = value.EMPTY
 	for _, child := range node.Children {
-		if child.Type == "TERMINAL" {
+		if child.Type == "TERMINAL" || child.Type == "NEWLINE" {
 			continue
 		}
 		result = e.Eval(child, env)

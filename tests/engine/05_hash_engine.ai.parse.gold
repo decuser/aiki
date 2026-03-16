@@ -71,6 +71,7 @@ program 3:1
                 call 8:17
                   TERMINAL 8:17 "("
                   TERMINAL 8:18 ")"
+  TERMINAL 8:19 ";"
   statement 9:1
     let_stmt 9:1
       TERMINAL 9:1 "let"
@@ -109,6 +110,7 @@ program 3:1
                             primary 9:29
                               STRING 9:29 "\"Mochi\""
                   TERMINAL 9:36 ")"
+  TERMINAL 9:37 ";"
   statement 10:1
     let_stmt 10:1
       TERMINAL 10:1 "let"
@@ -147,6 +149,7 @@ program 3:1
                             primary 10:27
                               NUMBER 10:27 "3"
                   TERMINAL 10:28 ")"
+  TERMINAL 10:29 ";"
   statement 12:1
     expr_stmt 12:1
       expr 12:1
@@ -184,6 +187,7 @@ program 3:1
                                           STRING 12:21 "\"name\""
                               TERMINAL 12:27 ")"
                   TERMINAL 12:28 ")"
+  TERMINAL 12:29 ";"
   statement 13:1
     expr_stmt 13:1
       expr 13:1
@@ -221,6 +225,7 @@ program 3:1
                                           SYMBOL 13:21 ":age"
                               TERMINAL 13:25 ")"
                   TERMINAL 13:26 ")"
+  TERMINAL 13:27 ";"
   statement 14:1
     expr_stmt 14:1
       expr 14:1
@@ -258,6 +263,7 @@ program 3:1
                                           STRING 14:21 "\"name\""
                               TERMINAL 14:27 ")"
                   TERMINAL 14:28 ")"
+  TERMINAL 14:29 ";"
   statement 15:1
     expr_stmt 15:1
       expr 15:1
@@ -295,3 +301,4 @@ program 3:1
                                           STRING 15:21 "\"missing\""
                               TERMINAL 15:30 ")"
                   TERMINAL 15:31 ")"
+  TERMINAL 15:32 ";"

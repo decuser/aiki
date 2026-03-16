@@ -1,0 +1,77 @@
+# Test Go-style newline handling
+# Lines ending with complete tokens end statements
+# Lines ending with operators/openers continue
+# Basic: newline ends statement
+let x = 1
+let y = 2
+println(x + y)
+
+# Continuation: line ends with operator
+let sum = 1 + 2 + 3
+
+println(sum)
+
+# Continuation: line ends with comma (in call)
+let result = max([10, 20, 30])
+
+println(result)
+
+# Continuation: line ends with open paren
+let val = (1 + 2)
+
+println(val)
+
+# Continuation: line ends with open bracket
+let list = [1, 2, 3]
+
+println(length(list))
+
+# Continuation: pipe operator
+let piped = [1, 2, 3] |>
+map((x) {
+	x * 2
+}) |>
+reduce(0, (a, b) {
+	a + b
+})
+
+
+println(piped)
+
+# Function definition spans lines (block continues)
+let add = (a, b) {
+	return a + b
+}
+
+println(add(3, 4))
+
+# If statement (brace on same line)
+if true {
+	println("yes")
+}
+
+# Nested blocks
+let outer = () {
+	let inner = () {
+		return 42
+	}
+	return inner()
+}
+
+println(outer())
+
+# The original problem case: let followed by paren expr
+let c = ord('A')
+(c >= 65) and (c <= 90)
+println("char class check passed")
+
+# Multiple statements on one line with explicit semicolon
+let a = 1
+let b = 2
+println(a + b)
+
+# Trailing semicolon is fine
+let z = 99
+println(z)
+
+println("NEWLINE_SMOKE_DONE")

@@ -32,17 +32,25 @@ func NewParser(g *grammar.Grammar, tokens []Token, source string, observer engin
 		observer = engine.SilentObserver{}
 	}
 	// Filter tokens: skip @skip tokens and insert semicolons.
-	// Go-style rule: insert ";" after complete token when followed by newline.
-	// Complete tokens: NAME, NUMBER, STRING, RUNE, SYMBOL, ), ], }, true, false
+	// Go-style rule: insert ";" after complete token when followed by newline,
+	// but only at bracket depth 0 (not inside [], (), {}).
 	filtered := make([]Token, 0, len(tokens))
-	for i, tok := range tokens {
+	depth := 0
+	for _, tok := range tokens {
 		// Skip tokens marked @skip (WHITESPACE, COMMENT)
 		if def, ok := g.GetToken(tok.Type); ok && def.Skip {
 			continue
 		}
-		// Check for newline after complete token - insert semicolon
+		// Track bracket depth
+		switch tok.Lexeme {
+		case "(", "[", "{":
+			depth++
+		case ")", "]", "}":
+			depth--
+		}
+		// Check for newline after complete token - insert semicolon only at depth 0
 		if tok.Type == "NEWLINE" {
-			if len(filtered) > 0 && isComplete(filtered[len(filtered)-1]) {
+			if depth == 0 && len(filtered) > 0 && isComplete(filtered[len(filtered)-1]) {
 				// Insert semicolon with position of the newline
 				filtered = append(filtered, Token{
 					Type:   "DELIMITER",
@@ -54,24 +62,20 @@ func NewParser(g *grammar.Grammar, tokens []Token, source string, observer engin
 			continue
 		}
 		filtered = append(filtered, tok)
-		// Handle EOF: if last token is complete and no trailing newline, insert semicolon
-		if i == len(tokens)-1 && isComplete(tok) {
-			// Check if there was no newline at end
-			// (if there was, we already handled it above)
-		}
 	}
 	return &Parser{grammar: g, tokens: filtered, pos: 0, furthest: 0, source: source, observer: observer}
 }
 
 // isComplete returns true if this token can end a statement.
-// Go-style: names, literals, closing brackets, true, false.
+// Go-style: names, literals, closing brackets (except }), true, false.
+// } is excluded because it already closes blocks naturally.
 func isComplete(tok Token) bool {
 	switch tok.Type {
 	case "NAME", "NUMBER", "STRING", "RUNE", "SYMBOL":
 		return true
 	}
 	switch tok.Lexeme {
-	case ")", "]", "}", "true", "false":
+	case ")", "]", "true", "false":
 		return true
 	}
 	return false

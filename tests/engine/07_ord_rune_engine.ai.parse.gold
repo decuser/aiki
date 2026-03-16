@@ -85,6 +85,7 @@ program 3:1
                                           RUNE 8:13 "'a'"
                               TERMINAL 8:16 ")"
                   TERMINAL 8:17 ")"
+  TERMINAL 8:18 ";"
   statement 9:1
     expr_stmt 9:1
       expr 9:1
@@ -114,6 +115,7 @@ program 3:1
                                           RUNE 9:13 "'A'"
                               TERMINAL 9:16 ")"
                   TERMINAL 9:17 ")"
+  TERMINAL 9:18 ";"
   statement 10:1
     expr_stmt 10:1
       expr 10:1
@@ -143,6 +145,7 @@ program 3:1
                                           RUNE 10:13 "'0'"
                               TERMINAL 10:16 ")"
                   TERMINAL 10:17 ")"
+  TERMINAL 10:18 ";"
   statement 11:1
     expr_stmt 11:1
       expr 11:1
@@ -172,3 +175,4 @@ program 3:1
                                           RUNE 11:13 "'\\n'"
                               TERMINAL 11:17 ")"
                   TERMINAL 11:18 ")"
+  TERMINAL 11:19 ";"

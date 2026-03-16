@@ -58,6 +58,7 @@ func init() {
 		"KEYWORD":   (*Evaluator).evalTerminal,
 		"OPERATOR":  (*Evaluator).evalTerminal,
 		"DELIMITER": (*Evaluator).evalTerminal,
+		"NEWLINE":   (*Evaluator).evalTerminal,
 
 		// Structural (nil = delegate to single child)
 		"call":       nil,

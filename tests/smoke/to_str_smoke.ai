@@ -23,6 +23,7 @@ each(['h', 'e', 'l', 'l', 'o'], (r) {
 	s = s + to_str(r)
 })
 
+
 println(s)
 
 println("TO_STR_SMOKE_DONE")

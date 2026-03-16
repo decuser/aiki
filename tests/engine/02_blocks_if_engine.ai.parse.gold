@@ -146,6 +146,7 @@ program 3:1
                                           NUMBER 15:14 "10"
                               TERMINAL 15:16 ")"
                   TERMINAL 15:17 ")"
+  TERMINAL 15:18 ";"
   statement 16:1
     expr_stmt 16:1
       expr 16:1
@@ -175,3 +176,4 @@ program 3:1
                                           NUMBER 16:13 "7"
                               TERMINAL 16:14 ")"
                   TERMINAL 16:15 ")"
+  TERMINAL 16:16 ";"

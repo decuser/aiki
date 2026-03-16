@@ -14,6 +14,7 @@ program 3:1
                 call 3:17
                   TERMINAL 3:17 "("
                   TERMINAL 3:18 ")"
+  TERMINAL 3:19 ";"
   statement 4:1
     let_stmt 4:1
       TERMINAL 4:1 "let"
@@ -52,6 +53,7 @@ program 3:1
                             primary 4:29
                               STRING 4:29 "\"Mochi\""
                   TERMINAL 4:36 ")"
+  TERMINAL 4:37 ";"
   statement 5:1
     let_stmt 5:1
       TERMINAL 5:1 "let"
@@ -90,6 +92,7 @@ program 3:1
                             primary 5:27
                               NUMBER 5:27 "3"
                   TERMINAL 5:28 ")"
+  TERMINAL 5:29 ";"
   statement 6:1
     let_stmt 6:1
       TERMINAL 6:1 "let"
@@ -128,6 +131,7 @@ program 3:1
                             primary 6:24
                               STRING 6:24 "\"one\""
                   TERMINAL 6:29 ")"
+  TERMINAL 6:30 ";"
   statement 8:1
     expr_stmt 8:1
       expr 8:1
@@ -173,6 +177,7 @@ program 3:1
                             primary 8:28
                               STRING 8:28 "\"\\n\""
                   TERMINAL 8:32 ")"
+  TERMINAL 8:33 ";"
   statement 9:1
     expr_stmt 9:1
       expr 9:1
@@ -218,6 +223,7 @@ program 3:1
                             primary 9:26
                               STRING 9:26 "\"\\n\""
                   TERMINAL 9:30 ")"
+  TERMINAL 9:31 ";"
   statement 10:1
     expr_stmt 10:1
       expr 10:1
@@ -263,3 +269,4 @@ program 3:1
                             primary 10:23
                               STRING 10:23 "\"\\n\""
                   TERMINAL 10:27 ")"
+  TERMINAL 10:28 ";"

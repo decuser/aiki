@@ -15,7 +15,7 @@ func TestLint_CheckFormatting(t *testing.T) {
 	dir := t.TempDir()
 	p1 := filepath.Join(dir, "a.ai")
 	// Unformatted: missing spaces and brace on next line.
-	if err := os.WriteFile(p1, []byte("let x=1\nif x\n{\nreturn x\n}\n"), 0644); err != nil {
+	if err := os.WriteFile(p1, []byte("let x=1\nif x {\nreturn x\n}\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 	p2 := filepath.Join(dir, "b.ai")

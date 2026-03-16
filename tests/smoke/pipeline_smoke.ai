@@ -15,4 +15,5 @@ map(square) |>
 sum() |>
 print("\n")
 
+
 print("PIPELINE_SMOKE_DONE\n")

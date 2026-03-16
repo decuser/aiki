@@ -15,4 +15,5 @@ map(square) |>
 sum() |>
 print()
 
+
 print("\n")

@@ -13,7 +13,7 @@ func TestFormatSource_IdempotentAndParsePreserving(t *testing.T) {
 		t.Fatalf("load grammar: %v", err)
 	}
 
-	src := "# header\nlet x=1  #eol\nif x\n{\n  return x\n}\n"
+	src := "# header\nlet x=1  #eol\nif x {\n  return x\n}\n"
 	out, err := FormatSource(g, "test.ai", src)
 	if err != nil {
 		t.Fatalf("format: %v", err)

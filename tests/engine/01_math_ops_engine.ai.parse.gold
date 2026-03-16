@@ -75,6 +75,7 @@ program 3:1
                             primary 8:9
                               STRING 8:9 "\"ADD\""
                   TERMINAL 8:14 ")"
+  TERMINAL 8:15 ";"
   statement 9:1
     expr_stmt 9:1
       expr 9:1
@@ -100,6 +101,7 @@ program 3:1
                             primary 9:13
                               NUMBER 9:13 "1"
                   TERMINAL 9:14 ")"
+  TERMINAL 9:15 ";"
   statement 11:1
     expr_stmt 11:1
       expr 11:1
@@ -119,6 +121,7 @@ program 3:1
                             primary 11:9
                               STRING 11:9 "\"RAT_ONE_THIRD_TIMES_THREE\""
                   TERMINAL 11:36 ")"
+  TERMINAL 11:37 ";"
   statement 12:1
     expr_stmt 12:1
       expr 12:1
@@ -158,6 +161,7 @@ program 3:1
                             primary 12:19
                               NUMBER 12:19 "3"
                   TERMINAL 12:20 ")"
+  TERMINAL 12:21 ";"
   statement 14:1
     expr_stmt 14:1
       expr 14:1
@@ -177,6 +181,7 @@ program 3:1
                             primary 14:9
                               STRING 14:9 "\"LEFT_TO_RIGHT_ONE_PLUS_TWO_TIMES_THREE\""
                   TERMINAL 14:49 ")"
+  TERMINAL 14:50 ";"
   statement 15:1
     expr_stmt 15:1
       expr 15:1
@@ -208,6 +213,7 @@ program 3:1
                             primary 15:17
                               NUMBER 15:17 "3"
                   TERMINAL 15:18 ")"
+  TERMINAL 15:19 ";"
   statement 17:1
     expr_stmt 17:1
       expr 17:1
@@ -227,6 +233,7 @@ program 3:1
                             primary 17:9
                               STRING 17:9 "\"NEG_RATIONAL_ADD\""
                   TERMINAL 17:27 ")"
+  TERMINAL 17:28 ";"
   statement 18:1
     expr_stmt 18:1
       expr 18:1
@@ -281,6 +288,7 @@ program 3:1
                                           NUMBER 18:25 "2"
                               TERMINAL 18:26 ")"
                   TERMINAL 18:27 ")"
+  TERMINAL 18:28 ";"
   statement 20:1
     expr_stmt 20:1
       expr 20:1
@@ -300,3 +308,4 @@ program 3:1
                             primary 20:9
                               STRING 20:9 "\"MATH_DONE\""
                   TERMINAL 20:20 ")"
+  TERMINAL 20:21 ";"

@@ -4,12 +4,14 @@ let doubled = map([1, 2, 3], (x) {
 	x * 2
 })
 
+
 print(doubled, "\n")
 
 # filter
 let evens = filter([1, 2, 3, 4, 5], (x) {
 	equal(modulo(x, 2), 0)
 })
+
 
 print(evens, "\n")
 
@@ -18,12 +20,14 @@ let total = reduce([1, 2, 3, 4], 0, (acc, x) {
 	acc + x
 })
 
+
 print(total, "\n")
 
 # each (side effects)
 each([1, 2, 3], (x) {
 	print(x)
 })
+
 
 print("\n")
 
@@ -35,6 +39,7 @@ let found = find([1, 2, 3, 4], (x) {
 	x > 2
 })
 
+
 print(found, "\n")
 
 # any
@@ -42,18 +47,22 @@ print(any([1, 2, 3], (x) {
 	x > 2
 }), "\n")
 
+
 print(any([1, 2, 3], (x) {
 	x > 5
 }), "\n")
+
 
 # all
 print(all([2, 4, 6], (x) {
 	equal(modulo(x, 2), 0)
 }), "\n")
 
+
 print(all([2, 3, 6], (x) {
 	equal(modulo(x, 2), 0)
 }), "\n")
+
 
 # sum
 print(sum([1, 2, 3, 4, 5]), "\n")

@@ -71,6 +71,7 @@ program 3:1
                 call 8:17
                   TERMINAL 8:17 "("
                   TERMINAL 8:18 ")"
+  TERMINAL 8:19 ";"
   statement 10:1
     let_stmt 10:1
       TERMINAL 10:1 "let"
@@ -238,6 +239,7 @@ program 3:1
                             primary 18:15
                               NAME 18:15 "ch"
                   TERMINAL 18:17 ")"
+  TERMINAL 18:18 ";"
   statement 20:1
     expr_stmt 20:1
       expr 20:1
@@ -265,6 +267,7 @@ program 3:1
                             primary 20:10
                               NUMBER 20:10 "3"
                   TERMINAL 20:11 ")"
+  TERMINAL 20:12 ";"
   statement 21:1
     expr_stmt 21:1
       expr 21:1
@@ -292,6 +295,7 @@ program 3:1
                             primary 21:10
                               NUMBER 21:10 "7"
                   TERMINAL 21:11 ")"
+  TERMINAL 21:12 ";"
   statement 23:1
     expr_stmt 23:1
       expr 23:1
@@ -321,6 +325,7 @@ program 3:1
                                           NAME 23:14 "ch"
                               TERMINAL 23:16 ")"
                   TERMINAL 23:17 ")"
+  TERMINAL 23:18 ";"
   statement 24:1
     expr_stmt 24:1
       expr 24:1
@@ -350,3 +355,4 @@ program 3:1
                                           NAME 24:14 "ch"
                               TERMINAL 24:16 ")"
                   TERMINAL 24:17 ")"
+  TERMINAL 24:18 ";"
