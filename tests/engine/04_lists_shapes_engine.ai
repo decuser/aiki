@@ -1,6 +1,8 @@
+let list = import("list")
+
 # 04_lists_shapes_engine.ai
 # List literals, shapes, and list ops.
 let msg = [@ok, "hi", 1, 2/1]
-println(shape(msg))
-println(first(msg))
-println(rest(msg))
+list.println(shape(msg))
+list.println(first(msg))
+list.println(rest(msg))

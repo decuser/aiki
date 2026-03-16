@@ -1,0 +1,12 @@
+package "random"
+
+# random - random number generation
+let seed = (n) {
+	_seed(n)
+}
+
+let random = (max) {
+	_random(max)
+}
+
+export(:seed, :random)

@@ -1,3 +1,5 @@
+let list = import("list")
+
 # 00_lexical_engine.ai
 # Lexical coverage: whitespace, comments, numbers, strings with backslashes.
 let a = 1
@@ -5,8 +7,8 @@ let b = 2.50
 let c = -3
 
 # Backslashes are allowed in STRING; these are literal backslash sequences.
-println("tab=\t nl=\n backslash=\\ end")
+list.println("tab=\t nl=\n backslash=\\ end")
 
 # Inline comment after code
 let s = "hello"  # comment after string
-println(s)
+list.println(s)

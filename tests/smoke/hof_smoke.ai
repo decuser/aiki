@@ -1,6 +1,9 @@
 # Higher-order function tests
+let list = import("list")
+let math = import("math")
+
 # map
-let doubled = map([1, 2, 3], (x) {
+let doubled = list.map([1, 2, 3], (x) {
 	x * 2
 })
 
@@ -8,15 +11,15 @@ let doubled = map([1, 2, 3], (x) {
 print(doubled, "\n")
 
 # filter
-let evens = filter([1, 2, 3, 4, 5], (x) {
-	equal(modulo(x, 2), 0)
+let evens = list.filter([1, 2, 3, 4, 5], (x) {
+	equal(math.modulo(x, 2), 0)
 })
 
 
 print(evens, "\n")
 
 # reduce
-let total = reduce([1, 2, 3, 4], 0, (acc, x) {
+let total = list.reduce([1, 2, 3, 4], 0, (acc, x) {
 	acc + x
 })
 
@@ -24,7 +27,7 @@ let total = reduce([1, 2, 3, 4], 0, (acc, x) {
 print(total, "\n")
 
 # each (side effects)
-each([1, 2, 3], (x) {
+list.each([1, 2, 3], (x) {
 	print(x)
 })
 
@@ -32,10 +35,10 @@ each([1, 2, 3], (x) {
 print("\n")
 
 # reverse
-print(reverse([1, 2, 3]), "\n")
+print(list.reverse([1, 2, 3]), "\n")
 
 # find
-let found = find([1, 2, 3, 4], (x) {
+let found = list.find([1, 2, 3, 4], (x) {
 	x > 2
 })
 
@@ -43,30 +46,30 @@ let found = find([1, 2, 3, 4], (x) {
 print(found, "\n")
 
 # any
-print(any([1, 2, 3], (x) {
+print(list.any([1, 2, 3], (x) {
 	x > 2
 }), "\n")
 
 
-print(any([1, 2, 3], (x) {
+print(list.any([1, 2, 3], (x) {
 	x > 5
 }), "\n")
 
 
 # all
-print(all([2, 4, 6], (x) {
-	equal(modulo(x, 2), 0)
+print(list.all([2, 4, 6], (x) {
+	equal(math.modulo(x, 2), 0)
 }), "\n")
 
 
-print(all([2, 3, 6], (x) {
-	equal(modulo(x, 2), 0)
+print(list.all([2, 3, 6], (x) {
+	equal(math.modulo(x, 2), 0)
 }), "\n")
 
 
 # sum
-print(sum([1, 2, 3, 4, 5]), "\n")
+print(list.sum([1, 2, 3, 4, 5]), "\n")
 
 # max/min
-print(max([3, 1, 4, 1, 5]), "\n")
-print(min([3, 1, 4, 1, 5]), "\n")
+print(list.max([3, 1, 4, 1, 5]), "\n")
+print(list.min([3, 1, 4, 1, 5]), "\n")

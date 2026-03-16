@@ -35,10 +35,6 @@
 @template "print(val, ...)"
 @help "Prints values to stdout."
 
-@func println
-@template "println(val, ...)"
-@help "Prints values to stdout with newline."
-
 @func read
 @template "read()"
 @help "Reads a line from stdin."
@@ -47,7 +43,7 @@
 @template "input()"
 @help "Reads a line from stdin (alias for read)."
 
-# List operations
+# List intrinsics
 @func first
 @template "first(list)"
 @help "Returns first element of list."
@@ -72,18 +68,6 @@
 @template "empty(list)"
 @help "Returns true if list is empty."
 
-@func range
-@template "range(start, end)"
-@help "Returns list of integers from start to end-1."
-
-@func reverse
-@template "reverse(list)"
-@help "Returns list in reverse order."
-
-
-@func concat
-@template "concat(a, b)"
-@help "Returns new list with elements of b appended to a."
 # Type operations
 @func type
 @template "type(val)"
@@ -126,165 +110,6 @@
 @template "to_decimal(n, places)"
 @help "Formats number as decimal string."
 
-# Math
-@func floor
-@template "floor(n)"
-@help "Returns largest integer <= n."
-
-@func ceil
-@template "ceil(n)"
-@help "Returns smallest integer >= n."
-
-@func modulo
-@template "modulo(a, b)"
-@help "Returns remainder of a divided by b."
-
-@func sum
-@template "sum(list)"
-@help "Returns sum of numbers in list."
-
-@func max
-@template "max(list)"
-@help "Returns largest number in list."
-
-@func min
-@template "min(list)"
-@help "Returns smallest number in list."
-
-# Random
-@func seed
-@template "seed(n)"
-@help "Sets random number generator seed."
-
-@func random
-@template "random(max)"
-@help "Returns random integer from 0 to max-1."
-
-# Time
-@func sleep
-@template "sleep(ms)"
-@help "Pauses execution for ms milliseconds."
-
-# Higher-order functions
-@func map
-@template "map(list, fn)"
-@help "Applies fn to each element, returns new list."
-
-@func filter
-@template "filter(list, fn)"
-@help "Returns elements where fn returns true."
-
-@func reduce
-@template "reduce(list, init, fn)"
-@help "Reduces list to single value using fn."
-
-@func each
-@template "each(list, fn)"
-@help "Calls fn on each element for side effects."
-
-@func find
-@template "find(list, fn)"
-@help "Returns first element where fn returns true."
-
-@func any
-@template "any(list, fn)"
-@help "Returns true if fn returns true for any element."
-
-@func all
-@template "all(list, fn)"
-@help "Returns true if fn returns true for all elements."
-
-# Hash map
-@func hash_new
-@template "hash_new()"
-@help "Creates empty hash map."
-
-@func hash_get
-@template "hash_get(h, key)"
-@help "Gets value for key, or [@error, ...]."
-
-@func hash_put
-@template "hash_put(h, key, val)"
-@help "Returns new hash map with key set to val."
-
-@func hash_has
-@template "hash_has(h, key)"
-@help "Returns true if key exists in hash map."
-
-@func hash_del
-@template "hash_del(h, key)"
-@help "Returns new hash map without key."
-
-@func hash_keys
-@template "hash_keys(h)"
-@help "Returns list of all keys."
-
-@func hash_values
-@template "hash_values(h)"
-@help "Returns list of all values."
-
-@func hash_code
-@template "hash_code(val)"
-@help "Returns integer hash code for value."
-
-# Canvas
-@func canvas
-@template "canvas(width, height)"
-@help "Creates a drawing canvas."
-
-@func dot
-@template "dot(c, x, y)"
-@help "Draws a point at (x, y)."
-
-@func line
-@template "line(c, x1, y1, x2, y2)"
-@help "Draws line from (x1,y1) to (x2,y2)."
-
-@func rect
-@template "rect(c, x, y, w, h)"
-@help "Draws rectangle outline."
-
-@func fill_rect
-@template "fill_rect(c, x, y, w, h)"
-@help "Draws filled rectangle."
-
-@func circle
-@template "circle(c, x, y, r)"
-@help "Draws circle outline."
-
-@func fill_circle
-@template "fill_circle(c, x, y, r)"
-@help "Draws filled circle."
-
-@func clear
-@template "clear(c)"
-@help "Clears canvas to background color."
-
-@func destroy
-@template "destroy(c)"
-@help "Closes canvas window."
-
-@func set_bg
-@template "set_bg(c, color)"
-@help "Sets background color. Color can be a symbol like :black or a list like [r g b] or [r g b a]."
-
-@func set_fg
-@template "set_fg(c, color)"
-@help "Sets foreground or drawing color. Color can be a symbol like :white or a list like [r g b] or [r g b a]."
-
-@func set_bg_rgb
-@template "set_bg_rgb(c, r, g, b)"
-@help "Convenience wrapper for set_bg using numeric RGB (0-255 each)."
-
-@func set_fg_rgb
-@template "set_fg_rgb(c, r, g, b)"
-@help "Convenience wrapper for set_fg using numeric RGB (0-255 each)."
-
-
-@func pen_size
-@template "pen_size(c, size)"
-@help "Sets line thickness in pixels."
-
 # REPL
 @func quit
 @template "quit()"
@@ -305,4 +130,3 @@
 @func doc
 @template "doc(name)"
 @help "Shows full documentation for name."
-

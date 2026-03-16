@@ -1,3 +1,5 @@
+let list = import("list")
+
 # 03_while_engine.ai
 # while loop and assignment.
 let i = 0
@@ -8,4 +10,4 @@ while i < 5 {
 	i = i + 1
 }
 
-println(acc)
+list.println(acc)

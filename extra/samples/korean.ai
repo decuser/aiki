@@ -1,16 +1,18 @@
 # Build a Korean greeting from code points
-let annyeong = concat([chr(50504), chr(45397)], [chr(54616), chr(49464), chr(50836)])
+let list = import("list")
+
+let annyeong = list.concat([chr(50504), chr(45397)], [chr(54616), chr(49464), chr(50836)])
 
 # Print it
-each(annyeong, (r) {
+list.each(annyeong, (r) {
 	print(r)
 })
 
 
-println("")
+list.println("")
 
 # Round-trip check
-println(ord(chr(50504)))
+list.println(ord(chr(50504)))
 
 # Build and print 안녕
-println(concat([chr(50504)], [chr(45397)]))
+list.println(list.concat([chr(50504)], [chr(45397)]))

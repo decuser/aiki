@@ -1,34 +1,35 @@
 # Regex smoke test - qualified import
 let re = import("regex/ffi")
+let list = import("list")
 
-println("Testing regex...")
+list.println("Testing regex...")
 
 # matches
-println(re.matches("hello world", "^hello"))
-println(re.matches("hello world", "^world"))
-println(re.matches("hello world", "world$"))
+list.println(re.matches("hello world", "^hello"))
+list.println(re.matches("hello world", "^world"))
+list.println(re.matches("hello world", "world$"))
 
 # find
-println(re.find("abc 123 def", "\\d+"))
+list.println(re.find("abc 123 def", "\\d+"))
 
 # find_all
-println(re.find_all("a1b2c3", "\\d"))
+list.println(re.find_all("a1b2c3", "\\d"))
 
 # replace
-println(re.replace("a1b2c3", "\\d", "X"))
+list.println(re.replace("a1b2c3", "\\d", "X"))
 
 # replace_first
-println(re.replace_first("a1b2c3", "\\d", "X"))
+list.println(re.replace_first("a1b2c3", "\\d", "X"))
 
 # split
-println(re.split("a,b,,c", ","))
-println(re.split("one  two   three", "\\s+"))
+list.println(re.split("a,b,,c", ","))
+list.println(re.split("one  two   three", "\\s+"))
 
 # pipes work with qualified access
-println("hello world" |> re.matches("^hello"))
-println("a1b2c3" |> re.replace("\\d+", "N"))
+list.println("hello world" |> re.matches("^hello"))
+list.println("a1b2c3" |> re.replace("\\d+", "N"))
 
 # error case - invalid pattern
-println(re.find("test", "["))
+list.println(re.find("test", "["))
 
-println("REGEX_SMOKE_DONE")
+list.println("REGEX_SMOKE_DONE")

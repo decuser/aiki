@@ -1,0 +1,161 @@
+package "list"
+
+# list - higher-order functions, aggregation, and list utilities
+# Higher-order functions
+let map = (list, f) {
+	let result = []
+	let i = 0
+	while i < length(list) {
+		result = append(result, f(list[i]))
+		i = i + 1
+	}
+	return result
+}
+
+let filter = (list, f) {
+	let result = []
+	let i = 0
+	while i < length(list) {
+		if f(list[i]) {
+			result = append(result, list[i])
+		}
+		i = i + 1
+	}
+	return result
+}
+
+let reduce = (list, acc, f) {
+	let result = acc
+	let i = 0
+	while i < length(list) {
+		result = f(result, list[i])
+		i = i + 1
+	}
+	return result
+}
+
+let each = (list, f) {
+	let i = 0
+	while i < length(list) {
+		f(list[i])
+		i = i + 1
+	}
+	return true
+}
+
+# Aggregation
+let sum = (list) {
+	let total = 0
+	let i = 0
+	while i < length(list) {
+		total = total + list[i]
+		i = i + 1
+	}
+	return total
+}
+
+let max = (list) {
+	if empty(list) {
+		return [@error, :empty, "empty list"]
+	}
+	let result = list[0]
+	let i = 1
+	while i < length(list) {
+		if list[i] > result {
+			result = list[i]
+		}
+		i = i + 1
+	}
+	return result
+}
+
+let min = (list) {
+	if empty(list) {
+		return [@error, :empty, "empty list"]
+	}
+	let result = list[0]
+	let i = 1
+	while i < length(list) {
+		if list[i] < result {
+			result = list[i]
+		}
+		i = i + 1
+	}
+	return result
+}
+
+# Utilities
+let reverse = (list) {
+	let result = []
+	let i = length(list) - 1
+	while i >= 0 {
+		result = append(result, list[i])
+		i = i - 1
+	}
+	return result
+}
+
+let find = (list, f) {
+	let i = 0
+	while i < length(list) {
+		if f(list[i]) {
+			return list[i]
+		}
+		i = i + 1
+	}
+	return [@error, :lookup, "not found"]
+}
+
+let any = (list, f) {
+	let i = 0
+	while i < length(list) {
+		if f(list[i]) {
+			return true
+		}
+		i = i + 1
+	}
+	return false
+}
+
+let all = (list, f) {
+	let i = 0
+	while i < length(list) {
+		if not f(list[i]) {
+			return false
+		}
+		i = i + 1
+	}
+	return true
+}
+
+let concat = (a, b) {
+	reduce(b, a, (acc, x) {
+		append(acc, x)
+	})
+}
+
+let range = (start, end) {
+	let result = []
+	let i = start
+	while i < end {
+		result = append(result, i)
+		i = i + 1
+	}
+	return result
+}
+
+# Convenience IO
+let println = (...args) {
+	if empty(args) {
+		print("\n")
+	} else {
+		let i = 0
+		while i < length(args) {
+			print(args[i])
+			i = i + 1
+		}
+		print("\n")
+	}
+}
+
+export(:map, :filter, :reduce, :each, :sum, :max, :min, :reverse, :find, :any, :all, :concat, :range, :println)

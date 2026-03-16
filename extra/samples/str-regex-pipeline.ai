@@ -1,13 +1,15 @@
 let str = import("string")
 let re = import("regex/ffi")
+let list = import("list")
 
 # Slugify a title
 let title = "  Hello, World! How's It Going?  "
 
 let slug = title |>
-  str.trim() |>
-  str.lower() |>
-  re.replace("[^a-z0-9\\s]", "") |>
-  re.replace("\\s+", "-")
+str.trim() |>
+str.lower() |>
+re.replace("[^a-z0-9\\s]", "") |>
+re.replace("\\s+", "-")
 
-println(slug)  # "hello-world-hows-it-going"
+
+list.println(slug)  # "hello-world-hows-it-going"

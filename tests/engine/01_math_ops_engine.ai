@@ -1,15 +1,17 @@
+let list = import("list")
+
 # 01_math_ops_engine.ai
 # Arithmetic and precedence, no equality operators.
-println("ADD")
-println(1 + 1)
+list.println("ADD")
+list.println(1 + 1)
 
-println("RAT_ONE_THIRD_TIMES_THREE")
-println((1 / 3) * 3)
+list.println("RAT_ONE_THIRD_TIMES_THREE")
+list.println((1 / 3) * 3)
 
-println("LEFT_TO_RIGHT_ONE_PLUS_TWO_TIMES_THREE")
-println(1 + 2 * 3)
+list.println("LEFT_TO_RIGHT_ONE_PLUS_TWO_TIMES_THREE")
+list.println(1 + 2 * 3)
 
-println("NEG_RATIONAL_ADD")
-println((-1 / 2) + (3 / 2))
+list.println("NEG_RATIONAL_ADD")
+list.println((-1 / 2) + (3 / 2))
 
-println("MATH_DONE")
+list.println("MATH_DONE")

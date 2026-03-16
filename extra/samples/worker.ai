@@ -1,4 +1,6 @@
 # worker.ai - producer/consumer pattern
+let list = import("list")
+
 let work_ch = channel()
 let result_ch = channel()
 
@@ -17,16 +19,16 @@ spawn(worker, work_ch, result_ch)
 
 # send some work
 send(work_ch, 5)
-println(recv(result_ch))  # 25
+list.println(recv(result_ch))  # 25
 
 send(work_ch, 7)
-println(recv(result_ch))  # 49
+list.println(recv(result_ch))  # 49
 
 send(work_ch, 10)
-println(recv(result_ch))  # 100
+list.println(recv(result_ch))  # 100
 
 # signal done
 send(work_ch, [@done])
 recv(result_ch)
 
-println("done")
+list.println("done")

@@ -158,9 +158,9 @@ func TestBoundaryUserCanSeeChrAfterPrelude(t *testing.T) {
 	}
 }
 
-// TestBoundaryUserCanSeeConcatAfterPrelude verifies user scope can see concat after prelude.
-func TestBoundaryUserCanSeeConcatAfterPrelude(t *testing.T) {
-	code := `concat([1, 2], [3, 4])`
+// TestBoundaryUserCanSeeAppendAfterPrelude verifies user scope can see append after prelude.
+func TestBoundaryUserCanSeeAppendAfterPrelude(t *testing.T) {
+	code := `append([1, 2], 3)`
 
 	result, err := evalWithScope(code, value.ScopeUser, true)
 	if err != nil {
@@ -168,11 +168,11 @@ func TestBoundaryUserCanSeeConcatAfterPrelude(t *testing.T) {
 	}
 
 	if value.IsFault(result) {
-		t.Errorf("expected concat to work in user scope after prelude, got fault: %s", result.Inspect())
+		t.Errorf("expected append to work in user scope after prelude, got fault: %s", result.Inspect())
 	}
 	list, ok := result.(*value.List)
-	if !ok || len(list.Elements) != 4 {
-		t.Errorf("expected [1, 2, 3, 4], got: %s", result.Inspect())
+	if !ok || len(list.Elements) != 3 {
+		t.Errorf("expected [1, 2, 3], got: %s", result.Inspect())
 	}
 }
 

@@ -1,3 +1,5 @@
+let list = import("list")
+
 # 02_blocks_if_engine.ai
 # Blocks, if, return.
 let abs = (n) {
@@ -7,5 +9,5 @@ let abs = (n) {
 	return n
 }
 
-println(abs(-10))
-println(abs(7))
+list.println(abs(-10))
+list.println(abs(7))

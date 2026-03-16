@@ -1,5 +1,9 @@
 package "string"
 
+# Import dependencies from lib
+let _list = import("list")
+let _math = import("math")
+
 # String Functions
 # =============================================================================
 # Foundation
@@ -22,7 +26,7 @@ let join = (list, delim) {
 	if empty(list) {
 		return ""
 	}
-	reduce(rest(list), first(list), (acc, x) {
+	_list.reduce(rest(list), first(list), (acc, x) {
 		acc + delim + x
 	})
 }
@@ -147,7 +151,7 @@ let repeat = (s, n) {
 
 # reverse_string(s) - reverse a string
 let reverse_string = (s) {
-	join(map(reverse(chars(s)), to_str), "")
+	join(_list.map(_list.reverse(chars(s)), to_str), "")
 }
 
 # insert(s, pos, sub) - insert substring at position
@@ -221,7 +225,7 @@ let center = (s, len, char) {
 		return s
 	}
 	let total = len - slen
-	let left = floor(total / 2)
+	let left = _math.floor(total / 2)
 	let right = total - left
 	repeat(to_str(char), left) + s + repeat(to_str(char), right)
 }
@@ -254,7 +258,7 @@ let lines = (s) {
 
 # words(s) - split string into words (by whitespace)
 let words = (s) {
-	filter(split(trim(s), " "), (w) {
+	_list.filter(split(trim(s), " "), (w) {
 		not equal(w, "")
 	})
 }
@@ -293,7 +297,7 @@ let is_numeric = (s) {
 	if equal(length(s), 0) {
 		return false
 	}
-	all(chars(s), is_digit)
+	_list.all(chars(s), is_digit)
 }
 
 # is_alphabetic(s) - check if string contains only letters
@@ -301,7 +305,7 @@ let is_alphabetic = (s) {
 	if equal(length(s), 0) {
 		return false
 	}
-	all(chars(s), is_alpha)
+	_list.all(chars(s), is_alpha)
 }
 
 # Comparison
@@ -367,7 +371,7 @@ let capitalize = (s) {
 
 # title(s) - title case each word
 let title = (s) {
-	join(map(words(s), capitalize), " ")
+	join(_list.map(words(s), capitalize), " ")
 }
 
 # equal_ignore_case(a, b) - case-insensitive equality
@@ -376,4 +380,3 @@ let equal_ignore_case = (a, b) {
 }
 
 export(:substring, :join, :split, :index_of, :last_index_of, :contains, :starts_with, :ends_with, :occurrences, :replace, :replace_first, :repeat, :reverse_string, :insert, :remove, :is_whitespace, :trim_start, :trim_end, :trim, :pad_start, :pad_end, :center, :truncate, :chars, :lines, :words, :is_digit, :is_alpha, :is_upper, :is_lower, :is_alnum, :is_numeric, :is_alphabetic, :compare, :upper, :lower, :upper_rune, :lower_rune, :capitalize, :title, :equal_ignore_case)
-

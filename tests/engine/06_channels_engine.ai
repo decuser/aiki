@@ -1,3 +1,5 @@
+let list = import("list")
+
 # 06_channels_engine.ai
 # Concurrency primitives without imports.
 let ch = channel()
@@ -15,5 +17,5 @@ spawn(worker, ch)
 send(ch, 3)
 send(ch, 7)
 
-println(recv(ch))
-println(recv(ch))
+list.println(recv(ch))
+list.println(recv(ch))

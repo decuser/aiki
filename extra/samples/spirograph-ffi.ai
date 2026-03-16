@@ -1,7 +1,10 @@
 import("math/ffi", :sin, :cos)
-let c = canvas(800, 800)
-set_bg(c, :white)
-pen_size(c, 2)
+let cv = import("canvas")
+let time = import("time")
+
+let c = cv.canvas(800, 800)
+cv.set_bg(c, :white)
+cv.pen_size(c, 2)
 let tick = 0
 let R = 200
 let r = 80
@@ -12,8 +15,8 @@ while tick < 5028 {
 	let angle = tick / 100
 	let x = 400 + ((diff * cos(angle)) + (d * cos(ratio * angle)))
 	let y = 400 + ((diff * sin(angle)) - (d * sin(ratio * angle)))
-	dot(c, x, y, :black)
+	cv.dot(c, x, y, :black)
 	tick = tick + 1
 }
 
-sleep(1000)
+time.sleep(1000)

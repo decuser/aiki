@@ -3,8 +3,10 @@
 # Demonstrates that strings are rune sequences and can be
 # manipulated with list operations plus to_str/chr/ord.
 #
-# NOTE: These are educational implementations. The prelude provides
+# NOTE: These are educational implementations. The string library provides
 # optimized versions of these functions (starts_with, ends_with, etc.)
+let list = import("list")
+
 # my_slice(s, start, end) - extract substring
 let my_slice = (s, start, end) {
 	let result = ""
@@ -63,12 +65,12 @@ let my_contains = (s, sub) {
 	return false
 }
 
-# my_join(list, delim) - join strings with delimiter
-let my_join = (list, delim) {
-	if empty(list) {
+# my_join(lst, delim) - join strings with delimiter
+let my_join = (lst, delim) {
+	if empty(lst) {
 		return ""
 	}
-	reduce(rest(list), first(list), (acc, x) {
+	list.reduce(rest(lst), first(lst), (acc, x) {
 		acc + delim + x
 	})
 }
@@ -135,45 +137,45 @@ let my_trim = (s) {
 }
 
 # Demo
-println("=== String Utils Demo ===")
-println("")
+list.println("=== String Utils Demo ===")
+list.println("")
 
-println("slice hello world 0 5:")
-println(my_slice("hello world", 0, 5))
-println("")
+list.println("slice hello world 0 5:")
+list.println(my_slice("hello world", 0, 5))
+list.println("")
 
-println("starts_with hello hel:")
-println(my_starts_with("hello", "hel"))
-println("")
+list.println("starts_with hello hel:")
+list.println(my_starts_with("hello", "hel"))
+list.println("")
 
-println("ends_with hello llo:")
-println(my_ends_with("hello", "llo"))
-println("")
+list.println("ends_with hello llo:")
+list.println(my_ends_with("hello", "llo"))
+list.println("")
 
-println("contains hello world wor:")
-println(my_contains("hello world", "wor"))
-println("")
+list.println("contains hello world wor:")
+list.println(my_contains("hello world", "wor"))
+list.println("")
 
-println("split a,b,c by comma:")
-println(my_split("a,b,c", ","))
-println("")
+list.println("split a,b,c by comma:")
+list.println(my_split("a,b,c", ","))
+list.println("")
 
-println("join a b c with dash:")
-println(my_join(["a", "b", "c"], "-"))
-println("")
+list.println("join a b c with dash:")
+list.println(my_join(["a", "b", "c"], "-"))
+list.println("")
 
-println("replace world with aiki:")
-println(my_replace("hello world", "world", "aiki"))
-println("")
+list.println("replace world with aiki:")
+list.println(my_replace("hello world", "world", "aiki"))
+list.println("")
 
-println("trim with spaces:")
+list.println("trim with spaces:")
 print("[")
 print(my_trim("  hello  "))
-println("]")
-println("")
+list.println("]")
+list.println("")
 
 # Unicode works too
-println("Korean split/join:")
+list.println("Korean split/join:")
 let korean = "안녕하세요"
 let runes = []
 let i = 0
@@ -182,5 +184,5 @@ while i < length(korean) {
 	i = i + 1
 }
 
-println(runes)
-println(my_join(runes, "-"))
+list.println(runes)
+list.println(my_join(runes, "-"))

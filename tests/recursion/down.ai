@@ -1,3 +1,5 @@
+let list = import("list")
+
 # down.ai
 # Non tail recursion should hit Aiki stack_limit and return stack overflow error.
 stack_limit(10000)
@@ -9,4 +11,4 @@ let down = (n) {
 	return (1 + down((n - 1)))
 }
 
-println(down(200000))
+list.println(down(200000))

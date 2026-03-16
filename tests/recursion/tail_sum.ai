@@ -1,3 +1,5 @@
+let list = import("list")
+
 # tail_sum.ai
 # Tail recursion should not grow Go stack with proper tail calls.
 stack_limit(10000)
@@ -9,4 +11,4 @@ let sum_tail = (n, acc) {
 	return sum_tail((n - 1), (acc + n))
 }
 
-println(sum_tail(20000000, 0))
+list.println(sum_tail(20000000, 0))

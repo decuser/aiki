@@ -1,29 +1,31 @@
 # to_str smoke test - verify value conversion (not display formatting)
+let list = import("list")
+
 # Rune to string - should be "A" not "'A'"
-println(to_str('A'))
-println(to_str(chr(50504)))
+list.println(to_str('A'))
+list.println(to_str(chr(50504)))
 
 # String unchanged
-println(to_str("hello"))
+list.println(to_str("hello"))
 
 # Number
-println(to_str(42))
-println(to_str(1/3))
+list.println(to_str(42))
+list.println(to_str(1/3))
 
 # Boolean
-println(to_str(true))
-println(to_str(false))
+list.println(to_str(true))
+list.println(to_str(false))
 
 # Symbol (keeps colon)
-println(to_str(:foo))
+list.println(to_str(:foo))
 
 # Build string from runes
 let s = ""
-each(['h', 'e', 'l', 'l', 'o'], (r) {
+list.each(['h', 'e', 'l', 'l', 'o'], (r) {
 	s = s + to_str(r)
 })
 
 
-println(s)
+list.println(s)
 
-println("TO_STR_SMOKE_DONE")
+list.println("TO_STR_SMOKE_DONE")

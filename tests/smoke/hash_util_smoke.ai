@@ -1,21 +1,23 @@
 # Hash utility tests
-let h = hash_new()
-h = hash_put(h, "a", 1)
-h = hash_put(h, "b", 2)
-h = hash_put(h, "c", 3)
+let hash = import("hash")
+
+let h = hash.new()
+h = hash.put(h, "a", 1)
+h = hash.put(h, "b", 2)
+h = hash.put(h, "c", 3)
 
 # hash_keys and hash_values
-let keys = hash_keys(h)
-let vals = hash_values(h)
+let keys = hash.keys(h)
+let vals = hash.values(h)
 print(length(keys), "\n")
 print(length(vals), "\n")
 
 # hash_del
-h = hash_del(h, "b")
-print(hash_has(h, "a"), "\n")
-print(hash_has(h, "b"), "\n")
-print(hash_has(h, "c"), "\n")
+h = hash.del(h, "b")
+print(hash.has(h, "a"), "\n")
+print(hash.has(h, "b"), "\n")
+print(hash.has(h, "c"), "\n")
 
 # verify remaining values
-print(hash_get(h, "a"), "\n")
-print(hash_get(h, "c"), "\n")
+print(hash.get(h, "a"), "\n")
+print(hash.get(h, "c"), "\n")

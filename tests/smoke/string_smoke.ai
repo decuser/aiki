@@ -1,59 +1,60 @@
 # String functions smoke test - qualified import
 let str = import("string")
+let list = import("list")
 
 # Foundation
-println(str.substring("hello", 1, 4))
-println(str.join(["a", "b", "c"], "-"))
-println(str.split("a,b,c", ","))
+list.println(str.substring("hello", 1, 4))
+list.println(str.join(["a", "b", "c"], "-"))
+list.println(str.split("a,b,c", ","))
 
 # Search
-println(str.index_of("hello", "ll"))
-println(str.last_index_of("abcabc", "bc"))
-println(str.contains("hello", "ell"))
-println(str.starts_with("hello", "he"))
-println(str.ends_with("hello", "lo"))
-println(str.occurrences("banana", "a"))
+list.println(str.index_of("hello", "ll"))
+list.println(str.last_index_of("abcabc", "bc"))
+list.println(str.contains("hello", "ell"))
+list.println(str.starts_with("hello", "he"))
+list.println(str.ends_with("hello", "lo"))
+list.println(str.occurrences("banana", "a"))
 
 # Transform
-println(str.replace("hello", "l", "L"))
-println(str.replace_first("hello", "l", "L"))
-println(str.repeat("ab", 3))
-println(str.reverse_string("hello"))
-println(str.insert("hello", 2, "XX"))
-println(str.remove("hello", 1, 3))
+list.println(str.replace("hello", "l", "L"))
+list.println(str.replace_first("hello", "l", "L"))
+list.println(str.repeat("ab", 3))
+list.println(str.reverse_string("hello"))
+list.println(str.insert("hello", 2, "XX"))
+list.println(str.remove("hello", 1, 3))
 
 # Trim/Pad
-println(str.trim("  hi  "))
-println(str.pad_start("42", 5, '0'))
-println(str.pad_end("42", 5, '0'))
-println(str.center("hi", 6, '-'))
-println(str.truncate("hello", 3))
+list.println(str.trim("  hi  "))
+list.println(str.pad_start("42", 5, '0'))
+list.println(str.pad_end("42", 5, '0'))
+list.println(str.center("hi", 6, '-'))
+list.println(str.truncate("hello", 3))
 
 # Conversion
-println(str.chars("hi"))
-println(str.lines("a\nb"))
-println(str.words("hello world"))
+list.println(str.chars("hi"))
+list.println(str.lines("a\nb"))
+list.println(str.words("hello world"))
 
 # Character classes
-println(str.is_digit('5'))
-println(str.is_alpha('a'))
-println(str.is_upper('A'))
-println(str.is_lower('a'))
-println(str.is_alnum('5'))
-println(str.is_whitespace(' '))
+list.println(str.is_digit('5'))
+list.println(str.is_alpha('a'))
+list.println(str.is_upper('A'))
+list.println(str.is_lower('a'))
+list.println(str.is_alnum('5'))
+list.println(str.is_whitespace(' '))
 
 # String predicates
-println(str.is_numeric("123"))
-println(str.is_alphabetic("abc"))
+list.println(str.is_numeric("123"))
+list.println(str.is_alphabetic("abc"))
 
 # Comparison
-println(str.compare("abc", "abd"))
+list.println(str.compare("abc", "abd"))
 
 # Case conversion
-println(str.upper("hello"))
-println(str.lower("HELLO"))
-println(str.capitalize("hello"))
-println(str.title("hello world"))
-println(str.equal_ignore_case("Hello", "HELLO"))
+list.println(str.upper("hello"))
+list.println(str.lower("HELLO"))
+list.println(str.capitalize("hello"))
+list.println(str.title("hello world"))
+list.println(str.equal_ignore_case("Hello", "HELLO"))
 
-println("STRING_SMOKE_DONE")
+list.println("STRING_SMOKE_DONE")

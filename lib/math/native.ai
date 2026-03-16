@@ -30,7 +30,7 @@ let sin = (x, terms) {
 	while i < terms {
 		let n = i * 2 + 1
 		let term = _pow(x, n) / _factorial(n)
-		if equal(modulo(i, 2), 0) {
+		if equal(_modulo(i, 2), 0) {
 			result = result + term
 		} else {
 			result = result - term
@@ -47,7 +47,7 @@ let cos = (x, terms) {
 	while i < terms {
 		let n = i * 2
 		let term = _pow(x, n) / _factorial(n)
-		if equal(modulo(i, 2), 0) {
+		if equal(_modulo(i, 2), 0) {
 			result = result + term
 		} else {
 			result = result - term

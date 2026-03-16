@@ -1,0 +1,8 @@
+package "time"
+
+# time - time-related functions
+let sleep = (ms) {
+	_sleep(ms)
+}
+
+export(:sleep)

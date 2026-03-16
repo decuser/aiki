@@ -1,10 +1,13 @@
+let list = import("list")
+let hash = import("hash")
+
 # 05_hash_engine.ai
 # Hash basics.
-let h = hash_new()
-let h = hash_put(h, "name", "Mochi")
-let h = hash_put(h, :age, 3)
+let h = hash.new()
+let h = hash.put(h, "name", "Mochi")
+let h = hash.put(h, :age, 3)
 
-println(hash_get(h, "name"))
-println(hash_get(h, :age))
-println(hash_has(h, "name"))
-println(hash_has(h, "missing"))
+list.println(hash.get(h, "name"))
+list.println(hash.get(h, :age))
+list.println(hash.has(h, "name"))
+list.println(hash.has(h, "missing"))

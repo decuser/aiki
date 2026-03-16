@@ -1,5 +1,8 @@
 package "bytes/native"
 
+# Import dependencies from lib
+let _math = import("math")
+
 # bytes/native - pure aiki bytes as shaped lists
 # Bytes are represented as @bytes shaped lists where each element is 0-255.
 # Works with standard list operations: first, rest, length, map, etc.
@@ -21,18 +24,18 @@ let str_to_bytes = (s) {
 			result = append(result, code)
 		} else {
 			if code < 2048 {
-				result = append(result, 192 + floor(code / 64))
-				result = append(result, 128 + modulo(code, 64))
+				result = append(result, 192 + _math.floor(code / 64))
+				result = append(result, 128 + _math.modulo(code, 64))
 			} else {
 				if code < 65536 {
-					result = append(result, 224 + floor(code / 4096))
-					result = append(result, 128 + modulo(floor(code / 64), 64))
-					result = append(result, 128 + modulo(code, 64))
+					result = append(result, 224 + _math.floor(code / 4096))
+					result = append(result, 128 + _math.modulo(_math.floor(code / 64), 64))
+					result = append(result, 128 + _math.modulo(code, 64))
 				} else {
-					result = append(result, 240 + floor(code / 262144))
-					result = append(result, 128 + modulo(floor(code / 4096), 64))
-					result = append(result, 128 + modulo(floor(code / 64), 64))
-					result = append(result, 128 + modulo(code, 64))
+					result = append(result, 240 + _math.floor(code / 262144))
+					result = append(result, 128 + _math.modulo(_math.floor(code / 4096), 64))
+					result = append(result, 128 + _math.modulo(_math.floor(code / 64), 64))
+					result = append(result, 128 + _math.modulo(code, 64))
 				}
 			}
 		}

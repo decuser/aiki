@@ -1,3 +1,5 @@
+let list = import("list")
+
 # tail_match.ai
 # Tail calls in match arms without explicit return should be optimized.
 stack_limit(10000)
@@ -13,4 +15,4 @@ let sum_match = (n, acc) {
 	}
 }
 
-println(sum_match(20000000, 0))
+list.println(sum_match(20000000, 0))

@@ -1,53 +1,55 @@
 # Test Go-style newline handling
 # Lines ending with complete tokens end statements
 # Lines ending with operators/openers continue
+let list = import("list")
+
 # Basic: newline ends statement
 let x = 1
 let y = 2
-println(x + y)
+list.println(x + y)
 
 # Continuation: line ends with operator
 let total = 1 + 2 + 3
 
-println(total)
+list.println(total)
 
 # Continuation: line ends with comma (in call)
-let result = max([10, 20, 30])
+let result = list.max([10, 20, 30])
 
-println(result)
+list.println(result)
 
 # Continuation: line ends with open paren
 let val = (1 + 2)
 
-println(val)
+list.println(val)
 
 # Continuation: line ends with open bracket
-let list = [1, 2, 3]
+let lst = [1, 2, 3]
 
-println(length(list))
+list.println(length(lst))
 
 # Continuation: pipe operator
 let piped = [1, 2, 3] |>
-map((x) {
+list.map((x) {
 	x * 2
 }) |>
-reduce(0, (a, b) {
+list.reduce(0, (a, b) {
 	a + b
 })
 
 
-println(piped)
+list.println(piped)
 
 # Function definition spans lines (block continues)
 let add = (a, b) {
 	return a + b
 }
 
-println(add(3, 4))
+list.println(add(3, 4))
 
 # If statement (brace on same line)
 if true {
-	println("yes")
+	list.println("yes")
 }
 
 # Nested blocks
@@ -58,20 +60,20 @@ let outer = () {
 	return inner()
 }
 
-println(outer())
+list.println(outer())
 
 # The original problem case: let followed by paren expr
 let c = ord('A')
 (c >= 65) and (c <= 90)
-println("char class check passed")
+list.println("char class check passed")
 
 # Multiple statements on one line with explicit semicolon
 let a = 1
 let b = 2
-println(a + b)
+list.println(a + b)
 
 # Trailing semicolon is fine
 let z = 99
-println(z)
+list.println(z)
 
-println("NEWLINE_SMOKE_DONE")
+list.println("NEWLINE_SMOKE_DONE")

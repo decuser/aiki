@@ -1,6 +1,8 @@
 # Aiki Number Guessing Game
-seed(42)
-let secret = random(100) + 1
+let rand = import("random")
+
+rand.seed(42)
+let secret = rand.random(100) + 1
 let attempts = 0
 let guessed = false
 

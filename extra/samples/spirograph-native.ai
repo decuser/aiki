@@ -1,6 +1,8 @@
 import("math/native", :sin, :cos)
+let cv = import("canvas")
+let time = import("time")
 
-let c = canvas(800, 800)
+let c = cv.canvas(800, 800)
 let tick = 0
 let R = 200
 let r = 80
@@ -11,8 +13,8 @@ while tick < 1257 {
 	let angle = tick / 100
 	let x = 400 + ((diff * cos(angle, 30)) + (d * cos(ratio * angle, 30)))
 	let y = 400 + ((diff * sin(angle, 30)) - (d * sin(ratio * angle, 30)))
-	dot(c, x, y, :cyan)
+	cv.dot(c, x, y, :cyan)
 	tick = tick + 1
 }
 
-sleep(1000)
+time.sleep(1000)

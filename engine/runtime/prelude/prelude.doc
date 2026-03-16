@@ -14,6 +14,18 @@ load(path)
 load("utils.ai")
 load("lib/helpers.ai")
 ===
+stack_limit
+
+Sets the maximum non tail call depth for evaluation. Tail calls do not consume stack.
+
+stack_limit(n)
+
+n must be an integer >= 1.
+
+Example
+
+stack_limit(10000)
+===
 spawn
 Runs a function concurrently with an isolated environment.
 The spawned function only sees its arguments and prelude - 
@@ -57,14 +69,6 @@ print(val, ...)
 print("hello")
 print("x = ", x)
 ===
-println
-Prints values to stdout followed by newline.
-
-println(val, ...)
-
-println("hello")
-println("result:", x)
-===
 read
 Reads a line from stdin. Returns string without newline,
 or [@end] on EOF.
@@ -72,6 +76,13 @@ or [@end] on EOF.
 read()
 
 let name = read()
+===
+input
+Reads a line from stdin (alias for read).
+
+input()
+
+let name = input()
 ===
 first
 Returns the first element of a list.
@@ -119,21 +130,6 @@ empty(list)
 empty([])             # true
 empty([1])            # false
 ===
-range
-Returns a list of integers from start to end-1.
-
-range(start, end)
-
-range(0, 5)           # [0, 1, 2, 3, 4]
-range(1, 4)           # [1, 2, 3]
-===
-reverse
-Returns a new list with elements in reverse order.
-
-reverse(list)
-
-reverse([1, 2, 3])    # [3, 2, 1]
-===
 type
 Returns the type of a value as a symbol.
 
@@ -169,85 +165,56 @@ shape(val)
 shape([@point, 1, 2]) # :point
 shape([1, 2, 3])      # :list
 ===
-map
-Applies a function to each element, returns new list of results.
+is_error
+Returns true if the value is a shaped error [@error, ...].
 
-map(list, fn)
+is_error(val)
 
-map([1, 2, 3], (x) { x * 2 })    # [2, 4, 6]
+is_error([@error, :lookup, "not found"])  # true
+is_error([1, 2, 3])                        # false
 ===
-filter
-Returns elements where the function returns true.
+ord
+Returns the integer code point of a rune.
 
-filter(list, fn)
+ord(rune)
 
-filter([1, 2, 3, 4], (x) { x > 2 })  # [3, 4]
+ord('A')              # 65
+ord('a')              # 97
 ===
-reduce
-Reduces a list to a single value by applying fn to accumulator
-and each element.
+chr
+Returns the rune for an integer code point.
+Inverse of ord.
 
-reduce(list, init, fn)
+chr(n)
 
-reduce([1, 2, 3], 0, (acc, x) { acc + x })  # 6
+chr(65)               # 'A'
+chr(97)               # 'a'
+chr(8364)             # '€'
+ord(chr(65))          # 65
 ===
-each
-Calls function on each element for side effects. Returns true.
+to_str
+Converts a value to its string representation.
 
-each(list, fn)
+to_str(val)
 
-each([1, 2, 3], (x) { println(x) })
+to_str(42)            # "42"
+to_str('A')           # "A"
 ===
-find
-Returns first element where function returns true,
-or [@error, "not found"].
+to_number
+Parses a string as a number.
 
-find(list, fn)
+to_number(str)
 
-find([1, 2, 3], (x) { x > 1 })  # 2
+to_number("42")       # 42
+to_number("3.14")     # 3.14
 ===
-any
-Returns true if function returns true for any element.
+to_decimal
+Formats a number as a decimal string with specified places.
 
-any(list, fn)
+to_decimal(n, places)
 
-any([1, 2, 3], (x) { x > 2 })   # true
-any([1, 2], (x) { x > 5 })      # false
-===
-all
-Returns true if function returns true for all elements.
-
-all(list, fn)
-
-all([2, 4, 6], (x) { modulo(x, 2) == 0 })  # true
-===
-canvas
-Creates a drawing canvas window of the specified size.
-
-canvas(width, height)
-
-let c = canvas(800, 600)
-===
-dot
-Draws a single point at coordinates (x, y).
-
-dot(c, x, y)
-
-dot(c, 100, 100)
-===
-line
-Draws a line from (x1, y1) to (x2, y2).
-
-line(c, x1, y1, x2, y2)
-
-line(c, 0, 0, 100, 100)
-===
-clear
-Clears the canvas to the background color.
-
-clear(c)
-
-clear(c)
+to_decimal(3.14159, 2)  # "3.14"
+to_decimal(1/3, 4)      # "0.3333"
 ===
 quit
 Exits the REPL.
@@ -263,7 +230,6 @@ reset()
 
 reset()
 ===
-
 delete
 Deletes a user binding by name, allowing a shadowed prelude function to be visible again.
 
@@ -277,36 +243,18 @@ let print = 1
 delete("print")
 print("restored!")
 ===
+help
+Shows help for a function.
 
+help(name)
 
-stack_limit
-
-Sets the maximum non tail call depth for evaluation. Tail calls do not consume stack.
-
-stack_limit(n)
-
-n must be an integer >= 1.
-
-Example
-
-stack_limit(10000)
-chr
-Returns the rune for an integer code point.
-Inverse of ord.
-
-chr(n)
-
-chr(65)                   # 'A'
-chr(97)                   # 'a'
-chr(8364)                 # '€'
-ord(chr(65))              # 65
+help(:print)
+help(:map)
 ===
-concat
-Returns a new list with elements of b appended to a.
+doc
+Shows full documentation for a function.
 
-concat(a, b)
+doc(name)
 
-concat([1, 2], [3, 4])    # [1, 2, 3, 4]
-concat([], [1, 2])        # [1, 2]
-concat([1], [])           # [1]
-===
+doc(:reduce)
+doc(:spawn)

@@ -1,6 +1,8 @@
+let list = import("list")
+
 # 07_ord_rune_engine.ai
 # Rune and ord coverage, no imports.
-println(ord('a'))
-println(ord('A'))
-println(ord('0'))
-println(ord('\n'))
+list.println(ord('a'))
+list.println(ord('A'))
+list.println(ord('0'))
+list.println(ord('\n'))

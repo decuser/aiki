@@ -1,0 +1,60 @@
+package "canvas"
+
+# canvas - graphics primitives
+let canvas = (w, h) {
+	_canvas(w, h)
+}
+
+let dot = (c, x, y, ...rest) {
+	_apply(_dot, prepend(prepend(prepend(rest, y), x), c))
+}
+
+let line = (c, x1, y1, x2, y2, ...rest) {
+	_apply(_line, prepend(prepend(prepend(prepend(prepend(rest, y2), x2), y1), x1), c))
+}
+
+let rect = (c, x, y, w, h, ...rest) {
+	_apply(_rect, prepend(prepend(prepend(prepend(prepend(rest, h), w), y), x), c))
+}
+
+let fill_rect = (c, x, y, w, h, ...rest) {
+	_apply(_fill_rect, prepend(prepend(prepend(prepend(prepend(rest, h), w), y), x), c))
+}
+
+let circle = (c, x, y, r, ...rest) {
+	_apply(_circle, prepend(prepend(prepend(prepend(rest, r), y), x), c))
+}
+
+let fill_circle = (c, x, y, r, ...rest) {
+	_apply(_fill_circle, prepend(prepend(prepend(prepend(rest, r), y), x), c))
+}
+
+let clear = (c) {
+	_clear(c)
+}
+
+let destroy = (c) {
+	_destroy(c)
+}
+
+let set_bg = (c, color) {
+	_set_bg(c, color)
+}
+
+let set_fg = (c, color) {
+	_set_fg(c, color)
+}
+
+let set_bg_rgb = (c, r, g, b) {
+	_set_bg(c, [r, g, b])
+}
+
+let set_fg_rgb = (c, r, g, b) {
+	_set_fg(c, [r, g, b])
+}
+
+let pen_size = (c, s) {
+	_pen_size(c, s)
+}
+
+export(:canvas, :dot, :line, :rect, :fill_rect, :circle, :fill_circle, :clear, :destroy, :set_bg, :set_fg, :set_bg_rgb, :set_fg_rgb, :pen_size)
