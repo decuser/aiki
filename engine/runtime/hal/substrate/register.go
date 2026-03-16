@@ -66,6 +66,12 @@ func (g *GoRuntime) registerHAL() {
 	g.register("_to_decimal", halToDecimal)
 	g.register("_to_number", halToNumber)
 
+	// String (Unicode case conversion)
+	g.register("_upper", halUpper)
+	g.register("_lower", halLower)
+	g.register("_upper_rune", halUpperRune)
+	g.register("_lower_rune", halLowerRune)
+
 	// Intrinsics - these use evaluation context
 	g.register("_apply", halApply)
 	g.register("_import", halImport)

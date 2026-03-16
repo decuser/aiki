@@ -34,7 +34,7 @@ func TestBoolean(t *testing.T) {
 
 func TestString(t *testing.T) {
 	s := &String{Val: "hello"}
-	if s.Inspect() != "hello" || s.Type() != StringType {
+	if s.Inspect() != `"hello"` || s.Type() != StringType {
 		t.Error("string")
 	}
 }
@@ -230,7 +230,7 @@ func TestIsShapedError(t *testing.T) {
 
 func TestShapedErrorInspect(t *testing.T) {
 	se := NewShapedError("hal", "resource closed")
-	expected := "[@error, :hal, resource closed]"
+	expected := `[@error, :hal, "resource closed"]`
 	if se.Inspect() != expected {
 		t.Errorf("expected %s, got %s", expected, se.Inspect())
 	}

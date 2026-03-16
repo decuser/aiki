@@ -1,0 +1,38 @@
+OUT:ell\n
+OUT:a-b-c\n
+OUT:[\"a\", \"b\", \"c\"]\n
+OUT:2\n
+OUT:4\n
+OUT:true\n
+OUT:true\n
+OUT:true\n
+OUT:3\n
+OUT:heLLo\n
+OUT:heLlo\n
+OUT:ababab\n
+OUT:olleh\n
+OUT:heXXllo\n
+OUT:hlo\n
+OUT:hi\n
+OUT:00042\n
+OUT:42000\n
+OUT:--hi--\n
+OUT:hel\n
+OUT:['h', 'i']\n
+OUT:[\"a\", \"b\"]\n
+OUT:[\"hello\", \"world\"]\n
+OUT:true\n
+OUT:true\n
+OUT:true\n
+OUT:true\n
+OUT:true\n
+OUT:true\n
+OUT:true\n
+OUT:true\n
+OUT:-1\n
+OUT:HELLO\n
+OUT:hello\n
+OUT:Hello\n
+OUT:Hello World\n
+OUT:true\n
+OUT:STRING_SMOKE_DONE\n

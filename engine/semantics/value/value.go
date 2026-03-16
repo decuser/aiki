@@ -90,7 +90,7 @@ type String struct {
 }
 
 func (s *String) Type() Type      { return StringType }
-func (s *String) Inspect() string { return s.Val }
+func (s *String) Inspect() string { return fmt.Sprintf("%q", s.Val) }
 
 // Bytes is an immutable sequence of bytes (0-255).
 type Bytes struct {
