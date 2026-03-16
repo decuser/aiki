@@ -88,15 +88,23 @@ program 3:1
             unary_expr 11:1
               postfix_expr 11:1
                 primary 11:1
-                  NAME 11:1 "println"
-                call 11:8
-                  TERMINAL 11:8 "("
-                  expr 11:9
-                    pipe_expr 11:9
-                      infix_expr 11:9
-                        unary_expr 11:9
-                          postfix_expr 11:9
-                            primary 11:9
-                              NAME 11:9 "acc"
-                  TERMINAL 11:12 ")"
-  TERMINAL 11:13 ";"
+                  NAME 11:1 "print"
+                call 11:6
+                  TERMINAL 11:6 "("
+                  expr 11:7
+                    pipe_expr 11:7
+                      infix_expr 11:7
+                        unary_expr 11:7
+                          postfix_expr 11:7
+                            primary 11:7
+                              NAME 11:7 "acc"
+                  TERMINAL 11:10 ","
+                  expr 11:12
+                    pipe_expr 11:12
+                      infix_expr 11:12
+                        unary_expr 11:12
+                          postfix_expr 11:12
+                            primary 11:12
+                              STRING 11:12 "\"\\n\""
+                  TERMINAL 11:16 ")"
+  TERMINAL 11:17 ";"

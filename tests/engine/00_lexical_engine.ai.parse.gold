@@ -47,18 +47,26 @@ program 3:1
             unary_expr 8:1
               postfix_expr 8:1
                 primary 8:1
-                  NAME 8:1 "println"
-                call 8:8
-                  TERMINAL 8:8 "("
-                  expr 8:9
-                    pipe_expr 8:9
-                      infix_expr 8:9
-                        unary_expr 8:9
-                          postfix_expr 8:9
-                            primary 8:9
-                              STRING 8:9 "\"tab=\\t nl=\\n backslash=\\\\ end\""
-                  TERMINAL 8:40 ")"
-  TERMINAL 8:41 ";"
+                  NAME 8:1 "print"
+                call 8:6
+                  TERMINAL 8:6 "("
+                  expr 8:7
+                    pipe_expr 8:7
+                      infix_expr 8:7
+                        unary_expr 8:7
+                          postfix_expr 8:7
+                            primary 8:7
+                              STRING 8:7 "\"tab=\\t nl=\\n backslash=\\\\ end\""
+                  TERMINAL 8:38 ","
+                  expr 8:40
+                    pipe_expr 8:40
+                      infix_expr 8:40
+                        unary_expr 8:40
+                          postfix_expr 8:40
+                            primary 8:40
+                              STRING 8:40 "\"\\n\""
+                  TERMINAL 8:44 ")"
+  TERMINAL 8:45 ";"
   statement 11:1
     let_stmt 11:1
       TERMINAL 11:1 "let"
@@ -80,15 +88,23 @@ program 3:1
             unary_expr 12:1
               postfix_expr 12:1
                 primary 12:1
-                  NAME 12:1 "println"
-                call 12:8
-                  TERMINAL 12:8 "("
-                  expr 12:9
-                    pipe_expr 12:9
-                      infix_expr 12:9
-                        unary_expr 12:9
-                          postfix_expr 12:9
-                            primary 12:9
-                              NAME 12:9 "s"
-                  TERMINAL 12:10 ")"
-  TERMINAL 12:11 ";"
+                  NAME 12:1 "print"
+                call 12:6
+                  TERMINAL 12:6 "("
+                  expr 12:7
+                    pipe_expr 12:7
+                      infix_expr 12:7
+                        unary_expr 12:7
+                          postfix_expr 12:7
+                            primary 12:7
+                              NAME 12:7 "s"
+                  TERMINAL 12:8 ","
+                  expr 12:10
+                    pipe_expr 12:10
+                      infix_expr 12:10
+                        unary_expr 12:10
+                          postfix_expr 12:10
+                            primary 12:10
+                              STRING 12:10 "\"\\n\""
+                  TERMINAL 12:14 ")"
+  TERMINAL 12:15 ";"

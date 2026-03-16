@@ -249,12 +249,12 @@ Shows help for a function.
 help(name)
 
 help(:print)
-help(:map)
+help(:append)
 ===
 doc
 Shows full documentation for a function.
 
 doc(name)
 
-doc(:reduce)
 doc(:spawn)
+doc(:equal)

@@ -1,17 +1,15 @@
-let list = import("list")
-
 # 01_ops_engine.ai
 # Arithmetic, ordering, boolean, grouping.
 # Note: grammar does not define == or != operators. Use equal(a,b) and not equal(a,b).
 let x = 1 + 2 * 3 - 4 / 2
 let y = (1 + 2) * (3 - 4) / 2
 
-list.println(x)
-list.println(y)
+print(x, "\n")
+print(y, "\n")
 
-list.println(equal(x, y))
-list.println(not equal(x, y))
-list.println(x < y)
-list.println(x <= y)
-list.println(x > y)
-list.println(x >= y)
+print(equal(x, y), "\n")
+print(not equal(x, y), "\n")
+print(x < y, "\n")
+print(x <= y, "\n")
+print(x > y, "\n")
+print(x >= y, "\n")

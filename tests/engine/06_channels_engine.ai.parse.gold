@@ -252,28 +252,36 @@ program 3:1
             unary_expr 18:1
               postfix_expr 18:1
                 primary 18:1
-                  NAME 18:1 "println"
-                call 18:8
-                  TERMINAL 18:8 "("
-                  expr 18:9
-                    pipe_expr 18:9
-                      infix_expr 18:9
-                        unary_expr 18:9
-                          postfix_expr 18:9
-                            primary 18:9
-                              NAME 18:9 "recv"
-                            call 18:13
-                              TERMINAL 18:13 "("
-                              expr 18:14
-                                pipe_expr 18:14
-                                  infix_expr 18:14
-                                    unary_expr 18:14
-                                      postfix_expr 18:14
-                                        primary 18:14
-                                          NAME 18:14 "ch"
-                              TERMINAL 18:16 ")"
-                  TERMINAL 18:17 ")"
-  TERMINAL 18:18 ";"
+                  NAME 18:1 "print"
+                call 18:6
+                  TERMINAL 18:6 "("
+                  expr 18:7
+                    pipe_expr 18:7
+                      infix_expr 18:7
+                        unary_expr 18:7
+                          postfix_expr 18:7
+                            primary 18:7
+                              NAME 18:7 "recv"
+                            call 18:11
+                              TERMINAL 18:11 "("
+                              expr 18:12
+                                pipe_expr 18:12
+                                  infix_expr 18:12
+                                    unary_expr 18:12
+                                      postfix_expr 18:12
+                                        primary 18:12
+                                          NAME 18:12 "ch"
+                              TERMINAL 18:14 ")"
+                  TERMINAL 18:15 ","
+                  expr 18:17
+                    pipe_expr 18:17
+                      infix_expr 18:17
+                        unary_expr 18:17
+                          postfix_expr 18:17
+                            primary 18:17
+                              STRING 18:17 "\"\\n\""
+                  TERMINAL 18:21 ")"
+  TERMINAL 18:22 ";"
   statement 19:1
     expr_stmt 19:1
       expr 19:1
@@ -282,25 +290,33 @@ program 3:1
             unary_expr 19:1
               postfix_expr 19:1
                 primary 19:1
-                  NAME 19:1 "println"
-                call 19:8
-                  TERMINAL 19:8 "("
-                  expr 19:9
-                    pipe_expr 19:9
-                      infix_expr 19:9
-                        unary_expr 19:9
-                          postfix_expr 19:9
-                            primary 19:9
-                              NAME 19:9 "recv"
-                            call 19:13
-                              TERMINAL 19:13 "("
-                              expr 19:14
-                                pipe_expr 19:14
-                                  infix_expr 19:14
-                                    unary_expr 19:14
-                                      postfix_expr 19:14
-                                        primary 19:14
-                                          NAME 19:14 "ch"
-                              TERMINAL 19:16 ")"
-                  TERMINAL 19:17 ")"
-  TERMINAL 19:18 ";"
+                  NAME 19:1 "print"
+                call 19:6
+                  TERMINAL 19:6 "("
+                  expr 19:7
+                    pipe_expr 19:7
+                      infix_expr 19:7
+                        unary_expr 19:7
+                          postfix_expr 19:7
+                            primary 19:7
+                              NAME 19:7 "recv"
+                            call 19:11
+                              TERMINAL 19:11 "("
+                              expr 19:12
+                                pipe_expr 19:12
+                                  infix_expr 19:12
+                                    unary_expr 19:12
+                                      postfix_expr 19:12
+                                        primary 19:12
+                                          NAME 19:12 "ch"
+                              TERMINAL 19:14 ")"
+                  TERMINAL 19:15 ","
+                  expr 19:17
+                    pipe_expr 19:17
+                      infix_expr 19:17
+                        unary_expr 19:17
+                          postfix_expr 19:17
+                            primary 19:17
+                              STRING 19:17 "\"\\n\""
+                  TERMINAL 19:21 ")"
+  TERMINAL 19:22 ";"

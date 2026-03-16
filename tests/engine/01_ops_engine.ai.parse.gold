@@ -97,18 +97,26 @@ program 4:1
             unary_expr 7:1
               postfix_expr 7:1
                 primary 7:1
-                  NAME 7:1 "println"
-                call 7:8
-                  TERMINAL 7:8 "("
-                  expr 7:9
-                    pipe_expr 7:9
-                      infix_expr 7:9
-                        unary_expr 7:9
-                          postfix_expr 7:9
-                            primary 7:9
-                              NAME 7:9 "x"
-                  TERMINAL 7:10 ")"
-  TERMINAL 7:11 ";"
+                  NAME 7:1 "print"
+                call 7:6
+                  TERMINAL 7:6 "("
+                  expr 7:7
+                    pipe_expr 7:7
+                      infix_expr 7:7
+                        unary_expr 7:7
+                          postfix_expr 7:7
+                            primary 7:7
+                              NAME 7:7 "x"
+                  TERMINAL 7:8 ","
+                  expr 7:10
+                    pipe_expr 7:10
+                      infix_expr 7:10
+                        unary_expr 7:10
+                          postfix_expr 7:10
+                            primary 7:10
+                              STRING 7:10 "\"\\n\""
+                  TERMINAL 7:14 ")"
+  TERMINAL 7:15 ";"
   statement 8:1
     expr_stmt 8:1
       expr 8:1
@@ -117,18 +125,26 @@ program 4:1
             unary_expr 8:1
               postfix_expr 8:1
                 primary 8:1
-                  NAME 8:1 "println"
-                call 8:8
-                  TERMINAL 8:8 "("
-                  expr 8:9
-                    pipe_expr 8:9
-                      infix_expr 8:9
-                        unary_expr 8:9
-                          postfix_expr 8:9
-                            primary 8:9
-                              NAME 8:9 "y"
-                  TERMINAL 8:10 ")"
-  TERMINAL 8:11 ";"
+                  NAME 8:1 "print"
+                call 8:6
+                  TERMINAL 8:6 "("
+                  expr 8:7
+                    pipe_expr 8:7
+                      infix_expr 8:7
+                        unary_expr 8:7
+                          postfix_expr 8:7
+                            primary 8:7
+                              NAME 8:7 "y"
+                  TERMINAL 8:8 ","
+                  expr 8:10
+                    pipe_expr 8:10
+                      infix_expr 8:10
+                        unary_expr 8:10
+                          postfix_expr 8:10
+                            primary 8:10
+                              STRING 8:10 "\"\\n\""
+                  TERMINAL 8:14 ")"
+  TERMINAL 8:15 ";"
   statement 10:1
     expr_stmt 10:1
       expr 10:1
@@ -137,36 +153,44 @@ program 4:1
             unary_expr 10:1
               postfix_expr 10:1
                 primary 10:1
-                  NAME 10:1 "println"
-                call 10:8
-                  TERMINAL 10:8 "("
-                  expr 10:9
-                    pipe_expr 10:9
-                      infix_expr 10:9
-                        unary_expr 10:9
-                          postfix_expr 10:9
-                            primary 10:9
-                              NAME 10:9 "equal"
-                            call 10:14
-                              TERMINAL 10:14 "("
-                              expr 10:15
-                                pipe_expr 10:15
-                                  infix_expr 10:15
-                                    unary_expr 10:15
-                                      postfix_expr 10:15
-                                        primary 10:15
-                                          NAME 10:15 "x"
-                              TERMINAL 10:16 ","
-                              expr 10:18
-                                pipe_expr 10:18
-                                  infix_expr 10:18
-                                    unary_expr 10:18
-                                      postfix_expr 10:18
-                                        primary 10:18
-                                          NAME 10:18 "y"
-                              TERMINAL 10:19 ")"
-                  TERMINAL 10:20 ")"
-  TERMINAL 10:21 ";"
+                  NAME 10:1 "print"
+                call 10:6
+                  TERMINAL 10:6 "("
+                  expr 10:7
+                    pipe_expr 10:7
+                      infix_expr 10:7
+                        unary_expr 10:7
+                          postfix_expr 10:7
+                            primary 10:7
+                              NAME 10:7 "equal"
+                            call 10:12
+                              TERMINAL 10:12 "("
+                              expr 10:13
+                                pipe_expr 10:13
+                                  infix_expr 10:13
+                                    unary_expr 10:13
+                                      postfix_expr 10:13
+                                        primary 10:13
+                                          NAME 10:13 "x"
+                              TERMINAL 10:14 ","
+                              expr 10:16
+                                pipe_expr 10:16
+                                  infix_expr 10:16
+                                    unary_expr 10:16
+                                      postfix_expr 10:16
+                                        primary 10:16
+                                          NAME 10:16 "y"
+                              TERMINAL 10:17 ")"
+                  TERMINAL 10:18 ","
+                  expr 10:20
+                    pipe_expr 10:20
+                      infix_expr 10:20
+                        unary_expr 10:20
+                          postfix_expr 10:20
+                            primary 10:20
+                              STRING 10:20 "\"\\n\""
+                  TERMINAL 10:24 ")"
+  TERMINAL 10:25 ";"
   statement 11:1
     expr_stmt 11:1
       expr 11:1
@@ -175,37 +199,45 @@ program 4:1
             unary_expr 11:1
               postfix_expr 11:1
                 primary 11:1
-                  NAME 11:1 "println"
-                call 11:8
-                  TERMINAL 11:8 "("
-                  expr 11:9
-                    pipe_expr 11:9
-                      infix_expr 11:9
-                        unary_expr 11:9
-                          TERMINAL 11:9 "not"
-                          postfix_expr 11:13
-                            primary 11:13
-                              NAME 11:13 "equal"
-                            call 11:18
-                              TERMINAL 11:18 "("
-                              expr 11:19
-                                pipe_expr 11:19
-                                  infix_expr 11:19
-                                    unary_expr 11:19
-                                      postfix_expr 11:19
-                                        primary 11:19
-                                          NAME 11:19 "x"
-                              TERMINAL 11:20 ","
-                              expr 11:22
-                                pipe_expr 11:22
-                                  infix_expr 11:22
-                                    unary_expr 11:22
-                                      postfix_expr 11:22
-                                        primary 11:22
-                                          NAME 11:22 "y"
-                              TERMINAL 11:23 ")"
-                  TERMINAL 11:24 ")"
-  TERMINAL 11:25 ";"
+                  NAME 11:1 "print"
+                call 11:6
+                  TERMINAL 11:6 "("
+                  expr 11:7
+                    pipe_expr 11:7
+                      infix_expr 11:7
+                        unary_expr 11:7
+                          TERMINAL 11:7 "not"
+                          postfix_expr 11:11
+                            primary 11:11
+                              NAME 11:11 "equal"
+                            call 11:16
+                              TERMINAL 11:16 "("
+                              expr 11:17
+                                pipe_expr 11:17
+                                  infix_expr 11:17
+                                    unary_expr 11:17
+                                      postfix_expr 11:17
+                                        primary 11:17
+                                          NAME 11:17 "x"
+                              TERMINAL 11:18 ","
+                              expr 11:20
+                                pipe_expr 11:20
+                                  infix_expr 11:20
+                                    unary_expr 11:20
+                                      postfix_expr 11:20
+                                        primary 11:20
+                                          NAME 11:20 "y"
+                              TERMINAL 11:21 ")"
+                  TERMINAL 11:22 ","
+                  expr 11:24
+                    pipe_expr 11:24
+                      infix_expr 11:24
+                        unary_expr 11:24
+                          postfix_expr 11:24
+                            primary 11:24
+                              STRING 11:24 "\"\\n\""
+                  TERMINAL 11:28 ")"
+  TERMINAL 11:29 ";"
   statement 12:1
     expr_stmt 12:1
       expr 12:1
@@ -214,24 +246,32 @@ program 4:1
             unary_expr 12:1
               postfix_expr 12:1
                 primary 12:1
-                  NAME 12:1 "println"
-                call 12:8
-                  TERMINAL 12:8 "("
-                  expr 12:9
-                    pipe_expr 12:9
-                      infix_expr 12:9
-                        unary_expr 12:9
-                          postfix_expr 12:9
-                            primary 12:9
-                              NAME 12:9 "x"
-                        BINOP 12:11
-                          TERMINAL 12:11 "<"
-                        unary_expr 12:13
-                          postfix_expr 12:13
-                            primary 12:13
-                              NAME 12:13 "y"
-                  TERMINAL 12:14 ")"
-  TERMINAL 12:15 ";"
+                  NAME 12:1 "print"
+                call 12:6
+                  TERMINAL 12:6 "("
+                  expr 12:7
+                    pipe_expr 12:7
+                      infix_expr 12:7
+                        unary_expr 12:7
+                          postfix_expr 12:7
+                            primary 12:7
+                              NAME 12:7 "x"
+                        BINOP 12:9
+                          TERMINAL 12:9 "<"
+                        unary_expr 12:11
+                          postfix_expr 12:11
+                            primary 12:11
+                              NAME 12:11 "y"
+                  TERMINAL 12:12 ","
+                  expr 12:14
+                    pipe_expr 12:14
+                      infix_expr 12:14
+                        unary_expr 12:14
+                          postfix_expr 12:14
+                            primary 12:14
+                              STRING 12:14 "\"\\n\""
+                  TERMINAL 12:18 ")"
+  TERMINAL 12:19 ";"
   statement 13:1
     expr_stmt 13:1
       expr 13:1
@@ -240,24 +280,32 @@ program 4:1
             unary_expr 13:1
               postfix_expr 13:1
                 primary 13:1
-                  NAME 13:1 "println"
-                call 13:8
-                  TERMINAL 13:8 "("
-                  expr 13:9
-                    pipe_expr 13:9
-                      infix_expr 13:9
-                        unary_expr 13:9
-                          postfix_expr 13:9
-                            primary 13:9
-                              NAME 13:9 "x"
-                        BINOP 13:11
-                          TERMINAL 13:11 "<="
-                        unary_expr 13:14
-                          postfix_expr 13:14
-                            primary 13:14
-                              NAME 13:14 "y"
-                  TERMINAL 13:15 ")"
-  TERMINAL 13:16 ";"
+                  NAME 13:1 "print"
+                call 13:6
+                  TERMINAL 13:6 "("
+                  expr 13:7
+                    pipe_expr 13:7
+                      infix_expr 13:7
+                        unary_expr 13:7
+                          postfix_expr 13:7
+                            primary 13:7
+                              NAME 13:7 "x"
+                        BINOP 13:9
+                          TERMINAL 13:9 "<="
+                        unary_expr 13:12
+                          postfix_expr 13:12
+                            primary 13:12
+                              NAME 13:12 "y"
+                  TERMINAL 13:13 ","
+                  expr 13:15
+                    pipe_expr 13:15
+                      infix_expr 13:15
+                        unary_expr 13:15
+                          postfix_expr 13:15
+                            primary 13:15
+                              STRING 13:15 "\"\\n\""
+                  TERMINAL 13:19 ")"
+  TERMINAL 13:20 ";"
   statement 14:1
     expr_stmt 14:1
       expr 14:1
@@ -266,24 +314,32 @@ program 4:1
             unary_expr 14:1
               postfix_expr 14:1
                 primary 14:1
-                  NAME 14:1 "println"
-                call 14:8
-                  TERMINAL 14:8 "("
-                  expr 14:9
-                    pipe_expr 14:9
-                      infix_expr 14:9
-                        unary_expr 14:9
-                          postfix_expr 14:9
-                            primary 14:9
-                              NAME 14:9 "x"
-                        BINOP 14:11
-                          TERMINAL 14:11 ">"
-                        unary_expr 14:13
-                          postfix_expr 14:13
-                            primary 14:13
-                              NAME 14:13 "y"
-                  TERMINAL 14:14 ")"
-  TERMINAL 14:15 ";"
+                  NAME 14:1 "print"
+                call 14:6
+                  TERMINAL 14:6 "("
+                  expr 14:7
+                    pipe_expr 14:7
+                      infix_expr 14:7
+                        unary_expr 14:7
+                          postfix_expr 14:7
+                            primary 14:7
+                              NAME 14:7 "x"
+                        BINOP 14:9
+                          TERMINAL 14:9 ">"
+                        unary_expr 14:11
+                          postfix_expr 14:11
+                            primary 14:11
+                              NAME 14:11 "y"
+                  TERMINAL 14:12 ","
+                  expr 14:14
+                    pipe_expr 14:14
+                      infix_expr 14:14
+                        unary_expr 14:14
+                          postfix_expr 14:14
+                            primary 14:14
+                              STRING 14:14 "\"\\n\""
+                  TERMINAL 14:18 ")"
+  TERMINAL 14:19 ";"
   statement 15:1
     expr_stmt 15:1
       expr 15:1
@@ -292,21 +348,29 @@ program 4:1
             unary_expr 15:1
               postfix_expr 15:1
                 primary 15:1
-                  NAME 15:1 "println"
-                call 15:8
-                  TERMINAL 15:8 "("
-                  expr 15:9
-                    pipe_expr 15:9
-                      infix_expr 15:9
-                        unary_expr 15:9
-                          postfix_expr 15:9
-                            primary 15:9
-                              NAME 15:9 "x"
-                        BINOP 15:11
-                          TERMINAL 15:11 ">="
-                        unary_expr 15:14
-                          postfix_expr 15:14
-                            primary 15:14
-                              NAME 15:14 "y"
-                  TERMINAL 15:15 ")"
-  TERMINAL 15:16 ";"
+                  NAME 15:1 "print"
+                call 15:6
+                  TERMINAL 15:6 "("
+                  expr 15:7
+                    pipe_expr 15:7
+                      infix_expr 15:7
+                        unary_expr 15:7
+                          postfix_expr 15:7
+                            primary 15:7
+                              NAME 15:7 "x"
+                        BINOP 15:9
+                          TERMINAL 15:9 ">="
+                        unary_expr 15:12
+                          postfix_expr 15:12
+                            primary 15:12
+                              NAME 15:12 "y"
+                  TERMINAL 15:13 ","
+                  expr 15:15
+                    pipe_expr 15:15
+                      infix_expr 15:15
+                        unary_expr 15:15
+                          postfix_expr 15:15
+                            primary 15:15
+                              STRING 15:15 "\"\\n\""
+                  TERMINAL 15:19 ")"
+  TERMINAL 15:20 ";"
