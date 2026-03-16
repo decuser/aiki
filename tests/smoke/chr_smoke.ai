@@ -1,0 +1,7 @@
+# chr smoke test
+println(chr(65))
+println(chr(97))
+println(chr(48))
+println(ord(chr(8364)))
+println(chr(ord('Z')))
+println("CHR_SMOKE_DONE")

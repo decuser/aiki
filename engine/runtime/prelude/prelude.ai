@@ -90,6 +90,10 @@ let ord = (r) {
 	_ord(r)
 }
 
+let chr = (n) {
+	_chr(n)
+}
+
 # Math wrappers
 let floor = (n) {
 	_floor(n)
@@ -522,4 +526,11 @@ let help = (...args) {
 
 let doc = (name) {
 	_doc(name)
+}
+
+# List concatenation
+let concat = (a, b) {
+	reduce(b, a, (acc, x) {
+		append(acc, x)
+	})
 }

@@ -1,0 +1,7 @@
+# concat smoke test
+println(concat([1, 2], [3, 4]))
+println(concat([], [1, 2]))
+println(concat([1], []))
+println(concat([], []))
+println(length(concat([1, 2, 3], [4, 5])))
+println("CONCAT_SMOKE_DONE")

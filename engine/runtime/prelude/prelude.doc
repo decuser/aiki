@@ -276,3 +276,23 @@ n must be an integer >= 1.
 Example
 
 stack_limit(10000)
+chr
+Returns the rune for an integer code point.
+Inverse of ord.
+
+chr(n)
+
+chr(65)                   # 'A'
+chr(97)                   # 'a'
+chr(8364)                 # '€'
+ord(chr(65))              # 65
+===
+concat
+Returns a new list with elements of b appended to a.
+
+concat(a, b)
+
+concat([1, 2], [3, 4])    # [1, 2, 3, 4]
+concat([], [1, 2])        # [1, 2]
+concat([1], [])           # [1]
+===

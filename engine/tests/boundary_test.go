@@ -2,6 +2,7 @@ package tests
 
 import (
 	"fmt"
+	"math/big"
 	"testing"
 
 	"aiki/engine/runtime/hal/substrate"
@@ -122,6 +123,77 @@ func TestBoundaryUserScopeGetsNothingFromRuntime(t *testing.T) {
 	}
 	if rt.HasBuiltin("print", value.ScopeUser) {
 		t.Error("user scope should not see print from runtime")
+	}
+}
+
+// TestBoundaryUserCannotSeeHALChr verifies user scope cannot see _chr.
+func TestBoundaryUserCannotSeeHALChr(t *testing.T) {
+	code := `_chr(65)`
+
+	result, err := evalWithScope(code, value.ScopeUser, false)
+	if err != nil {
+		t.Fatalf("eval error: %v", err)
+	}
+
+	if !value.IsFault(result) {
+		t.Errorf("expected fault for _chr in user scope, got: %s", result.Inspect())
+	}
+}
+
+// TestBoundaryUserCanSeeChrAfterPrelude verifies user scope can see chr after prelude.
+func TestBoundaryUserCanSeeChrAfterPrelude(t *testing.T) {
+	code := `chr(65)`
+
+	result, err := evalWithScope(code, value.ScopeUser, true)
+	if err != nil {
+		t.Fatalf("eval error: %v", err)
+	}
+
+	if value.IsFault(result) {
+		t.Errorf("expected chr to work in user scope after prelude, got fault: %s", result.Inspect())
+	}
+	r, ok := result.(*value.Rune)
+	if !ok || r.Val != 'A' {
+		t.Errorf("expected 'A', got: %s", result.Inspect())
+	}
+}
+
+// TestBoundaryUserCanSeeConcatAfterPrelude verifies user scope can see concat after prelude.
+func TestBoundaryUserCanSeeConcatAfterPrelude(t *testing.T) {
+	code := `concat([1, 2], [3, 4])`
+
+	result, err := evalWithScope(code, value.ScopeUser, true)
+	if err != nil {
+		t.Fatalf("eval error: %v", err)
+	}
+
+	if value.IsFault(result) {
+		t.Errorf("expected concat to work in user scope after prelude, got fault: %s", result.Inspect())
+	}
+	list, ok := result.(*value.List)
+	if !ok || len(list.Elements) != 4 {
+		t.Errorf("expected [1, 2, 3, 4], got: %s", result.Inspect())
+	}
+}
+
+// TestBoundaryChrOrdRoundTrip verifies chr and ord are inverses.
+func TestBoundaryChrOrdRoundTrip(t *testing.T) {
+	code := `ord(chr(8364))`
+
+	result, err := evalWithScope(code, value.ScopeUser, true)
+	if err != nil {
+		t.Fatalf("eval error: %v", err)
+	}
+
+	if value.IsFault(result) {
+		t.Errorf("expected round trip to work, got fault: %s", result.Inspect())
+	}
+	num, ok := result.(*value.Number)
+	if !ok {
+		t.Fatalf("expected number, got: %s", result.Inspect())
+	}
+	if num.Val.Cmp(big.NewRat(8364, 1)) != 0 {
+		t.Errorf("expected 8364, got: %s", result.Inspect())
 	}
 }
 

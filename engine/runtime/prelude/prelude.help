@@ -80,6 +80,10 @@
 @template "reverse(list)"
 @help "Returns list in reverse order."
 
+
+@func concat
+@template "concat(a, b)"
+@help "Returns new list with elements of b appended to a."
 # Type operations
 @func type
 @template "type(val)"
@@ -104,6 +108,10 @@
 @func ord
 @template "ord(rune)"
 @help "Returns integer code point of rune."
+
+@func chr
+@template "chr(n)"
+@help "Returns rune for integer code point."
 
 # Conversion
 @func to_str

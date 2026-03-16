@@ -15,6 +15,5 @@ while tick < 5028 {
 	dot(c, x, y, :black)
 	tick = tick + 1
 }
+
 sleep(1000)
-
-

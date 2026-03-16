@@ -64,3 +64,19 @@ func halToNumber(args []value.Value, ctx *hal.EvalContext) value.Value {
 	}
 	return n
 }
+
+// halChr converts an integer code point to a rune.
+func halChr(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 1 {
+		return value.NewFault("chr: want 1 argument, got %d", len(args))
+	}
+	n, ok := args[0].(*value.Number)
+	if !ok || !n.Val.IsInt() {
+		return value.NewFault("chr: expected integer")
+	}
+	code := n.Val.Num().Int64()
+	if code < 0 || code > 0x10FFFF {
+		return value.NewShapedError("range", "chr: code point out of range: %d", code)
+	}
+	return &value.Rune{Val: rune(code)}
+}
