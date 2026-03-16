@@ -5,97 +5,97 @@
 let str = import("string")
 let list = import("list")
 
-list.println("=== String Functions Showcase ===")
-list.println("")
+println("=== String Functions Showcase ===")
+println("")
 
 # -----------------------------------------------------------------------------
 # Foundation: substring, join, split
 # -----------------------------------------------------------------------------
-list.println("--- Foundation ---")
+println("--- Foundation ---")
 
 # substring extracts a substring
 let greeting = "Hello, World!"
-list.println("Original: " + greeting)
-list.println("substring(0, 5): " + str.substring(greeting, 0, 5))
-list.println("substring(7, 12): " + str.substring(greeting, 7, 12))
+println("Original: " + greeting)
+println("substring(0, 5): " + str.substring(greeting, 0, 5))
+println("substring(7, 12): " + str.substring(greeting, 7, 12))
 
 # join combines a list of strings
 let parts = ["apple", "banana", "cherry"]
-list.println("join with ', ': " + str.join(parts, ", "))
-list.println("join with '': " + str.join(parts, ""))
+println("join with ', ': " + str.join(parts, ", "))
+println("join with '': " + str.join(parts, ""))
 
 # split breaks a string apart
 let csv = "red,green,blue"
-list.println("split by ',': " + inspect(str.split(csv, ",")))
+println("split by ',': " + inspect(str.split(csv, ",")))
 
 # Round trip: split then join
-list.println("split then join: " + str.join(str.split("a-b-c", "-"), "-"))
-list.println("")
+println("split then join: " + str.join(str.split("a-b-c", "-"), "-"))
+println("")
 
 # -----------------------------------------------------------------------------
 # Search: index_of, contains, starts_with, ends_with, occurrences
 # -----------------------------------------------------------------------------
-list.println("--- Search ---")
+println("--- Search ---")
 
 let text = "The quick brown fox jumps over the lazy dog"
-list.println("Text: " + text)
-list.println("index_of 'fox': " + to_str(str.index_of(text, "fox")))
-list.println("index_of 'cat': " + inspect(str.index_of(text, "cat")))
-list.println("contains 'quick': " + to_str(str.contains(text, "quick")))
-list.println("starts_with 'The': " + to_str(str.starts_with(text, "The")))
-list.println("ends_with 'dog': " + to_str(str.ends_with(text, "dog")))
-list.println("occurrences 'the' (case sensitive): " + to_str(str.occurrences(text, "the")))
-list.println("")
+println("Text: " + text)
+println("index_of 'fox': " + to_str(str.index_of(text, "fox")))
+println("index_of 'cat': " + inspect(str.index_of(text, "cat")))
+println("contains 'quick': " + to_str(str.contains(text, "quick")))
+println("starts_with 'The': " + to_str(str.starts_with(text, "The")))
+println("ends_with 'dog': " + to_str(str.ends_with(text, "dog")))
+println("occurrences 'the' (case sensitive): " + to_str(str.occurrences(text, "the")))
+println("")
 
 # -----------------------------------------------------------------------------
 # Transform: replace, repeat, reverse_string, insert, remove
 # -----------------------------------------------------------------------------
-list.println("--- Transform ---")
+println("--- Transform ---")
 
-list.println("replace 'fox' with 'cat': " + str.replace(text, "fox", "cat"))
-list.println("replace_first 'the' with 'a': " + str.replace_first(text, "the", "a"))
-list.println("repeat 'ab' 4 times: " + str.repeat("ab", 4))
-list.println("reverse 'hello': " + str.reverse_string("hello"))
-list.println("insert 'XX' at position 2: " + str.insert("hello", 2, "XX"))
-list.println("remove positions 1-3: " + str.remove("hello", 1, 3))
-list.println("")
+println("replace 'fox' with 'cat': " + str.replace(text, "fox", "cat"))
+println("replace_first 'the' with 'a': " + str.replace_first(text, "the", "a"))
+println("repeat 'ab' 4 times: " + str.repeat("ab", 4))
+println("reverse 'hello': " + str.reverse_string("hello"))
+println("insert 'XX' at position 2: " + str.insert("hello", 2, "XX"))
+println("remove positions 1-3: " + str.remove("hello", 1, 3))
+println("")
 
 # -----------------------------------------------------------------------------
 # Trim and Pad
 # -----------------------------------------------------------------------------
-list.println("--- Trim and Pad ---")
+println("--- Trim and Pad ---")
 
 let messy = "   spaced out   "
-list.println("Original: [" + messy + "]")
-list.println("trim: [" + str.trim(messy) + "]")
-list.println("trim_start: [" + str.trim_start(messy) + "]")
-list.println("trim_end: [" + str.trim_end(messy) + "]")
+println("Original: [" + messy + "]")
+println("trim: [" + str.trim(messy) + "]")
+println("trim_start: [" + str.trim_start(messy) + "]")
+println("trim_end: [" + str.trim_end(messy) + "]")
 
-list.println("pad_start '42' to 6 with '0': " + str.pad_start("42", 6, '0'))
-list.println("pad_end '42' to 6 with '0': " + str.pad_end("42", 6, '0'))
-list.println("center 'hi' to 10 with '-': " + str.center("hi", 10, '-'))
-list.println("truncate 'hello world' to 5: " + str.truncate("hello world", 5))
-list.println("")
+println("pad_start '42' to 6 with '0': " + str.pad_start("42", 6, '0'))
+println("pad_end '42' to 6 with '0': " + str.pad_end("42", 6, '0'))
+println("center 'hi' to 10 with '-': " + str.center("hi", 10, '-'))
+println("truncate 'hello world' to 5: " + str.truncate("hello world", 5))
+println("")
 
 # -----------------------------------------------------------------------------
 # Conversion: chars, lines, words
 # -----------------------------------------------------------------------------
-list.println("--- Conversion ---")
+println("--- Conversion ---")
 
-list.println("chars 'hello': " + inspect(str.chars("hello")))
+println("chars 'hello': " + inspect(str.chars("hello")))
 
 let multiline = "line one\nline two\nline three"
-list.println("lines count: " + to_str(length(str.lines(multiline))))
-list.println("first line: " + first(str.lines(multiline)))
+println("lines count: " + to_str(length(str.lines(multiline))))
+println("first line: " + first(str.lines(multiline)))
 
 let sentence = "  hello   world  "
-list.println("words: " + inspect(str.words(sentence)))
-list.println("")
+println("words: " + inspect(str.words(sentence)))
+println("")
 
 # -----------------------------------------------------------------------------
 # Character Classes
 # -----------------------------------------------------------------------------
-list.println("--- Character Classes ---")
+println("--- Character Classes ---")
 
 let test_chars = ['A', 'a', '5', ' ', '!']
 list.each(test_chars, (c) {
@@ -105,96 +105,96 @@ list.each(test_chars, (c) {
 	print("upper=" + to_str(str.is_upper(c)) + " ")
 	print("lower=" + to_str(str.is_lower(c)) + " ")
 	print("alnum=" + to_str(str.is_alnum(c)) + " ")
-	list.println("space=" + to_str(str.is_whitespace(c)))
+	println("space=" + to_str(str.is_whitespace(c)))
 })
 
 
-list.println("")
+println("")
 
 # -----------------------------------------------------------------------------
 # String Predicates
 # -----------------------------------------------------------------------------
-list.println("--- String Predicates ---")
+println("--- String Predicates ---")
 
-list.println("is_numeric('123'): " + to_str(str.is_numeric("123")))
-list.println("is_numeric('12.3'): " + to_str(str.is_numeric("12.3")))
-list.println("is_alphabetic('abc'): " + to_str(str.is_alphabetic("abc")))
-list.println("is_alphabetic('abc1'): " + to_str(str.is_alphabetic("abc1")))
-list.println("")
+println("is_numeric('123'): " + to_str(str.is_numeric("123")))
+println("is_numeric('12.3'): " + to_str(str.is_numeric("12.3")))
+println("is_alphabetic('abc'): " + to_str(str.is_alphabetic("abc")))
+println("is_alphabetic('abc1'): " + to_str(str.is_alphabetic("abc1")))
+println("")
 
 # -----------------------------------------------------------------------------
 # Comparison
 # -----------------------------------------------------------------------------
-list.println("--- Comparison ---")
+println("--- Comparison ---")
 
-list.println("compare 'apple' 'banana': " + to_str(str.compare("apple", "banana")))
-list.println("compare 'banana' 'apple': " + to_str(str.compare("banana", "apple")))
-list.println("compare 'apple' 'apple': " + to_str(str.compare("apple", "apple")))
-list.println("")
+println("compare 'apple' 'banana': " + to_str(str.compare("apple", "banana")))
+println("compare 'banana' 'apple': " + to_str(str.compare("banana", "apple")))
+println("compare 'apple' 'apple': " + to_str(str.compare("apple", "apple")))
+println("")
 
 # -----------------------------------------------------------------------------
 # Case Conversion
 # -----------------------------------------------------------------------------
-list.println("--- Case Conversion ---")
+println("--- Case Conversion ---")
 
-list.println("upper 'Hello World': " + str.upper("Hello World"))
-list.println("lower 'Hello World': " + str.lower("Hello World"))
-list.println("capitalize 'hello': " + str.capitalize("hello"))
-list.println("capitalize 'HELLO': " + str.capitalize("HELLO"))
-list.println("title 'hello world': " + str.title("hello world"))
-list.println("equal_ignore_case 'Hello' 'HELLO': " + to_str(str.equal_ignore_case("Hello", "HELLO")))
+println("upper 'Hello World': " + str.upper("Hello World"))
+println("lower 'Hello World': " + str.lower("Hello World"))
+println("capitalize 'hello': " + str.capitalize("hello"))
+println("capitalize 'HELLO': " + str.capitalize("HELLO"))
+println("title 'hello world': " + str.title("hello world"))
+println("equal_ignore_case 'Hello' 'HELLO': " + to_str(str.equal_ignore_case("Hello", "HELLO")))
 
 # Unicode case conversion
-list.println("")
-list.println("Unicode case conversion:")
-list.println("upper 'cafe': " + str.upper("cafe"))
-list.println("lower 'NAIVE': " + str.lower("NAIVE"))
-list.println("")
+println("")
+println("Unicode case conversion:")
+println("upper 'cafe': " + str.upper("cafe"))
+println("lower 'NAIVE': " + str.lower("NAIVE"))
+println("")
 
 # -----------------------------------------------------------------------------
 # Practical Example: Simple CSV Parser
 # -----------------------------------------------------------------------------
-list.println("--- Practical: CSV Parser ---")
+println("--- Practical: CSV Parser ---")
 
 let csv_data = "name,age,city\nAlice,30,Boston\nBob,25,Chicago\nCarol,35,Denver"
 
 let rows = str.lines(csv_data)
 let headers = str.split(first(rows), ",")
-list.println("Headers: " + inspect(headers))
+println("Headers: " + inspect(headers))
 
 list.each(rest(rows), (row) {
 	let values = str.split(row, ",")
 	let name = first(values)
 	let age = first(rest(values))
 	let city = first(rest(rest(values)))
-	list.println(name + " is " + age + " years old, lives in " + city)
+	println(name + " is " + age + " years old, lives in " + city)
 })
 
 
-list.println("")
+println("")
 
 # -----------------------------------------------------------------------------
 # Practical Example: Slug Generator
 # -----------------------------------------------------------------------------
-list.println("--- Practical: Slug Generator ---")
+println("--- Practical: Slug Generator ---")
 
 let make_slug = (s) {
 	let cleaned = str.lower(str.trim(s))
 	str.replace(cleaned, " ", "-")
 }
 
-list.println("'Hello World' -> " + make_slug("Hello World"))
-list.println("'  My Blog Post  ' -> " + make_slug("  My Blog Post  "))
-list.println("")
+println("'Hello World' -> " + make_slug("Hello World"))
+println("'  My Blog Post  ' -> " + make_slug("  My Blog Post  "))
+println("")
 
 # -----------------------------------------------------------------------------
 # Practical Example: Simple Template
 # -----------------------------------------------------------------------------
-list.println("--- Practical: Simple Template ---")
+println("--- Practical: Simple Template ---")
 
 let template = "Hello, {name}! Welcome to {place}."
 let filled = str.replace(str.replace(template, "{name}", "Alice"), "{place}", "Aiki")
-list.println(filled)
-list.println("")
+println(filled)
+println("")
 
-list.println("=== Showcase Complete ===")
+println("=== Showcase Complete ===")

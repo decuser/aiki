@@ -35,6 +35,10 @@
 @template "print(val, ...)"
 @help "Prints values to stdout."
 
+@func println
+@template "println(val, ...)"
+@help "Prints values to stdout followed by newline."
+
 @func read
 @template "read()"
 @help "Reads a line from stdin."

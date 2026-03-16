@@ -1,54 +1,53 @@
 # Test ord primitive
-let list = import("list")
-let hash = import("hash")
+let hash = import("hash/ffi")
 
-list.println("Testing ord...")
-list.println(ord('a'))  # 97
-list.println(ord('A'))  # 65
-list.println(ord('0'))  # 48
-list.println(ord('€'))  # 8364
-list.println(ord('\n'))  # 10
+println("Testing ord...")
+println(ord('a'))  # 97
+println(ord('A'))  # 65
+println(ord('0'))  # 48
+println(ord('€'))  # 8364
+println(ord('\n'))  # 10
 
 # Test pure Aiki hash_code via hash map
-list.println("\nTesting hash map with pure hash...")
+println("\nTesting hash map with pure hash...")
 
 let h = hash.new()
 let h = hash.put(h, "name", "Mochi")
 let h = hash.put(h, "age", 3)
 let h = hash.put(h, :color, "orange")
 
-list.println(hash.get(h, "name"))  # Mochi
-list.println(hash.get(h, "age"))  # 3
-list.println(hash.get(h, :color))  # orange
-list.println(hash.has(h, "name"))  # true
-list.println(hash.has(h, "missing"))  # false
+println(hash.get(h, "name"))  # Mochi
+println(hash.get(h, "age"))  # 3
+println(hash.get(h, :color))  # orange
+println(hash.has(h, "name"))  # true
+println(hash.has(h, "missing"))  # false
 
 # Test hash with numbers as keys
 let h2 = hash.new()
 let h2 = hash.put(h2, 1, "one")
 let h2 = hash.put(h2, 2, "two")
-list.println(hash.get(h2, 1))  # one
-list.println(hash.get(h2, 2))  # two
+println(hash.get(h2, 1))  # one
+println(hash.get(h2, 2))  # two
 
 # Test hash update
 let h3 = hash.new()
 let h3 = hash.put(h3, "x", 1)
 let h3 = hash.put(h3, "x", 2)
-list.println(hash.get(h3, "x"))  # 2 (updated)
+println(hash.get(h3, "x"))  # 2 (updated)
 
 # Test hash_del
 let h4 = hash.put(hash.new(), "a", 1)
 let h4 = hash.put(h4, "b", 2)
-list.println(hash.has(h4, "a"))  # true
+println(hash.has(h4, "a"))  # true
 let h4 = hash.del(h4, "a")
-list.println(hash.has(h4, "a"))  # false
-list.println(hash.has(h4, "b"))  # true
+println(hash.has(h4, "a"))  # false
+println(hash.has(h4, "b"))  # true
 
 # Test hash_keys and hash_values
 let h5 = hash.new()
 let h5 = hash.put(h5, "x", 10)
 let h5 = hash.put(h5, "y", 20)
-list.println(length(hash.keys(h5)))  # 2
-list.println(length(hash.values(h5)))  # 2
+println(length(hash.keys(h5)))  # 2
+println(length(hash.values(h5)))  # 2
 
-list.println("\nAll tests passed!")
+println("\nAll tests passed!")

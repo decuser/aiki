@@ -1,0 +1,190 @@
+package "hash/native"
+
+# hash/native - pure Aiki hash map implementation
+# Uses pure modulo implementation, no HAL dependencies.
+let _HASH_SIZE = 64
+
+# Pure modulo for positive integers
+let _modulo = (a, b) {
+	let result = a
+	while result >= b {
+		result = result - b
+	}
+	while result < 0 {
+		result = result + b
+	}
+	return result
+}
+
+let _hash_string = (s) {
+	let h = 0
+	while length(s) > 0 {
+		let r = first(s)
+		h = h * 31 + ord(r)
+		s = rest(s)
+	}
+	return h
+}
+
+let _hash_code_impl = (val) {
+	match type(val) {
+		:number {
+			return _hash_string(to_str(val))
+		}
+		:boolean {
+			if val {
+				return 1
+			}
+			return 0
+		}
+		:rune {
+			return ord(val)
+		}
+		:string {
+			return _hash_string(val)
+		}
+		:symbol {
+			return _hash_string(to_str(val))
+		}
+		:list {
+			let h = _hash_string(to_str(shape(val)))
+			let i = 0
+			while i < length(val) {
+				h = h * 31 + _hash_code_impl(val[i])
+				i = i + 1
+			}
+			return h
+		}
+		_ {
+			return 0
+		}
+	}
+}
+
+let hash_code = (val) {
+	_hash_code_impl(val)
+}
+
+let _bucket_index = (key) {
+	return _modulo(hash_code(key), _HASH_SIZE)
+}
+
+let new = () {
+	let buckets = []
+	let i = 0
+	while i < _HASH_SIZE {
+		buckets = append(buckets, [])
+		i = i + 1
+	}
+	return buckets
+}
+
+let get = (h, key) {
+	let idx = _bucket_index(key)
+	let bucket = h[idx]
+	let i = 0
+	while i < length(bucket) {
+		let pair = bucket[i]
+		if equal(pair[0], key) {
+			return pair[1]
+		}
+		i = i + 1
+	}
+	return [@error, :key, "key not found"]
+}
+
+let put = (h, key, val) {
+	let idx = _bucket_index(key)
+	let bucket = h[idx]
+	let new_bucket = []
+	let found = false
+	let i = 0
+	while i < length(bucket) {
+		let pair = bucket[i]
+		if equal(pair[0], key) {
+			new_bucket = append(new_bucket, [key, val])
+			found = true
+		} else {
+			new_bucket = append(new_bucket, pair)
+		}
+		i = i + 1
+	}
+	if not found {
+		new_bucket = append(new_bucket, [key, val])
+	}
+	# Build new hash with updated bucket
+	let new_h = []
+	let j = 0
+	while j < _HASH_SIZE {
+		if equal(j, idx) {
+			new_h = append(new_h, new_bucket)
+		} else {
+			new_h = append(new_h, h[j])
+		}
+		j = j + 1
+	}
+	return new_h
+}
+
+let has = (h, key) {
+	let result = get(h, key)
+	return not (equal(shape(result), :error))
+}
+
+let del = (h, key) {
+	let idx = _bucket_index(key)
+	let bucket = h[idx]
+	let new_bucket = []
+	let i = 0
+	while i < length(bucket) {
+		let pair = bucket[i]
+		if not equal(pair[0], key) {
+			new_bucket = append(new_bucket, pair)
+		}
+		i = i + 1
+	}
+	# Build new hash with updated bucket
+	let new_h = []
+	let j = 0
+	while j < _HASH_SIZE {
+		if equal(j, idx) {
+			new_h = append(new_h, new_bucket)
+		} else {
+			new_h = append(new_h, h[j])
+		}
+		j = j + 1
+	}
+	return new_h
+}
+
+let keys = (h) {
+	let ks = []
+	let i = 0
+	while i < _HASH_SIZE {
+		let bucket = h[i]
+		let j = 0
+		while j < length(bucket) {
+			ks = append(ks, bucket[j][0])
+			j = j + 1
+		}
+		i = i + 1
+	}
+	return ks
+}
+
+let values = (h) {
+	let vs = []
+	let i = 0
+	while i < _HASH_SIZE {
+		let bucket = h[i]
+		let j = 0
+		while j < length(bucket) {
+			vs = append(vs, bucket[j][1])
+			j = j + 1
+		}
+		i = i + 1
+	}
+	return vs
+}
+
+export(:hash_code, :new, :get, :put, :has, :del, :keys, :values)

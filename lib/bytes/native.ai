@@ -1,7 +1,7 @@
 package "bytes/native"
 
 # Import dependencies from lib
-let _math = import("math")
+let _math = import("math/ffi")
 
 # bytes/native - pure aiki bytes as shaped lists
 # Bytes are represented as @bytes shaped lists where each element is 0-255.

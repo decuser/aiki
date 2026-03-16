@@ -1,9 +1,9 @@
 # concat smoke test
 let list = import("list")
 
-list.println(list.concat([1, 2], [3, 4]))
-list.println(list.concat([], [1, 2]))
-list.println(list.concat([1], []))
-list.println(list.concat([], []))
-list.println(length(list.concat([1, 2, 3], [4, 5])))
-list.println("CONCAT_SMOKE_DONE")
+println(list.concat([1, 2], [3, 4]))
+println(list.concat([], [1, 2]))
+println(list.concat([1], []))
+println(list.concat([], []))
+println(length(list.concat([1, 2, 3], [4, 5])))
+println("CONCAT_SMOKE_DONE")

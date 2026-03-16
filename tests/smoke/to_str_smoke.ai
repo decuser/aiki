@@ -2,22 +2,22 @@
 let list = import("list")
 
 # Rune to string - should be "A" not "'A'"
-list.println(to_str('A'))
-list.println(to_str(chr(50504)))
+println(to_str('A'))
+println(to_str(chr(50504)))
 
 # String unchanged
-list.println(to_str("hello"))
+println(to_str("hello"))
 
 # Number
-list.println(to_str(42))
-list.println(to_str(1/3))
+println(to_str(42))
+println(to_str(1/3))
 
 # Boolean
-list.println(to_str(true))
-list.println(to_str(false))
+println(to_str(true))
+println(to_str(false))
 
 # Symbol (keeps colon)
-list.println(to_str(:foo))
+println(to_str(:foo))
 
 # Build string from runes
 let s = ""
@@ -26,6 +26,6 @@ list.each(['h', 'e', 'l', 'l', 'o'], (r) {
 })
 
 
-list.println(s)
+println(s)
 
-list.println("TO_STR_SMOKE_DONE")
+println("TO_STR_SMOKE_DONE")

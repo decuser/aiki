@@ -9,10 +9,10 @@ list.each(annyeong, (r) {
 })
 
 
-list.println("")
+println("")
 
 # Round-trip check
-list.println(ord(chr(50504)))
+println(ord(chr(50504)))
 
 # Build and print 안녕
-list.println(list.concat([chr(50504)], [chr(45397)]))
+println(list.concat([chr(50504)], [chr(45397)]))

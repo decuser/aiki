@@ -1,5 +1,3 @@
-let list = import("list")
-
 # mutual_even_odd.ai
 # Mutual tail recursion should not grow Go stack with proper tail calls.
 stack_limit(10000)
@@ -18,5 +16,5 @@ let odd = (n) {
 	return even((n - 1))
 }
 
-list.println(even(20000000))
-list.println(odd(20000000))
+println(even(20000000))
+println(odd(20000000))

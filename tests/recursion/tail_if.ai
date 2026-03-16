@@ -1,5 +1,3 @@
-let list = import("list")
-
 # tail_if.ai
 # Tail calls in if branches without explicit return should be optimized.
 stack_limit(10000)
@@ -12,4 +10,4 @@ let sum_if = (n, acc) {
 	}
 }
 
-list.println(sum_if(20000000, 0))
+println(sum_if(20000000, 0))

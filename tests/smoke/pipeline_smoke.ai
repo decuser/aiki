@@ -1,6 +1,6 @@
 # 1. Atomic tools
 let list = import("list")
-let math = import("math")
+let math = import("math/ffi")
 
 let square = (x) {
 	return x * x

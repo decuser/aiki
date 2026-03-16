@@ -1,5 +1,5 @@
 # Hash utility tests
-let hash = import("hash")
+let hash = import("hash/ffi")
 
 let h = hash.new()
 h = hash.put(h, "a", 1)

@@ -6,27 +6,27 @@ let list = import("list")
 # Basic: newline ends statement
 let x = 1
 let y = 2
-list.println(x + y)
+println(x + y)
 
 # Continuation: line ends with operator
 let total = 1 + 2 + 3
 
-list.println(total)
+println(total)
 
 # Continuation: line ends with comma (in call)
 let result = list.max([10, 20, 30])
 
-list.println(result)
+println(result)
 
 # Continuation: line ends with open paren
 let val = (1 + 2)
 
-list.println(val)
+println(val)
 
 # Continuation: line ends with open bracket
 let lst = [1, 2, 3]
 
-list.println(length(lst))
+println(length(lst))
 
 # Continuation: pipe operator
 let piped = [1, 2, 3] |>
@@ -38,18 +38,18 @@ list.reduce(0, (a, b) {
 })
 
 
-list.println(piped)
+println(piped)
 
 # Function definition spans lines (block continues)
 let add = (a, b) {
 	return a + b
 }
 
-list.println(add(3, 4))
+println(add(3, 4))
 
 # If statement (brace on same line)
 if true {
-	list.println("yes")
+	println("yes")
 }
 
 # Nested blocks
@@ -60,20 +60,20 @@ let outer = () {
 	return inner()
 }
 
-list.println(outer())
+println(outer())
 
 # The original problem case: let followed by paren expr
 let c = ord('A')
 (c >= 65) and (c <= 90)
-list.println("char class check passed")
+println("char class check passed")
 
 # Multiple statements on one line with explicit semicolon
 let a = 1
 let b = 2
-list.println(a + b)
+println(a + b)
 
 # Trailing semicolon is fine
 let z = 99
-list.println(z)
+println(z)
 
-list.println("NEWLINE_SMOKE_DONE")
+println("NEWLINE_SMOKE_DONE")

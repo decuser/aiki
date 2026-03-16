@@ -1,10 +1,8 @@
-let list = import("list")
+println("Testing ord...")
+println(ord('a'))  # 97
+println(ord('A'))  # 65
+println(ord('0'))  # 48
+println(ord('€'))  # 8364
+println(ord('\n'))  # 10
 
-list.println("Testing ord...")
-list.println(ord('a'))  # 97
-list.println(ord('A'))  # 65
-list.println(ord('0'))  # 48
-list.println(ord('€'))  # 8364
-list.println(ord('\n'))  # 10
-
-list.println("\nord_smoke done")
+println("\nord_smoke done")

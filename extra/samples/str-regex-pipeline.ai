@@ -1,6 +1,5 @@
 let str = import("string")
 let re = import("regex/ffi")
-let list = import("list")
 
 # Slugify a title
 let title = "  Hello, World! How's It Going?  "
@@ -12,4 +11,4 @@ re.replace("[^a-z0-9\\s]", "") |>
 re.replace("\\s+", "-")
 
 
-list.println(slug)  # "hello-world-hows-it-going"
+println(slug)  # "hello-world-hows-it-going"

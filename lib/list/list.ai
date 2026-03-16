@@ -144,18 +144,4 @@ let range = (start, end) {
 	return result
 }
 
-# Convenience IO
-let println = (...args) {
-	if empty(args) {
-		print("\n")
-	} else {
-		let i = 0
-		while i < length(args) {
-			print(args[i])
-			i = i + 1
-		}
-		print("\n")
-	}
-}
-
-export(:map, :filter, :reduce, :each, :sum, :max, :min, :reverse, :find, :any, :all, :concat, :range, :println)
+export(:map, :filter, :reduce, :each, :sum, :max, :min, :reverse, :find, :any, :all, :concat, :range)

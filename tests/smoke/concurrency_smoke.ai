@@ -1,5 +1,3 @@
-let list = import("list")
-
 let ch = channel()
 
 # worker receives, computes, sends back
@@ -15,8 +13,8 @@ spawn(worker, ch, ch)
 send(ch, 3)
 send(ch, 7)
 
-list.println(recv(ch))
-list.println(recv(ch))
+println(recv(ch))
+println(recv(ch))
 
 # test isolation - this should NOT see outer scope
 let secret = 999
@@ -25,6 +23,6 @@ let isolated = (out) {
 }
 
 spawn(isolated, ch)
-list.println(recv(ch))
+println(recv(ch))
 
-list.println("done")
+println("done")

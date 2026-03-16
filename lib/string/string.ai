@@ -2,7 +2,7 @@ package "string"
 
 # Import dependencies from lib
 let _list = import("list")
-let _math = import("math")
+let _math = import("math/ffi")
 
 # String Functions
 # =============================================================================

@@ -1,6 +1,6 @@
 # Higher-order function tests
 let list = import("list")
-let math = import("math")
+let math = import("math/ffi")
 
 # map
 let doubled = list.map([1, 2, 3], (x) {

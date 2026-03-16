@@ -3,6 +3,18 @@ package "math/ffi"
 # math/ffi - fast hardware-backed math functions
 # These use host floats internally, returning rational approximations.
 # Use when speed matters more than explicit precision control.
+let floor = (x) {
+	_floor(x)
+}
+
+let ceil = (x) {
+	_ceil(x)
+}
+
+let modulo = (a, b) {
+	_modulo(a, b)
+}
+
 let sin = (x) {
 	_sin_inexact(x)
 }
@@ -15,4 +27,4 @@ let sqrt = (x) {
 	_sqrt_inexact(x)
 }
 
-export(:sin, :cos, :sqrt)
+export(:floor, :ceil, :modulo, :sin, :cos, :sqrt)

@@ -69,6 +69,16 @@ print(val, ...)
 print("hello")
 print("x = ", x)
 ===
+println
+Prints values to stdout followed by a newline. With no arguments,
+prints just a newline.
+
+println(val, ...)
+
+println("Hello")          # prints "Hello\n"
+println("x = ", 42)       # prints "x = 42\n"
+println()                 # prints "\n"
+===
 read
 Reads a line from stdin. Returns string without newline,
 or [@end] on EOF.

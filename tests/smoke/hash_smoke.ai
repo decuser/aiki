@@ -1,23 +1,22 @@
-let list = import("list")
-let hash = import("hash")
+let hash = import("hash/ffi")
 
-list.println("Testing hash map...")
+println("Testing hash map...")
 
 let h = hash.new()
 let h = hash.put(h, "name", "Mochi")
 let h = hash.put(h, "age", 3)
 let h = hash.put(h, :color, "orange")
 
-list.println(hash.get(h, "name"))
-list.println(hash.get(h, "age"))
-list.println(hash.get(h, :color))
-list.println(hash.has(h, "name"))
-list.println(hash.has(h, "missing"))
+println(hash.get(h, "name"))
+println(hash.get(h, "age"))
+println(hash.get(h, :color))
+println(hash.has(h, "name"))
+println(hash.has(h, "missing"))
 
 let h2 = hash.new()
 let h2 = hash.put(h2, 1, "one")
 let h2 = hash.put(h2, 2, "two")
-list.println(hash.get(h2, 1))
-list.println(hash.get(h2, 2))
+println(hash.get(h2, 1))
+println(hash.get(h2, 2))
 
-list.println("\nhash_smoke done")
+println("\nhash_smoke done")
