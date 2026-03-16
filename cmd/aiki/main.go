@@ -25,6 +25,9 @@ func main() {
 	// Check for subcommands before flag parsing
 	if len(os.Args) > 1 {
 		switch os.Args[1] {
+		case "version":
+			fmt.Println(Version)
+			return
 		case "fmt":
 			aikifmt.Run(os.Args[2:])
 			return
