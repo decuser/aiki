@@ -2,4 +2,8 @@
 
 Verify interfaces are satisfied correctly.
 
-Future: tests for RuntimeContract, Value interface implementations.
+## interface_test.go
+
+- `RuntimeContract` — GoRuntime methods return sensible values
+- `Value` interface — all concrete types implement Type() and Inspect()
+- `Callable` interface — Builtin and Function can be called

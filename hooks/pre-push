@@ -1,0 +1,10 @@
+#!/bin/sh
+# Pre-push hook: run rigorous before pushing
+
+echo "Running rigorous (this may take a minute)..."
+make rigorous
+
+if [ $? -ne 0 ]; then
+    echo "rigorous failed, push aborted"
+    exit 1
+fi

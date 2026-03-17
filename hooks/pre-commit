@@ -1,0 +1,10 @@
+#!/bin/sh
+# Pre-commit hook: run validate before each commit
+
+echo "Running validate..."
+make validate
+
+if [ $? -ne 0 ]; then
+    echo "validate failed, commit aborted"
+    exit 1
+fi

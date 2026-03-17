@@ -1,4 +1,4 @@
-.PHONY: build clean install run test fmt lint validate smoke runsamples enginesmoke
+.PHONY: build clean install run test fmt lint validate smoke runsamples enginesmoke rigorous fuzz hooks
 
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 LDFLAGS := -ldflags "-X main.Version=$(VERSION)"
@@ -41,4 +41,16 @@ enginesmoke: build fmt
 enginesmokegold: build fmt
 	./aiki enginesmoke --stage all --gold test/structure/engine
 
-validate: build fmt lint test smoke runsamples enginesmoke
+fuzz:
+	go test -fuzz=FuzzLexer ./test/fuzz/ -fuzztime=30s
+	go test -fuzz=FuzzParser ./test/fuzz/ -fuzztime=30s
+
+rigorous: validate fuzz
+
+validate: build fmt lint test smoke enginesmoke
+
+hooks:
+	cp hooks/pre-commit .git/hooks/pre-commit
+	cp hooks/pre-push .git/hooks/pre-push
+	chmod +x .git/hooks/pre-commit .git/hooks/pre-push
+	@echo "Git hooks installed"
