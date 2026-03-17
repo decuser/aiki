@@ -3,6 +3,7 @@ package debug
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"aiki/engine"
 )
@@ -43,4 +44,12 @@ func (t *TraceObserver) OnEffect(action string, target string, pos engine.Positi
 		return
 	}
 	fmt.Fprintf(t.out, "effect: %s %s at %d:%d\n", action, target, pos.Line, pos.Col)
+}
+
+func (t *TraceObserver) OnFormat(method string, output string, node string, depth int) {
+	indent := strings.Repeat("  ", depth)
+	// Escape newlines/tabs for readability
+	escaped := strings.ReplaceAll(output, "\n", "\\n")
+	escaped = strings.ReplaceAll(escaped, "\t", "\\t")
+	fmt.Fprintf(t.out, "fmt: %s%s %q [%s]\n", indent, method, escaped, node)
 }

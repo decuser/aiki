@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 
+	"aiki/engine"
 	"aiki/engine/syntax"
 	"aiki/engine/syntax/grammar"
 )
@@ -16,6 +17,15 @@ import (
 //  2. Parse formatted output must succeed.
 //  3. AST structure must match (prevents meaning changes).
 func FormatSource(g *grammar.Grammar, file string, source string) (string, error) {
+	return FormatSourceWithObserver(g, file, source, nil)
+}
+
+// FormatSourceWithObserver formats source with an optional observer for tracing.
+func FormatSourceWithObserver(g *grammar.Grammar, file string, source string, observer engine.Observer) (string, error) {
+	if observer == nil {
+		observer = engine.SilentObserver{}
+	}
+
 	// Parse original.
 	origTokens, origAST, err := parseWithTokens(g, file, source)
 	if err != nil {
@@ -28,6 +38,7 @@ func FormatSource(g *grammar.Grammar, file string, source string) (string, error
 	p := &printer{
 		comments:    comments,
 		eolComments: eol,
+		observer:    observer,
 	}
 	p.printProgram(origAST)
 	formatted := p.buf.String()
@@ -38,6 +49,8 @@ func FormatSource(g *grammar.Grammar, file string, source string) (string, error
 		return "", fmt.Errorf("formatter produced invalid source: %w", err)
 	}
 	if !astEqual(origAST, fmtAST) {
+		// Debug: show where ASTs diverge
+		observer.OnFormat("AST_DIFF", astDiffStr(origAST, fmtAST, "root"), "comparison", 0)
 		return "", fmt.Errorf("formatter changed AST; refusing to write")
 	}
 	return formatted, nil
@@ -116,6 +129,33 @@ func astEqual(a, b *syntax.Node) bool {
 	return true
 }
 
+func astDiffStr(a, b *syntax.Node, path string) string {
+	if a == nil && b == nil {
+		return ""
+	}
+	if a == nil {
+		return fmt.Sprintf("%s: ORIG=nil FMT=%s", path, b.Type)
+	}
+	if b == nil {
+		return fmt.Sprintf("%s: ORIG=%s FMT=nil", path, a.Type)
+	}
+	if a.Type != b.Type {
+		return fmt.Sprintf("%s: type ORIG=%s FMT=%s", path, a.Type, b.Type)
+	}
+	if a.Value != b.Value {
+		return fmt.Sprintf("%s: value ORIG=%q FMT=%q", path, a.Value, b.Value)
+	}
+	if len(a.Children) != len(b.Children) {
+		return fmt.Sprintf("%s: children ORIG=%d FMT=%d", path, len(a.Children), len(b.Children))
+	}
+	for i := range a.Children {
+		if diff := astDiffStr(a.Children[i], b.Children[i], fmt.Sprintf("%s/%s[%d]", path, a.Type, i)); diff != "" {
+			return diff
+		}
+	}
+	return ""
+}
+
 // nodeStartLine returns the line number of a node's first token.
 func nodeStartLine(node *syntax.Node) int {
 	if node == nil {
@@ -139,6 +179,12 @@ type printer struct {
 	comments    map[int]string // line -> standalone comment text
 	eolComments map[int]string // line -> EOL comment text
 	lastLine    int
+	observer    engine.Observer
+	depth       int
+}
+
+func (p *printer) observe(method, output, node string) {
+	p.observer.OnFormat(method, output, node, p.depth)
 }
 
 func (p *printer) write(s string) {
@@ -166,7 +212,9 @@ func (p *printer) emitCommentsBefore(line int) {
 	sort.Ints(lines)
 	for _, cl := range lines {
 		p.writeIndent()
-		p.write(p.comments[cl])
+		text := p.comments[cl]
+		p.observe("emitComment", text, "comment")
+		p.write(text)
 		p.newline()
 		delete(p.comments, cl)
 	}
@@ -175,6 +223,7 @@ func (p *printer) emitCommentsBefore(line int) {
 func (p *printer) emitEOLComment(line int) {
 	if text, ok := p.eolComments[line]; ok {
 		p.write("  ")
+		p.observe("emitEOLComment", text, "comment")
 		p.write(text)
 		delete(p.eolComments, line)
 	}
@@ -188,12 +237,16 @@ func (p *printer) emitTrailingComments() {
 	sort.Ints(lines)
 	for _, line := range lines {
 		p.newline()
-		p.write(p.comments[line])
+		text := p.comments[line]
+		p.observe("emitTrailingComment", text, "comment")
+		p.write(text)
 		p.newline()
 	}
 }
 
 func (p *printer) printProgram(node *syntax.Node) {
+	p.observe("printProgram", "enter", fmt.Sprintf("program(%d children)", len(node.Children)))
+	p.depth++
 	prevLine := 0
 	for i, child := range node.Children {
 		line := nodeStartLine(child)
@@ -211,14 +264,19 @@ func (p *printer) printProgram(node *syntax.Node) {
 	if len(s) > 0 && s[len(s)-1] != '\n' {
 		p.newline()
 	}
+	p.depth--
+	p.observe("printProgram", "exit", "program")
 }
 
 func (p *printer) printStatement(node *syntax.Node) {
 	if len(node.Children) == 0 {
+		p.observe("printStatement", "skip", "empty")
 		return
 	}
 	child := node.Children[0]
 	line := nodeStartLine(node)
+	p.observe("printStatement", "enter", child.Type)
+	p.depth++
 
 	switch child.Type {
 	case "if_stmt":
@@ -232,9 +290,13 @@ func (p *printer) printStatement(node *syntax.Node) {
 		p.emitEOLComment(line)
 		p.newline()
 	}
+	p.depth--
+	p.observe("printStatement", "exit", child.Type)
 }
 
 func (p *printer) printNode(node *syntax.Node) {
+	p.observe("printNode", "enter", node.Type)
+	p.depth++
 	switch node.Type {
 	case "program":
 		p.printProgram(node)
@@ -285,14 +347,19 @@ func (p *printer) printNode(node *syntax.Node) {
 	case "pattern":
 		p.printPattern(node)
 	case "NUMBER", "STRING", "RUNE", "SYMBOL", "SHAPE", "NAME":
+		p.observe("printNode", node.Value, node.Type)
 		p.write(node.Value)
 	case "TERMINAL":
+		p.observe("printNode", node.Value, "TERMINAL")
 		p.write(node.Value)
 	case "BINOP":
 		p.printBinop(node)
 	default:
+		p.observe("printNode", "default-recurse", node.Type)
 		for _, child := range node.Children {
 			p.printNode(child)
 		}
 	}
+	p.depth--
+	p.observe("printNode", "exit", node.Type)
 }

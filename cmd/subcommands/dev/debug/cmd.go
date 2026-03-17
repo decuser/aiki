@@ -13,13 +13,15 @@ import (
 	"aiki/engine/semantics/value"
 	"aiki/engine/syntax"
 	"aiki/engine/syntax/grammar"
+
+	aikifmt "aiki/cmd/subcommands/tools/fmt"
 )
 
 // Run executes the debug subcommand with the given arguments.
 // Returns 0 on success, non-zero on error.
 func Run(args []string) int {
 	fs := flag.NewFlagSet("debug", flag.ContinueOnError)
-	stage := fs.String("stage", "all", "lex|parse|eval|all")
+	stage := fs.String("stage", "all", "lex|parse|eval|fmt|all")
 	trace := fs.Bool("trace", false, "enable trace observation")
 	prelude := fs.Bool("prelude", false, "include prelude in trace")
 
@@ -28,7 +30,7 @@ func Run(args []string) int {
 	}
 
 	if fs.NArg() < 1 {
-		fmt.Fprintln(os.Stderr, "usage: aiki debug [-stage lex|parse|eval|all] [-trace] [-prelude] <filename>")
+		fmt.Fprintln(os.Stderr, "usage: aiki debug [-stage lex|parse|eval|fmt|all] [-trace] [-prelude] <filename>")
 		return 1
 	}
 
@@ -57,6 +59,19 @@ func run(path, stage string, trace, tracePrelude bool, stdout, stderr io.Writer)
 			tobs.fileOnly = path
 		}
 		obs = tobs
+	}
+
+	// Fmt stage - run formatter with observer
+	if stage == "fmt" {
+		fmt.Fprintln(stdout, "==== Format ====")
+		formatted, err := aikifmt.FormatSourceWithObserver(g, path, source, obs)
+		if err != nil {
+			fmt.Fprintf(stderr, "format error: %v\n", err)
+			return 1
+		}
+		fmt.Fprintln(stdout, "==== Formatted Output ====")
+		fmt.Fprint(stdout, formatted)
+		return 0
 	}
 
 	// Lex

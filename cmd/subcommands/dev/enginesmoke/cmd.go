@@ -393,6 +393,13 @@ func (t *tokenDumpObserver) OnEffect(action string, target string, pos engine.Po
 	_ = pos
 }
 
+func (t *tokenDumpObserver) OnFormat(method string, output string, node string, depth int) {
+	_ = method
+	_ = output
+	_ = node
+	_ = depth
+}
+
 func (t *tokenDumpObserver) Bytes() []byte {
 	return t.buf.Bytes()
 }
