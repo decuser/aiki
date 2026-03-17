@@ -1,4 +1,4 @@
-package tests
+package boundary
 
 import (
 	"fmt"
@@ -13,8 +13,8 @@ import (
 	"aiki/engine/syntax/grammar"
 )
 
-// TestBoundaryUserCannotSeeHAL verifies user scope cannot resolve _prefixed names.
-func TestBoundaryUserCannotSeeHAL(t *testing.T) {
+// TestUserCannotSeeHAL verifies user scope cannot resolve _prefixed names.
+func TestUserCannotSeeHAL(t *testing.T) {
 	code := `_print("should fail")`
 
 	result, err := evalWithScope(code, value.ScopeUser, false)
@@ -32,8 +32,8 @@ func TestBoundaryUserCannotSeeHAL(t *testing.T) {
 	}
 }
 
-// TestBoundaryUserCanSeePrintAfterPrelude verifies user scope can see print after prelude loads.
-func TestBoundaryUserCanSeePrintAfterPrelude(t *testing.T) {
+// TestUserCanSeePrintAfterPrelude verifies user scope can see print after prelude loads.
+func TestUserCanSeePrintAfterPrelude(t *testing.T) {
 	code := `print`
 
 	result, err := evalWithScope(code, value.ScopeUser, true)
@@ -47,8 +47,8 @@ func TestBoundaryUserCanSeePrintAfterPrelude(t *testing.T) {
 	}
 }
 
-// TestBoundaryUserCannotSeePrintWithoutPrelude verifies user scope cannot see print without prelude.
-func TestBoundaryUserCannotSeePrintWithoutPrelude(t *testing.T) {
+// TestUserCannotSeePrintWithoutPrelude verifies user scope cannot see print without prelude.
+func TestUserCannotSeePrintWithoutPrelude(t *testing.T) {
 	code := `print`
 
 	result, err := evalWithScope(code, value.ScopeUser, false)
@@ -62,8 +62,8 @@ func TestBoundaryUserCannotSeePrintWithoutPrelude(t *testing.T) {
 	}
 }
 
-// TestBoundaryPreludeCanSeeHAL verifies prelude scope can resolve _prefixed names.
-func TestBoundaryPreludeCanSeeHAL(t *testing.T) {
+// TestPreludeCanSeeHAL verifies prelude scope can resolve _prefixed names.
+func TestPreludeCanSeeHAL(t *testing.T) {
 	code := `_print`
 
 	result, err := evalWithScope(code, value.ScopePrelude, false)
@@ -77,8 +77,8 @@ func TestBoundaryPreludeCanSeeHAL(t *testing.T) {
 	}
 }
 
-// TestBoundaryPreludeCannotSeeNonPrefixed verifies prelude scope cannot see non-prefixed without loading prelude.
-func TestBoundaryPreludeCannotSeeNonPrefixed(t *testing.T) {
+// TestPreludeCannotSeeNonPrefixed verifies prelude scope cannot see non-prefixed without loading prelude.
+func TestPreludeCannotSeeNonPrefixed(t *testing.T) {
 	code := `print`
 
 	result, err := evalWithScope(code, value.ScopePrelude, false)
@@ -92,8 +92,8 @@ func TestBoundaryPreludeCannotSeeNonPrefixed(t *testing.T) {
 	}
 }
 
-// TestBoundaryHALRegistryOnlyHasUnderscored verifies all HAL registry entries are _prefixed.
-func TestBoundaryHALRegistryOnlyHasUnderscored(t *testing.T) {
+// TestHALRegistryOnlyHasUnderscored verifies all HAL registry entries are _prefixed.
+func TestHALRegistryOnlyHasUnderscored(t *testing.T) {
 	rt := substrate.NewGoRuntime()
 
 	// Try to get non-prefixed from prelude scope - should fail
@@ -113,8 +113,8 @@ func TestBoundaryHALRegistryOnlyHasUnderscored(t *testing.T) {
 	}
 }
 
-// TestBoundaryUserScopeGetsNothingFromRuntime verifies user scope gets nothing from runtime directly.
-func TestBoundaryUserScopeGetsNothingFromRuntime(t *testing.T) {
+// TestUserScopeGetsNothingFromRuntime verifies user scope gets nothing from runtime directly.
+func TestUserScopeGetsNothingFromRuntime(t *testing.T) {
 	rt := substrate.NewGoRuntime()
 
 	// User scope should get nothing, even for _prefixed
@@ -126,8 +126,8 @@ func TestBoundaryUserScopeGetsNothingFromRuntime(t *testing.T) {
 	}
 }
 
-// TestBoundaryUserCannotSeeHALChr verifies user scope cannot see _chr.
-func TestBoundaryUserCannotSeeHALChr(t *testing.T) {
+// TestUserCannotSeeHALChr verifies user scope cannot see _chr.
+func TestUserCannotSeeHALChr(t *testing.T) {
 	code := `_chr(65)`
 
 	result, err := evalWithScope(code, value.ScopeUser, false)
@@ -140,8 +140,8 @@ func TestBoundaryUserCannotSeeHALChr(t *testing.T) {
 	}
 }
 
-// TestBoundaryUserCanSeeChrAfterPrelude verifies user scope can see chr after prelude.
-func TestBoundaryUserCanSeeChrAfterPrelude(t *testing.T) {
+// TestUserCanSeeChrAfterPrelude verifies user scope can see chr after prelude.
+func TestUserCanSeeChrAfterPrelude(t *testing.T) {
 	code := `chr(65)`
 
 	result, err := evalWithScope(code, value.ScopeUser, true)
@@ -158,8 +158,8 @@ func TestBoundaryUserCanSeeChrAfterPrelude(t *testing.T) {
 	}
 }
 
-// TestBoundaryUserCanSeeAppendAfterPrelude verifies user scope can see append after prelude.
-func TestBoundaryUserCanSeeAppendAfterPrelude(t *testing.T) {
+// TestUserCanSeeAppendAfterPrelude verifies user scope can see append after prelude.
+func TestUserCanSeeAppendAfterPrelude(t *testing.T) {
 	code := `append([1, 2], 3)`
 
 	result, err := evalWithScope(code, value.ScopeUser, true)
@@ -176,8 +176,8 @@ func TestBoundaryUserCanSeeAppendAfterPrelude(t *testing.T) {
 	}
 }
 
-// TestBoundaryChrOrdRoundTrip verifies chr and ord are inverses.
-func TestBoundaryChrOrdRoundTrip(t *testing.T) {
+// TestChrOrdRoundTrip verifies chr and ord are inverses.
+func TestChrOrdRoundTrip(t *testing.T) {
 	code := `ord(chr(8364))`
 
 	result, err := evalWithScope(code, value.ScopeUser, true)
@@ -194,6 +194,20 @@ func TestBoundaryChrOrdRoundTrip(t *testing.T) {
 	}
 	if num.Val.Cmp(big.NewRat(8364, 1)) != 0 {
 		t.Errorf("expected 8364, got: %s", result.Inspect())
+	}
+}
+
+// TestUserCannotSeeHALUpper verifies user scope cannot see _upper.
+func TestUserCannotSeeHALUpper(t *testing.T) {
+	code := `_upper("hello")`
+
+	result, err := evalWithScope(code, value.ScopeUser, false)
+	if err != nil {
+		t.Fatalf("eval error: %v", err)
+	}
+
+	if !value.IsFault(result) {
+		t.Errorf("expected fault for _upper in user scope, got: %s", result.Inspect())
 	}
 }
 
@@ -257,39 +271,4 @@ func loadPreludeInto(g *grammar.Grammar, rt *substrate.GoRuntime, env *value.Env
 	}
 
 	return nil
-}
-
-// TestBoundaryUserCannotSeeHALUpper verifies user scope cannot see _upper.
-func TestBoundaryUserCannotSeeHALUpper(t *testing.T) {
-	code := `_upper("hello")`
-
-	result, err := evalWithScope(code, value.ScopeUser, false)
-	if err != nil {
-		t.Fatalf("eval error: %v", err)
-	}
-
-	if !value.IsFault(result) {
-		t.Errorf("expected fault for _upper in user scope, got: %s", result.Inspect())
-	}
-}
-
-// TestBoundaryUserCanSeeUpperAfterPrelude verifies user scope can see upper after prelude.
-func TestToStrRune(t *testing.T) {
-	code := `to_str('A')`
-
-	result, err := evalWithScope(code, value.ScopeUser, true)
-	if err != nil {
-		t.Fatalf("eval error: %v", err)
-	}
-
-	if value.IsFault(result) {
-		t.Fatalf("expected string, got fault: %s", result.Inspect())
-	}
-	s, ok := result.(*value.String)
-	if !ok {
-		t.Fatalf("expected string, got: %s", result.Inspect())
-	}
-	if s.Val != "A" {
-		t.Errorf("expected \"A\", got: %q", s.Val)
-	}
 }

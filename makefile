@@ -26,7 +26,7 @@ lint:
 	./aiki lint ./...
 
 smoke:
-	./aiki smoke ./...
+	./aiki smoke test/behavior/
 
 runsamples: build
 	@set -e; \
@@ -36,10 +36,9 @@ runsamples: build
 	done
 
 enginesmoke: build fmt
-	./aiki enginesmoke --stage all --check tests/engine
+	./aiki enginesmoke --stage all --check test/structure/engine
 
 enginesmokegold: build fmt
-	./aiki enginesmoke --stage all --gold tests/engine
+	./aiki enginesmoke --stage all --gold test/structure/engine
 
 validate: build fmt lint test smoke runsamples enginesmoke
-
