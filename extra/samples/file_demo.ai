@@ -1,0 +1,73 @@
+# file_demo.ai
+let file = import("file")
+
+print("=== Part 1 - Basic write/read ===\n")
+
+let f = file.open("demo_data.txt", :write)
+file.write_text(f, "Name: Alice\n")
+file.write_text(f, "Score: 95\n")
+file.write_text(f, "Status: active\n")
+file.close(f)
+
+let f = file.open("demo_data.txt", :read)
+let content = file.read_text(f)
+file.close(f)
+
+print("File contents:\n")
+print(content)
+
+print("=== Part 2 - Line-by-line ===\n")
+
+let f = file.open("demo_data.txt", :read)
+
+let process_lines = (f) {
+	match file.read_line(f) {
+		[@end] {
+			println("(end of file)")
+		}
+		line {
+			print("Line: ")
+			println(line)
+			process_lines(f)
+		}
+	}
+}
+
+process_lines(f)
+file.close(f)
+
+print("=== Part 3 - Append ===\n")
+
+let f = file.open("demo_data.txt", :append)
+file.write_text(f, "Note: updated\n")
+file.close(f)
+
+let f = file.open("demo_data.txt", :read)
+print(file.read_text(f))
+file.close(f)
+
+print("=== Part 4 - Error handling ===\n")
+
+let result = file.open("does_not_exist.txt", :read)
+match result {
+	[@error, :io, msg] {
+		print("Caught error: ")
+		println(msg)
+	}
+	f {
+		println("Unexpected success")
+		file.close(f)
+	}
+}
+
+if file.exists("maybe_exists.txt") {
+	println("maybe_exists.txt exists")
+} else {
+	println("maybe_exists.txt does not exist")
+}
+
+print("=== Cleanup ===\n")
+file.delete("demo_data.txt")
+println("Deleted temp files")
+
+println("=== Demo complete ===")

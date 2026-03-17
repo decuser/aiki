@@ -4,6 +4,7 @@ package value
 import (
 	"fmt"
 	"math/big"
+	"os"
 	"strings"
 )
 
@@ -21,7 +22,7 @@ const (
 	FunctionType Type = "function"
 	FaultType    Type = "fault"
 	ReturnType   Type = "return"
-	HandleType   Type = "handle"
+	FileType     Type = "file"
 	ChannelType  Type = "channel"
 	ModuleType   Type = "module"
 	CanvasType   Type = "canvas"
@@ -165,14 +166,15 @@ type Return struct {
 func (r *Return) Type() Type      { return ReturnType }
 func (r *Return) Inspect() string { return r.Val.Inspect() }
 
-// Handle wraps an OS resource.
-type Handle struct {
-	Name string
-	Res  interface{}
+// File wraps an open file handle.
+type File struct {
+	Path string
+	F    *os.File
+	Mode string // "read", "write", "append"
 }
 
-func (h *Handle) Type() Type      { return HandleType }
-func (h *Handle) Inspect() string { return fmt.Sprintf("<handle %s>", h.Name) }
+func (f *File) Type() Type      { return FileType }
+func (f *File) Inspect() string { return fmt.Sprintf("<file %s %s>", f.Mode, f.Path) }
 
 // Channel for concurrency.
 type Channel struct {

@@ -1,0 +1,15 @@
+OUT:literal:1\n
+OUT:literal:hello\n
+OUT:literal:foo\n
+OUT:wildcard:ok\n
+OUT:binding:42\n
+OUT:list:6\n
+OUT:empty:ok\n
+OUT:shaped:100\n
+OUT:end:ok\n
+OUT:error:oops\n
+OUT:mismatch:ok\n
+OUT:nested:6\n
+OUT:multi:two\n
+OUT:order:end\n
+OUT:MATCH_SMOKE_DONE\n

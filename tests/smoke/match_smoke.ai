@@ -1,0 +1,151 @@
+# match_smoke.ai - comprehensive match pattern tests
+# Literal patterns
+let x = 1
+match x {
+	1 {
+		println("literal:1")
+	}
+	_ {
+		println("literal:fail")
+	}
+}
+
+let s = "hello"
+match s {
+	"hello" {
+		println("literal:hello")
+	}
+	_ {
+		println("literal:fail")
+	}
+}
+
+let sym = :foo
+match sym {
+	:foo {
+		println("literal:foo")
+	}
+	_ {
+		println("literal:fail")
+	}
+}
+
+# Wildcard
+let w = 999
+match w {
+	_ {
+		println("wildcard:ok")
+	}
+}
+
+# Binding
+let b = 42
+match b {
+	n {
+		println("binding:" + to_str(n))
+	}
+}
+
+# Plain list
+let lst = [1, 2, 3]
+match lst {
+	[a, b, c] {
+		println("list:" + to_str(a + b + c))
+	}
+	_ {
+		println("list:fail")
+	}
+}
+
+# Empty list
+let emptylist = []
+match emptylist {
+	[] {
+		println("empty:ok")
+	}
+	_ {
+		println("empty:fail")
+	}
+}
+
+# Shaped list with elements
+let ok = [@ok, 100]
+match ok {
+	[@ok, v] {
+		println("shaped:" + to_str(v))
+	}
+	_ {
+		println("shaped:fail")
+	}
+}
+
+# Shaped list no elements
+let done = [@end]
+match done {
+	[@end] {
+		println("end:ok")
+	}
+	_ {
+		println("end:fail")
+	}
+}
+
+# Shaped error (3 elements)
+let err = [@error, :io, "oops"]
+match err {
+	[@error, :io, msg] {
+		println("error:" + msg)
+	}
+	_ {
+		println("error:fail")
+	}
+}
+
+# Shape mismatch falls through
+let mismatch = [@ok, 1]
+match mismatch {
+	[@error, v] {
+		println("mismatch:fail")
+	}
+	_ {
+		println("mismatch:ok")
+	}
+}
+
+# Nested list
+let nested = [[1, 2], 3]
+match nested {
+	[[a, b], c] {
+		println("nested:" + to_str(a + b + c))
+	}
+	_ {
+		println("nested:fail")
+	}
+}
+
+# Multiple arms - first match wins
+let multi = 2
+match multi {
+	1 {
+		println("multi:one")
+	}
+	2 {
+		println("multi:two")
+	}
+	_ {
+		println("multi:other")
+	}
+}
+
+# Pattern order matters
+let order = [@end]
+match order {
+	[@end] {
+		println("order:end")
+	}
+	x {
+		println("order:bound")
+	}
+}
+
+println("MATCH_SMOKE_DONE")

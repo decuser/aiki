@@ -80,6 +80,17 @@ func (g *GoRuntime) registerHAL() {
 	g.register("_regex_replace_first", halRegexReplaceFirst)
 	g.register("_regex_split", halRegexSplit)
 
+	// File I/O
+	g.register("_file_open", halFileOpen)
+	g.register("_file_read_text", halFileReadText)
+	g.register("_file_read_bytes", halFileReadBytes)
+	g.register("_file_read_line", halFileReadLine)
+	g.register("_file_write_text", halFileWriteText)
+	g.register("_file_write_bytes", halFileWriteBytes)
+	g.register("_file_close", halFileClose)
+	g.register("_file_exists", halFileExists)
+	g.register("_file_delete", halFileDelete)
+
 	// Intrinsics - these use evaluation context
 	g.register("_apply", halApply)
 	g.register("_import", halImport)

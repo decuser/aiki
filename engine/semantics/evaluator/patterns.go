@@ -8,8 +8,20 @@ import (
 )
 
 func (e *Evaluator) matchPattern(pattern *syntax.Node, val value.Value, bindings map[string]value.Value, env *value.Env) bool {
-	if pattern.Type == "pattern" && len(pattern.Children) > 0 {
+	// Unwrap single-child pattern
+	if pattern.Type == "pattern" && len(pattern.Children) == 1 {
 		return e.matchPattern(pattern.Children[0], val, bindings, env)
+	}
+
+	// List pattern: pattern with "[" ... "]" structure
+	if pattern.Type == "pattern" && len(pattern.Children) > 0 {
+		if pattern.Children[0].Type == "TERMINAL" && pattern.Children[0].Value == "[" {
+			list, ok := val.(*value.List)
+			if !ok {
+				return false
+			}
+			return e.matchListPattern(pattern, list, bindings, env)
+		}
 	}
 
 	// Unwrap literal node

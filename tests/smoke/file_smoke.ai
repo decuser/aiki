@@ -1,0 +1,50 @@
+# file_smoke.ai
+let file = import("file")
+
+# Test write and read
+let f = file.open("_test_smoke.txt", :write)
+file.write_text(f, "hello\nworld\ntest")
+file.close(f)
+
+# Test exists
+println(file.exists("_test_smoke.txt"))
+
+# Test read_text
+let f = file.open("_test_smoke.txt", :read)
+let content = file.read_text(f)
+file.close(f)
+println(content)
+
+# Test read_line
+let f = file.open("_test_smoke.txt", :read)
+println(file.read_line(f))
+println(file.read_line(f))
+println(file.read_line(f))
+println(file.read_line(f))
+file.close(f)
+
+# Test append
+let f = file.open("_test_smoke.txt", :append)
+file.write_text(f, "\nappended")
+file.close(f)
+
+let f = file.open("_test_smoke.txt", :read)
+println(file.read_text(f))
+file.close(f)
+
+# Test delete
+file.delete("_test_smoke.txt")
+println(file.exists("_test_smoke.txt"))
+
+# Test error handling
+let result = file.open("_nonexistent_12345.txt", :read)
+match result {
+	[@error, :io, msg] {
+		println("Error caught")
+	}
+	_ {
+		println("unexpected")
+	}
+}
+
+println("done")

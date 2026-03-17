@@ -1,0 +1,37 @@
+# file - file I/O operations
+
+@func open
+@template "open(path, mode)"
+@help "Opens file. mode is :read, :write, or :append."
+
+@func read_text
+@template "read_text(file)"
+@help "Reads entire remaining file as string."
+
+@func read_bytes
+@template "read_bytes(file)"
+@help "Reads entire remaining file as bytes."
+
+@func read_line
+@template "read_line(file)"
+@help "Reads next line. Returns string, [@end] at EOF, or [@error]."
+
+@func write_text
+@template "write_text(file, s)"
+@help "Writes string to file."
+
+@func write_bytes
+@template "write_bytes(file, b)"
+@help "Writes bytes to file."
+
+@func close
+@template "close(file)"
+@help "Closes file handle."
+
+@func exists
+@template "exists(path)"
+@help "Returns true if path exists."
+
+@func delete
+@template "delete(path)"
+@help "Deletes file at path."
