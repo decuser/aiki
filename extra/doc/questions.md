@@ -63,12 +63,6 @@ Unresolved design decisions. Each needs a decision before proceeding.
 - Windows limitation: single session only
 - Needs design for cross-platform behavior
 
-**TCO - trampoline or other approach?**
-- Deep recursion currently blows stack
-- Trampoline is standard approach
-- Alternative: detect tail position, reuse frame
-- Priority vs other work?
-
 ## Tooling
 
 **Should fmt/lint be pure aiki or stay in Go?**
