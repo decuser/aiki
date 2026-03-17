@@ -167,7 +167,11 @@ func (g *GoRuntime) BuiltinNames(scope value.Scope) []string {
 }
 
 // register adds a builtin to the registry.
+// Panics if fn is nil - catches stub registrations at startup.
 func (g *GoRuntime) register(name string, fn BuiltinFunc) {
+	if fn == nil {
+		panic(fmt.Sprintf("HAL registration has nil function: %s", name))
+	}
 	g.registry[name] = &Builtin{name: name, fn: fn, runtime: g}
 }
 
