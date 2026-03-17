@@ -1,0 +1,11 @@
+import("canvas", :canvas, :circle, :arc, :set_bg)
+import("time", :sleep)
+
+let c = canvas(400, 400)
+set_bg(c, :white)
+
+circle(c, 200, 200, 150, :black)
+circle(c, 150, 160, 20, :black)
+circle(c, 250, 160, 20, :black)
+arc(c, 200, 220, 60, 20, 160, :black)
+sleep(5000)

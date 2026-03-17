@@ -72,6 +72,11 @@
 @template "empty(list)"
 @help "Returns true if list is empty."
 
+# Math
+@func abs
+@template "abs(n)"
+@help "Returns absolute value of number."
+
 # Type operations
 @func type
 @template "type(val)"

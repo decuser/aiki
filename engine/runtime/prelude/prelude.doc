@@ -140,6 +140,15 @@ empty(list)
 empty([])             # true
 empty([1])            # false
 ===
+abs
+Returns the absolute value of a number.
+
+abs(n)
+
+abs(-5)    # 5
+abs(3)     # 3
+abs(0)     # 0
+===
 type
 Returns the type of a value as a symbol.
 

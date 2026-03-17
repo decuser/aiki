@@ -129,6 +129,10 @@ let delete = (name) {
 	_delete(name)
 }
 
+let abs = (x) {
+	if x < 0 { 0 - x } else { x }
+}
+
 let help = (...args) {
 	if empty(args) {
 		_help("")

@@ -109,6 +109,8 @@ func (g *Game) drawOp(cmd value.CanvasCmd) {
 		vector.StrokeCircle(g.buffer, float32(args[0]), float32(args[1]), float32(args[2]), pen, clr, false)
 	case "fill_circle":
 		vector.DrawFilledCircle(g.buffer, float32(args[0]), float32(args[1]), float32(args[2]), clr, false)
+	case "arc":
+		drawArc(g.buffer, args[0], args[1], args[2], args[3], args[4], clr, pen)
 	case "oval":
 		drawOval(g.buffer, args[0], args[1], args[2], args[3], clr, false, pen)
 	case "fill_oval":
@@ -150,6 +152,24 @@ func (g *Game) Draw(screen *ebiten.Image) {
 // Layout returns the canvas dimensions.
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 	return g.canvas.Width, g.canvas.Height
+}
+
+func drawArc(img *ebiten.Image, cx, cy, r, startDeg, endDeg int, clr color.RGBA, pen float32) {
+	start := float64(startDeg)
+	end := float64(endDeg)
+	if end < start {
+		end += 360
+	}
+	for angle := start; angle <= end; angle += 0.5 {
+		rad := angle * math.Pi / 180
+		x := cx + int(float64(r)*math.Cos(rad))
+		y := cy + int(float64(r)*math.Sin(rad))
+		if pen <= 1 {
+			img.Set(x, y, clr)
+		} else {
+			vector.DrawFilledCircle(img, float32(x), float32(y), pen/2, clr, false)
+		}
+	}
 }
 
 func drawOval(img *ebiten.Image, cx, cy, rx, ry int, clr color.RGBA, fill bool, pen float32) {

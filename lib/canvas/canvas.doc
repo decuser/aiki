@@ -53,6 +53,16 @@ fill_circle(c, x, y, r)
 
 fill_circle(c, 200, 200, 50)
 ===
+arc
+Draws an arc (partial circle outline) centered at (x, y) with the given radius,
+from start angle to end angle in degrees. 0 = right, 90 = down.
+
+arc(c, x, y, r, start, end)
+arc(c, x, y, r, start, end, color)
+
+arc(c, 200, 200, 50, 0, 180, :black)    # bottom half
+arc(c, 200, 200, 50, 20, 160, :black)   # smile
+===
 clear
 Clears the entire canvas to the current background color.
 

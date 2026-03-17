@@ -1,0 +1,13 @@
+import("list", :range, :filter, :map, :sum)
+import("math/ffi", :modulo)
+
+let is_even = (x) {
+    return equal(modulo(x, 2), 0)
+}
+
+range(1, 11) |>
+    filter(is_even) |>
+    map((x) { x * x }) |>
+    sum() |>
+    print()
+

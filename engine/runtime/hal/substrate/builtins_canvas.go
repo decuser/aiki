@@ -204,6 +204,36 @@ func halFillCircle(args []value.Value, ctx *hal.EvalContext) value.Value {
 	return circleHelper("fill_circle", args)
 }
 
+func halArc(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) < 6 || len(args) > 7 {
+		return value.NewFault("arc: want 6 or 7 arguments, got %d", len(args))
+	}
+	cvs, ok := args[0].(*value.Canvas)
+	if !ok {
+		return value.NewFault("arc: expected canvas")
+	}
+	if errv := requireCanvasActive("arc", cvs); errv != nil {
+		return errv
+	}
+	x, ok1 := toInt(args[1])
+	y, ok2 := toInt(args[2])
+	r, ok3 := toInt(args[3])
+	start, ok4 := toInt(args[4])
+	end, ok5 := toInt(args[5])
+	if !ok1 || !ok2 || !ok3 || !ok4 || !ok5 {
+		return value.NewFault("arc: arguments must be numbers")
+	}
+	clr := cvs.FG
+	if len(args) == 7 {
+		clr, ok = parseColor(args[6])
+		if !ok {
+			return value.NewFault("arc: invalid color")
+		}
+	}
+	cvs.Commands <- value.CanvasCmd{Op: "arc", Args: []int{x, y, r, start, end}, Color: clr, PenSize: cvs.PenSize}
+	return value.TRUE
+}
+
 func circleHelper(op string, args []value.Value) value.Value {
 	if len(args) < 4 || len(args) > 5 {
 		return value.NewFault("%s: want 4 or 5 arguments, got %d", op, len(args))

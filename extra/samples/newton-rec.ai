@@ -3,20 +3,13 @@ let square = (x) {
 	return x * x
 }
 
-let abs = (x) {
-	if x < 0 {
-		return -x
-	}
-	return x
-}
-
 let average = (x, y) {
 	return x + y / 2
 }
 
 let good_enough = (guess, x) {
 	let diff = abs(square(guess) - x)
-	return diff < 0.001
+	return diff < 0.000001
 }
 
 let improve = (guess, x) {

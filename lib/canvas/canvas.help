@@ -28,6 +28,10 @@
 @template "fill_circle(c, x, y, r)"
 @help "Draws a filled circle."
 
+@func arc
+@template "arc(c, x, y, r, start, end)"
+@help "Draws an arc from start to end angle (degrees)."
+
 @func clear
 @template "clear(c)"
 @help "Clears the canvas to background color."

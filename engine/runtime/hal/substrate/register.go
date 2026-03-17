@@ -53,6 +53,7 @@ func (g *GoRuntime) registerHAL() {
 	g.register("_fill_rect", halFillRect)
 	g.register("_circle", halCircle)
 	g.register("_fill_circle", halFillCircle)
+	g.register("_arc", halArc)
 	g.register("_clear", halClear)
 	g.register("_destroy", halDestroy)
 	g.register("_set_bg", halSetBG)
