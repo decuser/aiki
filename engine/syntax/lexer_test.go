@@ -316,3 +316,4 @@ func (o *testObserver) OnLex(token, lexeme string, pos engine.Position) {
 func (o *testObserver) OnParse(production string, depth int, pos engine.Position)  {}
 func (o *testObserver) OnEval(node, result string, scope int, pos engine.Position) {}
 func (o *testObserver) OnEffect(action, target string, pos engine.Position)        {}
+func (o *testObserver) OnFormat(method, output, node string, depth int)            {}

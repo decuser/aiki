@@ -130,7 +130,11 @@ let delete = (name) {
 }
 
 let abs = (x) {
-	if x < 0 { 0 - x } else { x }
+	if x < 0 {
+		0 - x
+	} else {
+		x
+	}
 }
 
 let help = (...args) {

@@ -260,3 +260,4 @@ func (o *testParserObserver) OnParse(production string, depth int, pos engine.Po
 }
 func (o *testParserObserver) OnEval(node, result string, scope int, pos engine.Position) {}
 func (o *testParserObserver) OnEffect(action, target string, pos engine.Position)        {}
+func (o *testParserObserver) OnFormat(method, output, node string, depth int)            {}

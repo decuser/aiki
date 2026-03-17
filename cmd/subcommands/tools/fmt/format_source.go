@@ -118,15 +118,29 @@ func astEqual(a, b *syntax.Node) bool {
 	if a.Value != b.Value {
 		return false
 	}
-	if len(a.Children) != len(b.Children) {
+	// Filter out implicit semicolon terminals for comparison
+	aChildren := filterSemicolons(a.Children)
+	bChildren := filterSemicolons(b.Children)
+	if len(aChildren) != len(bChildren) {
 		return false
 	}
-	for i := range a.Children {
-		if !astEqual(a.Children[i], b.Children[i]) {
+	for i := range aChildren {
+		if !astEqual(aChildren[i], bChildren[i]) {
 			return false
 		}
 	}
 	return true
+}
+
+func filterSemicolons(nodes []*syntax.Node) []*syntax.Node {
+	result := make([]*syntax.Node, 0, len(nodes))
+	for _, n := range nodes {
+		if n.Type == "TERMINAL" && n.Value == ";" {
+			continue
+		}
+		result = append(result, n)
+	}
+	return result
 }
 
 func astDiffStr(a, b *syntax.Node, path string) string {
@@ -145,11 +159,13 @@ func astDiffStr(a, b *syntax.Node, path string) string {
 	if a.Value != b.Value {
 		return fmt.Sprintf("%s: value ORIG=%q FMT=%q", path, a.Value, b.Value)
 	}
-	if len(a.Children) != len(b.Children) {
-		return fmt.Sprintf("%s: children ORIG=%d FMT=%d", path, len(a.Children), len(b.Children))
+	aChildren := filterSemicolons(a.Children)
+	bChildren := filterSemicolons(b.Children)
+	if len(aChildren) != len(bChildren) {
+		return fmt.Sprintf("%s: children ORIG=%d FMT=%d", path, len(aChildren), len(bChildren))
 	}
-	for i := range a.Children {
-		if diff := astDiffStr(a.Children[i], b.Children[i], fmt.Sprintf("%s/%s[%d]", path, a.Type, i)); diff != "" {
+	for i := range aChildren {
+		if diff := astDiffStr(aChildren[i], bChildren[i], fmt.Sprintf("%s/%s[%d]", path, a.Type, i)); diff != "" {
 			return diff
 		}
 	}
