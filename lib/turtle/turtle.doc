@@ -1,0 +1,103 @@
+===
+turtle
+Creates a new turtle on the given canvas. The turtle starts at
+the center of the canvas (logical position 0, 0) facing north
+(heading 0). The pen is down by default.
+
+turtle(canvas) -> turtle
+
+let cv = import("canvas")
+let c = cv.canvas(400, 400)
+let t = turtle(c)
+===
+forward
+Moves the turtle forward by the given distance in the direction
+it is facing. If the pen is down, draws a line. Returns a new
+turtle with updated position.
+
+forward(t, distance) -> turtle
+
+let t = forward(t, 100)   # move 100 units forward
+===
+backward
+Moves the turtle backward by the given distance (opposite to its
+heading). If the pen is down, draws a line. Returns a new turtle.
+
+backward(t, distance) -> turtle
+
+let t = backward(t, 50)   # move 50 units backward
+===
+left
+Turns the turtle left (counter-clockwise) by the given angle in
+degrees. Does not move the turtle.
+
+left(t, angle) -> turtle
+
+let t = left(t, 90)   # turn left 90 degrees
+===
+right
+Turns the turtle right (clockwise) by the given angle in degrees.
+Does not move the turtle.
+
+right(t, angle) -> turtle
+
+let t = right(t, 90)   # turn right 90 degrees
+===
+pen_up
+Lifts the turtle's pen so that subsequent movement does not draw.
+
+pen_up(t) -> turtle
+
+let t = pen_up(t)
+let t = forward(t, 100)   # moves without drawing
+===
+pen_down
+Lowers the turtle's pen so that subsequent movement draws.
+
+pen_down(t) -> turtle
+
+let t = pen_down(t)
+let t = forward(t, 100)   # draws a line
+===
+set_color
+Sets the color used when the turtle draws. Accepts color symbols
+like :red, :blue, :green, :white, :cyan, :magenta, :yellow.
+
+set_color(t, color) -> turtle
+
+let t = set_color(t, :red)
+let t = forward(t, 100)   # draws in red
+===
+home
+Returns the turtle to the center of the canvas (position 0, 0)
+and resets heading to north (0 degrees). Draws a line if pen
+is down.
+
+home(t) -> turtle
+
+let t = home(t)
+===
+clear
+Clears the canvas to its background color. The turtle's position
+and heading are unchanged.
+
+clear(t) -> turtle
+
+let t = clear(t)
+===
+position
+Returns the turtle's current logical position as [x, y].
+The center of the canvas is [0, 0]. Positive x is right,
+positive y is up.
+
+position(t) -> [x, y]
+
+let [x, y] = position(t)
+===
+heading
+Returns the turtle's current heading in degrees.
+0 = north, 90 = east, 180 = south, 270 = west.
+
+heading(t) -> number
+
+let h = heading(t)

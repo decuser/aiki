@@ -1,0 +1,130 @@
+package "turtle"
+
+# turtle - Logo-style turtle graphics
+#
+# Turtle uses centered logical coordinates:
+#   home = (0, 0)
+#   positive x = right
+#   positive y = up
+#   heading 0 = north, clockwise positive
+# turtle(cvs) -> [@turtle, cvs, cx, cy, tx, ty, heading, pen, color]
+# Shape stored separately, Elements = [cvs, cx, cy, tx, ty, heading, pen, color]
+# indices:                              0    1   2   3   4     5       6    7
+let turtle = (cvs) {
+	let w = _canvas_width(cvs)
+	let h = _canvas_height(cvs)
+	[@turtle, cvs, w / 2, h / 2, 0, 0, 0, true, :white]
+}
+
+# internal accessors (shape excluded from indexing)
+let _cvs = (t) {
+	t[0]
+}
+
+let _cx = (t) {
+	t[1]
+}
+
+let _cy = (t) {
+	t[2]
+}
+
+let _tx = (t) {
+	t[3]
+}
+
+let _ty = (t) {
+	t[4]
+}
+
+let _heading = (t) {
+	t[5]
+}
+
+let _pen = (t) {
+	t[6]
+}
+
+let _color = (t) {
+	t[7]
+}
+
+# coordinate transform: turtle logical -> canvas screen
+let _screen_x = (t, tx) {
+	_cx(t) + tx
+}
+
+let _screen_y = (t, ty) {
+	_cy(t) - ty
+}
+
+# deg->rad constant
+let _deg_to_rad = 3.141592653589793 / 180
+
+# inspection (returns logical coordinates)
+let position = (t) {
+	[_tx(t), _ty(t)]
+}
+
+let heading = (t) {
+	_heading(t)
+}
+
+# movement
+let forward = (t, d) {
+	# heading 0 = north, clockwise positive
+	# north means dy positive, so: dx = sin(h), dy = cos(h)
+	let rad = _heading(t) * _deg_to_rad
+	let dx = d * _sin_inexact(rad)
+	let dy = d * _cos_inexact(rad)
+	let tx0 = _tx(t)
+	let ty0 = _ty(t)
+	let tx1 = tx0 + dx
+	let ty1 = ty0 + dy
+	if _pen(t) {
+		_line(_cvs(t), _screen_x(t, tx0), _screen_y(t, ty0), _screen_x(t, tx1), _screen_y(t, ty1), _color(t))
+	} else {
+		true
+	}
+	[@turtle, _cvs(t), _cx(t), _cy(t), tx1, ty1, _heading(t), _pen(t), _color(t)]
+}
+
+let backward = (t, d) {
+	forward(t, 0 - d)
+}
+
+let left = (t, angle) {
+	[@turtle, _cvs(t), _cx(t), _cy(t), _tx(t), _ty(t), _heading(t) - angle, _pen(t), _color(t)]
+}
+
+let right = (t, angle) {
+	[@turtle, _cvs(t), _cx(t), _cy(t), _tx(t), _ty(t), _heading(t) + angle, _pen(t), _color(t)]
+}
+
+let pen_up = (t) {
+	[@turtle, _cvs(t), _cx(t), _cy(t), _tx(t), _ty(t), _heading(t), false, _color(t)]
+}
+
+let pen_down = (t) {
+	[@turtle, _cvs(t), _cx(t), _cy(t), _tx(t), _ty(t), _heading(t), true, _color(t)]
+}
+
+let set_color = (t, c) {
+	[@turtle, _cvs(t), _cx(t), _cy(t), _tx(t), _ty(t), _heading(t), _pen(t), c]
+}
+
+let home = (t) {
+	if _pen(t) {
+		_line(_cvs(t), _screen_x(t, _tx(t)), _screen_y(t, _ty(t)), _cx(t), _cy(t), _color(t))
+	} else {
+		true
+	}
+	[@turtle, _cvs(t), _cx(t), _cy(t), 0, 0, 0, _pen(t), _color(t)]
+}
+
+let clear = (t) {
+	_clear(_cvs(t))
+	t
+}
+
+export(:turtle, :forward, :backward, :left, :right, :pen_up, :pen_down, :set_color, :home, :clear, :position, :heading)

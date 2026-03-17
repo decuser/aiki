@@ -59,6 +59,8 @@ func (g *GoRuntime) registerHAL() {
 	g.register("_set_bg", halSetBG)
 	g.register("_set_fg", halSetFG)
 	g.register("_pen_size", halPenSize)
+	g.register("_canvas_width", halCanvasWidth)
+	g.register("_canvas_height", halCanvasHeight)
 
 	// Convert
 	g.register("_shape", halShape)

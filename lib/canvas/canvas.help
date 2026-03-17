@@ -1,8 +1,16 @@
 # canvas - graphics primitives
 
 @func canvas
-@template "canvas(width, height, title)"
+@template "canvas(width, height)"
 @help "Creates a new canvas window."
+
+@func width
+@template "width(c)"
+@help "Returns the canvas width in pixels."
+
+@func height
+@template "height(c)"
+@help "Returns the canvas height in pixels."
 
 @func dot
 @template "dot(c, x, y)"

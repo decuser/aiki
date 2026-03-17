@@ -1,11 +1,25 @@
 ===
 canvas
-Creates a new canvas window with the specified dimensions and title.
+Creates a new canvas window with the specified dimensions.
 Returns a canvas handle for use with other drawing functions.
 
-canvas(width, height, title)
+canvas(width, height)
 
-let c = canvas(800, 600, "My Drawing")
+let c = canvas(800, 600)
+===
+width
+Returns the width of the canvas in pixels.
+
+width(c)
+
+let w = width(c)
+===
+height
+Returns the height of the canvas in pixels.
+
+height(c)
+
+let h = height(c)
 ===
 dot
 Draws a single dot at the specified coordinates using the current

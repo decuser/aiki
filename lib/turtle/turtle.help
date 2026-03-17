@@ -1,0 +1,49 @@
+# turtle - Logo-style turtle graphics
+
+@func turtle
+@template "turtle(canvas)"
+@help "Creates a turtle at center of canvas, facing north."
+
+@func forward
+@template "forward(t, distance)"
+@help "Moves turtle forward, drawing if pen is down."
+
+@func backward
+@template "backward(t, distance)"
+@help "Moves turtle backward, drawing if pen is down."
+
+@func left
+@template "left(t, angle)"
+@help "Turns turtle left by angle degrees."
+
+@func right
+@template "right(t, angle)"
+@help "Turns turtle right by angle degrees."
+
+@func pen_up
+@template "pen_up(t)"
+@help "Lifts pen so movement does not draw."
+
+@func pen_down
+@template "pen_down(t)"
+@help "Lowers pen so movement draws."
+
+@func set_color
+@template "set_color(t, color)"
+@help "Sets the turtle's drawing color."
+
+@func home
+@template "home(t)"
+@help "Returns turtle to center, facing north."
+
+@func clear
+@template "clear(t)"
+@help "Clears the canvas, keeping turtle position."
+
+@func position
+@template "position(t)"
+@help "Returns [x, y] logical coordinates."
+
+@func heading
+@template "heading(t)"
+@help "Returns current heading in degrees (0 = north)."

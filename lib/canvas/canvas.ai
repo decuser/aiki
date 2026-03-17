@@ -5,6 +5,14 @@ let canvas = (w, h) {
 	_canvas(w, h)
 }
 
+let width = (c) {
+	_canvas_width(c)
+}
+
+let height = (c) {
+	_canvas_height(c)
+}
+
 let dot = (c, x, y, ...rest) {
 	_apply(_dot, prepend(prepend(prepend(rest, y), x), c))
 }
@@ -61,4 +69,4 @@ let arc = (c, x, y, r, start, end, ...rest) {
 	_apply(_arc, prepend(prepend(prepend(prepend(prepend(prepend(rest, end), start), r), y), x), c))
 }
 
-export(:canvas, :dot, :line, :rect, :fill_rect, :circle, :fill_circle, :arc, :clear, :destroy, :set_bg, :set_fg, :set_bg_rgb, :set_fg_rgb, :pen_size)
+export(:canvas, :width, :height, :dot, :line, :rect, :fill_rect, :circle, :fill_circle, :arc, :clear, :destroy, :set_bg, :set_fg, :set_bg_rgb, :set_fg_rgb, :pen_size)
