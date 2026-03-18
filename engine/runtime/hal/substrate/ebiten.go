@@ -18,6 +18,7 @@ import (
 type Game struct {
 	canvas  *value.Canvas
 	buffer  *ebiten.Image
+	overlay *ebiten.Image
 	ops     []value.CanvasCmd
 	redoOps []value.CanvasCmd
 	maxOps  int
@@ -26,9 +27,10 @@ type Game struct {
 // NewGame creates a new game for the given canvas.
 func NewGame(canvas *value.Canvas) *Game {
 	return &Game{
-		canvas: canvas,
-		buffer: ebiten.NewImage(canvas.Width, canvas.Height),
-		maxOps: 100,
+		canvas:  canvas,
+		buffer:  ebiten.NewImage(canvas.Width, canvas.Height),
+		overlay: ebiten.NewImage(canvas.Width, canvas.Height),
+		maxOps:  100,
 	}
 }
 
@@ -144,9 +146,81 @@ func (g *Game) save(path string, result chan error) {
 	result <- png.Encode(f, img)
 }
 
-// Draw renders the buffer to the screen.
+// drawTurtle draws the turtle triangle on the overlay.
+func (g *Game) drawTurtle() {
+	g.overlay.Clear()
+
+	g.canvas.TurtleMu.RLock()
+	visible := g.canvas.TurtleVisible
+	x := g.canvas.TurtleX
+	y := g.canvas.TurtleY
+	heading := g.canvas.TurtleHeading
+	clr := g.canvas.TurtleColor
+	g.canvas.TurtleMu.RUnlock()
+
+	if !visible {
+		return
+	}
+
+	// Triangle size in pixels (fixed, not scaled)
+	size := float64(12)
+
+	// Convert heading to radians (0 = north/up, clockwise positive)
+	// In screen coords, up is -Y, so we adjust
+	rad := (heading - 90) * math.Pi / 180
+
+	// Triangle points: tip at front, two back corners
+	// Tip is at turtle position
+	tipX := x
+	tipY := y
+
+	// Back corners at 135 and 225 degrees from heading
+	backAngle := 140.0 * math.Pi / 180
+	backDist := size
+
+	leftRad := rad + backAngle
+	rightRad := rad - backAngle
+
+	leftX := x + backDist*math.Cos(leftRad)
+	leftY := y + backDist*math.Sin(leftRad)
+
+	rightX := x + backDist*math.Cos(rightRad)
+	rightY := y + backDist*math.Sin(rightRad)
+
+	// Draw filled triangle
+	path := vector.Path{}
+	path.MoveTo(float32(tipX), float32(tipY))
+	path.LineTo(float32(leftX), float32(leftY))
+	path.LineTo(float32(rightX), float32(rightY))
+	path.Close()
+
+	vs, is := path.AppendVerticesAndIndicesForFilling(nil, nil)
+	for i := range vs {
+		vs[i].SrcX = 1
+		vs[i].SrcY = 1
+		vs[i].ColorR = float32(clr.R) / 255
+		vs[i].ColorG = float32(clr.G) / 255
+		vs[i].ColorB = float32(clr.B) / 255
+		vs[i].ColorA = float32(clr.A) / 255
+	}
+
+	op := &ebiten.DrawTrianglesOptions{}
+	op.AntiAlias = true
+	g.overlay.DrawTriangles(vs, is, emptyImage, op)
+}
+
+// emptyImage is a 1x1 white image used for solid color triangles.
+var emptyImage = func() *ebiten.Image {
+	img := ebiten.NewImage(3, 3)
+	img.Fill(color.White)
+	return img
+}()
+
+// Draw renders the buffer and overlay to the screen.
 func (g *Game) Draw(screen *ebiten.Image) {
 	screen.DrawImage(g.buffer, nil)
+	g.drawTurtle()
+	screen.DrawImage(g.overlay, nil)
 }
 
 // Layout returns the canvas dimensions.

@@ -1,0 +1,170 @@
+package "turtle/simple"
+
+# turtle/simple - Logo-style turtle graphics with implicit state
+#
+# Logical space defaults to 200x200 (range -100 to +100).
+# new(dim) creates a dim x dim pixel window.
+# logical(size) changes the logical space size.
+# Turtle position is clamped to bounds.
+# Command functions return nothing. Query functions return data.
+#
+# Example:
+#   use("turtle/simple")
+#   new(800)
+#   forward(50)    # moves 50 logical units = 200 pixels (scale 4)
+#   right(90)
+#   forward(50)
+#   position()     # returns [@point, 50, 50]
+# internal state - uninitialized until new()
+let _cvs = false
+let _t = false
+let _dim = 800
+let _logical = 200
+let _center = 400
+let _scale = 4
+let _bound = 100
+let _visible = true
+
+let _deg_to_rad = 3.141592653589793 / 180
+
+# coordinate transform: logical -> screen pixels
+let _screen_x = (tx) {
+	_center + (tx * _scale)
+}
+
+let _screen_y = (ty) {
+	_center - (ty * _scale)
+}
+
+# clamp value to bounds
+let _clamp = (v, lo, hi) {
+	if v < lo {
+		lo
+	} else {
+		if v > hi {
+			hi
+		} else {
+			v
+		}
+	}
+}
+
+# update turtle overlay
+let _update_turtle = () {
+	_set_turtle(_cvs, _screen_x(_t[2]), _screen_y(_t[3]), _t[4], _visible, _t[6])
+}
+
+# session management
+let new = (dim) {
+	_dim = dim
+	_center = dim / 2
+	_scale = _dim / _logical
+	_bound = _logical / 2
+	# if no canvas or canvas is dead, create fresh
+	if not (_cvs) or not (_canvas_alive(_cvs)) {
+		_cvs = _canvas(_dim, _dim)
+	} else {
+		# canvas alive, just clear it
+		_clear(_cvs)
+	}
+	# fresh turtle state: [cx, cy, tx, ty, heading, pen, color]
+	# tx, ty are logical coords (0,0 = center)
+	_t = [@turtle, _center, _center, 0, 0, 0, true, :white]
+	_visible = true
+	_update_turtle()
+}
+
+let logical = (size) {
+	_logical = size
+	_scale = _dim / _logical
+	_bound = _logical / 2
+	_update_turtle()
+}
+
+# movement commands
+let forward = (d) {
+	let rad = _t[4] * _deg_to_rad
+	let dx = d * _sin_inexact(rad)
+	let dy = d * _cos_inexact(rad)
+	let tx0 = _t[2]
+	let ty0 = _t[3]
+	let tx1 = _clamp(tx0 + dx, 0 - _bound, _bound)
+	let ty1 = _clamp(ty0 + dy, 0 - _bound, _bound)
+	if _t[5] {
+		_line(_cvs, _screen_x(tx0), _screen_y(ty0), _screen_x(tx1), _screen_y(ty1), _t[6])
+	} else {
+		true
+	}
+	_t = [@turtle, _t[0], _t[1], tx1, ty1, _t[4], _t[5], _t[6]]
+	_update_turtle()
+}
+
+let backward = (d) {
+	forward(0 - d)
+}
+
+let left = (angle) {
+	_t = [@turtle, _t[0], _t[1], _t[2], _t[3], _t[4] - angle, _t[5], _t[6]]
+	_update_turtle()
+}
+
+let right = (angle) {
+	_t = [@turtle, _t[0], _t[1], _t[2], _t[3], _t[4] + angle, _t[5], _t[6]]
+	_update_turtle()
+}
+
+# pen commands
+let pen_up = () {
+	_t = [@turtle, _t[0], _t[1], _t[2], _t[3], _t[4], false, _t[6]]
+}
+
+let pen_down = () {
+	_t = [@turtle, _t[0], _t[1], _t[2], _t[3], _t[4], true, _t[6]]
+}
+
+let pen_size = (n) {
+	let pixels = n * _scale
+	if pixels < 1 {
+		_pen_size(_cvs, 1)
+	} else {
+		_pen_size(_cvs, pixels)
+	}
+}
+
+let set_color = (c) {
+	_t = [@turtle, _t[0], _t[1], _t[2], _t[3], _t[4], _t[5], c]
+	_update_turtle()
+}
+
+# visibility commands
+let show_turtle = () {
+	_visible = true
+	_update_turtle()
+}
+
+let hide_turtle = () {
+	_visible = false
+	_update_turtle()
+}
+
+# position commands
+let home = () {
+	# move to center without drawing, reset heading
+	_t = [@turtle, _center, _center, 0, 0, 0, _t[5], _t[6]]
+	_update_turtle()
+}
+
+let clear = () {
+	_clear(_cvs)
+}
+
+# queries - return data
+let position = () {
+	[@point, truncate(_t[2]), truncate(_t[3])]
+}
+
+let heading = () {
+	_t[4]
+}
+
+export(:new, :logical, :forward, :backward, :left, :right, :pen_up, :pen_down, :pen_size, :set_color, :show_turtle, :hide_turtle, :home, :clear, :position, :heading)

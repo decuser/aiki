@@ -297,6 +297,35 @@ func resolveRelativePath(name string, env *value.Env) string {
 	return ""
 }
 
+// halUse implements use("module").
+// Loads module and binds all exports into current scope.
+func halUse(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 1 {
+		return value.NewFault("use: want 1 argument, got %d", len(args))
+	}
+
+	if ctx == nil || ctx.Env == nil || ctx.Grammar == nil || ctx.Eval == nil {
+		return value.NewFault("use: evaluation context not available")
+	}
+
+	moduleStr, ok := args[0].(*value.String)
+	if !ok {
+		return value.NewFault("use: expected string module name, got %s", args[0].Type())
+	}
+
+	mod, errVal := loadModule(moduleStr.Val, ctx)
+	if errVal != nil {
+		return errVal
+	}
+
+	// Bind all exports into calling environment
+	for name, val := range mod.Exports {
+		ctx.Env.Set(name, val)
+	}
+
+	return value.EMPTY
+}
+
 func halLoad(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
 		return value.NewFault("load: want 1 argument, got %d", len(args))

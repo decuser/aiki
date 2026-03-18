@@ -61,6 +61,8 @@ func (g *GoRuntime) registerHAL() {
 	g.register("_pen_size", halPenSize)
 	g.register("_canvas_width", halCanvasWidth)
 	g.register("_canvas_height", halCanvasHeight)
+	g.register("_canvas_alive", halCanvasAlive)
+	g.register("_set_turtle", halSetTurtle)
 
 	// Convert
 	g.register("_shape", halShape)
@@ -97,6 +99,7 @@ func (g *GoRuntime) registerHAL() {
 	// Intrinsics - these use evaluation context
 	g.register("_apply", halApply)
 	g.register("_import", halImport)
+	g.register("_use", halUse)
 	g.register("_export", halExport)
 	g.register("_load", halLoad)
 	g.register("_spawn", halSpawn)

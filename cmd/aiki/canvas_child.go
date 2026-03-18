@@ -72,6 +72,9 @@ func handleCanvasWire(cmd any, cvs *value.Canvas) {
 	case substrate.CanvasWireSetFG:
 		cvs.FG = m.RGBA
 		return
+	case substrate.CanvasWireTurtle:
+		cvs.SetTurtle(float64(m.X), float64(m.Y), float64(m.Heading), m.Visible, m.RGBA)
+		return
 	case substrate.CanvasWireCmd:
 		clr := cvs.FG
 		if m.HasRGBA {

@@ -240,6 +240,16 @@ func sendCanvasSetFG(cvs *value.Canvas, rgba color.RGBA) {
 	sendCanvasWire(cvs, CanvasWireSetFG{RGBA: rgba})
 }
 
+func SendCanvasTurtle(cvs *value.Canvas, x, y, heading float64, visible bool, rgba color.RGBA) {
+	sendCanvasWire(cvs, CanvasWireTurtle{
+		X:       float32(x),
+		Y:       float32(y),
+		Heading: float32(heading),
+		Visible: visible,
+		RGBA:    rgba,
+	})
+}
+
 func sendCanvasClose(cvs *value.Canvas) {
 	sessionsMu.Lock()
 	sess := sessions[cvs]

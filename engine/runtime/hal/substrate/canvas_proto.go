@@ -29,11 +29,12 @@ const canvasProtoVersion = 1
 
 // Opcodes.
 const (
-	canvasOpCmd   = 1
-	canvasOpClose = 2
-	canvasOpSetBG = 3
-	canvasOpSetFG = 4
-	canvasOpBatch = 5
+	canvasOpCmd    = 1
+	canvasOpClose  = 2
+	canvasOpSetBG  = 3
+	canvasOpSetFG  = 4
+	canvasOpBatch  = 5
+	canvasOpTurtle = 6
 )
 
 // CanvasWireBatch groups multiple commands into a single frame.
@@ -53,6 +54,11 @@ type CanvasWireCmd struct {
 type CanvasWireClose struct{}
 type CanvasWireSetBG struct{ RGBA color.RGBA }
 type CanvasWireSetFG struct{ RGBA color.RGBA }
+type CanvasWireTurtle struct {
+	X, Y, Heading float32
+	Visible       bool
+	RGBA          color.RGBA
+}
 
 func CanvasWriteFrame(w io.Writer, v any) error {
 	enc := canvasNewEncoder()
@@ -105,6 +111,17 @@ func (e *canvasEncoder) encodeOneNoVersion(v any) ([]byte, error) {
 		return e.buf, nil
 	case CanvasWireSetFG:
 		e.buf = append(e.buf, byte(canvasOpSetFG), x.RGBA.R, x.RGBA.G, x.RGBA.B, x.RGBA.A)
+		return e.buf, nil
+	case CanvasWireTurtle:
+		e.buf = append(e.buf, byte(canvasOpTurtle))
+		e.buf = appendF32LE(e.buf, x.X)
+		e.buf = appendF32LE(e.buf, x.Y)
+		e.buf = appendF32LE(e.buf, x.Heading)
+		vis := byte(0)
+		if x.Visible {
+			vis = 1
+		}
+		e.buf = append(e.buf, vis, x.RGBA.R, x.RGBA.G, x.RGBA.B, x.RGBA.A)
 		return e.buf, nil
 	case CanvasWireCmd:
 		e.buf = append(e.buf, byte(canvasOpCmd))
@@ -231,6 +248,29 @@ func canvasDecodePayloadFast(payload []byte) (any, error) {
 		}
 		rgba := color.RGBA{payload[i], payload[i+1], payload[i+2], payload[i+3]}
 		return CanvasWireSetFG{RGBA: rgba}, nil
+	case canvasOpTurtle:
+		// x, y, heading (3 floats = 12 bytes) + visible (1 byte) + rgba (4 bytes) = 17 bytes
+		if len(payload) < i+17 {
+			return nil, io.ErrUnexpectedEOF
+		}
+		var err error
+		var x, y, h float32
+		x, i, err = readF32LE(payload, i)
+		if err != nil {
+			return nil, err
+		}
+		y, i, err = readF32LE(payload, i)
+		if err != nil {
+			return nil, err
+		}
+		h, i, err = readF32LE(payload, i)
+		if err != nil {
+			return nil, err
+		}
+		vis := payload[i] == 1
+		i++
+		rgba := color.RGBA{payload[i], payload[i+1], payload[i+2], payload[i+3]}
+		return CanvasWireTurtle{X: x, Y: y, Heading: h, Visible: vis, RGBA: rgba}, nil
 	case canvasOpCmd:
 		var err error
 		var oplen uint16
@@ -330,6 +370,28 @@ func canvasDecodeSubpayload(sub []byte) (any, error) {
 		}
 		rgba := color.RGBA{sub[i], sub[i+1], sub[i+2], sub[i+3]}
 		return CanvasWireSetFG{RGBA: rgba}, nil
+	case canvasOpTurtle:
+		if len(sub) < i+17 {
+			return nil, io.ErrUnexpectedEOF
+		}
+		var err error
+		var x, y, h float32
+		x, i, err = readF32LE(sub, i)
+		if err != nil {
+			return nil, err
+		}
+		y, i, err = readF32LE(sub, i)
+		if err != nil {
+			return nil, err
+		}
+		h, i, err = readF32LE(sub, i)
+		if err != nil {
+			return nil, err
+		}
+		vis := sub[i] == 1
+		i++
+		rgba := color.RGBA{sub[i], sub[i+1], sub[i+2], sub[i+3]}
+		return CanvasWireTurtle{X: x, Y: y, Heading: h, Visible: vis, RGBA: rgba}, nil
 	case canvasOpCmd:
 		var err error
 		var oplen uint16

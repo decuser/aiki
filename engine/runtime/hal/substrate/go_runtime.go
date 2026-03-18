@@ -88,8 +88,8 @@ func (g *GoRuntime) Execute(name string, args []value.Value, ctx *hal.EvalContex
 
 // HasBuiltin checks if a name is visible at the given scope.
 func (g *GoRuntime) HasBuiltin(name string, scope value.Scope) bool {
-	// export and import are available in all scopes (they're language primitives)
-	if name == "export" || name == "import" {
+	// export, import, and use are available in all scopes (they're language primitives)
+	if name == "export" || name == "import" || name == "use" {
 		g.mu.RLock()
 		_, ok := g.registry["_"+name]
 		g.mu.RUnlock()
@@ -111,8 +111,8 @@ func (g *GoRuntime) HasBuiltin(name string, scope value.Scope) bool {
 
 // GetBuiltin returns a callable for the named builtin at the given scope.
 func (g *GoRuntime) GetBuiltin(name string, scope value.Scope) (value.Callable, bool) {
-	// export and import are available in all scopes (they're language primitives)
-	if name == "export" || name == "import" {
+	// export, import, and use are available in all scopes (they're language primitives)
+	if name == "export" || name == "import" || name == "use" {
 		g.mu.RLock()
 		b, ok := g.registry["_"+name]
 		g.mu.RUnlock()
@@ -139,6 +139,7 @@ func (g *GoRuntime) BuiltinNames(scope value.Scope) []string {
 
 	// Language primitives that are always available.
 	set["import"] = true
+	set["use"] = true
 	set["export"] = true
 
 	// User scope cannot access _prefixed primitives directly.

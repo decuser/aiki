@@ -1,0 +1,149 @@
+turtle/simple - Logo-style turtle graphics
+
+A simple turtle graphics module with implicit state. Call new(dim) to start drawing.
+
+Logical space is 200x200 by default (range -100 to +100). The dim parameter sets pixel window size; logical coordinates scale accordingly.
+
+===
+
+new(dim)
+
+Create a dim x dim pixel canvas and turtle at center. The window appears when you call this. If you close the window, call new() again to start a fresh session.
+
+Example:
+    use("turtle/simple")
+    new(800)
+    forward(50)
+
+===
+
+logical(size)
+
+Set logical space to size x size. Rescales coordinate mapping. Default is 200.
+
+Example:
+    logical(100)  # range now -50 to +50
+
+===
+
+forward(distance)
+
+Move the turtle forward by the given distance in logical units. Draws a line if the pen is down. Position is clamped to bounds.
+
+Example:
+    forward(50)
+
+===
+
+backward(distance)
+
+Move the turtle backward by the given distance. Equivalent to forward(-distance).
+
+Example:
+    backward(25)
+
+===
+
+left(angle)
+
+Turn the turtle left by the given angle in degrees.
+
+Example:
+    left(90)
+
+===
+
+right(angle)
+
+Turn the turtle right by the given angle in degrees.
+
+Example:
+    right(45)
+
+===
+
+pen_up()
+
+Lift the pen. Subsequent movements will not draw lines.
+
+Example:
+    pen_up()
+    forward(50)
+    pen_down()
+
+===
+
+pen_down()
+
+Lower the pen. Subsequent movements will draw lines.
+
+===
+
+pen_size(n)
+
+Set pen width to n logical units. Minimum 1 pixel.
+
+Example:
+    pen_size(2)
+    forward(50)
+
+===
+
+set_color(color)
+
+Set the pen and turtle color. Use a symbol like :white, :red, :green, :blue, :cyan, :yellow, :magenta.
+
+Example:
+    set_color(:red)
+    forward(50)
+
+===
+
+show_turtle()
+
+Show the turtle marker.
+
+===
+
+hide_turtle()
+
+Hide the turtle marker.
+
+===
+
+home()
+
+Move to center without drawing, reset heading to 0.
+
+===
+
+clear()
+
+Clear the canvas. Does not move the turtle.
+
+===
+
+position()
+
+Return the turtle's current position as [@point, x, y] in logical coordinates. Center is [0, 0].
+
+===
+
+heading()
+
+Return the turtle's current heading in degrees. 0 = north, 90 = east, 180 = south, 270 = west.
+
+===
+
+Example: Draw a square
+
+    use("turtle/simple")
+    new(800)
+    
+    forward(50)
+    right(90)
+    forward(50)
+    right(90)
+    forward(50)
+    right(90)
+    forward(50)
