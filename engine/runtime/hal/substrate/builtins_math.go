@@ -48,6 +48,21 @@ func halCeil(args []value.Value, ctx *hal.EvalContext) value.Value {
 	return &value.Number{Val: new(big.Rat).SetInt(q)}
 }
 
+func halTruncate(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 1 {
+		return value.NewFault("truncate: want 1 argument, got %d", len(args))
+	}
+	n, ok := args[0].(*value.Number)
+	if !ok {
+		return value.NewFault("truncate: expected number")
+	}
+	// Truncate toward zero: just integer division
+	num := n.Val.Num()
+	denom := n.Val.Denom()
+	q := new(big.Int).Quo(num, denom)
+	return &value.Number{Val: new(big.Rat).SetInt(q)}
+}
+
 func halModulo(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 2 {
 		return value.NewFault("modulo: want 2 arguments, got %d", len(args))

@@ -137,6 +137,10 @@ let abs = (x) {
 	}
 }
 
+let truncate = (x) {
+	_truncate(x)
+}
+
 let help = (...args) {
 	if empty(args) {
 		_help("")

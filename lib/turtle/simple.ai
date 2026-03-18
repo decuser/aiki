@@ -160,7 +160,7 @@ let clear = () {
 
 # queries - return data
 let position = () {
-	[@point, truncate(_t[2]), truncate(_t[3])]
+	[@point, _truncate(_t[2]), _truncate(_t[3])]
 }
 
 let heading = () {

@@ -77,6 +77,10 @@
 @template "abs(n)"
 @help "Returns absolute value of number."
 
+@func truncate
+@template "truncate(n)"
+@help "Truncate number toward zero, returning integer part."
+
 # Type operations
 @func type
 @template "type(val)"

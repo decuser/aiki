@@ -26,6 +26,7 @@ func (g *GoRuntime) registerHAL() {
 	// Math
 	g.register("_floor", halFloor)
 	g.register("_ceil", halCeil)
+	g.register("_truncate", halTruncate)
 	g.register("_modulo", halModulo)
 	g.register("_sqrt_inexact", halSqrt)
 	g.register("_cos_inexact", halCos)
