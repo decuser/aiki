@@ -66,6 +66,8 @@ func (p *printer) printAssign(node *syntax.Node) {
 
 func (p *printer) printIf(node *syntax.Node) {
 	p.observe("printIf", "enter", "if_stmt")
+	defer p.observe("printIf", "exit", "if_stmt")
+
 	p.writeIndent()
 	p.write("if ")
 
@@ -115,12 +117,13 @@ func (p *printer) printIf(node *syntax.Node) {
 	line := nodeStartLine(node)
 	p.emitEOLComment(line)
 	p.newline()
-	p.observe("printIf", "exit", "if_stmt")
 }
 
 // printIfNoIndent prints an if statement without leading indent (for else if chains)
 func (p *printer) printIfNoIndent(node *syntax.Node) {
 	p.observe("printIfNoIndent", "enter", "if_stmt")
+	defer p.observe("printIfNoIndent", "exit", "if_stmt")
+
 	p.write("if ")
 
 	var cond *syntax.Node
@@ -167,7 +170,6 @@ func (p *printer) printIfNoIndent(node *syntax.Node) {
 	line := nodeStartLine(node)
 	p.emitEOLComment(line)
 	p.newline()
-	p.observe("printIfNoIndent", "exit", "if_stmt")
 }
 
 func (p *printer) printWhile(node *syntax.Node) {

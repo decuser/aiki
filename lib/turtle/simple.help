@@ -1,8 +1,8 @@
 # turtle/simple - Logo-style turtle graphics with implicit state
 
 @func new
-@template "new(dim)"
-@help "Create dim x dim pixel canvas. Logical space is 200x200 by default."
+@template "new() | new(dim)"
+@help "Create or reset the canvas. new(dim) creates a dim x dim pixel canvas and remembers that size. new() reuses the current size."
 
 @func logical
 @template "logical(size)"

@@ -35,6 +35,7 @@ func halCanvasAlive(args []value.Value, ctx *hal.EvalContext) value.Value {
 	}
 	cvs, ok := args[0].(*value.Canvas)
 	if !ok {
+		// Not a canvas, so not an alive canvas
 		return value.FALSE
 	}
 	// Check if Done channel is closed
@@ -67,11 +68,17 @@ func halSetTurtle(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if !ok {
 		return value.NewFault("set_turtle: heading must be number")
 	}
-	visible := args[4] == value.TRUE
-	clr := color.RGBA{255, 255, 255, 255} // default white
-	if sym, ok := args[5].(*value.Symbol); ok {
-		clr = symbolToColor(sym.Val)
+	// visible must be boolean
+	if args[4] != value.TRUE && args[4] != value.FALSE {
+		return value.NewFault("set_turtle: visible must be boolean")
 	}
+	visible := args[4] == value.TRUE
+	// color must be symbol
+	sym, ok := args[5].(*value.Symbol)
+	if !ok {
+		return value.NewFault("set_turtle: color must be symbol")
+	}
+	clr := symbolToColor(sym.Val)
 
 	xf, _ := x.Val.Float64()
 	yf, _ := y.Val.Float64()

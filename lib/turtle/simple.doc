@@ -6,9 +6,9 @@ Logical space is 200x200 by default (range -100 to +100). The dim parameter sets
 
 ===
 
-new(dim)
+new() | new(dim)
 
-Create a dim x dim pixel canvas and turtle at center. The window appears when you call this. If you close the window, call new() again to start a fresh session.
+Create or reset the canvas session and place the turtle at center. new(dim) creates a dim x dim pixel canvas and remembers that size. new() reuses the current size. The window appears when you call this. If you close the window, call new() again to start a fresh session.
 
 Example:
     use("turtle/simple")

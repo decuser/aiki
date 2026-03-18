@@ -52,12 +52,18 @@ let _clamp = (v, lo, hi) {
 # update turtle overlay
 let _update_turtle = () {
 	_set_turtle(_cvs, _screen_x(_t[2]), _screen_y(_t[3]), _t[4], _visible, _t[6])
+	let _ = 0
 }
 
 # session management
-let new = (dim) {
-	_dim = dim
-	_center = dim / 2
+let new = (...args) {
+	if length(args) > 1 {
+		return [@error, :arity, "new expects 0 or 1 arguments"]
+	}
+	if equal(length(args), 1) {
+		_dim = first(args)
+	}
+	_center = _dim / 2
 	_scale = _dim / _logical
 	_bound = _logical / 2
 	# if no canvas or canvas is dead, create fresh
@@ -93,7 +99,7 @@ let forward = (d) {
 	if _t[5] {
 		_line(_cvs, _screen_x(tx0), _screen_y(ty0), _screen_x(tx1), _screen_y(ty1), _t[6])
 	} else {
-		true
+		let _ = 0
 	}
 	_t = [@turtle, _t[0], _t[1], tx1, ty1, _t[4], _t[5], _t[6]]
 	_update_turtle()
@@ -116,10 +122,12 @@ let right = (angle) {
 # pen commands
 let pen_up = () {
 	_t = [@turtle, _t[0], _t[1], _t[2], _t[3], _t[4], false, _t[6]]
+	let _ = 0
 }
 
 let pen_down = () {
 	_t = [@turtle, _t[0], _t[1], _t[2], _t[3], _t[4], true, _t[6]]
+	let _ = 0
 }
 
 let pen_size = (n) {
@@ -129,6 +137,7 @@ let pen_size = (n) {
 	} else {
 		_pen_size(_cvs, pixels)
 	}
+	let _ = 0
 }
 
 let set_color = (c) {
@@ -156,6 +165,7 @@ let home = () {
 
 let clear = () {
 	_clear(_cvs)
+	let _ = 0
 }
 
 # queries - return data
