@@ -36,9 +36,13 @@
 @template "pen_size(n)"
 @help "Set pen width to n logical units."
 
-@func set_color
-@template "set_color(color)"
-@help "Set pen and turtle color."
+@func pencolor
+@template "pencolor(color)"
+@help "Set pen color. Accepts symbol (:red, :blue, etc.) or [r, g, b] list."
+
+@func background
+@template "background(color)"
+@help "Set canvas background color. Accepts symbol or [r, g, b] list."
 
 @func show_turtle
 @template "show_turtle()"
