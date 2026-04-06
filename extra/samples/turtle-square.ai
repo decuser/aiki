@@ -6,10 +6,12 @@ background(:white)
 pencolor(:black)
 
 let step = () {
-    forward(50)
-    right(90)
+	forward(50)
+	right(90)
 }
 
-step(); step(); step(); step()
+step()
+step()
+step()
+step()
 sleep(1000)
-

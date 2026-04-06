@@ -1,6 +1,8 @@
 package lint
 
 import (
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -36,7 +38,12 @@ func LintSource(g *grammar.Grammar, file string, source string, lintScope value.
 
 	// Build a set of all HAL builtins that exist in prelude scope.
 	// Linting should be grounded only in what the runtime exposes for the active scope.
-	c := &checker{scopes: []scopeFrame{makeGlobals(lintScope)}, diags: nil}
+	c := &checker{
+		scopes:      []scopeFrame{makeGlobals(lintScope)},
+		diags:       nil,
+		grammar:     g,
+		currentFile: file,
+	}
 	c.collectTopLevel(node)
 	c.check(node)
 	return c.diags, nil
@@ -45,8 +52,10 @@ func LintSource(g *grammar.Grammar, file string, source string, lintScope value.
 type scopeFrame map[string]bool
 
 type checker struct {
-	scopes []scopeFrame
-	diags  []Diagnostic
+	scopes      []scopeFrame
+	diags       []Diagnostic
+	grammar     *grammar.Grammar
+	currentFile string
 }
 
 var snakeRe = regexp.MustCompile(`^_?[a-z][a-z0-9_]*$`)
@@ -275,6 +284,17 @@ func (c *checker) checkPostfix(node *syntax.Node) {
 		}
 	}
 
+	// Handle use("module") - bind all exports from module
+	if nameTok != nil && nameTok.Value == "use" {
+		for _, ch := range node.Children[1:] {
+			if ch.Type != "call" {
+				continue
+			}
+			c.bindUseCall(ch)
+			break
+		}
+	}
+
 	for _, ch := range node.Children {
 		c.check(ch)
 	}
@@ -300,6 +320,184 @@ func (c *checker) bindImportCall(call *syntax.Node) {
 	}
 }
 
+// bindUseCall handles use("module") by loading module exports into scope.
+func (c *checker) bindUseCall(call *syntax.Node) {
+	if call == nil {
+		return
+	}
+	// call = "(" [ expr { "," expr } ] ")"
+	// First argument should be a string literal with the module path.
+	for _, ch := range call.Children {
+		if ch.Type != "expr" {
+			continue
+		}
+		// Find the STRING token
+		strTok := findFirstByType(ch, "STRING")
+		if strTok == nil {
+			continue
+		}
+		// Extract module path from string literal (remove quotes)
+		modulePath := strings.Trim(strTok.Value, "\"")
+		if modulePath == "" {
+			continue
+		}
+		// Resolve and load module exports
+		exports := c.resolveModuleExports(modulePath)
+		for _, name := range exports {
+			c.define(name)
+		}
+		return // use() takes only one argument
+	}
+}
+
+// resolveModuleExports finds a module file and extracts its exported names.
+func (c *checker) resolveModuleExports(moduleName string) []string {
+	// Try to find the module file using the same resolution as runtime
+	modulePath := c.resolveModulePath(moduleName)
+	if modulePath == "" {
+		return nil
+	}
+
+	// Read and parse the module to find export() call
+	data, err := os.ReadFile(modulePath)
+	if err != nil {
+		return nil
+	}
+
+	return extractExportsFromSource(string(data), c.grammar)
+}
+
+// resolveModulePath finds the .ai file for a module name.
+// Mirrors the runtime resolution logic.
+func (c *checker) resolveModulePath(name string) string {
+	// Try relative to current file
+	if c.currentFile != "" && c.currentFile != "<unknown>" {
+		dir := filepath.Dir(c.currentFile)
+		candidate := filepath.Join(dir, name+".ai")
+		if _, err := os.Stat(candidate); err == nil {
+			return candidate
+		}
+	}
+
+	// Try as-is with .ai extension
+	candidate := name + ".ai"
+	if _, err := os.Stat(candidate); err == nil {
+		return candidate
+	}
+
+	// Try lib/ directory relative to cwd
+	libCandidate := filepath.Join("lib", name+".ai")
+	if _, err := os.Stat(libCandidate); err == nil {
+		return libCandidate
+	}
+
+	// Try lib/ directory relative to executable
+	if exePath, err := os.Executable(); err == nil {
+		exeDir := filepath.Dir(exePath)
+		libCandidate := filepath.Join(exeDir, "lib", name+".ai")
+		if _, err := os.Stat(libCandidate); err == nil {
+			return libCandidate
+		}
+	}
+
+	// Try without extension
+	if _, err := os.Stat(name); err == nil {
+		return name
+	}
+
+	return ""
+}
+
+// extractExportsFromSource parses source and finds export(:name, ...) symbols.
+func extractExportsFromSource(source string, g *grammar.Grammar) []string {
+	if g == nil {
+		// Fallback: simple text extraction
+		return extractExportsSimple(source)
+	}
+
+	// Parse the module
+	lx := syntax.NewLexer(g, "<module>", source, nil)
+	toks, err := lx.Tokenize()
+	if err != nil {
+		return extractExportsSimple(source)
+	}
+	p := syntax.NewParser(g, toks, source, nil)
+	node, err := p.Parse()
+	if err != nil {
+		return extractExportsSimple(source)
+	}
+
+	// Find export(...) call and extract symbols
+	return findExportSymbols(node)
+}
+
+// findExportSymbols walks the AST to find export() calls and extract symbol names.
+func findExportSymbols(node *syntax.Node) []string {
+	if node == nil {
+		return nil
+	}
+
+	var exports []string
+
+	// Look for postfix_expr with "export" as the function name
+	if node.Type == "postfix_expr" && len(node.Children) > 0 {
+		prim := node.Children[0]
+		nameTok := prim.ChildByType("NAME")
+		if nameTok != nil && nameTok.Value == "export" {
+			// Found export call - extract symbols from call arguments
+			for _, ch := range node.Children[1:] {
+				if ch.Type != "call" {
+					continue
+				}
+				for _, sym := range findAllByType(ch, "SYMBOL") {
+					name := strings.TrimPrefix(sym.Value, ":")
+					if name != "" && isNameToken(name) {
+						exports = append(exports, name)
+					}
+				}
+			}
+			return exports
+		}
+	}
+
+	// Recurse into children
+	for _, ch := range node.Children {
+		exports = append(exports, findExportSymbols(ch)...)
+	}
+	return exports
+}
+
+// extractExportsSimple is a fallback text-based extraction.
+func extractExportsSimple(source string) []string {
+	var exports []string
+	// Look for export(:name, :name2, ...)
+	lines := strings.Split(source, "\n")
+	for _, line := range lines {
+		trim := strings.TrimSpace(line)
+		if !strings.HasPrefix(trim, "export(") {
+			continue
+		}
+		// Extract symbols from the line
+		start := strings.Index(trim, "(")
+		end := strings.LastIndex(trim, ")")
+		if start < 0 || end < 0 || end <= start {
+			continue
+		}
+		args := trim[start+1 : end]
+		parts := strings.Split(args, ",")
+		for _, part := range parts {
+			part = strings.TrimSpace(part)
+			if strings.HasPrefix(part, ":") {
+				name := strings.TrimPrefix(part, ":")
+				if isNameToken(name) {
+					exports = append(exports, name)
+				}
+			}
+		}
+	}
+	return exports
+}
+
 func findAllByType(n *syntax.Node, typ string) []*syntax.Node {
 	if n == nil {
 		return nil
@@ -312,6 +510,21 @@ func findAllByType(n *syntax.Node, typ string) []*syntax.Node {
 		out = append(out, findAllByType(ch, typ)...)
 	}
 	return out
+}
+
+func findFirstByType(n *syntax.Node, typ string) *syntax.Node {
+	if n == nil {
+		return nil
+	}
+	if n.Type == typ {
+		return n
+	}
+	for _, ch := range n.Children {
+		if found := findFirstByType(ch, typ); found != nil {
+			return found
+		}
+	}
+	return nil
 }
 
 func (c *checker) checkLet(node *syntax.Node) {
