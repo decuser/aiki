@@ -1,0 +1,15 @@
+import("time", :sleep)
+use("turtle/simple")
+
+new(800)
+background(:white)
+pencolor(:black)
+
+let step = () {
+    forward(50)
+    right(90)
+}
+
+step(); step(); step(); step()
+sleep(1000)
+

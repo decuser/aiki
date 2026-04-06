@@ -1,0 +1,14 @@
+import("time", :sleep)
+use("turtle/simple")
+
+new(800)
+background(:white)
+pencolor(:black)
+
+let i = 0
+while i < 5 {
+    forward(100)
+    right(144)
+    i = i + 1
+}
+sleep(3000)
