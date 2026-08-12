@@ -37,6 +37,15 @@ func halApply(args []value.Value, ctx *hal.EvalContext) value.Value {
 	}
 }
 
+// funcName returns a function's name for diagnostics, or a placeholder when
+// the function is anonymous.
+func funcName(fn *value.Function) string {
+	if fn.Name != "" {
+		return fn.Name
+	}
+	return "function"
+}
+
 // applyUserFunction calls a user-defined function with args.
 func applyUserFunction(fn *value.Function, args []value.Value, ctx *hal.EvalContext) value.Value {
 	if ctx == nil || ctx.Eval == nil {
@@ -48,14 +57,15 @@ func applyUserFunction(fn *value.Function, args []value.Value, ctx *hal.EvalCont
 		return value.NewFault("apply: invalid function environment")
 	}
 
+	// Same minimum-arity rule as ordinary function application.
+	if len(args) < len(fn.Params) {
+		return value.NewFault("%s: want %d arguments, got %d", funcName(fn), len(fn.Params), len(args))
+	}
+
 	callEnv := value.NewEnclosedEnv(fnEnv)
 
 	for i, param := range fn.Params {
-		if i < len(args) {
-			callEnv.Set(param, args[i])
-		} else {
-			callEnv.Set(param, value.EMPTY)
-		}
+		callEnv.Set(param, args[i])
 	}
 
 	if fn.Rest != "" {
@@ -410,6 +420,11 @@ func applyUserFunctionIsolated(fn *value.Function, args []value.Value, ctx *hal.
 		return value.NewFault("spawn: could not find prelude environment")
 	}
 
+	// Same minimum-arity rule as ordinary function application.
+	if len(args) < len(fn.Params) {
+		return value.NewFault("%s: want %d arguments, got %d", funcName(fn), len(fn.Params), len(args))
+	}
+
 	// Fresh env enclosed by prelude - sees prelude bindings but not outer user scope
 	callEnv := value.NewEnclosedEnv(preludeEnv)
 
@@ -424,13 +439,9 @@ func applyUserFunctionIsolated(fn *value.Function, args []value.Value, ctx *hal.
 		}
 	}
 
-	// Bind parameters
+	// Bind parameters, under the same minimum-arity rule as ordinary calls.
 	for i, param := range fn.Params {
-		if i < len(args) {
-			callEnv.Set(param, args[i])
-		} else {
-			callEnv.Set(param, value.EMPTY)
-		}
+		callEnv.Set(param, args[i])
 	}
 
 	// Bind rest parameter

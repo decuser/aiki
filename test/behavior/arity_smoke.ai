@@ -1,0 +1,36 @@
+# apply and spawn enforce the same minimum-arity rule as ordinary calls:
+# a call supplying fewer than the ordinary parameters faults.
+let two = (a, b) {
+	return [a, b]
+}
+
+# Exact and surplus arguments behave as in ordinary application.
+println(inspect(apply(two, [1, 2])))
+println(inspect(apply(two, [1, 2, 3])))
+
+# A rest parameter binds [] when no arguments remain.
+let rest_fn = (a, ...r) {
+	return [a, r]
+}
+
+println(inspect(apply(rest_fn, [1])))
+println(inspect(apply(rest_fn, [1, 2, 3])))
+
+# Spawned functions follow the same rules.
+let send_first = (a, ch) {
+	send(ch, a)
+}
+
+let c1 = channel()
+spawn(send_first, 7, c1)
+println(to_str(recv(c1)))
+
+let send_rest = (a, ch, ...r) {
+	send(ch, r)
+}
+
+let c2 = channel()
+spawn(send_rest, 1, c2)
+println(inspect(recv(c2)))
+
+println("ARITY_SMOKE_DONE")
