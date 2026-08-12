@@ -1,0 +1,21 @@
+# Match positions are rune indexes, so a position returned by find may be used
+# directly with string indexing and with the string module. Byte offsets and
+# rune indexes coincide on ASCII, so this test uses non-ASCII text.
+let regex = import("regex/ffi")
+let string = import("string")
+
+let s = "Hello, 世界 123 end"
+
+println(inspect(regex.find(s, "[0-9]+")))
+
+match regex.find(s, "[0-9]+") {
+	[@match, start, end, text] {
+		println(inspect(s[start]))
+		println(inspect(string.substring(s, start, end)))
+		println(inspect(equal(string.substring(s, start, end), text)))
+	}
+}
+
+println(inspect(regex.find_all("a1 世2 界3", "[0-9]")))
+
+println("REGEX_RUNE_POSITIONS_SMOKE_DONE")

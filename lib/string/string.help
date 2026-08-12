@@ -36,14 +36,14 @@
 @template "replace(s, old, new)"
 @help "Replaces all occurrences of old with new."
 
-@func slice
-@template "slice(s, start, end)"
+@func substring
+@template "substring(s, start, end)"
 @help "Returns substring from start to end-1."
 
-@func pad_left
-@template "pad_left(s, width, char)"
+@func pad_start
+@template "pad_start(s, len, char)"
 @help "Pads string on left to given width."
 
-@func pad_right
-@template "pad_right(s, width, char)"
+@func pad_end
+@template "pad_end(s, len, char)"
 @help "Pads string on right to given width."

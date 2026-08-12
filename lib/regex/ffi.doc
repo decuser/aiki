@@ -1,45 +1,53 @@
 ===
 matches
-Returns true if the regular expression pattern matches the entire string.
+Returns true if the pattern matches anywhere in the string.
+The pattern need not match the entire string unless its expression requires it.
 
-matches(pattern, s)
+matches(s, pattern)
 
-matches("[0-9]+", "123")      # true
-matches("[0-9]+", "abc123")   # false
+matches("123", "[0-9]+")         # true
+matches("abc123", "[0-9]+")      # true
+matches("abc", "[0-9]+")         # false
+matches("hello world", "^hello") # true
 ===
 find
-Returns the first substring matching the pattern.
-Returns [@error, :not_found] if no match.
+Returns the first match as a shaped value [@match, start, end, text].
+start and end are rune indexes into s, so they may be used directly with
+string indexing and with the string module.
+Returns [@error, :regex, "no match"] if the pattern does not match.
 
-find(pattern, s)
+find(s, pattern)
 
-find("[0-9]+", "abc123def")    # "123"
-find("[0-9]+", "abcdef")       # [@error, :not_found]
+find("abc123def", "[0-9]+")    # [@match, 3, 6, "123"]
+find("abcdef", "[0-9]+")       # [@error, :regex, "no match"]
 ===
 find_all
-Returns a list of all substrings matching the pattern.
+Returns a list of all non-overlapping matches, each as [@match, start, end, text].
+Returns [] if the pattern does not match.
 
-find_all(pattern, s)
+find_all(s, pattern)
 
-find_all("[0-9]+", "a1b2c3")    # ["1", "2", "3"]
+find_all("a1b2c3", "[0-9]+")   # [[@match, 1, 2, "1"], [@match, 3, 4, "2"], [@match, 5, 6, "3"]]
 ===
 replace
-Replaces all occurrences of the pattern with the replacement string.
+Replaces all matches of the pattern with the replacement string.
+Capture groups may be referenced in the replacement as $1, $2, and so forth.
 
-replace(pattern, s, repl)
+replace(s, pattern, replacement)
 
-replace("[0-9]", "a1b2c3", "X")    # "aXbXcX"
+replace("a1b2c3", "[0-9]", "X")    # "aXbXcX"
 ===
 replace_first
-Replaces only the first occurrence of the pattern.
+Replaces only the first match of the pattern.
+The replacement is inserted literally; capture references are not expanded.
 
-replace_first(pattern, s, repl)
+replace_first(s, pattern, replacement)
 
-replace_first("[0-9]", "a1b2c3", "X")    # "aXb2c3"
+replace_first("a1b2c3", "[0-9]", "X")    # "aXb2c3"
 ===
 split
-Splits the string by the pattern and returns a list of parts.
+Splits the string at matches of the pattern and returns the parts as a list.
 
-split(pattern, s)
+split(s, pattern)
 
-split(",\\s*", "a, b, c")    # ["a", "b", "c"]
+split("a, b, c", ",\\s*")    # ["a", "b", "c"]

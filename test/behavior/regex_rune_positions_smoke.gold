@@ -1,0 +1,6 @@
+OUT:[@match, 10, 13, \"123\"]\n
+OUT:'1'\n
+OUT:\"123\"\n
+OUT:true\n
+OUT:[[@match, 1, 2, \"1\"], [@match, 4, 5, \"2\"], [@match, 7, 8, \"3\"]]\n
+OUT:REGEX_RUNE_POSITIONS_SMOKE_DONE\n

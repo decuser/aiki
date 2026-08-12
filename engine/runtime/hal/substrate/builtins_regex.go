@@ -2,10 +2,19 @@ package substrate
 
 import (
 	"regexp"
+	"unicode/utf8"
 
 	"aiki/engine/runtime/hal"
 	"aiki/engine/semantics/value"
 )
+
+// runeIndex converts a byte offset into s to the corresponding rune index.
+// Go's regexp reports byte offsets; Aiki measures string positions in runes
+// (see the string module and string indexing), so positions are converted at
+// this boundary rather than exposed in the host's units.
+func runeIndex(s string, byteOffset int) int {
+	return utf8.RuneCountInString(s[:byteOffset])
+}
 
 // halRegexMatch returns true if the pattern matches the string.
 func halRegexMatch(args []value.Value, ctx *hal.EvalContext) value.Value {
@@ -57,11 +66,14 @@ func halRegexFind(args []value.Value, ctx *hal.EvalContext) value.Value {
 		return value.NewShapedError("regex", "no match")
 	}
 
+	start := runeIndex(s.Val, loc[0])
+	end := start + utf8.RuneCountInString(s.Val[loc[0]:loc[1]])
+
 	return &value.List{
 		Shape: "match",
 		Elements: []value.Value{
-			value.NewNumber(int64(loc[0]), 1),
-			value.NewNumber(int64(loc[1]), 1),
+			value.NewNumber(int64(start), 1),
+			value.NewNumber(int64(end), 1),
 			&value.String{Val: s.Val[loc[0]:loc[1]]},
 		},
 	}
@@ -92,13 +104,21 @@ func halRegexFindAll(args []value.Value, ctx *hal.EvalContext) value.Value {
 		return &value.List{Elements: []value.Value{}}
 	}
 
+	// Matches arrive in order, so rune positions accumulate in a single pass
+	// rather than recounting each prefix.
 	matches := make([]value.Value, len(locs))
+	prevByte := 0
+	prevRune := 0
 	for i, loc := range locs {
+		prevRune += utf8.RuneCountInString(s.Val[prevByte:loc[0]])
+		prevByte = loc[0]
+		start := prevRune
+		end := start + utf8.RuneCountInString(s.Val[loc[0]:loc[1]])
 		matches[i] = &value.List{
 			Shape: "match",
 			Elements: []value.Value{
-				value.NewNumber(int64(loc[0]), 1),
-				value.NewNumber(int64(loc[1]), 1),
+				value.NewNumber(int64(start), 1),
+				value.NewNumber(int64(end), 1),
 				&value.String{Val: s.Val[loc[0]:loc[1]]},
 			},
 		}

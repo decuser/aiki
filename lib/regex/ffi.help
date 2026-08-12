@@ -1,25 +1,25 @@
 # regex/ffi - regular expression operations
 
 @func matches
-@template "matches(pattern, s)"
-@help "Returns true if pattern matches entire string."
+@template "matches(s, pattern)"
+@help "Returns true if pattern matches anywhere in s."
 
 @func find
-@template "find(pattern, s)"
-@help "Returns first match or [@error, :regex, msg] if not found."
+@template "find(s, pattern)"
+@help "Returns [@match, start, end, text] with rune positions, or [@error, :regex, msg]."
 
 @func find_all
-@template "find_all(pattern, s)"
-@help "Returns list of all matches."
+@template "find_all(s, pattern)"
+@help "Returns list of [@match, start, end, text], or []."
 
 @func replace
-@template "replace(pattern, s, repl)"
+@template "replace(s, pattern, replacement)"
 @help "Replaces all matches with replacement."
 
 @func replace_first
-@template "replace_first(pattern, s, repl)"
+@template "replace_first(s, pattern, replacement)"
 @help "Replaces first match with replacement."
 
 @func split
-@template "split(pattern, s)"
-@help "Splits string by pattern into list."
+@template "split(s, pattern)"
+@help "Splits s at matches of pattern into a list."
