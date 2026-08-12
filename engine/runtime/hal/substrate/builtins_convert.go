@@ -1,7 +1,7 @@
 package substrate
 
 import (
-	"fmt"
+	"math/big"
 	"strings"
 	"unicode"
 
@@ -62,10 +62,45 @@ func halToDecimal(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if !ok || !places.Val.IsInt() {
 		return value.NewFault("to_decimal: second argument must be integer")
 	}
+	if places.Val.Sign() < 0 {
+		return value.NewFault("to_decimal: places must not be negative")
+	}
+	if !places.Val.Num().IsInt64() {
+		return value.NewFault("to_decimal: places out of range")
+	}
 	p := int(places.Val.Num().Int64())
-	f, _ := n.Val.Float64()
-	format := fmt.Sprintf("%%.%df", p)
-	return &value.String{Val: fmt.Sprintf(format, f)}
+
+	// The exact rational is formatted by long division. No floating-point
+	// value appears in this path: a float64 round-trip would misreport
+	// digits for magnitudes, place counts, or denominators outside its range.
+	neg := n.Val.Sign() < 0
+	num := new(big.Int).Abs(n.Val.Num())
+	den := new(big.Int).Set(n.Val.Denom())
+
+	scale := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(p)), nil)
+	scaled := new(big.Int).Mul(num, scale)
+	quo := new(big.Int)
+	rem := new(big.Int)
+	quo.QuoRem(scaled, den, rem)
+
+	// Round half away from zero, decided on the exact remainder.
+	twice := new(big.Int).Lsh(rem, 1)
+	if twice.Cmp(den) >= 0 {
+		quo.Add(quo, big.NewInt(1))
+	}
+
+	digits := quo.String()
+	out := digits
+	if p > 0 {
+		if len(digits) <= p {
+			digits = strings.Repeat("0", p+1-len(digits)) + digits
+		}
+		out = digits[:len(digits)-p] + "." + digits[len(digits)-p:]
+	}
+	if neg {
+		out = "-" + out
+	}
+	return &value.String{Val: out}
 }
 
 // halToNumber parses a string into a number.

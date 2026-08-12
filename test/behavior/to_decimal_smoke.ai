@@ -1,0 +1,22 @@
+# to_decimal formats the exact rational by long division.
+# No floating-point value appears in the path, so digits remain correct
+# at magnitudes, place counts, and denominators outside float64's range.
+println(to_decimal(1/3, 4))
+println(to_decimal(2/3, 4))
+println(to_decimal(1/8, 3))
+println(to_decimal(0 - 1/3, 4))
+println(to_decimal(0, 3))
+println(to_decimal(7, 2))
+
+# Rounding is half away from zero, decided on the exact remainder.
+println(to_decimal(1/2, 0))
+println(to_decimal(3/2, 0))
+println(to_decimal(5/2, 0))
+
+# Beyond the range where a float64 round-trip keeps its digits.
+println(to_decimal(12345678901234567890123456789 + 1/3, 4))
+
+let math = import("math/native")
+println(to_decimal(math.sqrt(894, 8), 20))
+
+println("TO_DECIMAL_SMOKE_DONE")
