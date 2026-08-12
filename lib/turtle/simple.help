@@ -1,7 +1,7 @@
 # turtle/simple - Logo-style turtle graphics with implicit state
 
 @func new
-@template "new() | new(dim)"
+@template "new(dim)"
 @help "Create or reset the canvas. new(dim) creates a dim x dim pixel canvas and remembers that size. new() reuses the current size."
 
 @func logical

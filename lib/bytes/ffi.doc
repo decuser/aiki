@@ -1,4 +1,3 @@
-===
 str_to_bytes
 Converts a string to a list of byte values (integers 0-255).
 Each character is converted to its UTF-8 byte representation.

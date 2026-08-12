@@ -1,4 +1,3 @@
-===
 canvas
 Creates a new canvas window with the specified dimensions.
 Returns a canvas handle for use with other drawing functions.

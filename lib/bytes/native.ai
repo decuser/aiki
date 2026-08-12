@@ -45,11 +45,11 @@ let str_to_bytes = (s) {
 }
 
 # Convert bytes to string (UTF-8 decoding)
-let bytes_to_str = (b) {
-	if not equal(shape(b), :bytes) {
+let bytes_to_str = (bytes) {
+	if not equal(shape(bytes), :bytes) {
 		return [@error, :bytes, "expected @bytes shape"]
 	}
-	_bytes_to_str_pure(b)
+	_bytes_to_str_pure(bytes)
 }
 
 # Create bytes from list of integers
@@ -75,30 +75,30 @@ let bytes_new = (list) {
 }
 
 # Get byte at index (returns number 0-255)
-let bytes_get = (b, i) {
-	if not equal(shape(b), :bytes) {
+let bytes_get = (bytes, i) {
+	if not equal(shape(bytes), :bytes) {
 		return [@error, :bytes, "expected @bytes shape"]
 	}
-	b[i]
+	bytes[i]
 }
 
 # Get length of bytes
-let bytes_length = (b) {
-	if not equal(shape(b), :bytes) {
+let bytes_length = (bytes) {
+	if not equal(shape(bytes), :bytes) {
 		return [@error, :bytes, "expected @bytes shape"]
 	}
-	length(b)
+	length(bytes)
 }
 
 # Slice bytes from start to end (exclusive)
-let bytes_slice = (b, start, end) {
-	if not equal(shape(b), :bytes) {
+let bytes_slice = (bytes, start, end) {
+	if not equal(shape(bytes), :bytes) {
 		return [@error, :bytes, "expected @bytes shape"]
 	}
 	let result = []
 	let i = start
 	while i < end {
-		result = append(result, b[i])
+		result = append(result, bytes[i])
 		i = i + 1
 	}
 	return _make_bytes(result)

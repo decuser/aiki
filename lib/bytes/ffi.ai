@@ -9,8 +9,8 @@ let str_to_bytes = (s) {
 }
 
 # Convert bytes to string (UTF-8 decoding)
-let bytes_to_str = (b) {
-	_bytes_to_str(b)
+let bytes_to_str = (bytes) {
+	_bytes_to_str(bytes)
 }
 
 # Create bytes from list of integers (0-255)
@@ -19,18 +19,18 @@ let bytes_new = (list) {
 }
 
 # Get byte at index (returns number 0-255)
-let bytes_get = (b, i) {
-	_bytes_get(b, i)
+let bytes_get = (bytes, i) {
+	_bytes_get(bytes, i)
 }
 
 # Get length of bytes
-let bytes_length = (b) {
-	_bytes_length(b)
+let bytes_length = (bytes) {
+	_bytes_length(bytes)
 }
 
 # Slice bytes from start to end (exclusive)
-let bytes_slice = (b, start, end) {
-	_bytes_slice(b, start, end)
+let bytes_slice = (bytes, start, end) {
+	_bytes_slice(bytes, start, end)
 }
 
 export(:str_to_bytes, :bytes_to_str, :bytes_new, :bytes_get, :bytes_length, :bytes_slice)

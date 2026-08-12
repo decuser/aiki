@@ -10,10 +10,10 @@ package "turtle"
 # turtle(cvs) -> [@turtle, cvs, cx, cy, tx, ty, heading, pen, color]
 # Shape stored separately, Elements = [cvs, cx, cy, tx, ty, heading, pen, color]
 # indices:                              0    1   2   3   4     5       6    7
-let turtle = (cvs) {
-	let w = _canvas_width(cvs)
-	let h = _canvas_height(cvs)
-	[@turtle, cvs, w / 2, h / 2, 0, 0, 0, true, :white]
+let turtle = (canvas) {
+	let w = _canvas_width(canvas)
+	let h = _canvas_height(canvas)
+	[@turtle, canvas, w / 2, h / 2, 0, 0, 0, true, :white]
 }
 
 # internal accessors (shape excluded from indexing)
@@ -71,12 +71,12 @@ let heading = (t) {
 }
 
 # movement
-let forward = (t, d) {
+let forward = (t, distance) {
 	# heading 0 = north, clockwise positive
 	# north means dy positive, so: dx = sin(h), dy = cos(h)
 	let rad = _heading(t) * _deg_to_rad
-	let dx = d * _sin_inexact(rad)
-	let dy = d * _cos_inexact(rad)
+	let dx = distance * _sin_inexact(rad)
+	let dy = distance * _cos_inexact(rad)
 	let tx0 = _tx(t)
 	let ty0 = _ty(t)
 	let tx1 = tx0 + dx
@@ -89,8 +89,8 @@ let forward = (t, d) {
 	[@turtle, _cvs(t), _cx(t), _cy(t), tx1, ty1, _heading(t), _pen(t), _color(t)]
 }
 
-let backward = (t, d) {
-	forward(t, 0 - d)
+let backward = (t, distance) {
+	forward(t, 0 - distance)
 }
 
 let left = (t, angle) {
@@ -109,8 +109,8 @@ let pen_down = (t) {
 	[@turtle, _cvs(t), _cx(t), _cy(t), _tx(t), _ty(t), _heading(t), true, _color(t)]
 }
 
-let set_color = (t, c) {
-	[@turtle, _cvs(t), _cx(t), _cy(t), _tx(t), _ty(t), _heading(t), _pen(t), c]
+let set_color = (t, color) {
+	[@turtle, _cvs(t), _cx(t), _cy(t), _tx(t), _ty(t), _heading(t), _pen(t), color]
 }
 
 let home = (t) {

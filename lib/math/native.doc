@@ -1,4 +1,3 @@
-===
 sin
 Returns the sine of x using Taylor series expansion.
 The terms parameter controls precision (more terms = more accuracy).

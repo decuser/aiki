@@ -88,10 +88,10 @@ let logical = (size) {
 }
 
 # movement commands
-let forward = (d) {
+let forward = (distance) {
 	let rad = _t[4] * _deg_to_rad
-	let dx = d * _sin_inexact(rad)
-	let dy = d * _cos_inexact(rad)
+	let dx = distance * _sin_inexact(rad)
+	let dy = distance * _cos_inexact(rad)
 	let tx0 = _t[2]
 	let ty0 = _t[3]
 	let tx1 = _clamp(tx0 + dx, 0 - _bound, _bound)
@@ -105,8 +105,8 @@ let forward = (d) {
 	_update_turtle()
 }
 
-let backward = (d) {
-	forward(0 - d)
+let backward = (distance) {
+	forward(0 - distance)
 }
 
 let left = (angle) {
@@ -140,13 +140,13 @@ let pen_size = (n) {
 	let _ = 0
 }
 
-let pencolor = (c) {
-	_t = [@turtle, _t[0], _t[1], _t[2], _t[3], _t[4], _t[5], c]
+let pencolor = (color) {
+	_t = [@turtle, _t[0], _t[1], _t[2], _t[3], _t[4], _t[5], color]
 	_update_turtle()
 }
 
-let background = (c) {
-	_set_bg(_cvs, c)
+let background = (color) {
+	_set_bg(_cvs, color)
 	let _ = 0
 }
 

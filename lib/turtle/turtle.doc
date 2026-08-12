@@ -1,4 +1,3 @@
-===
 turtle
 Creates a new turtle on the given canvas. The turtle starts at
 the center of the canvas (logical position 0, 0) facing north

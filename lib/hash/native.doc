@@ -1,4 +1,3 @@
-===
 hash_code
 Returns an integer hash code for any value. Used internally by the
 hash map for bucket assignment.

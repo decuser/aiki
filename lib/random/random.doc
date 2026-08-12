@@ -1,4 +1,3 @@
-===
 seed
 Seeds the pseudo-random number generator with the given integer.
 Using the same seed produces the same sequence of pseudo-random values.

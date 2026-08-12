@@ -1,8 +1,8 @@
 package "canvas"
 
 # canvas - graphics primitives
-let canvas = (w, h) {
-	_canvas(w, h)
+let canvas = (width, height) {
+	_canvas(width, height)
 }
 
 let width = (c) {
@@ -61,8 +61,8 @@ let set_fg_rgb = (c, r, g, b) {
 	_set_fg(c, [r, g, b])
 }
 
-let pen_size = (c, s) {
-	_pen_size(c, s)
+let pen_size = (c, size) {
+	_pen_size(c, size)
 }
 
 let arc = (c, x, y, r, start, end, ...rest) {

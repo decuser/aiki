@@ -1,65 +1,95 @@
-@module file
-@summary Handle-based file I/O operations.
+open
+Opens the file named by path and returns a file handle.
+mode is :read to read an existing file, :write to create or replace one, or
+:append to write at the end of one.
+Returns [@error, :io, msg] if the file cannot be opened or mode is not one of
+the permitted symbols.
 
-@function open
-@signature open(path, mode)
-@description Opens a file with the specified mode.
-@param path String path to the file (relative to CWD).
-@param mode Symbol: :read, :write, or :append.
-@returns File handle on success, [@error, :io, msg] on failure.
-@example
+open(path, mode)
+
 let f = open("data.txt", :read)
 match f {
     [@error, _, msg] { println("Failed: " + msg) }
-    _ { println("Opened!") }
+    _ { println("Opened") }
 }
+===
+read_text
+Reads all remaining contents of file and returns them as a string.
+Returns "" at end of file, or [@error, :io, msg] on failure.
 
-@function read_text
-@signature read_text(file)
-@description Reads entire remaining file content as a string.
-@param file File handle opened with :read mode.
-@returns String content or [@error, :io, msg].
+read_text(file)
 
-@function read_bytes
-@signature read_bytes(file)
-@description Reads entire remaining file content as bytes.
-@param file File handle opened with :read mode.
-@returns Bytes value or [@error, :io, msg].
+let f = open("data.txt", :read)
+let text = read_text(f)
+close(f)
+===
+read_bytes
+Reads all remaining contents of file and returns them as a bytes value.
+Returns an empty bytes value at end of file, or [@error, :io, msg] on failure.
 
-@function read_line
-@signature read_line(file)
-@description Reads the next line from file, stripping newline.
-@param file File handle opened with :read mode.
-@returns Line string, [@end] at EOF, or [@error, :io, msg].
+read_bytes(file)
 
-@function write_text
-@signature write_text(file, s)
-@description Writes a string to file.
-@param file File handle opened with :write or :append mode.
-@param s String to write.
-@returns true on success, [@error, :io, msg] on failure.
+let f = open("data.bin", :read)
+let b = read_bytes(f)
+close(f)
+===
+read_line
+Reads and returns the next line of file as a string.
+A terminating newline is not included, and a carriage return immediately
+preceding it is also removed.
+Returns [@end] once end of file is reached, or [@error, :io, msg] on failure.
 
-@function write_bytes
-@signature write_bytes(file, b)
-@description Writes bytes to file.
-@param file File handle opened with :write or :append mode.
-@param b Bytes value to write.
-@returns true on success, [@error, :io, msg] on failure.
+read_line(file)
 
-@function close
-@signature close(file)
-@description Closes a file handle.
-@param file File handle to close.
-@returns true on success, [@error, :io, msg] on failure.
+let f = open("data.txt", :read)
+read_line(f)    # "one"
+read_line(f)    # "two"
+===
+write_text
+Writes string s to file and returns true on success.
+No newline or other character is added.
+Returns [@error, :io, msg] on failure.
 
-@function exists
-@signature exists(path)
-@description Checks if a path exists.
-@param path String path to check.
-@returns true if path exists, false otherwise.
+write_text(file, s)
 
-@function delete
-@signature delete(path)
-@description Deletes a file.
-@param path String path to file.
-@returns true on success, [@error, :io, msg] on failure.
+let f = open("out.txt", :write)
+write_text(f, "hello\n")
+close(f)
+===
+write_bytes
+Writes the contents of bytes value b to file and returns true on success.
+Returns [@error, :io, msg] on failure.
+
+write_bytes(file, b)
+
+let f = open("out.bin", :write)
+write_bytes(f, str_to_bytes("hi"))
+close(f)
+===
+close
+Closes file and returns true.
+Closing an already closed handle, or an operating-system error while closing,
+returns [@error, :io, msg].
+
+close(file)
+
+let f = open("data.txt", :read)
+close(f)    # true
+===
+exists
+Returns true if a file-system object exists at path, and false otherwise.
+Errors encountered while determining existence, including access errors, also
+produce false.
+
+exists(path)
+
+exists("data.txt")      # true
+exists("missing.txt")   # false
+===
+delete
+Removes the file-system object named by path and returns true on success.
+Returns [@error, :io, msg] if the object cannot be removed.
+
+delete(path)
+
+delete("scratch.txt")    # true
