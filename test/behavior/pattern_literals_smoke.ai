@@ -1,0 +1,58 @@
+# Literal patterns cover all five literal kinds: numbers, strings, runes,
+# symbols, and the boolean terminals true and false.
+let classify = (v) {
+	match v {
+		42 {
+			return "number"
+		}
+		"s" {
+			return "string"
+		}
+		'a' {
+			return "rune"
+		}
+		:sym {
+			return "symbol"
+		}
+		true {
+			return "true"
+		}
+		false {
+			return "false"
+		}
+		_ {
+			return "other"
+		}
+	}
+}
+
+println(classify(42))
+println(classify("s"))
+println(classify('a'))
+println(classify(:sym))
+println(classify(true))
+println(classify(false))
+println(classify(99))
+
+# Literal patterns inside a shaped list.
+let @tag [kind, flag]
+
+let describe = (t) {
+	match t {
+		[@tag, 'r', true] {
+			return "rune-true"
+		}
+		[@tag, 'r', false] {
+			return "rune-false"
+		}
+		_ {
+			return "no-match"
+		}
+	}
+}
+
+println(describe([@tag, 'r', true]))
+println(describe([@tag, 'r', false]))
+println(describe([@tag, 'x', true]))
+
+println("PATTERN_LITERALS_SMOKE_DONE")

@@ -38,7 +38,15 @@ func (e *Evaluator) matchPattern(pattern *syntax.Node, val value.Value, bindings
 		return true
 	}
 
-	if pattern.Type == "NUMBER" || pattern.Type == "STRING" || pattern.Type == "SYMBOL" {
+	if pattern.Type == "NUMBER" || pattern.Type == "STRING" ||
+		pattern.Type == "RUNE" || pattern.Type == "SYMBOL" {
+		patternVal := e.Eval(pattern, env)
+		return e.valuesEqual(patternVal, val)
+	}
+
+	// Boolean literal patterns are TERMINAL nodes carrying "true" or "false".
+	// The wildcard "_" is handled above, so only these two remain.
+	if pattern.Type == "TERMINAL" && (pattern.Value == "true" || pattern.Value == "false") {
 		patternVal := e.Eval(pattern, env)
 		return e.valuesEqual(patternVal, val)
 	}

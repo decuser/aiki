@@ -1,0 +1,11 @@
+OUT:number\n
+OUT:string\n
+OUT:rune\n
+OUT:symbol\n
+OUT:true\n
+OUT:false\n
+OUT:other\n
+OUT:rune-true\n
+OUT:rune-false\n
+OUT:no-match\n
+OUT:PATTERN_LITERALS_SMOKE_DONE\n

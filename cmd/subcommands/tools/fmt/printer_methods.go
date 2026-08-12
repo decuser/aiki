@@ -263,7 +263,7 @@ func (p *printer) printPattern(node *syntax.Node) {
 			default:
 				p.write(child.Value)
 			}
-		case "NUMBER", "STRING", "SYMBOL", "SHAPE", "NAME":
+		case "NUMBER", "STRING", "RUNE", "SYMBOL", "SHAPE", "NAME":
 			p.write(child.Value)
 		case "pattern":
 			p.printPattern(child)
@@ -277,7 +277,7 @@ func (p *printer) printPattern(node *syntax.Node) {
 func (p *printer) printPatternLiteral(node *syntax.Node) {
 	for _, child := range node.Children {
 		switch child.Type {
-		case "NUMBER", "STRING", "SYMBOL", "SHAPE":
+		case "NUMBER", "STRING", "RUNE", "SYMBOL", "SHAPE":
 			p.write(child.Value)
 		case "TERMINAL":
 			p.write(child.Value)
