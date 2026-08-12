@@ -413,6 +413,17 @@ func applyUserFunctionIsolated(fn *value.Function, args []value.Value, ctx *hal.
 	// Fresh env enclosed by prelude - sees prelude bindings but not outer user scope
 	callEnv := value.NewEnclosedEnv(preludeEnv)
 
+	// Copy the shape vocabulary visible where the function was created.
+	// A shape definition is an ordered list of field names, not a value: it
+	// carries no data out of the spawning environment, and the shape name
+	// already crosses the boundary on the value itself. Without this, a shaped
+	// argument arrives intact but field access on it faults "unknown shape".
+	if fnEnv, ok := fn.Env.(*value.Env); ok && fnEnv != nil {
+		for _, def := range fnEnv.CollectShapes() {
+			callEnv.DefineShape(def)
+		}
+	}
+
 	// Bind parameters
 	for i, param := range fn.Params {
 		if i < len(args) {

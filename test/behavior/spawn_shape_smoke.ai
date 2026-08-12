@@ -1,0 +1,49 @@
+# Shape definitions are visible to spawned functions.
+# A shaped value crosses the isolation boundary with its shape name; the
+# field vocabulary needed to read it must cross as well.
+let @pt [x, y]
+let @inner [a]
+let @outer [tag, inner]
+
+# Field access on a shaped argument.
+let field_access = (p, ch) {
+	send(ch, p.x)
+}
+
+let c1 = channel()
+spawn(field_access, [@pt, 7, 9], c1)
+println(to_str(recv(c1)))
+
+# Nested shaped values.
+let nested = (v, ch) {
+	send(ch, v.inner)
+}
+
+let c2 = channel()
+spawn(nested, [@outer, :t, [@inner, 5]], c2)
+println(inspect(recv(c2)))
+
+# A shape defined inside the spawned body shadows the outer definition.
+let shadowed = (p, ch) {
+	let @pt [y, x]
+	send(ch, p.x)
+}
+
+let c3 = channel()
+spawn(shadowed, [@pt, 7, 9], c3)
+println(to_str(recv(c3)))
+
+# Pattern matching on shaped values is unaffected.
+let matched = (p, ch) {
+	match p {
+		[@pt, a, b] {
+			send(ch, b)
+		}
+	}
+}
+
+let c4 = channel()
+spawn(matched, [@pt, 1, 2], c4)
+println(to_str(recv(c4)))
+
+println("SPAWN_SHAPE_SMOKE_DONE")

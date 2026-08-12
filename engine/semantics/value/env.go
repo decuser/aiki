@@ -207,6 +207,23 @@ func (e *Env) DefineShape(def *ShapeDef) {
 	e.shapes[def.Name] = def
 }
 
+// CollectShapes returns the shape definitions visible from this environment,
+// with nearer definitions shadowing those in enclosing environments.
+// Only shape definitions are copied; no value bindings are included.
+func (e *Env) CollectShapes() map[string]*ShapeDef {
+	if e == nil {
+		return nil
+	}
+	out := e.outer.CollectShapes()
+	if out == nil {
+		out = make(map[string]*ShapeDef, len(e.shapes))
+	}
+	for name, def := range e.shapes {
+		out[name] = def
+	}
+	return out
+}
+
 // GetShape retrieves a shape definition.
 func (e *Env) GetShape(name string) (*ShapeDef, bool) {
 	def, ok := e.shapes[name]
