@@ -17,13 +17,13 @@ let h = new()
 ===
 get
 Returns the value associated with the key in the hash map.
-Returns [@error, :not_found] if key does not exist.
+Returns [@error, :key, "key not found"] if key does not exist.
 
 get(h, key)
 
 let h = put(new(), "name", "Alice")
 get(h, "name")    # "Alice"
-get(h, "age")     # [@error, :not_found]
+get(h, "age")     # [@error, :key, "key not found"]
 ===
 put
 Returns a new hash map with the key set to the given value.

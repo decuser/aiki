@@ -10,7 +10,7 @@
 
 @func get
 @template "get(h, key)"
-@help "Returns value for key, or [@error] if not found."
+@help "Returns value for key, or [@error, :key, msg] if not found."
 
 @func put
 @template "put(h, key, val)"

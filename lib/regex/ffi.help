@@ -6,7 +6,7 @@
 
 @func find
 @template "find(pattern, s)"
-@help "Returns first match or [@error] if not found."
+@help "Returns first match or [@error, :regex, msg] if not found."
 
 @func find_all
 @template "find_all(pattern, s)"

@@ -1,18 +1,20 @@
 ===
 seed
-Seeds the pseudo-random number generator with the given value.
-Using the same seed produces the same sequence of random numbers.
+Seeds the pseudo-random number generator with the given integer.
+Using the same seed produces the same sequence of pseudo-random values.
 
 seed(n)
 
 seed(42)
 ===
 random
-Returns a pseudo-random number between 0 (inclusive) and 1 (exclusive).
-Call seed() first to initialize the generator.
+Returns a pseudo-random integer n satisfying 0 <= n < max.
+max must be a positive integer.
+Successive calls advance the generator state; seed establishes a new
+deterministic sequence.
 
-random()
+random(max)
 
 seed(42)
-random()    # 0.374540...
-random()    # 0.950714...
+random(10)    # an integer from 0 through 9
+random(10)    # an integer from 0 through 9

@@ -2,8 +2,8 @@
 
 @func seed
 @template "seed(n)"
-@help "Seeds the random number generator."
+@help "Seeds the generator from integer n."
 
 @func random
-@template "random()"
-@help "Returns a random number between 0 and 1."
+@template "random(max)"
+@help "Returns a random integer n with 0 <= n < max."

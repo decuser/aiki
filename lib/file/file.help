@@ -14,7 +14,7 @@
 
 @func read_line
 @template "read_line(file)"
-@help "Reads next line. Returns string, [@end] at EOF, or [@error]."
+@help "Reads next line. Returns string, [@end] at EOF, or [@error, :io, msg]."
 
 @func write_text
 @template "write_text(file, s)"

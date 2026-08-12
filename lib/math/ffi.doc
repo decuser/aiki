@@ -41,7 +41,7 @@ cos(3.14159)     # approximately -1
 ===
 sqrt
 Returns the square root of x.
-Returns [@error] for negative input.
+Faults on negative input.
 
 sqrt(x)
 

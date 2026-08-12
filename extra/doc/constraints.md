@@ -33,28 +33,34 @@ Feedback: BASIC, Logo. Immediate. Drawing as primitive.
 Host: Go. Goroutines, channels, fmt. We accept the host's physics to enforce our own chemistry.
 
 ## 5. TYPES
-
-Eight types, each added from necessity:
+Seven basic types, each added from necessity:
 - Number (rational, exact arithmetic)
 - Boolean
 - Rune (Unicode code point)
 - String (immutable rune sequence)
-- Bytes (immutable 0-255 for I/O)
 - Symbol (atomic, identity-compared, not list tags)
 - List (raw or shaped, one compound structure)
 - Function (first-class)
 
+Five system types, supplied by the runtime, not part of the language surface:
+- Bytes (immutable 0-255 for I/O)
+- Handle
+- Channel
+- Module
+- Canvas
+
 ## 6. SYNTAX
 
 let creates, = mutates, error if not found.
-Explicit return required in every path.
+return is explicit. A body reaching its end yields the last statement's value;
+  this is used for single-expression wrappers, not as a substitute for return.
 One function syntax. No arrows.
 One loop: while. Iteration via map, filter, each.
 One conditional: if/else. Guard clauses replace elif.
 Empty parens required for calls.
 Left-to-right evaluation. No precedence. Parens for grouping.
 Pipe operator. Left becomes first arg. Errors short-circuit.
-Success returns value. Failure returns [@error, reason].
+Success returns value. Failure returns [@error, :kind, "message"].
 
 ## 7. ARCHITECTURE
 
@@ -78,7 +84,6 @@ Pre-paradigmatic. Primitives support multiple styles:
 ## 9. REJECTED
 
 Arrow lambdas — second way to write functions.
-Implicit return — last-line bugs.
 for loop — while + functions cover it.
 elif — guard clauses.
 Operator precedence — invisible rules that fool you.

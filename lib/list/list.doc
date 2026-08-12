@@ -40,7 +40,7 @@ sum([1, 2, 3, 4])    # 10
 ===
 max
 Returns the maximum element in the list.
-Returns [@error] for empty list.
+Returns [@error, :empty, "empty list"] for empty list.
 
 max(list)
 
@@ -48,7 +48,7 @@ max([3, 1, 4, 1, 5])    # 5
 ===
 min
 Returns the minimum element in the list.
-Returns [@error] for empty list.
+Returns [@error, :empty, "empty list"] for empty list.
 
 min(list)
 
@@ -63,7 +63,7 @@ reverse([1, 2, 3])    # [3, 2, 1]
 ===
 find
 Returns the first element for which the predicate returns true.
-Returns [@error, :not_found] if no element matches.
+Returns [@error, :lookup, "not found"] if no element matches.
 
 find(list, f)
 

@@ -47,7 +47,7 @@ let str_to_bytes = (s) {
 # Convert bytes to string (UTF-8 decoding)
 let bytes_to_str = (b) {
 	if not equal(shape(b), :bytes) {
-		return [@error, "expected @bytes shape"]
+		return [@error, :bytes, "expected @bytes shape"]
 	}
 	_bytes_to_str_pure(b)
 }
@@ -60,10 +60,13 @@ let bytes_new = (list) {
 	while i < len {
 		let n = list[i]
 		if n < 0 {
-			return [@error, "byte value must be >= 0"]
+			return [@error, :bytes, "byte value must be >= 0"]
 		}
 		if n > 255 {
-			return [@error, "byte value must be <= 255"]
+			return [@error, :bytes, "byte value must be <= 255"]
+		}
+		if not equal(n, truncate(n)) {
+			return [@error, :bytes, "byte value must be an integer"]
 		}
 		result = append(result, n)
 		i = i + 1
@@ -74,7 +77,7 @@ let bytes_new = (list) {
 # Get byte at index (returns number 0-255)
 let bytes_get = (b, i) {
 	if not equal(shape(b), :bytes) {
-		return [@error, "expected @bytes shape"]
+		return [@error, :bytes, "expected @bytes shape"]
 	}
 	b[i]
 }
@@ -82,7 +85,7 @@ let bytes_get = (b, i) {
 # Get length of bytes
 let bytes_length = (b) {
 	if not equal(shape(b), :bytes) {
-		return [@error, "expected @bytes shape"]
+		return [@error, :bytes, "expected @bytes shape"]
 	}
 	length(b)
 }
@@ -90,7 +93,7 @@ let bytes_length = (b) {
 # Slice bytes from start to end (exclusive)
 let bytes_slice = (b, start, end) {
 	if not equal(shape(b), :bytes) {
-		return [@error, "expected @bytes shape"]
+		return [@error, :bytes, "expected @bytes shape"]
 	}
 	let result = []
 	let i = start
