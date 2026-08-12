@@ -1,26 +1,92 @@
-# Turtle Patch
+# Aiki
 
-Extract this archive over your aiki repository root.
+Aiki is an experimental programming language designed as a learning field. Its goal is to make language behavior inspectable enough to support learning, debugging, and careful reasoning about programs.
 
-## Validation
+Aiki uses a small syntax, exact rational arithmetic by default, left to right evaluation, explicit grouping, recoverable errors as values, and an inspectable prelude and library surface.
 
-After patching:
+## Status
+
+This repository is released in conjunction with the SPLASH E submission, *Aiki: Designing a Programming Language as a Learning Field*.
+
+## Build
+
+Requires Go 1.24 or later.
 
 ```bash
-make validate
-make runsamples
-make rigorous
+make build
+````
+
+Or build directly:
+
+```bash
+go build ./cmd/aiki
 ```
 
-## Contents
+## Run
 
-- `engine/runtime/hal/substrate/builtins_canvas_accessors.go` - width/height builtins
-- `engine/runtime/hal/substrate/builtins_canvas_accessors_test.go` - Go tests
-- `lib/canvas/canvas.ai` - updated with width/height exports
-- `lib/canvas/canvas.help` - updated help
-- `lib/canvas/canvas.doc` - updated docs
-- `lib/turtle/turtle.ai` - turtle implementation
-- `lib/turtle/turtle.help` - turtle help
-- `lib/turtle/turtle.doc` - turtle docs
-- `test/behavior/turtle_smoke.ai` - smoke test
-- `test/behavior/turtle_smoke.gold` - expected output
+Start the REPL:
+
+```bash
+./aiki
+```
+
+Run a file:
+
+```bash
+./aiki path/to/file.ai
+```
+
+## Validate
+
+```bash
+make build
+make smoke
+make test
+```
+
+## Examples
+
+Sample programs are in:
+
+```text
+extra/samples/
+```
+
+Useful starting points:
+
+```text
+extra/samples/pipeline.ai
+extra/samples/newton-rec.ai
+extra/samples/newton-imp.ai
+extra/samples/face.ai
+extra/samples/turtle-star.ai
+```
+
+## Repository Layout
+
+```text
+cmd/                     command entry points
+engine/syntax/           lexer, parser, grammar, grammar help
+engine/semantics/        evaluator and runtime values
+engine/runtime/          HAL, prelude, runtime support
+lib/                     Aiki library packages
+extra/samples/           example programs
+extra/editors/           editor support
+test/                    tests and expected outputs
+docs/                    design and contributor notes
+```
+
+## Documentation
+
+```text
+docs/design-principles.md
+docs/adding-to-aiki.md
+docs/aiki-error-handling.md
+docs/debug.md
+docs/line-continuation-rules.md
+```
+
+## License
+
+BSD 3 Clause.
+
