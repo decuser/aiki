@@ -32,6 +32,31 @@ type ModuleRegistry struct {
 // GlobalRegistry is the module registry used by import.
 var GlobalRegistry *ModuleRegistry
 
+// DistributionModuleRoots returns the directories, relative to a distribution
+// root, that hold shipped modules. Everything under them is subject to the
+// documentation invariants, including vendored modules: a module that ships
+// inside the distribution appears in help() and doc() like any other, so a
+// user cannot tell which modules are held to the standard.
+//
+// The roots import also scans - the working directory and the user library -
+// are deliberately outside this set. A developer's own modules are their own
+// business.
+func DistributionModuleRoots() []string {
+	return []string{"lib", "vendor"}
+}
+
+// DefaultModuleRoots returns every directory import scans, in order. It is the
+// distribution roots plus the working directory and the user library, neither
+// of which belongs to the distribution.
+func DefaultModuleRoots(homeDir string) []string {
+	roots := []string{"."}
+	roots = append(roots, DistributionModuleRoots()...)
+	if homeDir != "" {
+		roots = append(roots, filepath.Join(homeDir, ".aiki", "lib"))
+	}
+	return roots
+}
+
 // NewModuleRegistry creates a new registry with the given roots.
 func NewModuleRegistry(roots []string) *ModuleRegistry {
 	return &ModuleRegistry{

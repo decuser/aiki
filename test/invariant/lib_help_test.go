@@ -8,7 +8,10 @@ import (
 	"strings"
 	"testing"
 
+	"aiki/engine/runtime/hal/substrate"
 	"aiki/engine/runtime/help"
+	"aiki/engine/syntax"
+	"aiki/engine/syntax/grammar"
 )
 
 // The engine already enforces that prelude.ai and prelude.help agree. That
@@ -16,10 +19,14 @@ import (
 // which is how regex/ffi came to document every one of its procedures with the
 // arguments reversed while the whole test suite stayed green.
 //
-// These tests extend the same relationship to lib/. For each module they check
-// that exports, help entries, and doc entries name the same procedures, and
-// that each help template agrees with the procedure it describes in name,
-// parameter count, and parameter order.
+// These tests extend the same relationship to the shipped modules. For each
+// one they check that exports, help entries, and doc entries name the same
+// procedures, and that each help template agrees with the procedure it
+// describes in name, parameter count, and parameter order.
+//
+// Modules are discovered through the same registry import uses, restricted to
+// the distribution roots. Adding a module anywhere the distribution ships one
+// therefore brings it under these checks without touching this file.
 
 var (
 	reExport   = regexp.MustCompile(`(?s)export\(([^)]*)\)`)
@@ -38,14 +45,49 @@ type module struct {
 	docPath  string
 }
 
-// libRoot locates the lib directory relative to this test's package.
-func libRoot(t *testing.T) string {
+// distributionRoot locates the repository root relative to this test's package.
+func distributionRoot(t *testing.T) string {
 	t.Helper()
-	root := filepath.Join("..", "..", "lib")
-	if _, err := os.Stat(root); err != nil {
-		t.Fatalf("cannot find lib directory at %s: %v", root, err)
+	root := filepath.Join("..", "..")
+	if _, err := os.Stat(filepath.Join(root, "go.mod")); err != nil {
+		t.Fatalf("cannot find distribution root at %s: %v", root, err)
 	}
 	return root
+}
+
+// shippedModulePaths returns the source path of every module the distribution
+// ships, keyed by package name, discovered through the registry import uses.
+func shippedModulePaths(t *testing.T) map[string]string {
+	t.Helper()
+
+	g, err := grammar.Load("grammar.ebnfx", syntax.EbnfxSource, "grammar.help", syntax.HelpSource)
+	if err != nil {
+		t.Fatalf("loading grammar: %v", err)
+	}
+
+	root := distributionRoot(t)
+	var roots []string
+	for _, r := range substrate.DistributionModuleRoots() {
+		roots = append(roots, filepath.Join(root, r))
+	}
+
+	registry := substrate.NewModuleRegistry(roots)
+	if err := registry.Scan(g); err != nil {
+		t.Fatalf("scanning distribution roots: %v", err)
+	}
+
+	paths := map[string]string{}
+	for _, name := range registry.ListPackages() {
+		path, ok := registry.Lookup(name)
+		if !ok {
+			t.Fatalf("registry listed %s but cannot locate it", name)
+		}
+		paths[name] = path
+	}
+	if len(paths) == 0 {
+		t.Fatalf("no modules found under %v", roots)
+	}
+	return paths
 }
 
 func splitArgs(s string) []string {
@@ -59,63 +101,49 @@ func splitArgs(s string) []string {
 	return out
 }
 
-// loadModules reads every lib/**/*.ai that declares exports.
+// loadModules reads each shipped module, pairing its exports and parameter
+// lists with the help and doc files that sit beside its source.
 func loadModules(t *testing.T) []module {
 	t.Helper()
-	root := libRoot(t)
 
 	var mods []module
-	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if info.IsDir() || !strings.HasSuffix(path, ".ai") {
-			return nil
-		}
+	for name, path := range shippedModulePaths(t) {
 		src, err := os.ReadFile(path)
 		if err != nil {
-			return err
-		}
-		m := reExport.FindSubmatch(src)
-		if m == nil {
-			return nil // not an exporting module
+			t.Errorf("%s: cannot read %s: %v", name, path, err)
+			continue
 		}
 
 		mod := module{
+			name:    name,
 			aiPath:  path,
 			params:  map[string][]string{},
 			hasRest: map[string]bool{},
 		}
-		for _, s := range reSymbol.FindAllSubmatch(m[1], -1) {
-			mod.exports = append(mod.exports, string(s[1]))
+		if m := reExport.FindSubmatch(src); m != nil {
+			for _, sym := range reSymbol.FindAllSubmatch(m[1], -1) {
+				mod.exports = append(mod.exports, string(sym[1]))
+			}
 		}
 		for _, f := range reLetFunc.FindAllSubmatch(src, -1) {
-			name := string(f[1])
+			fname := string(f[1])
 			var ordinary []string
 			for _, p := range splitArgs(string(f[2])) {
 				if strings.HasPrefix(p, "...") {
-					mod.hasRest[name] = true
+					mod.hasRest[fname] = true
 					continue
 				}
 				ordinary = append(ordinary, p)
 			}
-			mod.params[name] = ordinary
+			mod.params[fname] = ordinary
 		}
 
 		base := strings.TrimSuffix(path, ".ai")
 		mod.helpPath = base + ".help"
 		mod.docPath = base + ".doc"
-		rel, _ := filepath.Rel(root, base)
-		mod.name = filepath.ToSlash(rel)
 		mods = append(mods, mod)
-		return nil
-	})
-	if err != nil {
-		t.Fatalf("walking lib: %v", err)
 	}
-	if len(mods) == 0 {
-		t.Fatal("no exporting modules found under lib/")
-	}
+
 	sort.Slice(mods, func(i, j int) bool { return mods[i].name < mods[j].name })
 	return mods
 }
@@ -305,6 +333,34 @@ func TestLibModulesHaveHelp(t *testing.T) {
 	for _, m := range loadModules(t) {
 		if _, err := os.Stat(m.helpPath); err != nil {
 			t.Errorf("%s: no help file at %s", m.name, filepath.Base(m.helpPath))
+		}
+	}
+}
+
+// TestShippedModuleDiscovery guards the discovery itself: these checks are
+// worthless if the registry silently finds nothing, and they would be
+// overreaching if they covered modules outside the distribution.
+func TestShippedModuleDiscovery(t *testing.T) {
+	paths := shippedModulePaths(t)
+
+	if len(paths) < 10 {
+		t.Errorf("expected the distribution to ship at least 10 modules, found %d", len(paths))
+	}
+
+	// A module a developer places outside the distribution roots is their own
+	// business and must not be pulled into the documentation invariants.
+	for name, path := range paths {
+		rel := filepath.ToSlash(path)
+		shipped := false
+		for _, root := range substrate.DistributionModuleRoots() {
+			if strings.Contains(rel, "/"+root+"/") {
+				shipped = true
+				break
+			}
+		}
+		if !shipped {
+			t.Errorf("%s at %s is outside the distribution roots %v",
+				name, path, substrate.DistributionModuleRoots())
 		}
 	}
 }

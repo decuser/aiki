@@ -4,7 +4,6 @@ package runner
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 
@@ -122,18 +121,8 @@ func loadPrelude(g *grammar.Grammar, rt *substrate.GoRuntime, env *value.Env) er
 // initHelpRegistry loads prelude help and doc files with validation.
 // initModuleRegistry creates and scans the module registry.
 func initModuleRegistry(g *grammar.Grammar) error {
-	// Default roots: current dir, lib/, vendor/, user lib
 	homeDir, _ := os.UserHomeDir()
-	roots := []string{
-		".",
-		"lib",
-		"vendor",
-	}
-	if homeDir != "" {
-		roots = append(roots, filepath.Join(homeDir, ".aiki", "lib"))
-	}
-
-	registry := substrate.NewModuleRegistry(roots)
+	registry := substrate.NewModuleRegistry(substrate.DefaultModuleRoots(homeDir))
 	if err := registry.Scan(g); err != nil {
 		return err
 	}
