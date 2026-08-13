@@ -1,0 +1,29 @@
+use("test")
+use("math/ffi")
+
+run("floor", () {
+	equal(floor(2.7), 2)
+	equal(floor(-2.7), -3)
+	equal(floor(3), 3)
+	equal(floor(0), 0)
+})
+
+
+run("ceil", () {
+	equal(ceil(2.3), 3)
+	equal(ceil(-2.7), -2)
+	equal(ceil(3), 3)
+})
+
+
+run("truncate", () {
+	equal(truncate(2.7), 2)
+	equal(truncate(-2.7), -2)
+})
+
+
+run("modulo", () {
+	equal(modulo(10, 3), 1)
+	equal(modulo(7, 7), 0)
+})
+

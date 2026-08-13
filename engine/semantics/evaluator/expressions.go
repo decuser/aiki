@@ -97,6 +97,9 @@ func (e *Evaluator) evalUnary(node *syntax.Node, env *value.Env) value.Value {
 			}
 		case "-":
 			if num, ok := operand.(*value.Number); ok {
+				if e.Counters != nil {
+					e.Counters.Arithmetic++
+				}
 				neg := new(big.Rat).Neg(num.Val)
 				operand = &value.Number{Val: neg}
 			} else {

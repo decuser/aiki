@@ -78,6 +78,7 @@ type Evaluator struct {
 	observer engine.Observer
 	runtime  hal.RuntimeContract
 	grammar  *grammar.Grammar
+	Counters *Counters // nil = probes disabled
 }
 
 // New creates an evaluator with a runtime.
@@ -123,6 +124,10 @@ func (e *Evaluator) validateHandlers() {
 // Eval evaluates an AST node.
 func (e *Evaluator) Eval(node *syntax.Node, env *value.Env) value.Value {
 	e.observer.OnEval(node.Type, "", 0, node.Pos)
+
+	if e.Counters != nil && node.Pos.Line > 0 {
+		e.Counters.CoverHit(env.GetFile(), node.Pos.Line)
+	}
 
 	h, ok := handlers[node.Type]
 	if !ok {

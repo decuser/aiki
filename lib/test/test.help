@@ -1,0 +1,29 @@
+# test - assertion library for aiki test
+
+@func equal
+@template "equal(actual, expected)"
+@help "Assert that actual equals expected."
+
+@func not_equal
+@template "not_equal(actual, expected)"
+@help "Assert that actual does not equal expected."
+
+@func is_true
+@template "is_true(val)"
+@help "Assert that val is truthy."
+
+@func is_false
+@template "is_false(val)"
+@help "Assert that val is falsy."
+
+@func error
+@template "error(val)"
+@help "Assert that val is a shaped error."
+
+@func not_error
+@template "not_error(val)"
+@help "Assert that val is not a shaped error."
+
+@func run
+@template "run(name, fn)"
+@help "Run a named test case. Faults are caught as failures."

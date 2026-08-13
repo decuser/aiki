@@ -7,6 +7,9 @@ import (
 )
 
 func (e *Evaluator) applyFunction(fn value.Value, args []value.Value, node *syntax.Node, env *value.Env) value.Value {
+	if e.Counters != nil {
+		e.Counters.Call++
+	}
 	switch f := fn.(type) {
 	case *value.Function:
 		return e.applyUserFunction(f, args, node, env)

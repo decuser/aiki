@@ -1,0 +1,36 @@
+package "test"
+
+# test - assertion library for aiki test
+#
+# Assertions accumulate failures rather than halting execution.
+# Use test.run to isolate test cases so a fault in one does not
+# prevent others from running.
+let equal = (actual, expected) {
+	_test_equal(actual, expected)
+}
+
+let not_equal = (actual, expected) {
+	_test_not_equal(actual, expected)
+}
+
+let is_true = (val) {
+	_test_true(val)
+}
+
+let is_false = (val) {
+	_test_false(val)
+}
+
+let error = (val) {
+	_test_error(val)
+}
+
+let not_error = (val) {
+	_test_not_error(val)
+}
+
+let run = (name, fn) {
+	_test_run(name, fn)
+}
+
+export(:equal, :not_equal, :is_true, :is_false, :error, :not_error, :run)

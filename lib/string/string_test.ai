@@ -1,0 +1,30 @@
+use("test")
+use("string")
+
+run("upper", () {
+	equal(upper("hello"), "HELLO")
+	equal(upper(""), "")
+})
+
+
+run("lower", () {
+	equal(lower("HELLO"), "hello")
+})
+
+
+run("length", () {
+	equal(length("hello"), 5)
+	equal(length(""), 0)
+})
+
+
+run("substring", () {
+	equal(substring("hello", 1, 4), "ell")
+})
+
+
+run("contains", () {
+	is_true(contains("hello world", "world"))
+	is_false(contains("hello", "xyz"))
+})
+

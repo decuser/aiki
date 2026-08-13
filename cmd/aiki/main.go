@@ -16,6 +16,7 @@ import (
 	aikidebug "aiki/cmd/subcommands/dev/debug"
 	aikienginesmoke "aiki/cmd/subcommands/dev/enginesmoke"
 	aikismoke "aiki/cmd/subcommands/dev/smoke"
+	aikitest "aiki/cmd/subcommands/dev/test"
 	aikifmt "aiki/cmd/subcommands/tools/fmt"
 	aikilint "aiki/cmd/subcommands/tools/lint"
 )
@@ -44,6 +45,8 @@ func main() {
 		case "debug":
 			aikidebug.Run(os.Args[2:])
 			return
+		case "test":
+			os.Exit(aikitest.Run(os.Args[2:]))
 		}
 	}
 

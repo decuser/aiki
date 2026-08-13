@@ -114,4 +114,13 @@ func (g *GoRuntime) registerHAL() {
 	g.register("_delete", halDelete)
 	g.register("_help", halHelp)
 	g.register("_doc", halDoc)
+
+	// Test framework
+	g.register("_test_equal", halTestEqual)
+	g.register("_test_not_equal", halTestNotEqual)
+	g.register("_test_true", halTestTrue)
+	g.register("_test_false", halTestFalse)
+	g.register("_test_error", halTestError)
+	g.register("_test_not_error", halTestNotError)
+	g.register("_test_run", halTestRun)
 }

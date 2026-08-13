@@ -8,6 +8,14 @@ import (
 )
 
 func (e *Evaluator) applyOperator(op string, left, right value.Value, node *syntax.Node, env *value.Env) value.Value {
+	if e.Counters != nil {
+		switch op {
+		case "+", "-", "*", "/":
+			e.Counters.Arithmetic++
+		case "<", ">", "<=", ">=":
+			e.Counters.Comparison++
+		}
+	}
 	switch op {
 	case "+":
 		return e.opAdd(left, right, node, env)

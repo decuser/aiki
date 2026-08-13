@@ -1,0 +1,52 @@
+@preamble use("test")
+equal
+Asserts that actual equals expected by comparing inspect() representations.
+Records a pass on success, a failure with source location on mismatch.
+
+equal(actual, expected)
+
+equal(1 + 1, 2)    # true
+===
+not_equal
+Asserts that actual does not equal expected.
+
+not_equal(actual, expected)
+
+not_equal(1, 2)    # true
+===
+is_true
+Asserts that val is truthy.
+
+is_true(val)
+
+is_true(1 > 0)    # true
+===
+is_false
+Asserts that val is falsy.
+
+is_false(val)
+
+is_false(1 > 2)    # true
+===
+error
+Asserts that val is a shaped error (a list whose first element is @error).
+
+error(val)
+
+error([@error, :test, "oops"])    # true
+===
+not_error
+Asserts that val is not a shaped error.
+
+not_error(val)
+
+not_error(42)    # true
+===
+run
+@unchecked
+Runs a named test case. Faults inside fn are caught and reported as
+failures without stopping other tests.
+
+run(name, fn)
+
+run("addition", () { equal(1 + 1, 2) })
