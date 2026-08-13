@@ -25,7 +25,7 @@ func expandLintPaths(args []string) ([]string, error) {
 				if info.IsDir() {
 					return nil
 				}
-				if strings.HasSuffix(path, ".ai") {
+				if strings.HasSuffix(path, ".ai") && !strings.HasSuffix(path, "_test.ai") {
 					files = append(files, path)
 				}
 				return nil
@@ -50,7 +50,7 @@ func expandLintPaths(args []string) ([]string, error) {
 				if info.IsDir() {
 					return nil
 				}
-				if strings.HasSuffix(path, ".ai") {
+				if strings.HasSuffix(path, ".ai") && !strings.HasSuffix(path, "_test.ai") {
 					files = append(files, path)
 				}
 				return nil
@@ -60,7 +60,7 @@ func expandLintPaths(args []string) ([]string, error) {
 			}
 			continue
 		}
-		if strings.HasSuffix(a, ".ai") {
+		if strings.HasSuffix(a, ".ai") && !strings.HasSuffix(a, "_test.ai") {
 			files = append(files, a)
 		}
 	}
