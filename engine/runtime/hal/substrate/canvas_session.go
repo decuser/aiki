@@ -49,6 +49,7 @@ func (s *canvasSession) wait() error {
 var (
 	sessionsMu sync.Mutex
 	sessions   = map[*value.Canvas]*canvasSession{}
+	bridgeDone = map[*value.Canvas]chan struct{}{}
 )
 
 func canvasSessionAlive(cvs *value.Canvas) bool {
@@ -127,12 +128,13 @@ func startCanvasSession(cvs *value.Canvas) error {
 
 	close(cvs.Ready)
 
-	go bridgeCanvasCommands(cvs)
-
-	// Parent requested close.
+	// The bridge drains queued commands and sends the close frame. Its done
+	// channel lets destroy wait for the drain to finish.
+	bch := make(chan struct{})
+	bridgeDone[cvs] = bch
 	go func() {
-		<-cvs.Done
-		sendCanvasClose(cvs)
+		bridgeCanvasCommands(cvs)
+		close(bch)
 	}()
 
 	// Child exited on its own (window closed). Mark canvas as done.
@@ -154,6 +156,17 @@ func startCanvasSession(cvs *value.Canvas) error {
 	return nil
 }
 
+// bridgeWait blocks until the bridge goroutine for cvs has finished draining
+// and sent the close frame.
+func bridgeWait(cvs *value.Canvas) {
+	sessionsMu.Lock()
+	ch := bridgeDone[cvs]
+	sessionsMu.Unlock()
+	if ch != nil {
+		<-ch
+	}
+}
+
 func waitForCanvasReady(r io.Reader) error {
 	sc := bufio.NewScanner(r)
 	for sc.Scan() {
@@ -172,7 +185,19 @@ func bridgeCanvasCommands(cvs *value.Canvas) {
 	for {
 		select {
 		case <-cvs.Done:
-			return
+			// Deliver whatever is already queued before closing. A program
+			// that draws and then destroys the canvas would otherwise lose
+			// the drawing, since closing and draining are both triggered by
+			// Done and would race.
+			for {
+				select {
+				case cmd := <-cvs.Commands:
+					sendCanvasCmd(cvs, cmd)
+				default:
+					sendCanvasClose(cvs)
+					return
+				}
+			}
 		case cmd := <-cvs.Commands:
 			sendCanvasCmd(cvs, cmd)
 		}

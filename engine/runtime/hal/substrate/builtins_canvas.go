@@ -68,7 +68,9 @@ func CloseAllCanvases() {
 		default:
 			close(c.Done)
 		}
-		sendCanvasClose(c)
+		// Let the bridge drain queued commands and send the close frame
+		// rather than bypassing it with a direct sendCanvasClose.
+		bridgeWait(c)
 	}
 }
 
@@ -287,11 +289,14 @@ func halDestroy(args []value.Value, ctx *hal.EvalContext) value.Value {
 	}
 	select {
 	case <-cvs.Done:
+		// Already closed.
 	default:
 		close(cvs.Done)
 	}
-	// Close and reap the child deterministically.
-	sendCanvasClose(cvs)
+	// The bridge goroutine sees Done and drains any queued commands from
+	// cvs.Commands into sendCh before sending the close frame itself. We
+	// wait for the bridge to finish, then reap the child.
+	bridgeWait(cvs)
 	untrackCanvas(cvs)
 	return value.TRUE
 }

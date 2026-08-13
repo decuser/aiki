@@ -10,6 +10,13 @@ import (
 )
 
 func runCanvasChild(opts Options) {
+	// The same child records instead of rendering when asked to, so a program
+	// that draws can run without a display. See canvas_record.go.
+	if canvasRecordRequested() {
+		runCanvasRecordChild(opts)
+		return
+	}
+
 	if opts.CanvasW <= 0 || opts.CanvasH <= 0 {
 		fmt.Fprintln(os.Stderr, "canvas: width and height must be positive")
 		os.Exit(2)

@@ -10,6 +10,7 @@ import (
 
 	"aiki/cmd/subcommands/ux/repl"
 	"aiki/engine/runner"
+	"aiki/engine/runtime/hal/substrate"
 	"aiki/engine/semantics/value"
 
 	aikidebug "aiki/cmd/subcommands/dev/debug"
@@ -129,6 +130,7 @@ func startREPL(opts Options) {
 
 func runFile(filename string, opts Options) {
 	err := runner.Run(filename)
+	substrate.CloseAllCanvases()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
