@@ -256,6 +256,19 @@ func TestLibHelpTemplatesMatchSignatures(t *testing.T) {
 // ===-separated form that ParseDocFile reads: an entry is a name on its own
 // line followed by its text, and entries are separated by a line containing
 // only ===. Two departures from that form are silent, so they are named here.
+// stripPreambleLines removes @preamble directives from doc file text.
+// These are consumed by TestDocExamplesExecutable and are not part of the
+// entry namespace that ParseDocFile reads.
+func stripPreambleLines(text string) string {
+	var out []string
+	for _, line := range strings.Split(text, "\n") {
+		if !strings.HasPrefix(line, "@preamble ") {
+			out = append(out, line)
+		}
+	}
+	return strings.Join(out, "\n")
+}
+
 func TestLibDocFilesWellFormed(t *testing.T) {
 	for _, m := range loadModules(t) {
 		src, err := os.ReadFile(m.docPath)
@@ -293,7 +306,9 @@ func TestLibDocCoversExports(t *testing.T) {
 		if err != nil {
 			continue // reported by TestLibDocFilesWellFormed
 		}
-		docs, err := help.ParseDocFile(m.docPath, string(src))
+		// Strip @preamble lines before parsing.
+		text := stripPreambleLines(string(src))
+		docs, err := help.ParseDocFile(m.docPath, text)
 		if err != nil {
 			t.Errorf("%s: parsing doc: %v", m.name, err)
 			continue

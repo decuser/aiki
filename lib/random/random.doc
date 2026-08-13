@@ -1,4 +1,6 @@
+@preamble use("random")
 seed
+@unchecked
 Seeds the pseudo-random number generator with the given integer.
 Using the same seed produces the same sequence of pseudo-random values.
 
@@ -7,6 +9,7 @@ seed(n)
 seed(42)
 ===
 random
+@unchecked
 Returns a pseudo-random integer n satisfying 0 <= n < max.
 max must be a positive integer.
 Successive calls advance the generator state; seed establishes a new

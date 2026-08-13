@@ -1,3 +1,4 @@
+@preamble use("regex/ffi")
 matches
 Returns true if the pattern matches anywhere in the string.
 The pattern need not match the entire string unless its expression requires it.

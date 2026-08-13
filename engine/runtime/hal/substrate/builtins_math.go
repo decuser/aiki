@@ -22,8 +22,9 @@ func halFloor(args []value.Value, ctx *hal.EvalContext) value.Value {
 	}
 	num := n.Val.Num()
 	denom := n.Val.Denom()
-	q := new(big.Int).Div(num, denom)
-	rem := new(big.Int).Mod(num, denom)
+	q := new(big.Int)
+	rem := new(big.Int)
+	q.QuoRem(num, denom, rem)
 	if num.Sign() < 0 && rem.Sign() != 0 {
 		q.Sub(q, big.NewInt(1))
 	}
@@ -40,8 +41,9 @@ func halCeil(args []value.Value, ctx *hal.EvalContext) value.Value {
 	}
 	num := n.Val.Num()
 	denom := n.Val.Denom()
-	q := new(big.Int).Div(num, denom)
-	rem := new(big.Int).Mod(num, denom)
+	q := new(big.Int)
+	rem := new(big.Int)
+	q.QuoRem(num, denom, rem)
 	if num.Sign() > 0 && rem.Sign() != 0 {
 		q.Add(q, big.NewInt(1))
 	}

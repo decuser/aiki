@@ -30,8 +30,31 @@ This guide describes how to extend the Aiki language at each layer.
 │  - EBNFX is source of truth                 │
 └─────────────────────────────────────────────┘
 ```
+## Executable Invariants
 
-## Adding a Builtin Function
+Aiki relies on executable couplings among independently maintained artifacts to
+detect implementation and documentation drift.
+
+Eleven couplings keep the distribution self-consistent:
+
+1. grammar <-> evaluator handlers
+2. prelude <-> help
+3. formatted source <-> AST
+4. runtime module discovery <-> shipped modules
+5. observable behavior <-> gold files
+6. library exports <-> help and documentation
+7. language core <-> graphics boundary
+8. canvas behavior <-> transcript golds
+9. documentation examples <-> stated values
+10. documentation entries <-> checked-or-effects disposition
+11. shipped modules <-> documentation presence
+
+These checks are intended to compare independent artifacts rather than allow
+one artifact to certify another derived from the same assumption.
+
+When extending Aiki, preserve the relevant existing coupling. If a change
+introduces a new independently maintained relationship, add an invariant for
+that relationship rather than relying on manual review.## Adding a Builtin Function
 
 Example: adding `abs(n)` to return absolute value.
 

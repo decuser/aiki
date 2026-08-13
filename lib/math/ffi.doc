@@ -1,3 +1,4 @@
+@preamble use("math/ffi")
 floor
 Returns the largest integer less than or equal to x.
 

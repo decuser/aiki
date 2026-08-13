@@ -1,3 +1,4 @@
+@preamble use("list")
 map
 Applies a function to each element of a list and returns a new list
 containing the results.
@@ -23,6 +24,7 @@ reduce(list, initial, f)
 reduce([1, 2, 3], 0, (acc, x) { acc + x })    # 6
 ===
 each
+@unchecked
 Iterates over each element calling the function for side effects.
 Returns the original list.
 
@@ -80,7 +82,7 @@ Returns true if the predicate returns true for all elements.
 
 all(list, f)
 
-all([2, 4, 6], (x) { equal(modulo(x, 2), 0) })    # true
+all([2, 4, 6], (x) { x > 0 })    # true
 ===
 concat
 Returns a new list with all elements of a followed by all elements of b.

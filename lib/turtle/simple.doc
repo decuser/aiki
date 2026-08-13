@@ -1,4 +1,6 @@
+@preamble use("turtle/simple")
 new
+@unchecked
 Initializes the drawing environment and places the turtle at its home position.
 With no argument the canvas is 800 by 800 pixels; with dim, a square canvas of
 dim by dim pixels is used and that size is remembered.
@@ -14,6 +16,7 @@ new(800)
 forward(50)
 ===
 logical
+@unchecked
 Sets the width and height of the logical coordinate space to size.
 The default is 200, giving coordinate bounds from -100 through 100 along each
 axis. The origin is at the center of the canvas, positive x extends to the
@@ -27,6 +30,7 @@ new(800)
 logical(100)    # coordinates now range from -50 through 50
 ===
 forward
+@unchecked
 Moves the turtle forward by distance logical units in its current heading.
 Draws a line if the pen is down; otherwise only the position changes.
 Movement is clamped to the logical bounds: a movement that would pass beyond an
@@ -37,6 +41,7 @@ forward(distance)
 forward(50)
 ===
 backward
+@unchecked
 Moves the turtle backward by distance logical units, in the direction opposite
 its current heading.
 
@@ -45,6 +50,7 @@ backward(distance)
 backward(25)
 ===
 left
+@unchecked
 Decreases the current heading by angle degrees.
 
 left(angle)
@@ -52,6 +58,7 @@ left(angle)
 left(90)
 ===
 right
+@unchecked
 Increases the current heading by angle degrees.
 Heading 0 points upward and 90 points to the right.
 
@@ -61,6 +68,7 @@ right(90)
 heading()    # 90
 ===
 pen_up
+@unchecked
 Lifts the pen, so subsequent movement changes position without drawing.
 
 pen_up()
@@ -69,6 +77,7 @@ pen_up()
 forward(20)    # moves without drawing
 ===
 pen_down
+@unchecked
 Lowers the pen, so subsequent movement draws.
 
 pen_down()
@@ -77,6 +86,7 @@ pen_down()
 forward(20)    # draws a line
 ===
 pen_size
+@unchecked
 Sets the drawing width in logical units.
 The value is scaled to the current canvas; the resulting pixel width is never
 less than one pixel.
@@ -86,6 +96,7 @@ pen_size(n)
 pen_size(3)
 ===
 pencolor
+@unchecked
 Sets the color used for subsequent turtle drawing.
 A color may be a symbol such as :red, or a list of red, green, and blue
 components with an optional alpha component.
@@ -96,6 +107,7 @@ pencolor(:red)
 pencolor([30, 144, 255])
 ===
 background
+@unchecked
 Sets the canvas background color.
 A color may be a symbol or a list of components, as for pencolor.
 
@@ -104,6 +116,7 @@ background(color)
 background(:black)
 ===
 show_turtle
+@unchecked
 Displays the turtle indicator on the canvas.
 Visibility affects only the indicator; it does not affect movement or drawing.
 
@@ -112,6 +125,7 @@ show_turtle()
 show_turtle()
 ===
 hide_turtle
+@unchecked
 Removes the turtle indicator from view.
 Visibility affects only the indicator; it does not affect movement or drawing.
 
@@ -120,6 +134,7 @@ hide_turtle()
 hide_turtle()
 ===
 home
+@unchecked
 Moves the turtle to [0, 0] and resets its heading to 0.
 Returning home does not draw a line, regardless of the current pen state.
 The pen state and drawing color are preserved.
@@ -129,6 +144,7 @@ home()
 home()
 ===
 clear
+@unchecked
 Clears the canvas using its current background color.
 The turtle's position, heading, pen state, color, and visibility are unchanged.
 
@@ -137,6 +153,7 @@ clear()
 clear()
 ===
 position
+@unchecked
 Returns the current logical position as a shaped point [@point, x, y].
 The reported coordinates are truncated to integers.
 
@@ -146,6 +163,7 @@ home()
 position()    # [@point, 0, 0]
 ===
 heading
+@unchecked
 Returns the current heading in degrees.
 Heading 0 points upward and 90 points to the right.
 

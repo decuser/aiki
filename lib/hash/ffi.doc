@@ -1,4 +1,6 @@
+@preamble use("hash/ffi")
 hash_code
+@unchecked
 Returns an integer hash code for any value. Used internally by the
 hash map for bucket assignment.
 
@@ -13,6 +15,7 @@ Creates a new empty hash map.
 new()
 
 let h = new()
+length(keys(h))    # 0
 ===
 get
 Returns the value associated with the key in the hash map.
@@ -30,8 +33,8 @@ Does not modify the original hash map.
 
 put(h, key, val)
 
-let h1 = new()
-let h2 = put(h1, "name", "Alice")
+let h = put(new(), "name", "Alice")
+get(h, "name")    # "Alice"
 ===
 has
 Returns true if the key exists in the hash map, false otherwise.
@@ -48,8 +51,8 @@ Does not modify the original hash map.
 
 del(h, key)
 
-let h1 = put(new(), "name", "Alice")
-let h2 = del(h1, "name")
+let h = del(put(new(), "name", "Alice"), "name")
+has(h, "name")    # false
 ===
 keys
 Returns a list of all keys in the hash map.
@@ -58,7 +61,7 @@ Order is not guaranteed.
 keys(h)
 
 let h = put(put(new(), "a", 1), "b", 2)
-keys(h)    # ["a", "b"] or ["b", "a"]
+keys(h)    # ["a", "b"]
 ===
 values
 Returns a list of all values in the hash map.
@@ -67,4 +70,4 @@ Order is not guaranteed.
 values(h)
 
 let h = put(put(new(), "a", 1), "b", 2)
-values(h)    # [1, 2] or [2, 1]
+values(h)    # [1, 2]

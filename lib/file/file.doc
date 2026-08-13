@@ -1,4 +1,6 @@
+@preamble use("file")
 open
+@unchecked
 Opens the file named by path and returns a file handle.
 mode is :read to read an existing file, :write to create or replace one, or
 :append to write at the end of one.
@@ -14,6 +16,7 @@ match f {
 }
 ===
 read_text
+@unchecked
 Reads all remaining contents of file and returns them as a string.
 Returns "" at end of file, or [@error, :io, msg] on failure.
 
@@ -24,6 +27,7 @@ let text = read_text(f)
 close(f)
 ===
 read_bytes
+@unchecked
 Reads all remaining contents of file and returns them as a bytes value.
 Returns an empty bytes value at end of file, or [@error, :io, msg] on failure.
 
@@ -34,6 +38,7 @@ let b = read_bytes(f)
 close(f)
 ===
 read_line
+@unchecked
 Reads and returns the next line of file as a string.
 A terminating newline is not included, and a carriage return immediately
 preceding it is also removed.
@@ -46,6 +51,7 @@ read_line(f)    # "one"
 read_line(f)    # "two"
 ===
 write_text
+@unchecked
 Writes string s to file and returns true on success.
 No newline or other character is added.
 Returns [@error, :io, msg] on failure.
@@ -57,6 +63,7 @@ write_text(f, "hello\n")
 close(f)
 ===
 write_bytes
+@unchecked
 Writes the contents of bytes value b to file and returns true on success.
 Returns [@error, :io, msg] on failure.
 
@@ -67,6 +74,7 @@ write_bytes(f, str_to_bytes("hi"))
 close(f)
 ===
 close
+@unchecked
 Closes file and returns true.
 Closing an already closed handle, or an operating-system error while closing,
 returns [@error, :io, msg].
@@ -77,6 +85,7 @@ let f = open("data.txt", :read)
 close(f)    # true
 ===
 exists
+@unchecked
 Returns true if a file-system object exists at path, and false otherwise.
 Errors encountered while determining existence, including access errors, also
 produce false.
@@ -87,6 +96,7 @@ exists("data.txt")      # true
 exists("missing.txt")   # false
 ===
 delete
+@unchecked
 Removes the file-system object named by path and returns true on success.
 Returns [@error, :io, msg] if the object cannot be removed.
 

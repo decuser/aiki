@@ -1,4 +1,6 @@
+@preamble use("time")
 sleep
+@unchecked
 Pauses execution for the specified number of milliseconds.
 
 sleep(ms)
