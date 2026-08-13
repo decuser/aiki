@@ -1,2 +1,10 @@
-EXIT:0
-DISPLAY:Two canvas windows appear sequentially. Each closes automatically and control returns to the REPL without restarting.
+CANVAS:canvas 300 300
+CANVAS:setbg #000000FF
+CANVAS:setfg #00FFFFFF
+CANVAS:line 10 10 290 290 #00FFFFFF pen 2.00
+CANVAS:close
+CANVAS:canvas 300 300
+CANVAS:setbg #000000FF
+CANVAS:setfg #FF0000FF
+CANVAS:circle 150 150 80 #FF0000FF pen 2.00
+CANVAS:close

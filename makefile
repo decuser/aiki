@@ -1,4 +1,4 @@
-.PHONY: build clean install run test fmt lint validate smoke runsamples enginesmoke rigorous fuzz hooks
+.PHONY: build clean install run test fmt lint validate smoke visual runsamples enginesmoke rigorous fuzz hooks
 
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 LDFLAGS := -ldflags "-X main.Version=$(VERSION)"
@@ -27,6 +27,9 @@ lint:
 
 smoke:
 	./aiki smoke test/behavior/
+
+visual: build
+	./aiki smoke test/visual/
 
 runsamples: build
 	@set -e; \

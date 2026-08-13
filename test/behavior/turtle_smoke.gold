@@ -3,4 +3,11 @@ OUT:360\n
 OUT:pos_after_home\n
 OUT:[0, 0]\n
 OUT:done\n
-DISPLAY:Canvas shows a square briefly, then exits.
+CANVAS:canvas 400 400
+CANVAS:line 200 200 200 100 #FFFFFFFF pen 2.00
+CANVAS:line 200 100 300 100 #FFFFFFFF pen 2.00
+CANVAS:line 300 100 300 200 #FFFFFFFF pen 2.00
+CANVAS:line 300 200 200 200 #FFFFFFFF pen 2.00
+CANVAS:line 200 150 200 100 #00FFFFFF pen 2.00
+CANVAS:line 200 100 200 200 #00FFFFFF pen 2.00
+CANVAS:close
