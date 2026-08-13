@@ -1,7 +1,8 @@
 @preamble use("test")
 equal
-Asserts that actual equals expected by comparing inspect() representations.
-Records a pass on success, a failure with source location on mismatch.
+Asserts that actual and expected are deeply equal. Numbers are compared
+by value, strings and symbols by content, lists element-by-element
+including shape. Functions and other opaque types compare by identity.
 
 equal(actual, expected)
 

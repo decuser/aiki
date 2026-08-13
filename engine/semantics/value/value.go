@@ -343,3 +343,46 @@ func NewShapedError(kind string, format string, args ...interface{}) *List {
 		},
 	}
 }
+
+// DeepEqual returns true if two values are structurally equal.
+// Numbers are compared by value, strings/symbols/runes/booleans by content,
+// and lists recursively element-by-element including shape.
+func DeepEqual(a, b Value) bool {
+	if a.Type() != b.Type() {
+		return false
+	}
+	switch av := a.(type) {
+	case *Number:
+		bv := b.(*Number)
+		return av.Val.Cmp(bv.Val) == 0
+	case *String:
+		bv := b.(*String)
+		return av.Val == bv.Val
+	case *Symbol:
+		bv := b.(*Symbol)
+		return av.Val == bv.Val
+	case *Boolean:
+		bv := b.(*Boolean)
+		return av.Val == bv.Val
+	case *Rune:
+		bv := b.(*Rune)
+		return av.Val == bv.Val
+	case *List:
+		bv := b.(*List)
+		if av.Shape != bv.Shape {
+			return false
+		}
+		if len(av.Elements) != len(bv.Elements) {
+			return false
+		}
+		for i := range av.Elements {
+			if !DeepEqual(av.Elements[i], bv.Elements[i]) {
+				return false
+			}
+		}
+		return true
+	default:
+		// Functions, channels, modules, canvases — identity only.
+		return a == b
+	}
+}

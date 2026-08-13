@@ -115,7 +115,7 @@ func halTestEqual(args []value.Value, ctx *hal.EvalContext) value.Value {
 	}
 	actual := args[0]
 	expected := args[1]
-	if actual.Inspect() == expected.Inspect() {
+	if value.DeepEqual(actual, expected) {
 		recordPass()
 		return value.TRUE
 	}
@@ -130,7 +130,7 @@ func halTestNotEqual(args []value.Value, ctx *hal.EvalContext) value.Value {
 	}
 	actual := args[0]
 	expected := args[1]
-	if actual.Inspect() != expected.Inspect() {
+	if !value.DeepEqual(actual, expected) {
 		recordPass()
 		return value.TRUE
 	}

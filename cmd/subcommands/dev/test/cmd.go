@@ -5,12 +5,9 @@
 //	aiki test ./...
 //	aiki test lib/math
 //	aiki test path/to/foo_test.ai
-//	aiki test -cover ./...
-//	aiki test -coverprofile=coverage.out ./...
 package test
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -22,17 +19,7 @@ import (
 
 // Run is the entry point for the `aiki test` subcommand.
 func Run(args []string) int {
-	fs := flag.NewFlagSet("test", flag.ExitOnError)
-	cover := fs.Bool("cover", false, "enable coverage analysis")
-	coverprofile := fs.String("coverprofile", "", "write coverage profile to file")
-	fs.Parse(args)
-
-	// If coverprofile is set, enable cover implicitly.
-	if *coverprofile != "" {
-		*cover = true
-	}
-
-	targets := fs.Args()
+	targets := args
 	if len(targets) == 0 {
 		targets = []string{"."}
 	}
@@ -79,10 +66,6 @@ func Run(args []string) int {
 	}
 
 	fmt.Fprintf(os.Stdout, "\n%d tests, %d passed, %d failed\n", totalPassed+totalFailed, totalPassed, totalFailed)
-
-	_ = cover
-	_ = coverprofile
-	// TODO: coverage instrumentation in a follow-up stage
 
 	if anyFailed {
 		return 1
