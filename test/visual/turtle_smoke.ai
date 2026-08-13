@@ -1,0 +1,36 @@
+let cv = import("canvas")
+let tu = import("turtle")
+let time = import("time")
+
+let c = cv.canvas(400, 400)
+let t = tu.turtle(c)
+
+# Draw a square
+let t = tu.forward(t, 100)
+let t = tu.right(t, 90)
+let t = tu.forward(t, 100)
+let t = tu.right(t, 90)
+let t = tu.forward(t, 100)
+let t = tu.right(t, 90)
+let t = tu.forward(t, 100)
+let t = tu.right(t, 90)
+
+# Check heading (should be 360 after 4 right turns)
+print("heading\n")
+print(tu.heading(t), "\n")
+
+# Pen up, move, pen down, draw in different color
+let t = tu.pen_up(t)
+let t = tu.forward(t, 50)
+let t = tu.pen_down(t)
+let t = tu.set_color(t, :cyan)
+let t = tu.forward(t, 50)
+
+# Go home
+let t = tu.home(t)
+print("pos_after_home\n")
+print(tu.position(t), "\n")
+
+time.sleep(2000)
+cv.destroy(c)
+print("done\n")

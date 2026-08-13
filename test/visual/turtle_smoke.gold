@@ -1,0 +1,6 @@
+OUT:heading\n
+OUT:360\n
+OUT:pos_after_home\n
+OUT:[0, 0]\n
+OUT:done\n
+DISPLAY:Canvas shows a square briefly, then exits.
