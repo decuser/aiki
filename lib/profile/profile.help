@@ -1,0 +1,17 @@
+# profile - semantic work measurement
+
+@func counts
+@template "counts(function)"
+@help "Measures the Aiki-level work performed by one zero-argument function call."
+
+@func measure
+@template "measure(function)"
+@help "Measures semantic work and returns both totals and source-site attribution."
+
+@func experiment
+@template "experiment(size, function)"
+@help "Measures function(size), independently for one size or each size in a list."
+
+@func complexity
+@template "complexity(results)"
+@help "Classifies observed growth of each semantic unit in experiment results."

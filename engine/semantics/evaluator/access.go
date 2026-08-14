@@ -1,14 +1,13 @@
 package evaluator
 
 import (
+	"aiki/engine"
 	"aiki/engine/semantics/value"
 	"aiki/engine/syntax"
 )
 
 func (e *Evaluator) evalIndex(val value.Value, node *syntax.Node, env *value.Env) value.Value {
-	if e.Counters != nil {
-		e.Counters.Index++
-	}
+	e.semanticHit(engine.SemanticIndex, node, env)
 	list, ok := val.(*value.List)
 	if !ok {
 		if s, ok := val.(*value.String); ok {

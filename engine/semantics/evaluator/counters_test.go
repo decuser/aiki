@@ -147,3 +147,19 @@ func TestCoverageHits(t *testing.T) {
 		t.Error("line 2 should have coverage hits")
 	}
 }
+
+func TestCounterTailCalls(t *testing.T) {
+	ev, g := makeEvalWithCounters(t)
+	evalSource(t, ev, g, `
+let countdown = (n) {
+	if n <= 0 {
+		return 0
+	}
+	countdown(n - 1)
+}
+countdown(5)
+`)
+	if ev.Counters.Call != 6 {
+		t.Errorf("call: expected 6 including 5 proper tail calls, got %d", ev.Counters.Call)
+	}
+}

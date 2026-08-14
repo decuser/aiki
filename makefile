@@ -1,4 +1,4 @@
-.PHONY: build clean install run test fmt lint check bless validate smoke smokegold visual aikitest runsamples enginesmoke enginesmokegold enginecoverage rigorous fuzz hooks
+.PHONY: build clean install run test fmt lint check bless validate smoke smokegold visual aikitest runsamples enginesmoke enginesmokegold enginecoverage rigorous fuzz hooks profilesweep
 
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 LDFLAGS := -ldflags "-X main.Version=$(VERSION)"
@@ -79,3 +79,10 @@ hooks:
 	cp hooks/pre-push .git/hooks/pre-push
 	chmod +x .git/hooks/pre-commit .git/hooks/pre-push
 	@echo "Git hooks installed"
+
+
+PROFILE_DIR ?= profile-out
+
+# Reproducible semantic/substrate profiling sweep. Not part of validation.
+profilesweep: build
+	@extra/profiling/sweep.sh $(PROFILE_DIR)

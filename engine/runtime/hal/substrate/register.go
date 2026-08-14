@@ -109,6 +109,11 @@ func (g *GoRuntime) registerHAL() {
 	g.register("_send", halSend)
 	g.register("_recv", halRecv)
 
+	// Semantic work profiling
+	g.register("_profile_counts", halProfileCounts)
+	g.register("_profile_measure", halProfileMeasure)
+	g.register("_profile_experiment", halProfileExperiment)
+
 	// Explicit mutable indexed storage
 	g.register("_store_new", halStoreNew)
 	g.register("_store_get", halStoreGet)

@@ -1,6 +1,7 @@
 package substrate
 
 import (
+	"aiki/engine"
 	"aiki/engine/runtime/hal"
 	"aiki/engine/semantics/value"
 )
@@ -25,6 +26,7 @@ func halSend(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if !ch.CanSend() {
 		return value.NewFault("send: channel is receive-only")
 	}
+	semanticHit(ctx, engine.SemanticSend)
 	ch.C <- args[1]
 	return value.TRUE
 }
@@ -38,5 +40,7 @@ func halRecv(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if !ok {
 		return value.NewFault("recv: argument must be channel, got %s", args[0].Type())
 	}
-	return <-ch.C
+	v := <-ch.C
+	semanticHit(ctx, engine.SemanticReceive)
+	return v
 }

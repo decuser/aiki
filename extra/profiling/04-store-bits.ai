@@ -1,0 +1,18 @@
+let store = import("store")
+let bits = import("bits")
+
+let work = (n) {
+	let mem = store.new(1024)
+	let i = 0
+	let checksum = 0
+	while i < n {
+		let slot = bits.bit_and(i, 1023)
+		let word = bits.bit_xor(i, 7094)
+		store.set(mem, slot, word)
+		checksum = checksum + store.get(mem, slot)
+		i = i + 1
+	}
+	return checksum
+}
+
+work(80000)

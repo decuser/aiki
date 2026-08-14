@@ -1,6 +1,7 @@
 package substrate
 
 import (
+	"aiki/engine"
 	"aiki/engine/runtime/hal"
 	"aiki/engine/semantics/value"
 )
@@ -52,7 +53,9 @@ func halStoreGet(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if idx64 < 0 || idx64 >= int64(length) {
 		return value.NewFault("store.get: index %d out of bounds (length %d)", idx64, length)
 	}
-	return s.StoreGet(int(idx64))
+	v := s.StoreGet(int(idx64))
+	semanticHit(ctx, engine.SemanticStoreRead)
+	return v
 }
 
 func halStoreSet(args []value.Value, ctx *hal.EvalContext) value.Value {
@@ -72,6 +75,7 @@ func halStoreSet(args []value.Value, ctx *hal.EvalContext) value.Value {
 		return value.NewFault("store.set: index %d out of bounds (length %d)", idx64, length)
 	}
 	s.StoreSet(int(idx64), args[2])
+	semanticHit(ctx, engine.SemanticStoreWrite)
 	return value.EMPTY
 }
 

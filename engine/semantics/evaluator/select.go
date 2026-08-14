@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"aiki/engine"
 	"reflect"
 
 	"aiki/engine/semantics/value"
@@ -82,6 +83,7 @@ func (e *Evaluator) chooseSelect(node *syntax.Node, env *value.Env) (*preparedSe
 	if !ok {
 		return nil, nil, e.makeFault(node, env, "select: invalid channel payload")
 	}
+	e.semanticHit(engine.SemanticReceive, node, env)
 	return selected, v, nil
 }
 

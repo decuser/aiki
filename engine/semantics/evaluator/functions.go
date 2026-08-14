@@ -1,28 +1,53 @@
 package evaluator
 
 import (
+	"aiki/engine"
 	"aiki/engine/runtime/hal"
 	"aiki/engine/semantics/value"
 	"aiki/engine/syntax"
+	"strconv"
 )
 
 func (e *Evaluator) applyFunction(fn value.Value, args []value.Value, node *syntax.Node, env *value.Env) value.Value {
-	if e.Counters != nil {
-		e.Counters.Call++
+	callName := fn.Inspect()
+	if named, ok := fn.(*value.Function); ok && named.Name != "" {
+		callName = named.Name
 	}
+	e.semanticHitDetail(engine.SemanticCall, callName, node, env)
 	switch f := fn.(type) {
 	case *value.Function:
 		return e.applyUserFunction(f, args, node, env)
 	case value.Callable:
-		// Set context before calling builtin so intrinsics have access
+		probe := e.activeProbe(env)
+		parentLabels := semanticProfileLabels(env)
 		ctx := &hal.EvalContext{
 			Env:     env,
 			Node:    node,
 			Grammar: e.grammar,
 			Eval:    e.Eval,
+			Probe:   probe,
+			Labels:  parentLabels,
+			Measure: func(target value.Value, targetArgs []value.Value, attributed bool) (value.Value, engine.SemanticMeasurement) {
+				return e.measure(target, targetArgs, node, env, attributed)
+			},
+			WithProfileLabels: e.withProfileLabels,
 		}
-		e.runtime.SetContext(ctx)
-		result := f.Call(args)
+		var result value.Value
+		labels := parentLabels
+		labels.Layer = "substrate"
+		if node != nil && node.Pos.Line > 0 {
+			labels.Line = strconv.Itoa(node.Pos.Line)
+		}
+		if named, ok := f.(hal.ProfileNamed); ok {
+			labels.Primitive = named.ProfileName()
+		}
+		e.withProfileLabels(labels, parentLabels, func() {
+			if cf, ok := f.(hal.ContextCallable); ok {
+				result = cf.CallWithContext(args, ctx)
+			} else {
+				result = f.Call(args)
+			}
+		})
 		// Annotate HAL faults with call site location
 		if fault, ok := result.(*value.Fault); ok && fault.File == "" {
 			fault.File = env.GetFile()
@@ -53,7 +78,8 @@ func (e *Evaluator) applyUserFunction(fn *value.Function, args []value.Value, no
 			return e.makeFault(callSite, env, "%s: want %d arguments, got %d", currentFn.Name, len(currentFn.Params), len(currentArgs))
 		}
 
-		callEnv := value.NewEnclosedEnv(fnEnv)
+		callEnv := value.NewCallEnv(fnEnv, env)
+		callEnv.SetSemanticProbe(e.activeProbe(env))
 
 		for i, param := range currentFn.Params {
 			callEnv.Set(param, currentArgs[i])
@@ -91,10 +117,16 @@ func (e *Evaluator) applyUserFunction(fn *value.Function, args []value.Value, no
 			callEnv.ReplaceTopFrame(funcName, callSite.Pos.Line, callEnv.GetScope())
 		}
 
-		result := e.evalTail(body, callEnv)
+		var result value.Value
+		labels := engine.ProfileLabels{Layer: "semantic", Function: funcName, File: callEnv.GetFile()}
+		restore := semanticProfileLabels(env)
+		e.withProfileLabels(labels, restore, func() {
+			result = e.evalTail(body, callEnv)
+		})
 
 		// Tail call jump
 		if tc, ok := result.(*tailCallValue); ok {
+			e.semanticHitDetail(engine.SemanticCall, funcNameValue(tc.Fn), tc.Node, callEnv)
 			currentFn = tc.Fn
 			currentArgs = tc.Args
 			callSite = tc.Node
@@ -104,6 +136,7 @@ func (e *Evaluator) applyUserFunction(fn *value.Function, args []value.Value, no
 		// Return control flow
 		if ret, ok := result.(*value.Return); ok {
 			if tc, ok := ret.Val.(*tailCallValue); ok {
+				e.semanticHitDetail(engine.SemanticCall, funcNameValue(tc.Fn), tc.Node, callEnv)
 				currentFn = tc.Fn
 				currentArgs = tc.Args
 				callSite = tc.Node
@@ -121,6 +154,16 @@ func (e *Evaluator) applyUserFunction(fn *value.Function, args []value.Value, no
 		callEnv.PopFrame()
 		return result
 	}
+}
+
+func funcNameValue(fn *value.Function) string {
+	if fn == nil {
+		return "<fn>"
+	}
+	if fn.Name != "" {
+		return fn.Name
+	}
+	return "<anonymous>"
 }
 
 func (e *Evaluator) extractParams(node *syntax.Node) ([]string, string) {

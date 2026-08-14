@@ -1,0 +1,9 @@
+let work = (n) {
+	let x = 0
+	while x < n {
+		x = x + 1
+	}
+	return x
+}
+
+work(250000)

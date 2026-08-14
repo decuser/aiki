@@ -2,13 +2,17 @@
 package substrate
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"runtime/pprof"
 	"sort"
 	"sync"
+	"sync/atomic"
 
+	"aiki/engine"
 	"aiki/engine/runtime/hal"
 	"aiki/engine/semantics/value"
 )
@@ -36,23 +40,30 @@ func (b *Builtin) Inspect() string  { return fmt.Sprintf("<builtin: %s>", b.name
 
 // Call invokes the builtin. Context is retrieved from the runtime's current context.
 func (b *Builtin) Call(args []value.Value) value.Value {
-	return b.fn(args, b.runtime.currentCtx)
+	return b.fn(args, nil)
+}
+
+func (b *Builtin) CallWithContext(args []value.Value, ctx *hal.EvalContext) value.Value {
+	return b.fn(args, ctx)
 }
 
 // Verify Builtin implements Callable
 var _ value.Callable = (*Builtin)(nil)
+var _ hal.ContextCallable = (*Builtin)(nil)
 
 // GoRuntime implements hal.RuntimeContract using Go primitives.
 // It maintains a single registry of _prefixed HAL primitives.
 // User-visible names are defined in prelude.ai, not here.
 type GoRuntime struct {
-	registry   map[string]*Builtin // _print, _read, etc - prelude only
-	mu         sync.RWMutex
-	currentCtx *hal.EvalContext // set before each builtin call
+	registry      map[string]*Builtin // _print, _read, etc - prelude only
+	mu            sync.RWMutex
+	profileLabels atomic.Bool
+	labelContexts sync.Map // map[engine.ProfileLabels]context.Context
 }
 
 // Verify GoRuntime implements RuntimeContract
 var _ hal.RuntimeContract = (*GoRuntime)(nil)
+var _ hal.ProfileLabeler = (*GoRuntime)(nil)
 
 // NewGoRuntime creates a new Go runtime substrate.
 func NewGoRuntime() *GoRuntime {
@@ -61,12 +72,6 @@ func NewGoRuntime() *GoRuntime {
 	}
 	rt.registerHAL()
 	return rt
-}
-
-// SetContext sets the evaluation context for subsequent builtin calls.
-// Called by the evaluator before invoking builtins.
-func (g *GoRuntime) SetContext(ctx *hal.EvalContext) {
-	g.currentCtx = ctx
 }
 
 // Execute calls a registered primitive function.
@@ -216,3 +221,39 @@ func resolveModulePath(name string, env *value.Env) string {
 
 	return ""
 }
+
+// SetProfileLabels enables or disables pprof label regions for this runtime.
+func (g *GoRuntime) SetProfileLabels(enabled bool) {
+	g.profileLabels.Store(enabled)
+}
+
+// WithProfileLabels executes fn under a cached pprof label context. It uses
+// SetGoroutineLabels rather than pprof.Do so repeated Aiki calls do not rebuild
+// context label maps on every invocation.
+func (g *GoRuntime) WithProfileLabels(labels engine.ProfileLabels, restore engine.ProfileLabels, fn func()) {
+	if !g.profileLabels.Load() {
+		fn()
+		return
+	}
+	pprof.SetGoroutineLabels(g.profileContext(labels))
+	defer pprof.SetGoroutineLabels(g.profileContext(restore))
+	fn()
+}
+
+func (g *GoRuntime) profileContext(labels engine.ProfileLabels) context.Context {
+	if cached, ok := g.labelContexts.Load(labels); ok {
+		return cached.(context.Context)
+	}
+	pairs := []string{
+		"aiki_layer", labels.Layer,
+		"aiki_function", labels.Function,
+		"aiki_file", labels.File,
+		"aiki_line", labels.Line,
+		"aiki_primitive", labels.Primitive,
+	}
+	ctx := pprof.WithLabels(context.Background(), pprof.Labels(pairs...))
+	actual, _ := g.labelContexts.LoadOrStore(labels, ctx)
+	return actual.(context.Context)
+}
+
+func (b *Builtin) ProfileName() string { return b.name }

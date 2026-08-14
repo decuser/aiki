@@ -1,5 +1,7 @@
 package value
 
+import "aiki/engine"
+
 // Scope represents the visibility level for builtins.
 type Scope int
 
@@ -18,16 +20,18 @@ type StackFrame struct {
 
 // Env holds variable bindings and scope chain.
 type Env struct {
-	store       map[string]Value
-	shapes      map[string]*ShapeDef
-	outer       *Env
-	file        string        // this env's file (not shared)
-	source      string        // this env's source (not shared)
-	stack       *[]StackFrame // shared across enclosed envs
-	stackLimit  *int          // shared recursion limit (non tail frames)
-	scope       Scope
-	exports     []string // exported names for modules
-	packageName string   // package name declared by this module
+	store         map[string]Value
+	shapes        map[string]*ShapeDef
+	outer         *Env
+	file          string        // this env's file (not shared)
+	source        string        // this env's source (not shared)
+	sourceLines   []string      // cached source lines for diagnostics/profiling
+	stack         *[]StackFrame // shared across enclosed envs
+	stackLimit    *int          // shared recursion limit (non tail frames)
+	scope         Scope
+	exports       []string             // exported names for modules
+	packageName   string               // package name declared by this module
+	semanticProbe engine.SemanticProbe // dynamic profiling context
 }
 
 // NewEnv creates a new environment with user scope.
@@ -53,12 +57,13 @@ func NewEnvWithScope(scope Scope) *Env {
 // NewEnclosedEnv creates a child environment, inheriting scope and shared state.
 func NewEnclosedEnv(outer *Env) *Env {
 	return &Env{
-		store:      make(map[string]Value),
-		shapes:     make(map[string]*ShapeDef),
-		outer:      outer,
-		scope:      outer.scope,
-		stack:      outer.stack,
-		stackLimit: outer.stackLimit,
+		store:         make(map[string]Value),
+		shapes:        make(map[string]*ShapeDef),
+		outer:         outer,
+		scope:         outer.scope,
+		stack:         outer.stack,
+		stackLimit:    outer.stackLimit,
+		semanticProbe: outer.semanticProbe,
 	}
 }
 
@@ -66,13 +71,60 @@ func NewEnclosedEnv(outer *Env) *Env {
 // Used to create user-scope envs enclosed by prelude-scope envs.
 func NewEnclosedEnvWithScope(outer *Env, scope Scope) *Env {
 	return &Env{
-		store:      make(map[string]Value),
-		shapes:     make(map[string]*ShapeDef),
-		outer:      outer,
-		scope:      scope,
-		stack:      outer.stack,
-		stackLimit: outer.stackLimit,
+		store:         make(map[string]Value),
+		shapes:        make(map[string]*ShapeDef),
+		outer:         outer,
+		scope:         scope,
+		stack:         outer.stack,
+		stackLimit:    outer.stackLimit,
+		semanticProbe: outer.semanticProbe,
 	}
+}
+
+// NewIsolatedEnclosedEnv creates a child that can read through outer but owns
+// its own dynamic call-stack state. This is used by spawn: spawned computations
+// share the prelude vocabulary but must not share mutable execution metadata
+// with the parent goroutine. The current stack-limit value is copied.
+func NewIsolatedEnclosedEnv(outer *Env) *Env {
+	stack := make([]StackFrame, 0)
+	limit := outer.GetStackLimit()
+	return &Env{
+		store:         make(map[string]Value),
+		shapes:        make(map[string]*ShapeDef),
+		outer:         outer,
+		scope:         outer.scope,
+		stack:         &stack,
+		stackLimit:    &limit,
+		semanticProbe: outer.semanticProbe,
+	}
+}
+
+// NewCallEnv creates a function-call environment. Name lookup is lexical and
+// therefore chains through lexicalOuter, while execution metadata is dynamic
+// and therefore follows caller. Keeping those two relationships separate is
+// essential for isolated spawn: calling a prelude function must not reconnect
+// a spawned computation to the parent's call stack.
+func NewCallEnv(lexicalOuter, caller *Env) *Env {
+	return &Env{
+		store:         make(map[string]Value),
+		shapes:        make(map[string]*ShapeDef),
+		outer:         lexicalOuter,
+		scope:         lexicalOuter.scope,
+		stack:         caller.stack,
+		stackLimit:    caller.stackLimit,
+		semanticProbe: caller.semanticProbe,
+	}
+}
+
+// SetSemanticProbe sets the dynamic semantic profiling context for this env.
+// A nil probe explicitly disables profiling for this dynamic branch.
+func (e *Env) SetSemanticProbe(probe engine.SemanticProbe) {
+	e.semanticProbe = probe
+}
+
+// GetSemanticProbe returns the dynamic semantic profiling context.
+func (e *Env) GetSemanticProbe() engine.SemanticProbe {
+	return e.semanticProbe
 }
 
 // GetScope returns the scope.
@@ -100,6 +152,14 @@ func (e *Env) PopFrame() {
 	if len(*e.stack) > 0 {
 		*e.stack = (*e.stack)[:len(*e.stack)-1]
 	}
+}
+
+// CurrentFrame returns the active Aiki call frame without copying the stack.
+func (e *Env) CurrentFrame() (StackFrame, bool) {
+	if e == nil || e.stack == nil || len(*e.stack) == 0 {
+		return StackFrame{}, false
+	}
+	return (*e.stack)[len(*e.stack)-1], true
 }
 
 // CopyStack returns a copy of the current call stack.
@@ -252,14 +312,14 @@ func (e *Env) GetFile() string {
 // SetSource sets the source code for this env.
 func (e *Env) SetSource(source string) {
 	e.source = source
+	e.sourceLines = splitLines(source)
 }
 
 // GetSourceLine returns a specific line from source, chaining up if needed.
 func (e *Env) GetSourceLine(line int) string {
-	if e.source != "" {
-		lines := splitLines(e.source)
-		if line >= 1 && line <= len(lines) {
-			return lines[line-1]
+	if len(e.sourceLines) > 0 {
+		if line >= 1 && line <= len(e.sourceLines) {
+			return e.sourceLines[line-1]
 		}
 	}
 	if e.outer != nil {

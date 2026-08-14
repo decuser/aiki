@@ -3,18 +3,31 @@
 package hal
 
 import (
+	"aiki/engine"
 	"aiki/engine/semantics/value"
 	"aiki/engine/syntax"
 	"aiki/engine/syntax/grammar"
 )
 
+// ContextCallable is a host callable that needs the active Aiki evaluation
+// context. It avoids storing mutable call context in the runtime, which is
+// important when spawned computations execute concurrently.
+type ContextCallable interface {
+	value.Callable
+	CallWithContext(args []value.Value, ctx *EvalContext) value.Value
+}
+
 // EvalContext provides evaluation context to builtins that need it.
 // Most builtins ignore this; intrinsics (import, export, apply, load, spawn)
 // use it to access the evaluator, grammar, and environment.
 type EvalContext struct {
-	Env     *value.Env
-	Node    *syntax.Node
-	Grammar *grammar.Grammar
+	Env               *value.Env
+	Node              *syntax.Node
+	Grammar           *grammar.Grammar
+	Probe             engine.SemanticProbe
+	Measure           func(fn value.Value, args []value.Value, attributed bool) (value.Value, engine.SemanticMeasurement)
+	Labels            engine.ProfileLabels
+	WithProfileLabels func(labels engine.ProfileLabels, restore engine.ProfileLabels, fn func())
 	// Eval is a callback to evaluate AST nodes. Used by apply, spawn.
 	Eval func(*syntax.Node, *value.Env) value.Value
 }
@@ -31,8 +44,17 @@ type RuntimeContract interface {
 
 	// GetBuiltin returns a callable for the named builtin at the given scope.
 	GetBuiltin(name string, scope value.Scope) (value.Callable, bool)
+}
 
-	// SetContext sets the evaluation context for subsequent builtin calls.
-	// Called by the evaluator before invoking builtins.
-	SetContext(ctx *EvalContext)
+// ProfileLabeler is an optional runtime capability used to correlate host CPU
+// samples with the Aiki computation that caused them. Runtimes that do not
+// support labeled profiling need not implement it.
+type ProfileLabeler interface {
+	SetProfileLabels(enabled bool)
+	WithProfileLabels(labels engine.ProfileLabels, restore engine.ProfileLabels, fn func())
+}
+
+// ProfileNamed optionally supplies a stable substrate name for a callable.
+type ProfileNamed interface {
+	ProfileName() string
 }

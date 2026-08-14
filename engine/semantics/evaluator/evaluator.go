@@ -124,6 +124,96 @@ func (e *Evaluator) validateHandlers() {
 	}
 }
 
+func (e *Evaluator) activeProbe(env *value.Env) engine.SemanticProbe {
+	if env != nil {
+		if probe := env.GetSemanticProbe(); probe != nil {
+			return probe
+		}
+	}
+	if e.Counters != nil {
+		return e.Counters
+	}
+	return nil
+}
+
+func semanticSite(node *syntax.Node, env *value.Env) engine.SemanticSite {
+	if node == nil || env == nil {
+		return engine.SemanticSite{}
+	}
+	site := engine.SemanticSite{
+		File: env.GetFile(),
+		Line: node.Pos.Line,
+		Col:  node.Pos.Col,
+	}
+	if frame, ok := env.CurrentFrame(); ok {
+		site.Function = frame.Name
+	}
+	if site.Line > 0 {
+		site.Source = env.GetSourceLine(site.Line)
+	}
+	return site
+}
+
+func (e *Evaluator) semanticHit(kind engine.SemanticKind, node *syntax.Node, env *value.Env) {
+	probe := e.activeProbe(env)
+	if probe == nil {
+		return
+	}
+	site := engine.SemanticSite{}
+	if attributed, ok := probe.(engine.AttributionProbe); ok && attributed.WantsSites() {
+		site = semanticSite(node, env)
+	}
+	probe.Hit(kind, site)
+}
+
+func (e *Evaluator) semanticHitDetail(kind engine.SemanticKind, detail string, node *syntax.Node, env *value.Env) {
+	probe := e.activeProbe(env)
+	if probe == nil {
+		return
+	}
+	site := engine.SemanticSite{}
+	if attributed, ok := probe.(engine.AttributionProbe); ok && attributed.WantsSites() {
+		site = semanticSite(node, env)
+		site.Detail = detail
+	}
+	probe.Hit(kind, site)
+}
+
+func (e *Evaluator) measure(fn value.Value, args []value.Value, node *syntax.Node, env *value.Env, attributed bool) (value.Value, engine.SemanticMeasurement) {
+	var counters *Counters
+	if attributed {
+		counters = NewAttributedCounters()
+	} else {
+		counters = NewCounters()
+	}
+	measureEnv := value.NewEnclosedEnv(env)
+	measureEnv.SetSemanticProbe(counters)
+	result := e.applyFunction(fn, args, node, measureEnv)
+	return result, counters.Measurement()
+}
+
+func (e *Evaluator) withProfileLabels(labels engine.ProfileLabels, restore engine.ProfileLabels, fn func()) {
+	if labeler, ok := e.runtime.(hal.ProfileLabeler); ok {
+		labeler.WithProfileLabels(labels, restore, fn)
+		return
+	}
+	fn()
+}
+
+func semanticProfileLabels(env *value.Env) engine.ProfileLabels {
+	labels := engine.ProfileLabels{Layer: "semantic"}
+	if env == nil {
+		return labels
+	}
+	labels.File = env.GetFile()
+	if frame, ok := env.CurrentFrame(); ok {
+		labels.Function = frame.Name
+	} else {
+		labels.Function = "<main>"
+	}
+	return labels
+}
+
 // Eval evaluates an AST node.
 func (e *Evaluator) Eval(node *syntax.Node, env *value.Env) value.Value {
 	e.observer.OnEval(node.Type, "", 0, node.Pos)

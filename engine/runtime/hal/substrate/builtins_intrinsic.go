@@ -1,6 +1,7 @@
 package substrate
 
 import (
+	"aiki/engine"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -29,7 +30,10 @@ func halApply(args []value.Value, ctx *hal.EvalContext) value.Value {
 	// Dispatch based on function type
 	switch f := fn.(type) {
 	case *value.Function:
+		semanticHitDetail(ctx, engine.SemanticCall, funcName(f))
 		return applyUserFunction(f, list.Elements, ctx)
+	case hal.ContextCallable:
+		return f.CallWithContext(list.Elements, ctx)
 	case value.Callable:
 		return f.Call(list.Elements)
 	default:
@@ -62,7 +66,8 @@ func applyUserFunction(fn *value.Function, args []value.Value, ctx *hal.EvalCont
 		return value.NewFault("%s: want %d arguments, got %d", funcName(fn), len(fn.Params), len(args))
 	}
 
-	callEnv := value.NewEnclosedEnv(fnEnv)
+	callEnv := value.NewCallEnv(fnEnv, ctx.Env)
+	callEnv.SetSemanticProbe(ctx.Probe)
 
 	for i, param := range fn.Params {
 		callEnv.Set(param, args[i])
@@ -82,7 +87,17 @@ func applyUserFunction(fn *value.Function, args []value.Value, ctx *hal.EvalCont
 		return value.NewFault("apply: invalid function body")
 	}
 
-	result := ctx.Eval(body, callEnv)
+	var result value.Value
+	run := func() { result = ctx.Eval(body, callEnv) }
+	if ctx.WithProfileLabels != nil {
+		ctx.WithProfileLabels(engine.ProfileLabels{
+			Layer:    "semantic",
+			Function: funcName(fn),
+			File:     callEnv.GetFile(),
+		}, ctx.Labels, run)
+	} else {
+		run()
+	}
 
 	if ret, ok := result.(*value.Return); ok {
 		return ret.Val
@@ -405,6 +420,7 @@ func halSpawn(args []value.Value, ctx *hal.EvalContext) value.Value {
 
 	// Capture arguments passed to spawn: spawn(fn, arg1, arg2)
 	fnArgs := args[1:]
+	semanticHitDetail(ctx, engine.SemanticCall, funcName(fn))
 
 	// Launch goroutine with isolated env
 	go func() {
@@ -437,7 +453,8 @@ func applyUserFunctionIsolated(fn *value.Function, args []value.Value, ctx *hal.
 	}
 
 	// Fresh env enclosed by prelude - sees prelude bindings but not outer user scope
-	callEnv := value.NewEnclosedEnv(preludeEnv)
+	callEnv := value.NewIsolatedEnclosedEnv(preludeEnv)
+	callEnv.SetSemanticProbe(ctx.Probe)
 
 	// Copy the shape vocabulary visible where the function was created.
 	// A shape definition is an ordered list of field names, not a value: it
@@ -470,7 +487,17 @@ func applyUserFunctionIsolated(fn *value.Function, args []value.Value, ctx *hal.
 		return value.NewFault("spawn: invalid function body")
 	}
 
-	result := ctx.Eval(body, callEnv)
+	var result value.Value
+	run := func() { result = ctx.Eval(body, callEnv) }
+	if ctx.WithProfileLabels != nil {
+		ctx.WithProfileLabels(engine.ProfileLabels{
+			Layer:    "semantic",
+			Function: funcName(fn),
+			File:     callEnv.GetFile(),
+		}, ctx.Labels, run)
+	} else {
+		run()
+	}
 
 	if ret, ok := result.(*value.Return); ok {
 		return ret.Val

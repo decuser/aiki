@@ -54,6 +54,18 @@ make validate   # check and compare against blessed golds; never writes them
 
 See `docs/testing.md` before updating gold files.
 
+## Profiling
+
+Aiki can expose both semantic work and the Go substrate work that realizes it:
+
+```bash
+./aiki profile program.ai
+./aiki profile --cpu run.cpu.pprof program.ai
+make profilesweep
+```
+
+See `docs/profiling.md`.
+
 ## Examples
 
 Sample programs are in:
@@ -95,6 +107,7 @@ docs/aiki-error-handling.md
 docs/debug.md
 docs/line-continuation-rules.md
 docs/testing.md
+docs/profiling.md
 ```
 
 ## License

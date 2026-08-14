@@ -1,0 +1,142 @@
+package "profile"
+
+# counts(function) measures one zero-argument computation.
+let counts = (function) {
+	_profile_counts(function)
+}
+
+# measure(function) measures one computation and retains source attribution.
+let measure = (function) {
+	_profile_measure(function)
+}
+
+# experiment(size, function) measures function(size). A list of sizes
+# produces one independent measurement for each supplied size.
+let experiment = (size, function) {
+	_profile_experiment(size, function)
+}
+
+# Integer-valued ceil(log2(n)), sufficient for empirical growth comparison.
+let _log2_size = (n) {
+	let p = 1
+	let k = 0
+	while p < n {
+		p = p * 2
+		k = k + 1
+	}
+	if k < 1 {
+		return 1
+	}
+	return k
+}
+
+let _growth_factor = (growth, n) {
+	match growth {
+		:constant {
+			return 1
+		}
+		:logarithmic {
+			return _log2_size(n)
+		}
+		:linear {
+			return n
+		}
+		:n_log_n {
+			return n * _log2_size(n)
+		}
+		:quadratic {
+			return n * n
+		}
+		:cubic {
+			return n * n * n
+		}
+	}
+	return 1
+}
+
+# Relative spread of count/f(size). Zero is a perfect fit; smaller is better.
+let _fit_score = (results, unit_index, growth) {
+	let ratios = []
+	let i = 0
+	while i < length(results) {
+		let row = results[i]
+		let n = row[0]
+		let count = row[1][unit_index][1]
+		let factor = _growth_factor(growth, n)
+		ratios = append(ratios, count / factor)
+		i = i + 1
+	}
+	let lo = ratios[0]
+	let hi = ratios[0]
+	i = 1
+	while i < length(ratios) {
+		if ratios[i] < lo {
+			lo = ratios[i]
+		}
+		if ratios[i] > hi {
+			hi = ratios[i]
+		}
+		i = i + 1
+	}
+	if equal(hi, 0) {
+		return 0
+	}
+	return (hi - lo) / hi
+}
+
+let _unit_total = (results, unit_index) {
+	let total = 0
+	let i = 0
+	while i < length(results) {
+		total = total + results[i][1][unit_index][1]
+		i = i + 1
+	}
+	return total
+}
+
+let _best_growth = (results, unit_index) {
+	let candidates = [:constant, :logarithmic, :linear, :n_log_n, :quadratic, :cubic]
+	let best = candidates[0]
+	let best_score = _fit_score(results, unit_index, best)
+	let i = 1
+	while i < length(candidates) {
+		let score = _fit_score(results, unit_index, candidates[i])
+		if score < best_score {
+			best = candidates[i]
+			best_score = score
+		}
+		i = i + 1
+	}
+	return [best, best_score]
+}
+
+# complexity(results) classifies observed growth for each semantic unit.
+# Results must come from experiment([positive sizes...], function).
+# Each entry is [unit, growth, score], where lower score means a closer fit.
+let complexity = (results) {
+	if length(results) < 3 {
+		return [@error, :profile, "complexity requires at least three experiment sizes"]
+	}
+	let i = 0
+	while i < length(results) {
+		if results[i][0] <= 0 {
+			return [@error, :profile, "complexity requires positive experiment sizes"]
+		}
+		i = i + 1
+	}
+	let out = []
+	let unit_index = 0
+	while unit_index < length(results[0][1]) {
+		let unit = results[0][1][unit_index][0]
+		if equal(_unit_total(results, unit_index), 0) {
+			out = append(out, [unit, :none, 0])
+		} else {
+			let fit = _best_growth(results, unit_index)
+			out = append(out, [unit, fit[0], fit[1]])
+		}
+		unit_index = unit_index + 1
+	}
+	return out
+}
+
+export(:counts, :measure, :experiment, :complexity)

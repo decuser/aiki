@@ -1,0 +1,15 @@
+let regex = import("regex/ffi")
+
+let work = (n) {
+	let i = 0
+	let hits = 0
+	while i < n {
+		if regex.matches("aiki7094", "^[a-z]+[0-9]+$") {
+			hits = hits + 1
+		}
+		i = i + 1
+	}
+	return hits
+}
+
+work(50000)

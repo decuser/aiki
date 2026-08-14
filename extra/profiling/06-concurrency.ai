@@ -1,0 +1,17 @@
+let worker = (out, x) {
+	send(out, x + 1)
+}
+
+let work = (n) {
+	let i = 0
+	let total = 0
+	while i < n {
+		let ch = channel()
+		spawn(worker, ch, i)
+		total = total + recv(ch)
+		i = i + 1
+	}
+	return total
+}
+
+work(5000)

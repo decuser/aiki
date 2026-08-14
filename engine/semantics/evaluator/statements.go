@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"aiki/engine"
 	"fmt"
 	"os"
 	"strings"
@@ -266,9 +267,7 @@ func (e *Evaluator) evalWhile(node *syntax.Node, env *value.Env) value.Value {
 		if !value.IsTruthy(condVal) {
 			break
 		}
-		if e.Counters != nil {
-			e.Counters.Iteration++
-		}
+		e.semanticHit(engine.SemanticIteration, body, env)
 		result = e.Eval(body, env)
 		if ret, ok := result.(*value.Return); ok {
 			return ret

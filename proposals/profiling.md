@@ -1,4 +1,21 @@
-## Proposal: `profile` — Semantic Work Profiling for Aiki
+## Proposal: `profile` — Semantic Work and Substrate Profiling for Aiki
+
+> **Status (August 2026): core implemented.** Semantic counts, source attribution,
+> experiments, command-line reporting, correlated Go CPU profiling, and empirical complexity classification are now
+> implemented. The measurement baseline is exercised against representative
+> Aiki workloads before optimization decisions are made.
+
+### Governing idea
+
+Aiki should expose both **what a computation does** and **what it costs to
+realize that computation**. The first is an Aiki-semantic account; the second
+is a substrate account. Correlation between them makes the HAL boundary
+inspectable rather than presenting two unrelated profilers. Neither view is
+collapsed into a synthetic total-cost number.
+
+The implementation is described operationally in `docs/profiling.md`. The
+remainder of this proposal records the original semantic-work design and the
+future complexity-analysis direction.
 
 ### Purpose
 

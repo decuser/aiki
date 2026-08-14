@@ -1,0 +1,11 @@
+let build = (n) {
+	let xs = []
+	let i = 0
+	while i < n {
+		xs = append(xs, i)
+		i = i + 1
+	}
+	return length(xs)
+}
+
+build(15000)

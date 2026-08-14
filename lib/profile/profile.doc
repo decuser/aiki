@@ -1,0 +1,56 @@
+@preamble let profile = import("profile")
+counts
+Measures Aiki-level computational work performed while function executes.
+The function takes no arguments. The result is ordinary Aiki data: a list of
+[unit, count] pairs for arithmetic, comparison, call, iteration, index, send,
+receive, store_read, and store_write. The call to function itself is included.
+Setup performed before counts is outside the measurement.
+
+counts(function)
+
+let work = () { return 1 + 2 }
+profile.counts(work)[0]    # [:arithmetic, 1]
+===
+measure
+Measures the same semantic units as counts, but also retains the Aiki source
+sites at which work occurred. The result is [counts, sites]. Each site entry is
+[unit, count, file, line, column, function, detail, source]. Detail identifies
+the called function for call sites when available. This richer form is opt-in;
+counts does not pay the source-attribution cost.
+
+measure(function)
+
+let work = () { return 1 + 2 }
+profile.measure(work)[0][0]    # [:arithmetic, 1]
+===
+experiment
+Measures function(size) and returns [size, counts]. If size is a list, each
+supplied value is measured independently and a list of results is returned.
+The profiler assigns no meaning to size; the measured function does.
+
+experiment(size, function)
+
+let work = (n) { return n + 1 }
+profile.experiment(10, work)[0]    # 10
+===
+complexity
+@unchecked
+Classifies the observed growth of each semantic unit in results returned by
+experiment over at least three positive sizes. Candidate families are constant,
+logarithmic, linear, n-log-n, quadratic, and cubic. Each returned entry is
+[unit, growth, score]. A lower score means count/growth(size) remained more
+stable across the supplied sizes. Units with no observed work report :none.
+The result is empirical: it reports growth consistent with the observations;
+it is not a proof of asymptotic complexity. The original experiment results
+remain ordinary Aiki data and should be inspected alongside the classification.
+
+complexity(results)
+
+let work = (n) {
+	let i = 0
+	while i < n {
+		i = i + 1
+	}
+}
+let results = profile.experiment([10, 20, 40, 80], work)
+profile.complexity(results)[0][1]    # :linear

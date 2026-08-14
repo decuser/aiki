@@ -1,0 +1,110 @@
+use("test")
+let profile = import("profile")
+
+run("counts measures semantic work", () {
+	let work = () {
+		1 + 2
+	}
+	equal(profile.counts(work), [[:arithmetic, 1], [:comparison, 0], [:call, 1], [:iteration, 0], [:index, 0], [:send, 0], [:receive, 0], [:store_read, 0], [:store_write, 0]])
+})
+
+
+run("experiment measures f of size", () {
+	let work = (n) {
+		n + 1
+	}
+	let result = profile.experiment(10, work)
+	equal(result[0], 10)
+	equal(result[1], [[:arithmetic, 1], [:comparison, 0], [:call, 1], [:iteration, 0], [:index, 0], [:send, 0], [:receive, 0], [:store_read, 0], [:store_write, 0]])
+})
+
+
+run("experiment measures each supplied size independently", () {
+	let work = (n) {
+		n + 1
+	}
+	let results = profile.experiment([1, 2, 3], work)
+	equal(length(results), 3)
+	equal(results[0][0], 1)
+	equal(results[1][0], 2)
+	equal(results[2][0], 3)
+	equal(results[0][1], results[2][1])
+})
+
+
+run("measure retains source attribution", () {
+	let work = () {
+		1 + 2
+	}
+	let measured = profile.measure(work)
+	equal(measured[0][0], [:arithmetic, 1])
+	is_true(length(measured[1]) >= 2)
+})
+
+
+run("complexity identifies linear semantic growth", () {
+	let linear_work = (n) {
+		let i = 0
+		while i < n {
+			i = i + 1
+		}
+	}
+	let linear_results = profile.experiment([10, 20, 40, 80], linear_work)
+	let linear_growth = profile.complexity(linear_results)
+	equal(linear_growth[0][1], :linear)
+	equal(linear_growth[1][1], :linear)
+	equal(linear_growth[3][1], :linear)
+})
+
+
+run("complexity identifies quadratic semantic growth", () {
+	let quadratic_work = (n) {
+		let i = 0
+		while i < n {
+			let j = 0
+			while j < n {
+				j = j + 1
+			}
+			i = i + 1
+		}
+	}
+	let quadratic_results = profile.experiment([5, 10, 20, 40], quadratic_work)
+	let quadratic_growth = profile.complexity(quadratic_results)
+	equal(quadratic_growth[0][1], :quadratic)
+})
+
+
+run("counts excludes setup before measurement", () {
+	let setup = 1 + 2
+	let work = () {
+		3 + 4
+	}
+	let measured = profile.counts(work)
+	equal(setup, 3)
+	equal(measured[0], [:arithmetic, 1])
+})
+
+
+run("experiment resets counters for each size", () {
+	let work = (n) {
+		let i = 0
+		while i < n {
+			i = i + 1
+		}
+	}
+	let results = profile.experiment([2, 5], work)
+	equal(results[0][1][0], [:arithmetic, 2])
+	equal(results[1][1][0], [:arithmetic, 5])
+	equal(results[0][1][3], [:iteration, 2])
+	equal(results[1][1][3], [:iteration, 5])
+})
+
+
+run("complexity rejects too few sizes", () {
+	let work = (n) {
+		n + 1
+	}
+	let results = profile.experiment([10, 20], work)
+	is_error(profile.complexity(results))
+})
+
