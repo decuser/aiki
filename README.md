@@ -36,13 +36,23 @@ Run a file:
 ./aiki path/to/file.ai
 ```
 
-## Validate
+## Test and Validate
+
+Run the full read-only validation suite:
 
 ```bash
-make build
-make smoke
-make test
+make validate
 ```
+
+Aiki distinguishes checking, blessing, and validation:
+
+```bash
+make check      # correctness checks; never writes golds
+make bless      # after a verified intentional change, update blessed golds
+make validate   # check and compare against blessed golds; never writes them
+```
+
+See `docs/testing.md` before updating gold files.
 
 ## Examples
 
@@ -84,6 +94,7 @@ docs/adding-to-aiki.md
 docs/aiki-error-handling.md
 docs/debug.md
 docs/line-continuation-rules.md
+docs/testing.md
 ```
 
 ## License

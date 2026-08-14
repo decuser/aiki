@@ -2,6 +2,7 @@ package smoke
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -11,7 +12,14 @@ import (
 )
 
 func Run(args []string) int {
-	targets, err := collectSmokeFiles(args)
+	fs := flag.NewFlagSet("smoke", flag.ContinueOnError)
+	fs.SetOutput(os.Stderr)
+	gold := fs.Bool("gold", false, "write blessed .gold transcripts")
+	if err := fs.Parse(args); err != nil {
+		return 2
+	}
+
+	targets, err := collectSmokeFiles(fs.Args())
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "smoke:", err)
 		return 1
@@ -22,6 +30,14 @@ func Run(args []string) int {
 	}
 
 	for _, aiPath := range targets {
+		if *gold {
+			if err := blessPair(aiPath); err != nil {
+				fmt.Fprintln(os.Stderr, "smoke BLESS FAIL:", aiPath)
+				fmt.Fprintln(os.Stderr, "  ", err)
+				return 1
+			}
+			continue
+		}
 		if err := runPair(aiPath); err != nil {
 			fmt.Fprintln(os.Stderr, "smoke FAIL:", aiPath)
 			fmt.Fprintln(os.Stderr, "  ", err)
@@ -29,8 +45,97 @@ func Run(args []string) int {
 		}
 	}
 
-	fmt.Fprintf(os.Stdout, "smoke ok (%d tests)\n", len(targets))
+	if *gold {
+		fmt.Fprintf(os.Stdout, "smoke bless ok (%d tests)\n", len(targets))
+	} else {
+		fmt.Fprintf(os.Stdout, "smoke ok (%d tests)\n", len(targets))
+	}
 	return 0
+}
+
+func blessPair(aiPath string) error {
+	goldPath := strings.TrimSuffix(aiPath, ".ai") + ".gold"
+
+	// Preserve authored stimulus/presentation directives from an existing gold.
+	var stdin []byte
+	var displays []string
+	if _, err := os.Stat(goldPath); err == nil {
+		in, _, _, _, _, ds, err := loadTranscript(goldPath)
+		if err != nil {
+			return fmt.Errorf("load existing transcript: %w", err)
+		}
+		stdin = in
+		displays = ds
+	} else if !os.IsNotExist(err) {
+		return err
+	}
+
+	f, err := os.CreateTemp("", "aiki-canvas-*.transcript")
+	if err != nil {
+		return fmt.Errorf("create canvas transcript: %w", err)
+	}
+	canvasPath := f.Name()
+	f.Close()
+	defer os.Remove(canvasPath)
+
+	stdout, stderr, exitCode, err := runAikiFile(aiPath, stdin, canvasPath)
+	if err != nil {
+		return fmt.Errorf("run error: %w", err)
+	}
+
+	var canvas []string
+	if data, err := os.ReadFile(canvasPath); err == nil {
+		text := strings.TrimRight(string(data), "\n")
+		if text != "" {
+			canvas = strings.Split(text, "\n")
+		}
+	}
+
+	data := encodeTranscript(stdin, stdout, stderr, exitCode, canvas, displays)
+	if err := os.WriteFile(goldPath, data, 0o644); err != nil {
+		return fmt.Errorf("write gold: %w", err)
+	}
+	fmt.Fprintf(os.Stdout, "wrote gold: %s\n", goldPath)
+	return nil
+}
+
+func escapeTranscript(s string) string {
+	q := strconv.Quote(s)
+	return q[1 : len(q)-1]
+}
+
+func appendTranscriptRecords(buf *bytes.Buffer, prefix string, data []byte) {
+	if len(data) == 0 {
+		return
+	}
+	// One record per logical line keeps golds readable while preserving bytes.
+	start := 0
+	for i, b := range data {
+		if b == '\n' {
+			fmt.Fprintf(buf, "%s%s\n", prefix, escapeTranscript(string(data[start:i+1])))
+			start = i + 1
+		}
+	}
+	if start < len(data) {
+		fmt.Fprintf(buf, "%s%s\n", prefix, escapeTranscript(string(data[start:])))
+	}
+}
+
+func encodeTranscript(stdin, stdout, stderr []byte, exitCode int, canvas, displays []string) []byte {
+	var buf bytes.Buffer
+	appendTranscriptRecords(&buf, "IN:", stdin)
+	appendTranscriptRecords(&buf, "OUT:", stdout)
+	appendTranscriptRecords(&buf, "ERR:", stderr)
+	for _, line := range canvas {
+		fmt.Fprintf(&buf, "CANVAS:%s\n", line)
+	}
+	if exitCode != 0 {
+		fmt.Fprintf(&buf, "EXIT:%d\n", exitCode)
+	}
+	for _, msg := range displays {
+		fmt.Fprintf(&buf, "DISPLAY:%s\n", msg)
+	}
+	return buf.Bytes()
 }
 
 func collectSmokeFiles(args []string) ([]string, error) {

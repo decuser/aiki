@@ -1,0 +1,72 @@
+# Testing, Blessing, and Validation
+
+Aiki separates three different acts: checking correctness, blessing a known-good reference state, and validating later work against that state.
+
+## `make check`
+
+`make check` runs correctness checks that do not depend on existing behavior or engine gold snapshots. It builds and formats the tree, runs the linter, Go tests, Aiki tests, and verifies that the structural engine specimens exercise every production declared by `grammar.ebnfx`.
+
+`make check` never writes gold files.
+
+Use it while developing an intentional behavior or structural change, before updating reference snapshots.
+
+## `make bless`
+
+`make bless` first runs `make check`. Only if those independent checks succeed does it replace the blessed reference snapshots:
+
+```text
+behavior smoke transcripts
+lexer structural golds
+parser structural golds
+evaluator structural golds
+EBNF grammar gold
+```
+
+Blessing is not validation. It records the current implementation as the new reference state after the intended behavior has been established independently.
+
+The underlying commands are:
+
+```bash
+./aiki smoke --gold test/behavior/
+./aiki enginesmoke --stage all --gold test/structure/engine
+```
+
+`smoke --gold` preserves authored `IN:` and `DISPLAY:` directives from an existing transcript, then regenerates observed `OUT:`, `ERR:`, `EXIT:`, and `CANVAS:` records using the smoke framework's canonical transcript encoding. A new no-input smoke can be blessed without an existing gold; input-bearing smokes should establish their `IN:` directives before blessing.
+
+`enginesmoke --gold` refuses to bless an incomplete structural suite: every EBNF production must first be exercised by at least one `*_engine.ai` specimen.
+
+## `make validate`
+
+`make validate` runs `make check`, then compares current behavior and engine structure with the already-blessed golds.
+
+It is read-only with respect to gold files.
+
+A successful validation means:
+
+- the independent correctness checks pass;
+- every declared grammar production is exercised structurally;
+- behavior smoke output matches its blessed transcript;
+- lexer, parser, evaluator, and EBNF structures match their blessed snapshots.
+
+## Normal workflow
+
+For a change that should not alter blessed behavior or structure:
+
+```bash
+make validate
+```
+
+For an intentional behavior or structural change:
+
+```bash
+make check
+# inspect and establish that the new behavior/structure is correct
+make bless
+make validate
+```
+
+Then commit the implementation and updated golds together.
+
+## Why golds come after checks
+
+A gold is an oracle for future regression detection; generating one does not prove that the captured behavior is correct. Unit, semantic, invariant, and human review establish correctness first. Blessing then freezes that known-good state so later drift is visible.

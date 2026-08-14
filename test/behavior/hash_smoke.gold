@@ -6,6 +6,5 @@ OUT:true\n
 OUT:false\n
 OUT:one\n
 OUT:two\n
-OUT:\nhash_smoke done\n
-EXIT:0
-
+OUT:\n
+OUT:hash_smoke done\n

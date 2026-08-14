@@ -40,11 +40,13 @@ func Run(args []string) int {
 	var stageName string
 	var gold bool
 	var check bool
+	var coverage bool
 	var grammarPath string
 
 	fs.StringVar(&stageName, "stage", "all", "lex|parse|eval|ebnf|all")
-	fs.BoolVar(&gold, "gold", false, "write .gold outputs")
-	fs.BoolVar(&check, "check", false, "compare to .gold outputs")
+	fs.BoolVar(&gold, "gold", false, "write blessed .gold outputs")
+	fs.BoolVar(&check, "check", false, "compare to blessed .gold outputs")
+	fs.BoolVar(&coverage, "coverage", false, "require every grammar production to be exercised")
 	fs.StringVar(&grammarPath, "grammar", "", "override grammar path")
 
 	if err := fs.Parse(args); err != nil {
@@ -82,6 +84,28 @@ func Run(args []string) int {
 		return 1
 	}
 
+	// Structural coverage is checked before any gold is written. Golds preserve
+	// a known-good structure; they do not establish that the specimen set is complete.
+	requireCoverage := coverage || ((gold || check) && (st == stageAll || st == stageParse))
+	if requireCoverage {
+		missing, err := uncoveredProductions(g, inputs)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "enginesmoke coverage:", err)
+			return 1
+		}
+		if len(missing) > 0 {
+			fmt.Fprintln(os.Stderr, "enginesmoke FAIL: uncovered grammar productions:")
+			for _, name := range missing {
+				fmt.Fprintln(os.Stderr, "  "+name)
+			}
+			return 1
+		}
+		if coverage && !gold && !check {
+			fmt.Fprintf(os.Stdout, "enginesmoke coverage ok (%d productions, %d inputs)\n", len(g.Productions), len(inputs))
+			return 0
+		}
+	}
+
 	// Grammar dump is independent of inputs. Run it once.
 	if st == stageEbnf || st == stageAll {
 		out := dumpGrammar(g)
@@ -109,7 +133,7 @@ func Run(args []string) int {
 		}
 		if st == stageEbnf {
 			if gold {
-				fmt.Fprintln(os.Stdout, "enginesmoke gold ok (ebnf)")
+				fmt.Fprintln(os.Stdout, "enginesmoke bless ok (ebnf)")
 			}
 			if check {
 				fmt.Fprintln(os.Stdout, "enginesmoke ok (ebnf)")
@@ -167,7 +191,7 @@ func Run(args []string) int {
 	}
 
 	if gold {
-		fmt.Fprintf(os.Stdout, "enginesmoke gold ok (%d inputs)\n", len(inputs))
+		fmt.Fprintf(os.Stdout, "enginesmoke bless ok (%d inputs)\n", len(inputs))
 		return 0
 	}
 	if check {
@@ -175,6 +199,49 @@ func Run(args []string) int {
 		return 0
 	}
 	return 0
+}
+
+func uncoveredProductions(g *grammar.Grammar, inputs []string) ([]string, error) {
+	covered := make(map[string]bool)
+	for _, inPath := range inputs {
+		sourceBytes, err := os.ReadFile(inPath)
+		if err != nil {
+			return nil, fmt.Errorf("reading %s: %w", inPath, err)
+		}
+		source := string(sourceBytes)
+		lexer := syntax.NewLexer(g, inPath, source, nil)
+		tokens, err := lexer.Tokenize()
+		if err != nil {
+			return nil, fmt.Errorf("lexing %s: %w", inPath, err)
+		}
+		parser := syntax.NewParser(g, tokens, source, nil)
+		ast, err := parser.Parse()
+		if err != nil {
+			return nil, fmt.Errorf("parsing %s: %w", inPath, err)
+		}
+		collectProductions(ast, g, covered)
+	}
+
+	var missing []string
+	for name := range g.Productions {
+		if !covered[name] {
+			missing = append(missing, name)
+		}
+	}
+	sort.Strings(missing)
+	return missing, nil
+}
+
+func collectProductions(n *syntax.Node, g *grammar.Grammar, covered map[string]bool) {
+	if n == nil {
+		return
+	}
+	if _, ok := g.Productions[n.Type]; ok {
+		covered[n.Type] = true
+	}
+	for _, child := range n.Children {
+		collectProductions(child, g, covered)
+	}
 }
 
 func collectInputs(args []string) ([]string, error) {
