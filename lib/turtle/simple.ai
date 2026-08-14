@@ -66,11 +66,24 @@ let new = (...args) {
 	_center = _dim / 2
 	_scale = _dim / _logical
 	_bound = _logical / 2
-	# if no canvas or canvas is dead, create fresh
-	if not (_cvs) or not (_canvas_alive(_cvs)) {
+	# Determine whether we need a fresh canvas.
+	let _need_new = true
+	if _cvs {
+		if _canvas_alive(_cvs) {
+			if equal(_canvas_width(_cvs), _dim) {
+				_need_new = false
+			}
+		}
+	}
+	if _need_new {
+		if _cvs {
+			if _canvas_alive(_cvs) {
+				_destroy(_cvs)
+			}
+		}
 		_cvs = _canvas(_dim, _dim)
 	} else {
-		# canvas alive, just clear it
+		# canvas alive at correct size, just clear it
 		_clear(_cvs)
 	}
 	# fresh turtle state: [cx, cy, tx, ty, heading, pen, color]

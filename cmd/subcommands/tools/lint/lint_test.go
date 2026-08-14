@@ -133,3 +133,56 @@ func TestLintMatchPatternBindsName(t *testing.T) {
 		}
 	}
 }
+
+func TestLintIfBlockDoesNotScopeBindings(t *testing.T) {
+	// Bindings inside if blocks are visible outside — the evaluator
+	// does not create a new environment for if/while blocks.
+	src := "if true {\n\tlet y = 42\n}\nlet z = y\n"
+	diags := lintSource(t, src)
+	for _, d := range diags {
+		if d.Level == "error" && strings.Contains(d.Message, "undefined") && strings.Contains(d.Message, "y") {
+			t.Fatalf("linter falsely reports y as undefined inside if block: %v", diags)
+		}
+	}
+}
+
+func TestLintWhileBlockDoesNotScopeBindings(t *testing.T) {
+	src := "let i = 0\nwhile i < 1 {\n\tlet found = true\n\ti = i + 1\n}\nlet x = found\n"
+	diags := lintSource(t, src)
+	for _, d := range diags {
+		if d.Level == "error" && strings.Contains(d.Message, "undefined") && strings.Contains(d.Message, "found") {
+			t.Fatalf("linter falsely reports found as undefined after while block: %v", diags)
+		}
+	}
+}
+
+func TestLintMatchArmScopesBindings(t *testing.T) {
+	// Match arms DO create enclosed environments — pattern bindings
+	// should not leak outside.
+	src := "let val = 42\nmatch val {\n\tx { let inner = x }\n}\nlet z = inner\n"
+	diags := lintSource(t, src)
+	found := false
+	for _, d := range diags {
+		if d.Level == "error" && strings.Contains(d.Message, "undefined") && strings.Contains(d.Message, "inner") {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("expected inner to be undefined outside match arm, got %v", diags)
+	}
+}
+
+func TestLintFunctionBodyScopesBindings(t *testing.T) {
+	// Function bodies create their own scope.
+	src := "let f = () {\n\tlet local = 1\n}\nlet x = local\n"
+	diags := lintSource(t, src)
+	found := false
+	for _, d := range diags {
+		if d.Level == "error" && strings.Contains(d.Message, "undefined") && strings.Contains(d.Message, "local") {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("expected local to be undefined outside function, got %v", diags)
+	}
+}

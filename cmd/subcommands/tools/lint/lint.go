@@ -235,11 +235,14 @@ func (c *checker) check(node *syntax.Node) {
 		return
 
 	case "block":
-		c.pushScope()
+		// Blocks do not introduce a new scope in the evaluator.
+		// Only match arms create enclosed environments (handled in
+		// checkMatch). If/while/plain blocks execute in the
+		// surrounding scope, so bindings made inside are visible
+		// outside.
 		for _, ch := range node.Children {
 			c.check(ch)
 		}
-		c.popScope()
 		return
 
 	case "func_literal":
