@@ -28,7 +28,7 @@
         @template "@point, @error"
         @help "at-prefixed shape name"
 
-    KEYWORD     let if else while match return true false and or not package
+    KEYWORD     let if else while match select default return true false and or not package
     OPERATOR    + - * / < > <= >= |> . =
     DELIMITER   ( ) [ ] { } , ; ...
 
@@ -44,9 +44,9 @@ program = { statement [ ";" ] }
     @help "sequence of statements"
 
 statement = package_stmt | let_stmt | assign_stmt | if_stmt | while_stmt
-          | match_stmt | return_stmt | expr_stmt
+          | match_stmt | select_stmt | return_stmt | expr_stmt
     @error "expected statement"
-    @template "package | let | assign | if | while | match | return | expr"
+    @template "package | let | assign | if | while | match | select | return | expr"
     @help "one of the statement forms"
 
 package_stmt = "package" STRING
@@ -84,6 +84,21 @@ match_stmt = "match" expr "{" { pattern block } "}"
     @error "expected 'match expr { pattern { ... } ... }'"
     @template "match expr { pattern { ... } }"
     @help "pattern matching on value"
+
+select_stmt = "select" "{" ( select_case { select_case } [ select_default ] | select_default ) "}"
+    @error "expected 'select { recv(ch) { ... } ... }'"
+    @template "select { [let name =] recv(ch) { ... } [default { ... }] }"
+    @help "waits until one receive case is ready; default runs only when none is ready"
+
+select_case = [ "let" NAME "=" ] "recv" "(" expr ")" block
+    @error "expected '[let name =] recv(channel) { ... }'"
+    @template "let value = recv(ch) { ... } | recv(ch) { ... }"
+    @help "receive case in a select statement"
+
+select_default = "default" block
+    @error "expected 'default { ... }'"
+    @template "default { ... }"
+    @help "nonblocking select case used only when no receive case is ready"
 
 pattern = "_" | NAME | literal
         | "[" [ pattern { "," pattern } ] "]"

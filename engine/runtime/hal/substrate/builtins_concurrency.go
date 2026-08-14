@@ -22,6 +22,9 @@ func halSend(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if !ok {
 		return value.NewFault("send: first argument must be channel, got %s", args[0].Type())
 	}
+	if !ch.CanSend() {
+		return value.NewFault("send: channel is receive-only")
+	}
 	ch.C <- args[1]
 	return value.TRUE
 }

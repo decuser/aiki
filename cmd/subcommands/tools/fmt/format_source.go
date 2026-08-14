@@ -301,6 +301,8 @@ func (p *printer) printStatement(node *syntax.Node) {
 		p.printWhile(child)
 	case "match_stmt":
 		p.printMatch(child)
+	case "select_stmt":
+		p.printSelect(child)
 	default:
 		p.printNode(child)
 		p.emitEOLComment(line)
@@ -330,6 +332,8 @@ func (p *printer) printNode(node *syntax.Node) {
 		p.printWhile(node)
 	case "match_stmt":
 		p.printMatch(node)
+	case "select_stmt":
+		p.printSelect(node)
 	case "return_stmt":
 		p.printReturn(node)
 	case "expr_stmt":

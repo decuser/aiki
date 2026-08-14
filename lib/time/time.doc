@@ -7,3 +7,19 @@ sleep(ms)
 
 sleep(1000)    # pause for 1 second
 sleep(100)     # pause for 100 milliseconds
+===
+after
+Returns a receive-only event channel that produces true once after the
+specified number of milliseconds. Unlike sleep, after does not block the
+calling process. It is intended to compose with select for timeouts and other
+time-based events.
+
+The event is produced once. Sending on the returned channel faults. Ordinary
+channels created by channel() remain unbuffered; the timer's internal event
+storage is an implementation property and does not introduce general buffered
+channels.
+
+after(ms)
+
+let timer = after(0)
+recv(timer)    # true

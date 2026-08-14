@@ -77,6 +77,8 @@ func (e *Evaluator) evalTail(node *syntax.Node, env *value.Env) value.Value {
 		return e.evalIfTail(node, env)
 	case "match_stmt":
 		return e.evalMatchTail(node, env)
+	case "select_stmt":
+		return e.evalSelectTail(node, env)
 	case "pipe_expr":
 		return e.evalPipeTail(node, env)
 	case "postfix_expr":

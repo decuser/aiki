@@ -32,6 +32,7 @@ func init() {
 		"if_stmt":      (*Evaluator).evalIf,
 		"while_stmt":   (*Evaluator).evalWhile,
 		"match_stmt":   (*Evaluator).evalMatch,
+		"select_stmt":  (*Evaluator).evalSelect,
 		"block":        (*Evaluator).evalBlock,
 
 		// Expressions
@@ -61,15 +62,17 @@ func init() {
 		"NEWLINE":   (*Evaluator).evalTerminal,
 
 		// Structural (nil = delegate to single child)
-		"call":       nil,
-		"index":      nil,
-		"access":     nil,
-		"params":     nil,
-		"param_list": nil,
-		"rest_param": nil,
-		"pattern":    nil,
-		"literal":    nil,
-		"field":      nil,
+		"call":           nil,
+		"index":          nil,
+		"access":         nil,
+		"params":         nil,
+		"param_list":     nil,
+		"rest_param":     nil,
+		"pattern":        nil,
+		"select_case":    nil,
+		"select_default": nil,
+		"literal":        nil,
+		"field":          nil,
 	}
 }
 

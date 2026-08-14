@@ -1,0 +1,40 @@
+# select: default is nonblocking when no receive is ready
+let empty_ch = channel()
+select {
+	recv(empty_ch) {
+		println(:unexpected)
+	}
+	default {
+		println(:default)
+	}
+}
+
+# select: wait on a ready channel and bind the received value
+let result_ch = channel()
+let worker = (ch) {
+	send(ch, 42)
+}
+
+spawn(worker, result_ch)
+select {
+	let value = recv(result_ch) {
+		println(value)
+	}
+}
+
+# channel expressions are evaluated exactly once on entry
+let count = 0
+let once_ch = channel()
+let source = () {
+	count = count + 1
+	return once_ch
+}
+
+select {
+	recv(source()) {
+		println(:unexpected)
+	}
+	default {
+		println(count)
+	}
+}

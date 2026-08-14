@@ -178,15 +178,27 @@ func (f *File) Inspect() string { return fmt.Sprintf("<file %s %s>", f.Mode, f.P
 
 // Channel for concurrency.
 type Channel struct {
-	C chan Value
+	C        chan Value
+	sendable bool
 }
 
 func (c *Channel) Type() Type      { return ChannelType }
 func (c *Channel) Inspect() string { return "<channel>" }
 
-// NewChannel creates a new unbuffered channel.
+// CanSend reports whether user code may send on the channel.
+// Ordinary channels are sendable; system event sources may be receive-only.
+func (c *Channel) CanSend() bool { return c.sendable }
+
+// NewChannel creates a new unbuffered, sendable channel.
 func NewChannel() *Channel {
-	return &Channel{C: make(chan Value)}
+	return &Channel{C: make(chan Value), sendable: true}
+}
+
+// NewEventChannel creates an internal one-event receive-only channel.
+// The capacity prevents an abandoned event source from stranding its producer.
+// General buffered channels are not part of Aiki's language semantics.
+func NewEventChannel() *Channel {
+	return &Channel{C: make(chan Value, 1), sendable: false}
 }
 
 // Module holds a loaded package's exports.

@@ -69,7 +69,7 @@ func showHelpIndex(ctx *hal.EvalContext) value.Value {
 
 	// Categories from grammar
 	sb.WriteString("Syntax:\n")
-	sb.WriteString("  Statements: let, if, while, match, return\n")
+	sb.WriteString("  Statements: let, if, while, match, select, return\n")
 	sb.WriteString("  Expressions: +, -, *, /, <, >, <=, >=, and, or, not, |>\n")
 	sb.WriteString("  Values: number, string, rune, symbol, list, function\n\n")
 

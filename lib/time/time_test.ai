@@ -1,0 +1,23 @@
+use("test")
+use("time")
+
+run("after produces one true event", () {
+	let timer = after(0)
+	equal(recv(timer), true)
+})
+
+
+run("after rejects negative duration", () {
+	faults(() {
+		after(-1)
+	})
+})
+
+
+run("timer channel is receive only", () {
+	let timer = after(0)
+	faults(() {
+		send(timer, :nope)
+	})
+})
+

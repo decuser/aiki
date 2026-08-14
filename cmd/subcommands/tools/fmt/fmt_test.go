@@ -53,3 +53,20 @@ func contains(s, sub string) bool {
 		return false
 	})())
 }
+
+func TestFormatSourceSelect(t *testing.T) {
+	g, err := grammar.Load("grammar.ebnfx", syntax.EbnfxSource, "grammar.help", syntax.HelpSource)
+	if err != nil {
+		t.Fatalf("load grammar: %v", err)
+	}
+
+	src := "select{let x=recv(a){println(x)}recv(b){println(:b)}default{println(:idle)}}\n"
+	out, err := FormatSource(g, "test.ai", src)
+	if err != nil {
+		t.Fatalf("format: %v", err)
+	}
+	want := "select {\n\tlet x = recv(a) {\n\t\tprintln(x)\n\t}\n\trecv(b) {\n\t\tprintln(:b)\n\t}\n\tdefault {\n\t\tprintln(:idle)\n\t}\n}\n"
+	if out != want {
+		t.Fatalf("unexpected select format\n--- got ---\n%s\n--- want ---\n%s", out, want)
+	}
+}

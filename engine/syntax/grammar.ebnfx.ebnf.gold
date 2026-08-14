@@ -1,7 +1,7 @@
 TOKENS
   COMMENT	skip=true	pattern="^#[^\\n]*"
   DELIMITER	skip=false	literal="( ) [ ] { } , ; ..."
-  KEYWORD	skip=false	literal="let if else while match return true false and or not package"
+  KEYWORD	skip=false	literal="let if else while match select default return true false and or not package"
   NAME	skip=false	pattern="^[a-zA-Z_][a-zA-Z0-9_]*"	error="expected name"	template="foo, my_var"
   NEWLINE	skip=false	pattern="^\\n+"
   NUMBER	skip=false	pattern="^[0-9]+(\\.[0-9]+)?(\\/[0-9]+)?"	error="expected number"	template="42, 3.14, 1/3"
@@ -39,11 +39,14 @@ PRODUCTIONS
   program	= {statement [";"]}	error="expected statement"	template="statement ..."
   rest_param	= "..." NAME	error="expected '...name'"	template="...args"
   return_stmt	= "return" expr	error="expected 'return expr'"	template="return expr"
-  statement	= package_stmt | let_stmt | assign_stmt | if_stmt | while_stmt | match_stmt | return_stmt | expr_stmt	error="expected statement"	template="package | let | assign | if | while | match | return | expr"
+  select_case	= ["let" NAME "="] "recv" "(" expr ")" block	error="expected '[let name =] recv(channel) { ... }'"	template="let value = recv(ch) { ... } | recv(ch) { ... }"
+  select_default	= "default" block	error="expected 'default { ... }'"	template="default { ... }"
+  select_stmt	= "select" "{" (select_case {select_case} [select_default] | select_default) "}"	error="expected 'select { recv(ch) { ... } ... }'"	template="select { [let name =] recv(ch) { ... } [default { ... }] }"
+  statement	= package_stmt | let_stmt | assign_stmt | if_stmt | while_stmt | match_stmt | select_stmt | return_stmt | expr_stmt	error="expected statement"	template="package | let | assign | if | while | match | select | return | expr"
   unary_expr	= {"not" | "-"} postfix_expr	error="expected expression"	template="not expr, -expr"
   while_stmt	= "while" expr block	error="expected 'while expr { ... }'"	template="while cond { ... }"
 
-GRAMMARHASH 819170f5b85948fccd54398d745f0300fc928416a17455eadcf87d6cfb587d67
+GRAMMARHASH 524ea11a2422d068c2f3e3bcdc5e6aa6a743eb569afb9b7f2abad9466f71176f
 RULEHASHES
   BINOP bb042b633d47f072d22362db220397ea669212162a671236a2fa96c81415a92a
   access 9e9f531344c4934f5878cc643a74feacb4087e3fdb949d9579e40a80ec83e86f
@@ -71,6 +74,9 @@ RULEHASHES
   program d47f7d469d3ef148a3263a05a3f4bd8a5cd9eecac311caaa45292ad97d680563
   rest_param 96e8c70deca5c5c2407888b33a9812dff645c5c8479b5314dffee03680b8cc81
   return_stmt 8a010d9dd21825a73519b5c93d4598ee943070054ad9c3aaa288bd1916210cac
-  statement fbeb8a1d0bc0180da739d85d8d2548b1e8e38f80413ec58af5ff30bff566f060
+  select_case 52b80aee7cfe42789a11cf9a91b3ecb13882b5865a88fc37bb53ec20c8f69fe9
+  select_default 6d11364b65edb2b7c46463fc157c196a5a6becfd630c3689897aab2333073cb0
+  select_stmt c7e445c89177df88985443dc43524462f0849f4e0abe4ad9f4abc47c3496ac82
+  statement 11cd224187cd132584cdeff738d84ebb9e0276df8174aefe60d1915ffebd39ac
   unary_expr 023cdeeee8e5ea475ad31173f2262825ed3996a61b3bfbccac7e7420eeb05900
   while_stmt 0e3e8565173b14c745ba8099cc587bf4d894979ef4a7594eee5ff4aa7fc0d0cd

@@ -1,0 +1,14 @@
+let time = import("time")
+let events = channel()
+
+select {
+	recv(events) {
+		println(:unexpected)
+	}
+	recv(time.after(0)) {
+		println(:timeout)
+	}
+}
+
+let timer = time.after(0)
+println(recv(timer))

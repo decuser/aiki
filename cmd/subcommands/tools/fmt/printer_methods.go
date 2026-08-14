@@ -246,6 +246,64 @@ func (p *printer) printMatch(node *syntax.Node) {
 	p.observe("printMatch", "exit", "match_stmt")
 }
 
+func (p *printer) printSelect(node *syntax.Node) {
+	p.observe("printSelect", "enter", "select_stmt")
+	p.writeIndent()
+	p.write("select {\n")
+	p.indent++
+
+	for _, child := range node.Children {
+		switch child.Type {
+		case "select_case":
+			p.writeIndent()
+			var bind string
+			var expr *syntax.Node
+			var block *syntax.Node
+			for _, part := range child.Children {
+				switch part.Type {
+				case "NAME":
+					if bind == "" {
+						bind = part.Value
+					}
+				case "expr":
+					expr = part
+				case "block":
+					block = part
+				}
+			}
+			if bind != "" {
+				p.write("let ")
+				p.write(bind)
+				p.write(" = ")
+			}
+			p.write("recv(")
+			if expr != nil {
+				p.printNode(expr)
+			}
+			p.write(") ")
+			if block != nil {
+				p.printBlock(block)
+			}
+			p.newline()
+		case "select_default":
+			p.writeIndent()
+			p.write("default ")
+			if block := child.ChildByType("block"); block != nil {
+				p.printBlock(block)
+			}
+			p.newline()
+		}
+	}
+
+	p.indent--
+	p.writeIndent()
+	p.write("}")
+	line := nodeStartLine(node)
+	p.emitEOLComment(line)
+	p.newline()
+	p.observe("printSelect", "exit", "select_stmt")
+}
+
 func (p *printer) printPattern(node *syntax.Node) {
 	p.observe("printPattern", "enter", "pattern")
 	for _, child := range node.Children {

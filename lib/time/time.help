@@ -3,3 +3,7 @@
 @func sleep
 @template "sleep(ms)"
 @help "Pauses execution for given milliseconds."
+
+@func after
+@template "after(ms)"
+@help "Returns a receive-only channel that produces true once after the given milliseconds."

@@ -8,7 +8,7 @@ print(x + y)
 ===
 statement
 
-One of the statement forms: let, assign, if, while, match, return, or expression.
+One of the statement forms: let, assign, if, while, match, select, return, or expression.
 ===
 package_stmt
 
@@ -77,6 +77,29 @@ match result {
         print("unknown")
     }
 }
+===
+select_stmt
+
+Wait until one receive case can proceed, then execute exactly that case. Channel expressions are evaluated once on entry. If several cases are ready, one is chosen; no ordering or fairness is promised. A default case makes the select nonblocking and runs only when no receive case is ready.
+
+select {
+    let msg = recv(commands) { handle(msg) }
+    recv(interrupts) { handle_interrupt() }
+    default { idle() }
+}
+===
+select_case
+
+Receive case for select. The optional let binding is local to the selected case.
+
+let msg = recv(commands) { handle(msg) }
+recv(interrupts) { handle_interrupt() }
+===
+select_default
+
+Nonblocking select case. Runs only when no receive case can proceed immediately.
+
+default { idle() }
 ===
 pattern
 
@@ -307,7 +330,7 @@ Text from # to end of line. Ignored.
 ===
 KEYWORD
 
-Reserved words: let, if, else, while, match, return, true, false, and, or, not.
+Reserved words: let, if, else, while, match, select, default, return, true, false, and, or, not.
 ===
 OPERATOR
 

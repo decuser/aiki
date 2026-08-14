@@ -45,6 +45,7 @@ func (g *GoRuntime) registerHAL() {
 
 	// Time
 	g.register("_sleep", halSleep)
+	g.register("_after", halAfter)
 
 	// Canvas
 	g.register("_canvas", halCanvas)

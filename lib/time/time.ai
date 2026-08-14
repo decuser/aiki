@@ -5,4 +5,8 @@ let sleep = (ms) {
 	_sleep(ms)
 }
 
-export(:sleep)
+let after = (ms) {
+	_after(ms)
+}
+
+export(:sleep, :after)

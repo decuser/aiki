@@ -226,6 +226,10 @@ func (c *checker) check(node *syntax.Node) {
 		c.checkMatch(node)
 		return
 
+	case "select_stmt":
+		c.checkSelect(node)
+		return
+
 	case "return_stmt":
 		for _, ch := range node.Children {
 			if ch.Type != "TERMINAL" {
@@ -619,6 +623,49 @@ func (c *checker) checkWhile(node *syntax.Node) {
 		}
 		if ch.Type == "block" {
 			c.check(ch)
+		}
+	}
+}
+
+func (c *checker) checkSelect(node *syntax.Node) {
+	for _, child := range node.Children {
+		switch child.Type {
+		case "select_case":
+			var bind string
+			var expr *syntax.Node
+			var block *syntax.Node
+			for _, part := range child.Children {
+				switch part.Type {
+				case "NAME":
+					if bind == "" {
+						bind = part.Value
+					}
+				case "expr":
+					expr = part
+				case "block":
+					block = part
+				}
+			}
+			// Channel expressions are evaluated in the surrounding scope.
+			if expr != nil {
+				c.check(expr)
+			}
+			// Each arm has its own scope, as in match. The receive binding
+			// and any bindings made by the arm do not leak out.
+			c.pushScope()
+			if bind != "" {
+				c.define(bind)
+			}
+			if block != nil {
+				c.check(block)
+			}
+			c.popScope()
+		case "select_default":
+			c.pushScope()
+			if block := child.ChildByType("block"); block != nil {
+				c.check(block)
+			}
+			c.popScope()
 		}
 	}
 }
