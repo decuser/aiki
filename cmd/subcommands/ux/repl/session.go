@@ -40,6 +40,7 @@ func NewSession(out io.Writer, debug bool) (*Session, error) {
 
 	tracker := &TrackingWriter{Out: out, EndedWithNewline: true}
 	substrate.SetStdout(tracker)
+	substrate.SetPageOutput(newPageOutput(out))
 
 	return &Session{
 		out:     out,
@@ -53,6 +54,7 @@ func NewSession(out io.Writer, debug bool) (*Session, error) {
 // Run starts the REPL loop.
 func (s *Session) Run() {
 	defer s.reader.Close()
+	defer substrate.SetPageOutput(nil)
 
 	var buffer string
 	prompt := promptMain

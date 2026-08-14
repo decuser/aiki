@@ -56,6 +56,13 @@ func halDoc(args []value.Value, ctx *hal.EvalContext) value.Value {
 	return showDoc(s.Val, ctx)
 }
 
+func outputHelp(text string) {
+	if PageOutput != nil && PageOutput(text) {
+		return
+	}
+	fmt.Fprint(Stdout, text)
+}
+
 func showHelpIndex(ctx *hal.EvalContext) value.Value {
 	var sb strings.Builder
 	sb.WriteString("Aiki Help\n\n")
@@ -119,7 +126,7 @@ func showHelpIndex(ctx *hal.EvalContext) value.Value {
 	sb.WriteString("help(\"module.func\") for module functions.\n")
 	sb.WriteString("Use doc(\"name\") for full documentation.\n")
 
-	fmt.Fprint(Stdout, sb.String())
+	outputHelp(sb.String())
 	return value.EMPTY
 }
 
@@ -141,7 +148,7 @@ func showHelp(name string, ctx *hal.EvalContext) value.Value {
 			sb.WriteString(fmt.Sprintf("%s\n", entry.Name))
 			sb.WriteString(fmt.Sprintf("  %s\n\n", entry.Help))
 			sb.WriteString(fmt.Sprintf("Syntax: %s\n", entry.Template))
-			fmt.Fprint(Stdout, sb.String())
+			outputHelp(sb.String())
 			return value.EMPTY
 		}
 	}
@@ -158,7 +165,7 @@ func showHelp(name string, ctx *hal.EvalContext) value.Value {
 			if prod.Meta.Template != "" {
 				sb.WriteString(fmt.Sprintf("Syntax: %s\n", prod.Meta.Template))
 			}
-			fmt.Fprint(Stdout, sb.String())
+			outputHelp(sb.String())
 			return value.EMPTY
 		}
 
@@ -172,7 +179,7 @@ func showHelp(name string, ctx *hal.EvalContext) value.Value {
 			if prod.Meta.Template != "" {
 				sb.WriteString(fmt.Sprintf("Syntax: %s\n", prod.Meta.Template))
 			}
-			fmt.Fprint(Stdout, sb.String())
+			outputHelp(sb.String())
 			return value.EMPTY
 		}
 	}
@@ -205,7 +212,7 @@ func showModuleHelp(pkgName string) value.Value {
 		sb.WriteString(fmt.Sprintf("\nUse help(\"%s.func\") for details on a specific function.\n", pkgName))
 	}
 
-	fmt.Fprint(Stdout, sb.String())
+	outputHelp(sb.String())
 	return value.EMPTY
 }
 
@@ -247,7 +254,7 @@ func showModuleFuncHelp(qualName string) value.Value {
 		sb.WriteString(fmt.Sprintf("%s.%s\n", pkgName, entry.Name))
 		sb.WriteString(fmt.Sprintf("  %s\n\n", entry.Help))
 		sb.WriteString(fmt.Sprintf("Syntax: %s\n", entry.Template))
-		fmt.Fprint(Stdout, sb.String())
+		outputHelp(sb.String())
 		return value.EMPTY
 	}
 
@@ -273,7 +280,7 @@ func showDoc(name string, ctx *hal.EvalContext) value.Value {
 			sb.WriteString(fmt.Sprintf("%s\n\n", entry.Name))
 			sb.WriteString(entry.Doc)
 			sb.WriteString("\n")
-			fmt.Fprint(Stdout, sb.String())
+			outputHelp(sb.String())
 			return value.EMPTY
 		}
 	}
@@ -287,7 +294,7 @@ func showDoc(name string, ctx *hal.EvalContext) value.Value {
 				sb.WriteString(fmt.Sprintf("%s\n\n", name))
 				sb.WriteString(prod.Meta.Doc)
 				sb.WriteString("\n")
-				fmt.Fprint(Stdout, sb.String())
+				outputHelp(sb.String())
 				return value.EMPTY
 			}
 		}
@@ -299,7 +306,7 @@ func showDoc(name string, ctx *hal.EvalContext) value.Value {
 				sb.WriteString(fmt.Sprintf("%s\n", name))
 				sb.WriteString(prod.Meta.Doc)
 				sb.WriteString("\n")
-				fmt.Fprint(Stdout, sb.String())
+				outputHelp(sb.String())
 				return value.EMPTY
 			}
 		}
@@ -350,7 +357,7 @@ func showModuleDoc(pkgName string) value.Value {
 		}
 	}
 
-	fmt.Fprint(Stdout, sb.String())
+	outputHelp(sb.String())
 	return value.EMPTY
 }
 
@@ -384,7 +391,7 @@ func showModuleFuncDoc(qualName string) value.Value {
 		}
 		sb.WriteString(stripDocMarkers(entry.Doc))
 		sb.WriteString("\n")
-		fmt.Fprint(Stdout, sb.String())
+		outputHelp(sb.String())
 		return value.EMPTY
 	}
 
