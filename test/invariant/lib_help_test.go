@@ -77,7 +77,7 @@ func shippedModulePaths(t *testing.T) map[string]string {
 	}
 
 	paths := map[string]string{}
-	for _, name := range registry.ListPackages() {
+	for _, name := range registry.ListCanonicalPackages() {
 		path, ok := registry.Lookup(name)
 		if !ok {
 			t.Fatalf("registry listed %s but cannot locate it", name)

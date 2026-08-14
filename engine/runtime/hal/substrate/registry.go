@@ -22,11 +22,12 @@ type ModuleHelp struct {
 
 // ModuleRegistry maps package names to their file paths and caches loaded modules.
 type ModuleRegistry struct {
-	paths    map[string]string        // package name -> file path
-	modules  map[string]*value.Module // package name -> loaded module
-	helpData map[string]*ModuleHelp   // package name -> help data
-	roots    []string                 // directories to scan
-	seen     map[string]bool          // absolute paths already scanned
+	paths     map[string]string        // public package name -> file path
+	canonical map[string]string        // public package name -> declared package name
+	modules   map[string]*value.Module // canonical package name -> loaded module
+	helpData  map[string]*ModuleHelp   // public package name -> help data
+	roots     []string                 // directories to scan
+	seen      map[string]bool          // absolute paths already scanned
 }
 
 // GlobalRegistry is the module registry used by import.
@@ -60,11 +61,12 @@ func DefaultModuleRoots(homeDir string) []string {
 // NewModuleRegistry creates a new registry with the given roots.
 func NewModuleRegistry(roots []string) *ModuleRegistry {
 	return &ModuleRegistry{
-		paths:    make(map[string]string),
-		modules:  make(map[string]*value.Module),
-		helpData: make(map[string]*ModuleHelp),
-		roots:    roots,
-		seen:     make(map[string]bool),
+		paths:     make(map[string]string),
+		canonical: make(map[string]string),
+		modules:   make(map[string]*value.Module),
+		helpData:  make(map[string]*ModuleHelp),
+		roots:     roots,
+		seen:      make(map[string]bool),
 	}
 }
 
@@ -79,7 +81,32 @@ func (r *ModuleRegistry) Scan(g *grammar.Grammar) error {
 			return err
 		}
 	}
+	r.addNativeDefaults()
 	return nil
+}
+
+// addNativeDefaults makes X/native available as X when no explicit X package
+// exists. FFI-only variants never become defaults. Explicit bare packages
+// always win.
+func (r *ModuleRegistry) addNativeDefaults() {
+	const suffix = "/native"
+	for name, path := range r.paths {
+		if !strings.HasSuffix(name, suffix) {
+			continue
+		}
+		bare := strings.TrimSuffix(name, suffix)
+		if bare == "" {
+			continue
+		}
+		if _, exists := r.paths[bare]; exists {
+			continue
+		}
+		r.paths[bare] = path
+		r.canonical[bare] = name
+		if mh := r.helpData[name]; mh != nil {
+			r.helpData[bare] = mh
+		}
+	}
 }
 
 func (r *ModuleRegistry) scanDir(dir string, g *grammar.Grammar) error {
@@ -131,6 +158,7 @@ func (r *ModuleRegistry) scanDir(dir string, g *grammar.Grammar) error {
 		}
 
 		r.paths[pkgName] = path
+		r.canonical[pkgName] = pkgName
 
 		// Load sibling .help and .doc files (required for lib packages)
 		if err := r.loadModuleHelp(pkgName, path); err != nil {
@@ -247,21 +275,45 @@ func findPackageName(node *syntax.Node) string {
 	return ""
 }
 
-// Lookup returns the file path for a package name.
+// Lookup returns the file path for a public package name.
 func (r *ModuleRegistry) Lookup(name string) (string, bool) {
 	path, ok := r.paths[name]
 	return path, ok
 }
 
-// GetCached returns a cached module if available.
+// Resolve returns the file path and declared package name for a public package
+// name. For ordinary packages the two names are identical. A bare default such
+// as "math" resolves to the file declaring "math/native".
+func (r *ModuleRegistry) Resolve(name string) (path, canonical string, ok bool) {
+	path, ok = r.paths[name]
+	if !ok {
+		return "", "", false
+	}
+	canonical = r.canonical[name]
+	if canonical == "" {
+		canonical = name
+	}
+	return path, canonical, true
+}
+
+// GetCached returns a cached module if available. Aliases share the canonical
+// module cache entry.
 func (r *ModuleRegistry) GetCached(name string) (*value.Module, bool) {
-	mod, ok := r.modules[name]
+	canonical := r.canonical[name]
+	if canonical == "" {
+		canonical = name
+	}
+	mod, ok := r.modules[canonical]
 	return mod, ok
 }
 
-// Cache stores a loaded module.
+// Cache stores a loaded module under its canonical package name.
 func (r *ModuleRegistry) Cache(name string, mod *value.Module) {
-	r.modules[name] = mod
+	canonical := r.canonical[name]
+	if canonical == "" {
+		canonical = name
+	}
+	r.modules[canonical] = mod
 }
 
 // ListPackages returns all registered package names, sorted.
@@ -269,6 +321,19 @@ func (r *ModuleRegistry) ListPackages() []string {
 	names := make([]string, 0, len(r.paths))
 	for name := range r.paths {
 		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
+}
+
+// ListCanonicalPackages returns only package names declared by physical module
+// files, excluding public aliases such as X -> X/native.
+func (r *ModuleRegistry) ListCanonicalPackages() []string {
+	names := make([]string, 0, len(r.paths))
+	for name := range r.paths {
+		if r.canonical[name] == name {
+			names = append(names, name)
+		}
 	}
 	sort.Strings(names)
 	return names

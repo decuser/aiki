@@ -170,6 +170,7 @@ func halImport(args []value.Value, ctx *hal.EvalContext) value.Value {
 func loadModule(name string, ctx *hal.EvalContext) (*value.Module, value.Value) {
 	var modulePath string
 	var pkgName string
+	var requestedName string
 
 	if IsPathImport(name) {
 		// Path-based import: resolve relative to current file
@@ -185,18 +186,23 @@ func loadModule(name string, ctx *hal.EvalContext) (*value.Module, value.Value) 
 			return nil, value.NewFault("import: module registry not initialized")
 		}
 
-		// Check cache first
-		if mod, ok := GlobalRegistry.GetCached(name); ok {
-			return mod, nil
-		}
+		requestedName = name
 
-		// Lookup in registry
+		// Resolve public name to its physical module and declared package name.
+		// Bare defaults such as "math" may resolve to "math/native".
 		var ok bool
-		modulePath, ok = GlobalRegistry.Lookup(name)
+		modulePath, pkgName, ok = GlobalRegistry.Resolve(name)
 		if !ok {
 			return nil, value.NewShapedError("import", "import: unknown package '%s'", name)
 		}
-		pkgName = name
+
+		// Check cache after resolution so aliases share the canonical module.
+		if mod, ok := GlobalRegistry.GetCached(name); ok {
+			if requestedName != pkgName {
+				return value.NewModule(requestedName, mod.Exports), nil
+			}
+			return mod, nil
+		}
 	}
 
 	// Read module source
@@ -273,9 +279,14 @@ func loadModule(name string, ctx *hal.EvalContext) (*value.Module, value.Value) 
 
 	mod := value.NewModule(pkgName, exports)
 
-	// Cache if registry-based import
+	// Cache the canonical module for registry-based imports. Aliases resolve to
+	// this cache entry but receive a module value bearing the public name used
+	// by the caller.
 	if GlobalRegistry != nil && !IsPathImport(name) {
 		GlobalRegistry.Cache(pkgName, mod)
+		if requestedName != "" && requestedName != pkgName {
+			return value.NewModule(requestedName, exports), nil
+		}
 	}
 
 	return mod, nil
