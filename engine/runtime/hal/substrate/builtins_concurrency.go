@@ -27,6 +27,14 @@ func halSend(args []value.Value, ctx *hal.EvalContext) value.Value {
 		return value.NewFault("send: channel is receive-only")
 	}
 	semanticHit(ctx, engine.SemanticSend)
+	if ctx != nil && ctx.AsyncFault != nil {
+		select {
+		case ch.C <- args[1]:
+			return value.TRUE
+		case fault := <-ctx.AsyncFault:
+			return fault
+		}
+	}
 	ch.C <- args[1]
 	return value.TRUE
 }
@@ -39,6 +47,15 @@ func halRecv(args []value.Value, ctx *hal.EvalContext) value.Value {
 	ch, ok := args[0].(*value.Channel)
 	if !ok {
 		return value.NewFault("recv: argument must be channel, got %s", args[0].Type())
+	}
+	if ctx != nil && ctx.AsyncFault != nil {
+		select {
+		case v := <-ch.C:
+			semanticHit(ctx, engine.SemanticReceive)
+			return v
+		case fault := <-ctx.AsyncFault:
+			return fault
+		}
 	}
 	v := <-ch.C
 	semanticHit(ctx, engine.SemanticReceive)

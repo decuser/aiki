@@ -47,6 +47,10 @@ func (g *GoRuntime) registerHAL() {
 	g.register("_sleep", halSleep)
 	g.register("_after", halAfter)
 
+	// Host program environment
+	g.register("_system_args", halSystemArgs)
+	g.register("_system_env", halSystemEnv)
+
 	// Canvas
 	g.register("_canvas", halCanvas)
 	g.register("_dot", halDot)
@@ -97,6 +101,9 @@ func (g *GoRuntime) registerHAL() {
 	g.register("_file_close", halFileClose)
 	g.register("_file_exists", halFileExists)
 	g.register("_file_delete", halFileDelete)
+	g.register("_file_list", halFileList)
+	g.register("_file_read_at", halFileReadAt)
+	g.register("_file_write_at", halFileWriteAt)
 
 	// Intrinsics - these use evaluation context
 	g.register("_apply", halApply)

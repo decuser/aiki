@@ -1,0 +1,9 @@
+# system - host program environment
+
+@func args
+@template "args()"
+@help "Returns the Aiki program arguments as a list of strings."
+
+@func env
+@template "env(name)"
+@help "Returns an environment variable value, or [@error, :environment, msg] if it is not set."

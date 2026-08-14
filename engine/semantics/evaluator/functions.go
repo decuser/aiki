@@ -32,6 +32,10 @@ func (e *Evaluator) applyFunction(fn value.Value, args []value.Value, node *synt
 			},
 			WithProfileLabels: e.withProfileLabels,
 		}
+		if faults, ok := e.runtime.(hal.AsyncFaultSource); ok {
+			ctx.AsyncFault = faults.AsyncFaults()
+			ctx.ReportAsyncFault = faults.ReportAsyncFault
+		}
 		var result value.Value
 		labels := parentLabels
 		labels.Layer = "substrate"

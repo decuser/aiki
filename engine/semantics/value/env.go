@@ -1,6 +1,6 @@
 package value
 
-import "aiki/engine"
+import "aiki/engine/observe"
 
 // Scope represents the visibility level for builtins.
 type Scope int
@@ -29,9 +29,9 @@ type Env struct {
 	stack         *[]StackFrame // shared across enclosed envs
 	stackLimit    *int          // shared recursion limit (non tail frames)
 	scope         Scope
-	exports       []string             // exported names for modules
-	packageName   string               // package name declared by this module
-	semanticProbe engine.SemanticProbe // dynamic profiling context
+	exports       []string              // exported names for modules
+	packageName   string                // package name declared by this module
+	semanticProbe observe.SemanticProbe // dynamic profiling context
 }
 
 // NewEnv creates a new environment with user scope.
@@ -118,12 +118,12 @@ func NewCallEnv(lexicalOuter, caller *Env) *Env {
 
 // SetSemanticProbe sets the dynamic semantic profiling context for this env.
 // A nil probe explicitly disables profiling for this dynamic branch.
-func (e *Env) SetSemanticProbe(probe engine.SemanticProbe) {
+func (e *Env) SetSemanticProbe(probe observe.SemanticProbe) {
 	e.semanticProbe = probe
 }
 
 // GetSemanticProbe returns the dynamic semantic profiling context.
-func (e *Env) GetSemanticProbe() engine.SemanticProbe {
+func (e *Env) GetSemanticProbe() observe.SemanticProbe {
 	return e.semanticProbe
 }
 

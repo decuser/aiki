@@ -142,44 +142,25 @@ it warrants a session entry.
 
 ## Delivering session records
 
-Delivery follows the scope of the work. The `ai/` record is always part of the
-authoritative repository state, but it does not require a separate archive
-when the repository itself changed.
-
-### Repository-changing sessions
-
-If the session changed code, tests, documentation, proposals, library modules,
-or any other repository content outside `ai/`, deliver one full repository
-tarball that already contains the updated `ai/` directory. Do not also produce
-a separate `ai-session.tgz` unless the user explicitly asks for one.
-
-The full tarball should:
-- be rooted at the repository directory so it extracts as one coherent tree;
-- include the current `ai/` working record;
-- exclude `.git/`, disposable validation harnesses, temporary files, and stale
-  or locally built binaries unless they are intentionally part of the cut;
-- be inspected after creation and accompanied by a checksum when practical.
-
-### Session-record-only sessions
-
-If the session changed only files under `ai/`, package the updated `ai/`
-directory as a small drop-in archive:
+At the end of any session that produced `ai/` content, package the updated
+`ai/` directory as a drop-in tarball the user can extract and merge into the
+repository.
 
 ```bash
 # Build a tarball rooted at ai/ that merges cleanly
 tar czf ai-session.tgz ai/
 ```
 
-That archive must:
-- be rooted at `ai/` so it extracts into the right place;
-- never overwrite `ai/README.md` or `ai/sessions/README.md` unless those files
-  were intentionally changed during the session;
-- only add or update files under the current session's dated directory, plus
-  updating `ai/sessions/README.md` if a new date directory was created;
-- never include files outside `ai/`.
+The tarball must:
+- Be rooted at `ai/` so it extracts into the right place.
+- Never overwrite `ai/README.md` or `ai/sessions/README.md` unless those
+  files were intentionally changed during the session.
+- Only add or update files under the current session's dated directory,
+  plus updating `ai/sessions/README.md` to point to the current session
+  if a new date directory was created.
+- Never include files outside `ai/`.
 
-Present exactly the archive appropriate to the work performed, unless the user
-requests an additional packaging form.
+Present the tarball to the user at the end of the session.
 
 ## Project structure
 

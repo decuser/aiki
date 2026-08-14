@@ -17,6 +17,15 @@ type ContextCallable interface {
 	CallWithContext(args []value.Value, ctx *EvalContext) value.Value
 }
 
+// AsyncFaultSource exposes faults raised by spawned computations. Blocking
+// concurrency operations may observe this channel so a worker fault cannot
+// leave another computation waiting forever for a message that will never
+// arrive.
+type AsyncFaultSource interface {
+	AsyncFaults() <-chan *value.Fault
+	ReportAsyncFault(*value.Fault)
+}
+
 // EvalContext provides evaluation context to builtins that need it.
 // Most builtins ignore this; intrinsics (import, export, apply, load, spawn)
 // use it to access the evaluator, grammar, and environment.
@@ -28,6 +37,8 @@ type EvalContext struct {
 	Measure           func(fn value.Value, args []value.Value, attributed bool) (value.Value, engine.SemanticMeasurement)
 	Labels            engine.ProfileLabels
 	WithProfileLabels func(labels engine.ProfileLabels, restore engine.ProfileLabels, fn func())
+	AsyncFault        <-chan *value.Fault
+	ReportAsyncFault  func(*value.Fault)
 	// Eval is a callback to evaluate AST nodes. Used by apply, spawn.
 	Eval func(*syntax.Node, *value.Env) value.Value
 }

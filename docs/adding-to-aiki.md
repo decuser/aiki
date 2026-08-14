@@ -126,7 +126,7 @@ abs(0)     # 0
 
 ### 6. Test
 
-Create `tests/smoke/abs_smoke.ai`:
+Create `test/behavior/abs_smoke.ai`:
 
 ```
 println(abs(-5))
@@ -135,7 +135,7 @@ println(abs(0))
 println("ABS_SMOKE_DONE")
 ```
 
-Create `tests/smoke/abs_smoke.gold`:
+Create `test/behavior/abs_smoke.gold`:
 
 ```
 OUT:5
@@ -255,7 +255,7 @@ func (e *Evaluator) evalUnless(node *syntax.Node, env *value.Env) value.Value {
 
 ### 5. Test
 
-Create `tests/smoke/unless_smoke.ai`:
+Create `test/behavior/unless_smoke.ai`:
 
 ```
 let x = 5
@@ -270,7 +270,7 @@ unless x < 10 {
 println("UNLESS_SMOKE_DONE")
 ```
 
-Create `tests/smoke/unless_smoke.gold`:
+Create `test/behavior/unless_smoke.gold`:
 
 ```
 OUT:small
@@ -287,14 +287,14 @@ go build ./cmd/aiki
 
 ## Adding a Library Package
 
-Example: creating `strings` package.
+Example: creating a `string` package.
 
 ### 1. Create Package File
 
-Create `lib/strings/strings.ai`:
+Create `lib/string/string.ai`:
 
 ```
-package "strings"
+package "string"
 
 let upper = (s) { _str_upper(s) }
 let lower = (s) { _str_lower(s) }
@@ -319,7 +319,7 @@ Register in `register.go`.
 
 ### 3. Help File
 
-Create `lib/strings/strings.help`:
+Create `lib/string/string.help`:
 
 ```
 @func upper
@@ -333,7 +333,7 @@ Create `lib/strings/strings.help`:
 
 ### 4. Doc File
 
-Create `lib/strings/strings.doc`:
+Create `lib/string/string.doc`:
 
 ```
 upper

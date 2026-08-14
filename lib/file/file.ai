@@ -37,4 +37,16 @@ let delete = (path) {
 	_file_delete(path)
 }
 
-export(:open, :read_text, :read_bytes, :read_line, :write_text, :write_bytes, :close, :exists, :delete)
+let list = (path) {
+	_file_list(path)
+}
+
+let read_at = (file, offset, count) {
+	_file_read_at(file, offset, count)
+}
+
+let write_at = (file, offset, bytes) {
+	_file_write_at(file, offset, bytes)
+}
+
+export(:open, :read_text, :read_bytes, :read_line, :write_text, :write_bytes, :close, :exists, :delete, :list, :read_at, :write_at)

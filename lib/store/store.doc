@@ -2,7 +2,10 @@
 new
 Creates explicit mutable indexed storage with size cells. Each cell is
 initialized to 0. A store is intended for systems work that requires
-mutation; ordinary Aiki lists remain immutable.
+mutation; ordinary Aiki lists remain immutable. A store may be shared between
+spawned computations by passing it explicitly as an argument. Spawn does not
+capture outer bindings, so shared mutable access must be explicit in the
+program.
 
 new(size)
 

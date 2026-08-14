@@ -4,14 +4,16 @@ import (
 	"aiki/engine"
 	"reflect"
 
+	"aiki/engine/runtime/hal"
 	"aiki/engine/semantics/value"
 	"aiki/engine/syntax"
 )
 
 type preparedSelectCase struct {
-	block *syntax.Node
-	bind  string
-	ch    *value.Channel
+	block      *syntax.Node
+	bind       string
+	ch         *value.Channel
+	asyncFault bool
 }
 
 // chooseSelect evaluates each receive channel expression exactly once, then
@@ -69,8 +71,23 @@ func (e *Evaluator) chooseSelect(node *syntax.Node, env *value.Env) (*preparedSe
 		return nil, nil, e.makeFault(node, env, "select: requires at least one case")
 	}
 
+	if faults, ok := e.runtime.(hal.AsyncFaultSource); ok {
+		prepared = append(prepared, &preparedSelectCase{asyncFault: true})
+		cases = append(cases, reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(faults.AsyncFaults())})
+	}
+
 	chosen, recv, ok := reflect.Select(cases)
 	selected := prepared[chosen]
+	if selected.asyncFault {
+		if !ok {
+			return nil, nil, e.makeFault(node, env, "select: asynchronous fault channel closed")
+		}
+		fault, ok := recv.Interface().(*value.Fault)
+		if !ok || fault == nil {
+			return nil, nil, e.makeFault(node, env, "select: invalid asynchronous fault")
+		}
+		return nil, nil, fault
+	}
 	if selected.ch == nil { // default
 		return selected, value.EMPTY, nil
 	}

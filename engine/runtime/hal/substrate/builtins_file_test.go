@@ -264,3 +264,82 @@ func TestFileOpenNonExistent(t *testing.T) {
 		t.Errorf("expected [@error, ...], got %v", result)
 	}
 }
+
+func TestFileListSortedImmediateEntries(t *testing.T) {
+	dir := t.TempDir()
+	for _, name := range []string{"zeta.txt", "alpha.txt", "middle"} {
+		path := filepath.Join(dir, name)
+		if name == "middle" {
+			if err := os.Mkdir(path, 0o755); err != nil {
+				t.Fatal(err)
+			}
+			continue
+		}
+		if err := os.WriteFile(path, []byte(name), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	got := halFileList([]value.Value{&value.String{Val: dir}}, nil)
+	list, ok := got.(*value.List)
+	if !ok {
+		t.Fatalf("expected list, got %T: %v", got, got)
+	}
+	want := []string{"alpha.txt", "middle", "zeta.txt"}
+	if len(list.Elements) != len(want) {
+		t.Fatalf("expected %d entries, got %d", len(want), len(list.Elements))
+	}
+	for i, elem := range list.Elements {
+		s, ok := elem.(*value.String)
+		if !ok || s.Val != want[i] {
+			t.Fatalf("entry %d: got %v, want %q", i, elem, want[i])
+		}
+	}
+}
+
+func TestFileReadAtDoesNotMoveSequentialCursor(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "random.bin")
+	if err := os.WriteFile(path, []byte("abcdef"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	result := halFileOpen([]value.Value{&value.String{Val: path}, &value.Symbol{Val: "read"}}, nil)
+	file := result.(*value.File)
+
+	got := halFileReadAt([]value.Value{file, value.NewNumber(2, 1), value.NewNumber(3, 1)}, nil)
+	b, ok := got.(*value.Bytes)
+	if !ok || string(b.Val) != "cde" {
+		t.Fatalf("read_at: got %v, want cde", got)
+	}
+
+	sequential := halFileReadText([]value.Value{file}, nil)
+	s, ok := sequential.(*value.String)
+	if !ok || s.Val != "abcdef" {
+		t.Fatalf("sequential read moved by read_at: got %v", sequential)
+	}
+}
+
+func TestFileWriteAtPatchesWithoutTruncating(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "patch.bin")
+	if err := os.WriteFile(path, []byte("abcdef"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	result := halFileOpen([]value.Value{&value.String{Val: path}, &value.Symbol{Val: "read_write"}}, nil)
+	file := result.(*value.File)
+
+	got := halFileWriteAt([]value.Value{file, value.NewNumber(2, 1), &value.Bytes{Val: []byte("XY")}}, nil)
+	if got != value.TRUE {
+		t.Fatalf("write_at: got %v, want true", got)
+	}
+	if err := file.F.Sync(); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != "abXYef" {
+		t.Fatalf("patched file: got %q, want %q", data, "abXYef")
+	}
+}

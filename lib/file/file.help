@@ -35,3 +35,16 @@
 @func delete
 @template "delete(path)"
 @help "Deletes file at path."
+
+@func list
+@template "list(path)"
+@help "Returns a sorted list of immediate directory entry names, or [@error, :io, msg]."
+
+@func read_at
+@template "read_at(file, offset, count)"
+@help "Reads up to count bytes at offset without changing the sequential file position."
+
+@func write_at
+@template "write_at(file, offset, bytes)"
+@help "Writes bytes at offset without changing the sequential file position."
+

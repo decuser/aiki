@@ -425,8 +425,13 @@ func halSpawn(args []value.Value, ctx *hal.EvalContext) value.Value {
 	// Launch goroutine with isolated env
 	go func() {
 		result := applyUserFunctionIsolated(fn, fnArgs, ctx)
-		// Log faults from spawned functions (they can't propagate)
 		if fault, ok := result.(*value.Fault); ok {
+			if ctx.ReportAsyncFault != nil {
+				ctx.ReportAsyncFault(fault)
+				return
+			}
+			// Runtimes without asynchronous fault propagation retain the
+			// historical fallback rather than silently swallowing the fault.
 			fmt.Fprintf(os.Stderr, "spawn: %s\n", fault.Inspect())
 		}
 	}()

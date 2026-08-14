@@ -31,8 +31,12 @@ stack_limit(10000)
 spawn
 @unchecked
 Runs a function concurrently with an isolated environment.
-The spawned function only sees its arguments and prelude - 
-no access to outer scope bindings.
+The spawned function only sees its arguments and prelude -
+no access to outer scope bindings. Values passed as arguments cross the
+isolation boundary explicitly. If a spawned computation faults while another
+computation is blocked in send, recv, or select, that blocking operation is
+released and the spawned fault propagates. Recoverable [@error, ...] values
+remain ordinary values and may be sent through channels normally.
 
 spawn(fn, arg, ...)
 

@@ -25,10 +25,19 @@ This session established the single-tree, serial-cut working method now document
 6. `06-whole-tree-gate.md` - final cross-tree validation and environment caveat.
 7. `07-ai-work-ledger.md` - preserve the single-tree, serial-cut, restartable AI working method.
 8. `08-final-package.md` - close the session and define the final source delivery.
+9. `09-next-priorities.md` - ordered post-profiling work queue and restart point.
+10. `10-observation-dependency.md` - move neutral profiling contracts to a leaf package and remove the profiling-specific `value -> engine` dependency.
+11. `11-documentation-drift.md` - clear resolved buglist items and repair stale documentation paths.
+12. `12-validation-and-couplings.md` - re-run executable checks after cleanup and record the offline canvas-doc limitation.
+13. `13-spawned-fault-propagation.md` - prevent worker faults from abandoning blocked channel communication.
+14. `14-systems-substrate.md` - add args/env, deterministic directory listing, and cursor-independent random-access file operations.
+15. `15-language-services-assessment.md` - assess reusable language services and defer broad extraction until a concrete adapter consumer exists.
+16. `16-working-method-and-delivery.md` - adopt the refined working method and prepare final source/session delivery.
+17. `17-delivery-rule-simplification.md` - simplify delivery to one full repository archive when repository content changed; reserve `ai-session.tgz` for session-record-only work.
 
 ## Current state
 
-All eight milestones above are gated in the same working tree. The session is complete; `summary.md` preserves the conceptual narrative and this file remains the authoritative restart/index record.
+Milestones 1-17 are recorded in the same authoritative working tree; milestone 9 records the ordered post-profiling queue and later milestones complete it. The profiling session is complete; `summary.md` preserves the conceptual narrative and this file remains the authoritative restart/index record.
 
 The profiling facility now distinguishes:
 
@@ -48,6 +57,8 @@ Go allocation profile    Go hotspots; not Aiki-label correlated
 - Single-run CPU percentages are snapshots, not stable performance facts; optimization decisions require repeated measurements on the normal development machine.
 
 ## Next action
+
+Continue the ordered queue in milestone 9. Items 1-6 are complete. The ordered post-profiling queue is complete.
 
 No further profiling implementation is required before review. On the normal Go 1.24 development machine:
 

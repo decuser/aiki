@@ -101,13 +101,13 @@ docs/                    design and contributor notes
 ## Documentation
 
 ```text
-docs/design-principles.md
 docs/adding-to-aiki.md
-docs/aiki-error-handling.md
 docs/debug.md
-docs/line-continuation-rules.md
+docs/decisions.md
 docs/testing.md
 docs/profiling.md
+docs/ra1.odt
+docs/this-is-aiki-formatted.odt
 ```
 
 ## License

@@ -59,6 +59,7 @@ type GoRuntime struct {
 	mu            sync.RWMutex
 	profileLabels atomic.Bool
 	labelContexts sync.Map // map[engine.ProfileLabels]context.Context
+	asyncFaults   chan *value.Fault
 }
 
 // Verify GoRuntime implements RuntimeContract
@@ -68,13 +69,30 @@ var _ hal.ProfileLabeler = (*GoRuntime)(nil)
 // NewGoRuntime creates a new Go runtime substrate.
 func NewGoRuntime() *GoRuntime {
 	rt := &GoRuntime{
-		registry: make(map[string]*Builtin),
+		registry:    make(map[string]*Builtin),
+		asyncFaults: make(chan *value.Fault, 1),
 	}
 	rt.registerHAL()
 	return rt
 }
 
 // Execute calls a registered primitive function.
+// AsyncFaults returns the runtime's first-pending spawned fault channel.
+func (g *GoRuntime) AsyncFaults() <-chan *value.Fault { return g.asyncFaults }
+
+// ReportAsyncFault records a spawned fault without blocking the failing worker.
+// A buffer of one preserves the first pending fault until a blocking operation
+// observes it.
+func (g *GoRuntime) ReportAsyncFault(fault *value.Fault) {
+	if fault == nil {
+		return
+	}
+	select {
+	case g.asyncFaults <- fault:
+	default:
+	}
+}
+
 func (g *GoRuntime) Execute(name string, args []value.Value, ctx *hal.EvalContext) (value.Value, error) {
 	g.mu.RLock()
 	b, ok := g.registry[name]

@@ -1,0 +1,17 @@
+@preamble let system = import("system")
+args
+Returns the arguments supplied to the Aiki program, excluding the interpreter
+name and source filename. REPL and embedded sessions have no program arguments
+unless the host supplies them.
+
+args()
+
+system.args()
+===
+env
+Returns the value of the named host environment variable as a string. If the
+variable is not set, returns [@error, :environment, msg].
+
+env(name)
+
+system.env("AIKI_VARIABLE_THAT_IS_NOT_SET")

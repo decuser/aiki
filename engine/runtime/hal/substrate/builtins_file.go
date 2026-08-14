@@ -38,8 +38,11 @@ func halFileOpen(args []value.Value, ctx *hal.EvalContext) value.Value {
 	case "append":
 		f, err = os.OpenFile(path.Val, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		modeStr = "append"
+	case "read_write":
+		f, err = os.OpenFile(path.Val, os.O_RDWR|os.O_CREATE, 0644)
+		modeStr = "read_write"
 	default:
-		return value.NewShapedError("io", "invalid mode: %s (expected :read, :write, or :append)", mode.Val)
+		return value.NewShapedError("io", "invalid mode: %s (expected :read, :write, :append, or :read_write)", mode.Val)
 	}
 
 	if err != nil {
@@ -263,4 +266,97 @@ func halFileDelete(args []value.Value, ctx *hal.EvalContext) value.Value {
 	}
 
 	return value.TRUE
+}
+
+// halFileList returns the immediate entries in a directory, sorted by name.
+// list(path) -> [string, ...] | [@error, :io, "message"]
+func halFileList(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 1 {
+		return value.NewFault("_file_list: want 1 argument, got %d", len(args))
+	}
+	path, ok := args[0].(*value.String)
+	if !ok {
+		return value.NewFault("_file_list: expected string path, got %s", args[0].Type())
+	}
+	entries, err := os.ReadDir(path.Val)
+	if err != nil {
+		return value.NewShapedError("io", "%s", err.Error())
+	}
+	elems := make([]value.Value, len(entries))
+	for i, entry := range entries {
+		elems[i] = &value.String{Val: entry.Name()}
+	}
+	return &value.List{Elements: elems}
+}
+
+// halFileReadAt reads up to count bytes beginning at offset without changing
+// the file's sequential cursor.
+func halFileReadAt(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 3 {
+		return value.NewFault("_file_read_at: want 3 arguments, got %d", len(args))
+	}
+	file, ok := args[0].(*value.File)
+	if !ok {
+		return value.NewFault("_file_read_at: expected file, got %s", args[0].Type())
+	}
+	if file.F == nil {
+		return value.NewShapedError("io", "file is closed")
+	}
+	offset, ok := fileNonNegativeInt64(args[1])
+	if !ok {
+		return value.NewFault("_file_read_at: offset must be a non-negative integer")
+	}
+	count64, ok := fileNonNegativeInt64(args[2])
+	if !ok {
+		return value.NewFault("_file_read_at: count must be a non-negative integer")
+	}
+	if count64 > int64(^uint(0)>>1) {
+		return value.NewShapedError("io", "read count too large")
+	}
+	buf := make([]byte, int(count64))
+	n, err := file.F.ReadAt(buf, offset)
+	if err != nil && err != io.EOF {
+		return value.NewShapedError("io", "%s", err.Error())
+	}
+	return &value.Bytes{Val: buf[:n]}
+}
+
+// halFileWriteAt writes bytes beginning at offset without changing the file's
+// sequential cursor.
+func halFileWriteAt(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 3 {
+		return value.NewFault("_file_write_at: want 3 arguments, got %d", len(args))
+	}
+	file, ok := args[0].(*value.File)
+	if !ok {
+		return value.NewFault("_file_write_at: expected file, got %s", args[0].Type())
+	}
+	if file.F == nil {
+		return value.NewShapedError("io", "file is closed")
+	}
+	offset, ok := fileNonNegativeInt64(args[1])
+	if !ok {
+		return value.NewFault("_file_write_at: offset must be a non-negative integer")
+	}
+	data, ok := args[2].(*value.Bytes)
+	if !ok {
+		return value.NewFault("_file_write_at: expected bytes, got %s", args[2].Type())
+	}
+	n, err := file.F.WriteAt(data.Val, offset)
+	if err != nil {
+		return value.NewShapedError("io", "%s", err.Error())
+	}
+	if n != len(data.Val) {
+		return value.NewShapedError("io", "short write: wrote %d of %d bytes", n, len(data.Val))
+	}
+	return value.TRUE
+}
+
+func fileNonNegativeInt64(v value.Value) (int64, bool) {
+	n, ok := v.(*value.Number)
+	if !ok || !n.Val.IsInt() || !n.Val.Num().IsInt64() {
+		return 0, false
+	}
+	i := n.Val.Num().Int64()
+	return i, i >= 0
 }

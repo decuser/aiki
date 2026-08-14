@@ -1,0 +1,12 @@
+package "system"
+
+# system - host program environment
+let args = () {
+	_system_args()
+}
+
+let env = (name) {
+	_system_env(name)
+}
+
+export(:args, :env)

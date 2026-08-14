@@ -180,6 +180,8 @@ func (f *File) Inspect() string { return fmt.Sprintf("<file %s %s>", f.Mode, f.P
 
 // Store is explicit mutable indexed storage for systems work.
 // It is an opaque capability: ordinary Aiki lists remain immutable.
+// A store may be shared explicitly across spawned evaluations; the mutex
+// protects concurrent access inside the Go implementation.
 type Store struct {
 	mu    sync.RWMutex
 	Cells []Value
