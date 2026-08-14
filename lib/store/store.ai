@@ -1,0 +1,20 @@
+package "store"
+
+# store - explicit mutable indexed storage
+let new = (size) {
+	_store_new(size)
+}
+
+let get = (store, index) {
+	_store_get(store, index)
+}
+
+let set = (store, index, value) {
+	_store_set(store, index, value)
+}
+
+let length = (store) {
+	_store_length(store)
+}
+
+export(:new, :get, :set, :length)

@@ -1,0 +1,41 @@
+# bits - bit operations over non-negative integral numbers
+
+@func bit_and
+@template "bit_and(a, b)"
+@help "Returns the bitwise AND of two non-negative integers."
+
+@func bit_or
+@template "bit_or(a, b)"
+@help "Returns the bitwise OR of two non-negative integers."
+
+@func bit_xor
+@template "bit_xor(a, b)"
+@help "Returns the bitwise XOR of two non-negative integers."
+
+@func bit_not
+@template "bit_not(a, width)"
+@help "Complements the low width bits of a."
+
+@func shl
+@template "shl(a, count)"
+@help "Shifts a non-negative integer left by count bits."
+
+@func shr
+@template "shr(a, count)"
+@help "Logically shifts a non-negative integer right by count bits."
+
+@func mask
+@template "mask(width)"
+@help "Returns a value whose low width bits are 1."
+
+@func low
+@template "low(a, width)"
+@help "Returns the low width bits of a."
+
+@func extract
+@template "extract(a, start, width)"
+@help "Extracts width bits beginning at bit start."
+
+@func replace
+@template "replace(a, start, width, value)"
+@help "Replaces width bits beginning at bit start."

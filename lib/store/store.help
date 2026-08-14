@@ -1,0 +1,17 @@
+# store - explicit mutable indexed storage
+
+@func new
+@template "new(size)"
+@help "Creates zero-initialized mutable indexed storage."
+
+@func get
+@template "get(store, index)"
+@help "Returns the value at index."
+
+@func set
+@template "set(store, index, value)"
+@help "Replaces the value at index."
+
+@func length
+@template "length(store)"
+@help "Returns the number of cells in a store."

@@ -1,0 +1,77 @@
+use("test")
+let store = import("store")
+
+run("new creates zero initialized storage", () {
+	let s = store.new(3)
+	equal(store.length(s), 3)
+	equal(store.get(s, 0), 0)
+	equal(store.get(s, 2), 0)
+})
+
+
+run("set mutates one indexed cell", () {
+	let s = store.new(3)
+	equal(store.set(s, 1, 7094), [])
+	equal(store.get(s, 1), 7094)
+	equal(store.get(s, 0), 0)
+})
+
+
+run("store accepts ordinary Aiki values", () {
+	let s = store.new(2)
+	store.set(s, 0, :word)
+	store.set(s, 1, [1, 2, 3])
+	equal(store.get(s, 0), :word)
+	equal(store.get(s, 1), [1, 2, 3])
+})
+
+
+run("zero length store is valid", () {
+	let s = store.new(0)
+	equal(store.length(s), 0)
+	faults(() {
+		store.get(s, 0)
+	})
+})
+
+
+run("new rejects invalid sizes", () {
+	faults(() {
+		store.new(-1)
+	})
+	faults(() {
+		store.new(3/2)
+	})
+	faults(() {
+		store.new("3")
+	})
+})
+
+
+run("get rejects invalid indexes", () {
+	let s = store.new(2)
+	faults(() {
+		store.get(s, -1)
+	})
+	faults(() {
+		store.get(s, 2)
+	})
+	faults(() {
+		store.get(s, 1/2)
+	})
+})
+
+
+run("set rejects invalid indexes", () {
+	let s = store.new(2)
+	faults(() {
+		store.set(s, -1, 1)
+	})
+	faults(() {
+		store.set(s, 2, 1)
+	})
+	faults(() {
+		store.set(s, 1/2, 1)
+	})
+})
+

@@ -109,6 +109,20 @@ func (g *GoRuntime) registerHAL() {
 	g.register("_send", halSend)
 	g.register("_recv", halRecv)
 
+	// Explicit mutable indexed storage
+	g.register("_store_new", halStoreNew)
+	g.register("_store_get", halStoreGet)
+	g.register("_store_set", halStoreSet)
+	g.register("_store_length", halStoreLength)
+
+	// Bit operations over non-negative integral Aiki numbers
+	g.register("_bits_and", halBitsAnd)
+	g.register("_bits_or", halBitsOr)
+	g.register("_bits_xor", halBitsXor)
+	g.register("_bits_not", halBitsNot)
+	g.register("_bits_shl", halBitsShl)
+	g.register("_bits_shr", halBitsShr)
+
 	// REPL
 	g.register("_quit", halQuit)
 	g.register("_reset", halReset)

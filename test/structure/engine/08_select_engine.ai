@@ -1,0 +1,16 @@
+# 08_select_engine.ai
+# Select syntax with bound/unbound receive cases and default.
+let ch1 = channel()
+let ch2 = channel()
+
+select {
+	let value = recv(ch1) {
+		print(value, "\n")
+	}
+	recv(ch2) {
+		print("second\n")
+	}
+	default {
+		print("default\n")
+	}
+}

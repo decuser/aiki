@@ -1,0 +1,113 @@
+use("test")
+let bits = import("bits")
+
+run("bitwise operations combine ordinary integers", () {
+	equal(bits.bit_and(12, 10), 8)
+	equal(bits.bit_or(12, 10), 14)
+	equal(bits.bit_xor(12, 10), 6)
+})
+
+
+run("bitwise operations preserve zero identities", () {
+	equal(bits.bit_and(123, 0), 0)
+	equal(bits.bit_or(123, 0), 123)
+	equal(bits.bit_xor(123, 0), 123)
+})
+
+
+run("bit_not uses an explicit width", () {
+	equal(bits.bit_not(0, 8), 255)
+	equal(bits.bit_not(15, 8), 240)
+	equal(bits.bit_not(511, 8), 0)
+	equal(bits.bit_not(99, 0), 0)
+})
+
+
+run("shifts move non-negative bit patterns", () {
+	equal(bits.shl(1, 8), 256)
+	equal(bits.shr(256, 8), 1)
+	equal(bits.shl(17, 0), 17)
+	equal(bits.shr(17, 0), 17)
+})
+
+
+run("mask constructs fixed width low bits", () {
+	equal(bits.mask(0), 0)
+	equal(bits.mask(1), 1)
+	equal(bits.mask(8), 255)
+	equal(bits.mask(36), 68719476735)
+})
+
+
+run("low extracts the least significant bits", () {
+	equal(bits.low(511, 8), 255)
+	equal(bits.low(511, 0), 0)
+})
+
+
+run("extract selects a bit field", () {
+	equal(bits.extract(240, 4, 4), 15)
+	equal(bits.extract(255, 2, 3), 7)
+})
+
+
+run("replace changes only the selected field", () {
+	equal(bits.replace(240, 4, 4, 3), 48)
+	equal(bits.replace(255, 2, 3, 0), 227)
+	equal(bits.replace(0, 4, 4, 31), 240)
+})
+
+
+run("bit operations reject non-integral inputs", () {
+	faults(() {
+		bits.bit_and(1/2, 1)
+	})
+	faults(() {
+		bits.bit_or(1, 1/2)
+	})
+	faults(() {
+		bits.bit_xor("1", 1)
+	})
+	faults(() {
+		bits.bit_not(1, 1/2)
+	})
+})
+
+
+run("bit operations reject negative inputs", () {
+	faults(() {
+		bits.bit_and(-1, 1)
+	})
+	faults(() {
+		bits.bit_or(1, -1)
+	})
+	faults(() {
+		bits.bit_xor(-1, 1)
+	})
+	faults(() {
+		bits.bit_not(-1, 8)
+	})
+	faults(() {
+		bits.shl(-1, 1)
+	})
+	faults(() {
+		bits.shr(-1, 1)
+	})
+})
+
+
+run("shift and width counts reject negatives", () {
+	faults(() {
+		bits.shl(1, -1)
+	})
+	faults(() {
+		bits.shr(1, -1)
+	})
+	faults(() {
+		bits.bit_not(1, -1)
+	})
+	faults(() {
+		bits.mask(-1)
+	})
+})
+

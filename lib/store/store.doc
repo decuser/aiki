@@ -1,0 +1,37 @@
+@preamble let store = import("store")
+new
+Creates explicit mutable indexed storage with size cells. Each cell is
+initialized to 0. A store is intended for systems work that requires
+mutation; ordinary Aiki lists remain immutable.
+
+new(size)
+
+let memory = store.new(1024)
+store.length(memory)    # 1024
+===
+get
+Returns the value stored at index. Indexing is zero-based. An index outside
+the store faults.
+
+get(store, index)
+
+let memory = store.new(4)
+store.get(memory, 0)    # 0
+===
+set
+Replaces the value at index. The store is changed in place and set returns [].
+An index outside the store faults.
+
+set(store, index, value)
+
+let memory = store.new(4)
+store.set(memory, 2, 7094)    # []
+store.get(memory, 2)    # 7094
+===
+length
+Returns the number of cells in a store.
+
+length(store)
+
+let memory = store.new(36)
+store.length(memory)    # 36

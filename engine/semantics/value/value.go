@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"os"
 	"strings"
+	"sync"
 )
 
 // Type identifies value kinds.
@@ -26,6 +27,7 @@ const (
 	ChannelType  Type = "channel"
 	ModuleType   Type = "module"
 	CanvasType   Type = "canvas"
+	StoreType    Type = "store"
 )
 
 // Value is the interface all Aiki values implement.
@@ -175,6 +177,41 @@ type File struct {
 
 func (f *File) Type() Type      { return FileType }
 func (f *File) Inspect() string { return fmt.Sprintf("<file %s %s>", f.Mode, f.Path) }
+
+// Store is explicit mutable indexed storage for systems work.
+// It is an opaque capability: ordinary Aiki lists remain immutable.
+type Store struct {
+	mu    sync.RWMutex
+	Cells []Value
+}
+
+func (s *Store) Type() Type { return StoreType }
+func (s *Store) Inspect() string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return fmt.Sprintf("<store %d>", len(s.Cells))
+}
+
+// StoreLen returns the number of cells.
+func (s *Store) StoreLen() int {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return len(s.Cells)
+}
+
+// StoreGet returns a cell value. The caller must bounds-check first.
+func (s *Store) StoreGet(i int) Value {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.Cells[i]
+}
+
+// StoreSet replaces a cell value. The caller must bounds-check first.
+func (s *Store) StoreSet(i int, v Value) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.Cells[i] = v
+}
 
 // Channel for concurrency.
 type Channel struct {

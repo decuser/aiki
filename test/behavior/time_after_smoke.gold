@@ -1,2 +1,2 @@
-:timeout
-true
+OUT::timeout\n
+OUT:true\n
