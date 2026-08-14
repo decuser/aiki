@@ -27,3 +27,7 @@
 @func run
 @template "run(name, fn)"
 @help "Run a named test case. Faults are caught as failures."
+
+@func faults
+@template "faults(fn)"
+@help "Assert that fn faults when called."

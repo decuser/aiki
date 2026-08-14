@@ -123,4 +123,5 @@ func (g *GoRuntime) registerHAL() {
 	g.register("_test_error", halTestError)
 	g.register("_test_not_error", halTestNotError)
 	g.register("_test_run", halTestRun)
+	g.register("_test_faults", halTestFaults)
 }

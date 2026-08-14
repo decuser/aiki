@@ -25,5 +25,14 @@ run("truncate", () {
 run("modulo", () {
 	equal(modulo(10, 3), 1)
 	equal(modulo(7, 7), 0)
+	equal(modulo(-10, 3), 2)
+	equal(modulo(10, -3), 1)
+})
+
+run("error paths", () {
+	faults(() { modulo(10, 0) })
+	faults(() { floor("abc") })
+	faults(() { ceil("abc") })
+	faults(() { truncate("abc") })
 })
 

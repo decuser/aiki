@@ -87,6 +87,60 @@ func RunSource(filename, source string) error {
 	return nil
 }
 
+// RunWithCounters executes an Aiki source file with counter probes enabled.
+// Returns the counters after execution for coverage/profiling analysis.
+func RunWithCounters(filename string, counters *evaluator.Counters) (*evaluator.Counters, error) {
+	source, err := os.ReadFile(filename)
+	if err != nil {
+		return counters, fmt.Errorf("reading file: %w", err)
+	}
+
+	g, err := grammar.Load("grammar.ebnfx", syntax.EbnfxSource, "grammar.help", syntax.HelpSource)
+	if err != nil {
+		return counters, fmt.Errorf("loading grammar: %w", err)
+	}
+
+	if err := initModuleRegistry(g); err != nil {
+		return counters, fmt.Errorf("initializing registry: %w", err)
+	}
+
+	rt := substrate.NewGoRuntime()
+	preludeEnv := value.NewEnvWithScope(value.ScopePrelude)
+	if err := loadPrelude(g, rt, preludeEnv); err != nil {
+		return counters, fmt.Errorf("loading prelude: %w", err)
+	}
+
+	userScope := value.ScopeUser
+	if libpath.IsBlessedLibPath(filename) {
+		userScope = value.ScopePrelude
+	}
+	userEnv := value.NewEnclosedEnvWithScope(preludeEnv, userScope)
+
+	lexer := syntax.NewLexer(g, filename, string(source), nil)
+	tokens, err := lexer.Tokenize()
+	if err != nil {
+		return counters, fmt.Errorf("lexer: %w", err)
+	}
+
+	parser := syntax.NewParser(g, tokens, string(source), nil)
+	ast, err := parser.Parse()
+	if err != nil {
+		return counters, fmt.Errorf("parser: %w", err)
+	}
+
+	userEnv.SetFile(filename)
+	userEnv.SetSource(string(source))
+	ev := evaluator.New(rt, nil)
+	ev.SetGrammar(g)
+	ev.Counters = counters
+	result := ev.Eval(ast, userEnv)
+	if fault, ok := result.(*value.Fault); ok {
+		return counters, fmt.Errorf("%s", fault.Inspect())
+	}
+
+	return counters, nil
+}
+
 // loadPrelude parses and evaluates the prelude.
 func loadPrelude(g *grammar.Grammar, rt *substrate.GoRuntime, env *value.Env) error {
 	// Initialize help registry

@@ -33,4 +33,8 @@ let run = (name, fn) {
 	_test_run(name, fn)
 }
 
-export(:equal, :not_equal, :is_true, :is_false, :error, :not_error, :run)
+let faults = (fn) {
+	_test_faults(fn)
+}
+
+export(:equal, :not_equal, :is_true, :is_false, :error, :not_error, :run, :faults)

@@ -51,3 +51,11 @@ failures without stopping other tests.
 run(name, fn)
 
 run("addition", () { equal(1 + 1, 2) })
+===
+faults
+Asserts that fn faults when called. Passes if fn produces a fault,
+fails if fn completes normally.
+
+faults(fn)
+
+faults(() { 1 / 0 })    # true

@@ -248,3 +248,32 @@ func halTestRun(args []value.Value, ctx *hal.EvalContext) value.Value {
 
 	return value.EMPTY
 }
+
+// halTestFaults asserts that fn faults when called.
+func halTestFaults(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 1 {
+		return value.NewFault("test.faults: want 1 argument (fn), got %d", len(args))
+	}
+	fn := args[0]
+
+	var result value.Value
+	if ctx != nil && ctx.Eval != nil {
+		if fnVal, ok := fn.(*value.Function); ok {
+			if fnEnv, ok := fnVal.Env.(*value.Env); ok {
+				callEnv := value.NewEnclosedEnv(fnEnv)
+				if body, ok := fnVal.Body.(*syntax.Node); ok {
+					result = ctx.Eval(body, callEnv)
+				}
+			}
+		} else if callable, ok := fn.(value.Callable); ok {
+			result = callable.Call(nil)
+		}
+	}
+
+	if _, ok := result.(*value.Fault); ok {
+		recordPass()
+		return value.TRUE
+	}
+	recordFailure(ctx, "expected a fault, but none occurred")
+	return value.FALSE
+}
