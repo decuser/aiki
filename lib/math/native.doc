@@ -1,7 +1,10 @@
 @preamble use("math/native")
 sin
 Returns the sine of x using Taylor series expansion.
-The terms parameter controls precision (more terms = more accuracy).
+The terms parameter bounds the work performed rather than specifying a target
+error. For a fixed x, more terms generally improve the approximation, but the
+gain depends on the magnitude of x and is not linear. No fixed term count
+guarantees a fixed number of correct digits for all inputs.
 
 sin(x, terms)
 
@@ -10,7 +13,10 @@ sin(3.14159/2, 10)  # approximately 1
 ===
 cos
 Returns the cosine of x using Taylor series expansion.
-The terms parameter controls precision (more terms = more accuracy).
+The terms parameter bounds the work performed rather than specifying a target
+error. For a fixed x, more terms generally improve the approximation, but the
+gain depends on the magnitude of x and is not linear. No fixed term count
+guarantees a fixed number of correct digits for all inputs.
 
 cos(x, terms)
 
@@ -19,7 +25,11 @@ cos(3.14159, 10)    # approximately -1
 ===
 sqrt
 Returns the square root of x using Newton's method.
-The iterations parameter controls precision.
+The iterations parameter bounds the work performed rather than specifying a
+target error. Newton's method usually gains correct digits rapidly, but the
+number of useful iterations depends on x; once the displayed approximation
+stops changing at the required precision, further iterations only enlarge the
+exact rational used to represent it.
 
 sqrt(x, iterations)
 

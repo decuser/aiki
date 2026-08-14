@@ -66,4 +66,4 @@
 
 @func pen_size
 @template "pen_size(c, size)"
-@help "Sets the pen/line thickness."
+@help "Sets line thickness in pixels; fractional sizes are truncated and the result must be at least 1."

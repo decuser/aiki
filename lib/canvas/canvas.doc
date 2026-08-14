@@ -135,7 +135,9 @@ set_fg_rgb(c, 255, 128, 0)
 ===
 pen_size
 @unchecked
-Sets the pen thickness for subsequent drawing operations.
+Sets the pen thickness for subsequent drawing operations. Fractional sizes
+are truncated to a whole number of pixels; the resulting integer must be at
+least 1.
 
 pen_size(c, size)
 
