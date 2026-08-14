@@ -7,7 +7,7 @@ description: >
   the Aiki codebase, its ai/ working record, proposals, docs, or lib modules.
   Also trigger when the user mentions concepts specific to Aiki: HAL boundary,
   exact rationals, isolated spawn, semantic profiling, store/bits/select, the
-  7094 emulator, executable documentation, or the SPLASH-E submission. Trigger
+  7094 emulator, executable documentation. Trigger
   even for non-coding sessions (discussion, review, planning) because the
   working method applies to all substantial Aiki work and the session record
   must be maintained.
