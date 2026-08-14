@@ -6,7 +6,7 @@ unless the host supplies them.
 
 args()
 
-system.args()
+type(system.args())    # :list
 ===
 env
 Returns the value of the named host environment variable as a string. If the
@@ -14,4 +14,4 @@ variable is not set, returns [@error, :environment, msg].
 
 env(name)
 
-system.env("AIKI_VARIABLE_THAT_IS_NOT_SET")
+is_error(system.env("AIKI_VARIABLE_THAT_IS_NOT_SET"))    # true

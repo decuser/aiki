@@ -8,6 +8,8 @@ run("system args returns a list", () {
 	is_true(equal(type(system.args()), :list))
 })
 
+
 run("missing environment variable is recoverable error", () {
 	is_true(is_error(system.env("AIKI_TEST_ENVIRONMENT_VARIABLE_SHOULD_NOT_EXIST_7094")))
 })
+

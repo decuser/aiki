@@ -34,10 +34,12 @@ This session established the single-tree, serial-cut working method now document
 15. `15-language-services-assessment.md` - assess reusable language services and defer broad extraction until a concrete adapter consumer exists.
 16. `16-working-method-and-delivery.md` - adopt the refined working method and prepare final source/session delivery.
 17. `17-delivery-rule-simplification.md` - simplify delivery to one full repository archive when repository content changed; reserve `ai-session.tgz` for session-record-only work.
+18. `18-treecheck-design.md` - define a first-class repository-tree invariant for detecting orphaned files after overlay updates.
+19. `19-doc-example-coupling-fix.md` - repair executable documentation/disposition for the new file and system module entries.
 
 ## Current state
 
-Milestones 1-17 are recorded in the same authoritative working tree; milestone 9 records the ordered post-profiling queue and later milestones complete it. The profiling session is complete; `summary.md` preserves the conceptual narrative and this file remains the authoritative restart/index record.
+Milestones 1-19 are recorded in the same authoritative working tree; milestone 9 records the ordered post-profiling queue and later milestones complete it. The profiling session is complete; `summary.md` preserves the conceptual narrative and this file remains the authoritative restart/index record.
 
 The profiling facility now distinguishes:
 
@@ -60,7 +62,7 @@ Go allocation profile    Go hotspots; not Aiki-label correlated
 
 Continue the ordered queue in milestone 9. Items 1-6 are complete. The ordered post-profiling queue is complete.
 
-No further profiling implementation is required before review. On the normal Go 1.24 development machine:
+The latest documentation-coupling correction is milestone 19. On the normal Go 1.24 development machine:
 
 1. rebuild Aiki from the current source;
 2. run the normal validation workflow;

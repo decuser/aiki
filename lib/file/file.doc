@@ -111,10 +111,11 @@ paths. Returns [@error, :io, msg] if the directory cannot be read.
 
 list(path)
 
-let entries = file.list("lib")
+let entries = list("lib")
 type(entries)    # :list
 ===
 read_at
+@unchecked
 Reads up to count bytes beginning at offset without changing the file's
 sequential position. Offset and count must be non-negative integers. Reading
 at or beyond end of file returns the bytes available, possibly an empty bytes
@@ -123,6 +124,7 @@ value.
 read_at(file, offset, count)
 ===
 write_at
+@unchecked
 Writes bytes beginning at offset without changing the file's sequential
 position. Offset must be a non-negative integer. Use :write or :read_write
 mode for random-access writes; :read_write does not truncate an existing file.
