@@ -4,7 +4,7 @@ Aiki separates three different acts: checking correctness, blessing a known-good
 
 ## `make check`
 
-`make check` runs correctness checks that do not depend on existing behavior or engine gold snapshots. It builds and formats the tree, runs the linter, Go tests, Aiki tests, and verifies that the structural engine specimens exercise every production declared by `grammar.ebnfx`.
+`make check` runs correctness checks that do not depend on existing behavior or engine gold snapshots. It builds and formats the tree, runs the linter, verifies the distribution tree with `aiki treecheck`, runs Go tests and Aiki tests, and verifies that the structural engine specimens exercise every production declared by `grammar.ebnfx`.
 
 `make check` never writes gold files.
 
@@ -70,3 +70,13 @@ Then commit the implementation and updated golds together.
 ## Why golds come after checks
 
 A gold is an oracle for future regression detection; generating one does not prove that the captured behavior is correct. Unit, semantic, invariant, and human review establish correctness first. Blessing then freezes that known-good state so later drift is visible.
+
+## Distribution tree invariant
+
+`aiki treecheck` checks that every file in the current source tree has a recognized distribution relationship or an explicit standalone disposition. It is part of `make check` and therefore `make validate`.
+
+The checker infers ordinary relationships such as standard-library `.ai`/`.help`/`.doc` sets, Aiki-native tests, smoke specimens and golds, engine specimens and stage golds, grammar/prelude artifacts, samples, profiling drivers, Go implementation files, and direct references from already-justified text files. It also detects structural contradictions such as a gold without its source specimen or a module companion without an owning `.ai` file.
+
+Intentional standalone artifacts are listed in the small root file `treecheck.allow`. That file is an exception list, not a manifest of the repository. Directory entries end in `/`; other entries use `filepath.Match`-style patterns. Add an exception only when a file is intentionally standalone and no stronger structural relationship describes it.
+
+When Git metadata is available, `treecheck` examines tracked files plus untracked non-ignored files that actually exist in the working tree. This makes overlay additions visible before staging while also allowing a removed tracked path to disappear normally. Without Git metadata, it falls back to walking the source tree.

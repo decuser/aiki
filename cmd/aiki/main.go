@@ -20,6 +20,7 @@ import (
 	aikifmt "aiki/cmd/subcommands/tools/fmt"
 	aikilint "aiki/cmd/subcommands/tools/lint"
 	aikiprofile "aiki/cmd/subcommands/tools/profile"
+	aikitreecheck "aiki/cmd/subcommands/tools/treecheck"
 )
 
 func main() {
@@ -39,6 +40,8 @@ func main() {
 			return
 		case "profile":
 			os.Exit(aikiprofile.Run(os.Args[2:]))
+		case "treecheck":
+			os.Exit(aikitreecheck.Run(os.Args[2:]))
 		case "smoke":
 			aikismoke.Run(os.Args[2:])
 			return

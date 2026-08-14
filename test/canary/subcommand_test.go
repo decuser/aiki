@@ -47,6 +47,21 @@ func TestSubcommandLintExists(t *testing.T) {
 	}
 }
 
+// TestSubcommandTreecheckExists verifies the treecheck subcommand runs.
+func TestSubcommandTreecheckExists(t *testing.T) {
+	cmd := exec.Command("go", "run", "../../cmd/aiki", "treecheck", "-root", "../..")
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	if err != nil {
+		t.Fatalf("treecheck subcommand failed: %v\nstdout: %s\nstderr: %s", err, stdout.String(), stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "treecheck ok") {
+		t.Fatalf("treecheck subcommand produced unexpected output: %q", stdout.String())
+	}
+}
+
 // TestSubcommandVersionExists verifies the version subcommand runs.
 func TestSubcommandVersionExists(t *testing.T) {
 	cmd := exec.Command("go", "run", "../../cmd/aiki", "version")

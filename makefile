@@ -1,4 +1,4 @@
-.PHONY: build clean install run test fmt lint check bless validate smoke smokegold visual aikitest runsamples enginesmoke enginesmokegold enginecoverage rigorous fuzz hooks profilesweep
+.PHONY: build clean install run test fmt lint treecheck check bless validate smoke smokegold visual aikitest runsamples enginesmoke enginesmokegold enginecoverage rigorous fuzz hooks profilesweep
 
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 LDFLAGS := -ldflags "-X main.Version=$(VERSION)"
@@ -24,6 +24,9 @@ fmt:
 
 lint:
 	./aiki lint ./...
+
+treecheck: build
+	./aiki treecheck
 
 smoke:
 	./aiki smoke test/behavior/
@@ -54,7 +57,7 @@ enginesmokegold: build fmt
 	./aiki enginesmoke --stage all --gold test/structure/engine
 
 # Snapshot-independent correctness checks. This target never writes gold files.
-check: build fmt lint test aikitest enginecoverage
+check: build fmt lint treecheck test aikitest enginecoverage
 
 # Bless the current, independently checked behavior and engine structure.
 # Blessing records a reference state; it is not validation.
