@@ -32,7 +32,7 @@ visual: build
 	./aiki smoke test/visual/
 
 aikitest:
-	./aiki test lib/
+	./aiki test lib/ test/
 
 runsamples: build
 	@set -e; \

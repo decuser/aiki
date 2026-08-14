@@ -1,30 +1,307 @@
 use("test")
 use("string")
 
-run("upper", () {
+# case conversion
+run("upper converts to uppercase", () {
 	equal(upper("hello"), "HELLO")
+	equal(upper("Hello World"), "HELLO WORLD")
+})
+
+
+run("upper on empty string", () {
 	equal(upper(""), "")
 })
 
 
-run("lower", () {
+run("lower converts to lowercase", () {
 	equal(lower("HELLO"), "hello")
+	equal(lower("Hello World"), "hello world")
 })
 
 
-run("length", () {
-	equal(length("hello"), 5)
-	equal(length(""), 0)
+run("lower on empty string", () {
+	equal(lower(""), "")
 })
 
 
-run("substring", () {
+run("capitalize first letter only", () {
+	equal(capitalize("hello world"), "Hello world")
+	equal(capitalize(""), "")
+	equal(capitalize("H"), "H")
+})
+
+
+run("title capitalizes each word", () {
+	equal(title("hello world"), "Hello World")
+	equal(title(""), "")
+})
+
+
+run("equal_ignore_case", () {
+	is_true(equal_ignore_case("Hello", "hello"))
+	is_true(equal_ignore_case("", ""))
+	is_false(equal_ignore_case("hello", "world"))
+})
+
+
+# substring
+run("substring extracts range", () {
 	equal(substring("hello", 1, 4), "ell")
+	equal(substring("hello", 0, 5), "hello")
 })
 
 
-run("contains", () {
+run("substring single character", () {
+	equal(substring("hello", 0, 1), "h")
+	equal(substring("hello", 4, 5), "o")
+})
+
+
+run("substring empty range", () {
+	equal(substring("hello", 2, 2), "")
+})
+
+
+# split and join
+run("split on delimiter", () {
+	equal(split("a,b,c", ","), ["a", "b", "c"])
+})
+
+
+run("split when delimiter absent", () {
+	equal(split("hello", ","), ["hello"])
+})
+
+
+run("split empty string", () {
+	equal(split("", ","), [""])
+})
+
+
+run("join list with separator", () {
+	equal(join(["a", "b", "c"], ","), "a,b,c")
+})
+
+
+run("join empty list", () {
+	equal(join([], ","), "")
+})
+
+
+run("join single element", () {
+	equal(join(["one"], ","), "one")
+})
+
+
+run("split and join round-trip", () {
+	let s = "one,two,three"
+	equal(join(split(s, ","), ","), s)
+})
+
+
+# search
+run("contains finds substring", () {
 	is_true(contains("hello world", "world"))
+	is_true(contains("hello", "hello"))
+	is_true(contains("hello", ""))
+})
+
+
+run("contains rejects missing substring", () {
 	is_false(contains("hello", "xyz"))
+})
+
+
+run("starts_with and ends_with", () {
+	is_true(starts_with("hello", "hel"))
+	is_false(starts_with("hello", "xyz"))
+	is_true(ends_with("hello", "llo"))
+	is_false(ends_with("hello", "xyz"))
+})
+
+
+run("starts_with empty prefix", () {
+	is_true(starts_with("hello", ""))
+})
+
+
+run("index_of finds position", () {
+	equal(index_of("hello", "ll"), 2)
+	equal(index_of("hello", "h"), 0)
+})
+
+
+run("index_of returns error when not found", () {
+	error(index_of("hello", "xyz"))
+})
+
+
+run("last_index_of finds rightmost", () {
+	equal(last_index_of("abcabc", "abc"), 3)
+	equal(last_index_of("abcabc", "c"), 5)
+})
+
+
+run("occurrences counts matches", () {
+	equal(occurrences("banana", "an"), 2)
+	equal(occurrences("hello", "xyz"), 0)
+})
+
+
+# replacement
+run("replace all occurrences", () {
+	equal(replace("aaa", "a", "b"), "bbb")
+	equal(replace("hello", "l", "r"), "herro")
+})
+
+
+run("replace when pattern absent", () {
+	equal(replace("hello", "xyz", "!"), "hello")
+})
+
+
+run("replace_first replaces only first", () {
+	equal(replace_first("aaa", "a", "b"), "baa")
+})
+
+
+# repetition and reversal
+run("repeat builds repeated string", () {
+	equal(repeat("ab", 3), "ababab")
+	equal(repeat("x", 1), "x")
+})
+
+
+run("repeat zero times is empty", () {
+	equal(repeat("ab", 0), "")
+})
+
+
+run("reverse_string reverses characters", () {
+	equal(reverse_string("hello"), "olleh")
+	equal(reverse_string("a"), "a")
+})
+
+
+run("reverse_string empty", () {
+	equal(reverse_string(""), "")
+})
+
+
+# insert and remove
+run("insert splices string at position", () {
+	equal(insert("helo", 3, "l"), "hello")
+	equal(insert("world", 0, "hello "), "hello world")
+})
+
+
+run("remove extracts range", () {
+	equal(remove("hello", 1, 4), "ho")
+})
+
+
+# trimming
+run("trim removes whitespace", () {
+	equal(trim("  hi  "), "hi")
+	equal(trim("hi"), "hi")
+	equal(trim(""), "")
+})
+
+
+run("trim_start and trim_end", () {
+	equal(trim_start("  hi  "), "hi  ")
+	equal(trim_end("  hi  "), "  hi")
+})
+
+
+# padding
+run("pad_start pads to width", () {
+	equal(pad_start("hi", 5, " "), "   hi")
+})
+
+
+run("pad_end pads to width", () {
+	equal(pad_end("hi", 5, " "), "hi   ")
+})
+
+
+run("center pads both sides", () {
+	equal(center("hi", 6, "-"), "--hi--")
+})
+
+
+run("pad does nothing when already wide enough", () {
+	equal(pad_start("hello", 3, " "), "hello")
+	equal(pad_end("hello", 3, " "), "hello")
+})
+
+
+# character inspection
+run("chars decomposes to rune list", () {
+	equal(chars("abc"), ['a', 'b', 'c'])
+	equal(chars(""), [])
+})
+
+
+run("is_digit recognizes digits", () {
+	is_true(is_digit("5"))
+	is_false(is_digit("a"))
+	is_false(is_digit(""))
+})
+
+
+run("is_alpha recognizes letters", () {
+	is_true(is_alpha("a"))
+	is_true(is_alpha("Z"))
+	is_false(is_alpha("5"))
+})
+
+
+run("is_upper and is_lower", () {
+	is_true(is_upper("A"))
+	is_false(is_upper("a"))
+	is_true(is_lower("a"))
+	is_false(is_lower("A"))
+})
+
+
+# string comparison
+run("compare orders strings", () {
+	equal(compare("a", "b"), -1)
+	equal(compare("b", "a"), 1)
+	equal(compare("a", "a"), 0)
+})
+
+
+# rune case conversion
+run("upper_rune and lower_rune", () {
+	equal(upper_rune('a'), 'A')
+	equal(lower_rune('A'), 'a')
+})
+
+
+# truncate (string)
+run("truncate limits string length", () {
+	equal(truncate("hello world", 5), "hello")
+	equal(truncate("hi", 10), "hi")
+})
+
+
+# lines and words
+run("lines splits on newlines", () {
+	equal(lines("a\nb\nc"), ["a", "b", "c"])
+})
+
+
+run("words splits on whitespace", () {
+	equal(words("hello world"), ["hello", "world"])
+})
+
+
+# is_whitespace
+run("is_whitespace detects whitespace", () {
+	is_true(is_whitespace(" "))
+	is_true(is_whitespace("\t"))
+	is_false(is_whitespace("a"))
 })
 

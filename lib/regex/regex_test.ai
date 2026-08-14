@@ -1,0 +1,98 @@
+use("test")
+use("regex/ffi")
+
+# matches
+run("matches checks full string against pattern", () {
+	is_true(matches("hello123", "^[a-z]+[0-9]+$"))
+	is_true(matches("abc", "^[a-z]+$"))
+})
+
+
+run("matches returns false on mismatch", () {
+	is_false(matches("hello", "^[0-9]+$"))
+	is_false(matches("", "^[a-z]+$"))
+})
+
+
+# find
+run("find returns shaped match with positions", () {
+	let m = find("hello world", "[a-z]+")
+	equal(shape(m), :match)
+	equal(m[0], 0)
+	equal(m[1], 5)
+	equal(m[2], "hello")
+})
+
+
+run("find returns error on no match", () {
+	error(find("hello", "[0-9]+"))
+})
+
+
+run("find reports rune positions for multibyte", () {
+	let m = find("café latte", "latte")
+	equal(m[0], 5)
+	equal(m[1], 10)
+	equal(m[2], "latte")
+})
+
+
+# find_all
+run("find_all returns all matches", () {
+	let ms = find_all("one two three", "[a-z]+")
+	equal(length(ms), 3)
+	equal(ms[0][2], "one")
+	equal(ms[1][2], "two")
+	equal(ms[2][2], "three")
+})
+
+
+run("find_all positions are rune indices", () {
+	let ms = find_all("café résumé", "[a-z]+")
+	equal(ms[0][0], 0)
+	equal(ms[0][2], "caf")
+})
+
+
+run("find_all on no matches returns empty", () {
+	equal(find_all("hello", "[0-9]+"), [])
+})
+
+
+# replace
+run("replace substitutes all occurrences", () {
+	equal(replace("hello world", "[a-z]+", "X"), "X X")
+})
+
+
+run("replace with no match is unchanged", () {
+	equal(replace("hello", "[0-9]+", "X"), "hello")
+})
+
+
+# replace_first
+run("replace_first substitutes only first", () {
+	equal(replace_first("aaa", "a", "b"), "baa")
+})
+
+
+run("replace_first with no match is unchanged", () {
+	equal(replace_first("hello", "[0-9]+", "X"), "hello")
+})
+
+
+# split
+run("split on literal delimiter", () {
+	equal(split("a,b,c", ","), ["a", "b", "c"])
+})
+
+
+run("split on regex pattern", () {
+	equal(split("a1b2c", "[0-9]"), ["a", "b", "c"])
+})
+
+
+run("split when pattern absent returns whole string", () {
+	equal(split("hello", ","), ["hello"])
+})
+

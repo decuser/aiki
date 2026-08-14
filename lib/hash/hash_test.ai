@@ -1,0 +1,111 @@
+use("test")
+use("hash/native")
+
+# basic operations
+run("new creates empty hash", () {
+	let m = new()
+	is_true(empty(keys(m)))
+})
+
+
+run("put and get store and retrieve", () {
+	let m = put(new(), "name", "Alice")
+	equal(get(m, "name"), "Alice")
+})
+
+
+run("put overwrites existing key", () {
+	let m = put(new(), "x", 1)
+	let m = put(m, "x", 2)
+	equal(get(m, "x"), 2)
+})
+
+
+run("put does not mutate original", () {
+	let m1 = put(new(), "a", 1)
+	let m2 = put(m1, "b", 2)
+	is_false(has(m1, "b"))
+	is_true(has(m2, "b"))
+})
+
+
+run("get on missing key returns error", () {
+	let m = new()
+	error(get(m, "x"))
+})
+
+
+run("has checks key existence", () {
+	let m = put(new(), "a", 1)
+	is_true(has(m, "a"))
+	is_false(has(m, "b"))
+})
+
+
+run("del removes a key", () {
+	let m = put(new(), "a", 1)
+	let m = del(m, "a")
+	is_false(has(m, "a"))
+})
+
+
+run("del on missing key is harmless", () {
+	let m = put(new(), "a", 1)
+	let m = del(m, "nonexistent")
+	is_true(has(m, "a"))
+})
+
+
+run("keys returns all keys", () {
+	let m = put(put(new(), "a", 1), "b", 2)
+	equal(keys(m), ["a", "b"])
+})
+
+
+run("values returns all values", () {
+	let m = put(put(new(), "a", 1), "b", 2)
+	equal(values(m), [1, 2])
+})
+
+
+run("keys and values on empty hash", () {
+	let m = new()
+	equal(keys(m), [])
+	equal(values(m), [])
+})
+
+
+# mixed value types
+run("hash stores different value types", () {
+	let m = put(new(), "num", 42)
+	let m = put(m, "str", "hello")
+	let m = put(m, "sym", :foo)
+	let m = put(m, "bool", true)
+	let m = put(m, "list", [1, 2, 3])
+	equal(get(m, "num"), 42)
+	equal(get(m, "str"), "hello")
+	equal(get(m, "sym"), :foo)
+	equal(get(m, "bool"), true)
+	equal(get(m, "list"), [1, 2, 3])
+})
+
+
+# symbol keys
+run("hash with symbol keys", () {
+	let m = put(put(new(), :x, 10), :y, 20)
+	equal(get(m, :x), 10)
+	equal(get(m, :y), 20)
+})
+
+
+# multiple operations
+run("build and query a small hash", () {
+	let m = new()
+	let m = put(m, "one", 1)
+	let m = put(m, "two", 2)
+	let m = put(m, "three", 3)
+	let m = del(m, "two")
+	is_false(has(m, "two"))
+	equal(length(keys(m)), 2)
+})
+

@@ -1,0 +1,90 @@
+use("test")
+use("bytes/ffi")
+
+# str_to_bytes and bytes_to_str
+run("str_to_bytes converts string to bytes", () {
+	let b = str_to_bytes("ABC")
+	equal(bytes_length(b), 3)
+	equal(bytes_get(b, 0), 65)
+	equal(bytes_get(b, 1), 66)
+	equal(bytes_get(b, 2), 67)
+})
+
+
+run("bytes_to_str converts back to string", () {
+	let b = str_to_bytes("hello")
+	equal(bytes_to_str(b), "hello")
+})
+
+
+run("str_to_bytes and bytes_to_str round-trip", () {
+	let s = "hello world"
+	equal(bytes_to_str(str_to_bytes(s)), s)
+})
+
+
+run("empty string round-trip", () {
+	let b = str_to_bytes("")
+	equal(bytes_length(b), 0)
+	equal(bytes_to_str(b), "")
+})
+
+
+# bytes_new
+run("bytes_new creates from byte values", () {
+	let b = bytes_new([72, 73])
+	equal(bytes_to_str(b), "HI")
+	equal(bytes_length(b), 2)
+})
+
+
+run("bytes_new with empty list", () {
+	let b = bytes_new([])
+	equal(bytes_length(b), 0)
+})
+
+
+# bytes_get
+run("bytes_get at first and last index", () {
+	let b = str_to_bytes("AZ")
+	equal(bytes_get(b, 0), 65)
+	equal(bytes_get(b, 1), 90)
+})
+
+
+run("bytes_get out of bounds faults", () {
+	let b = str_to_bytes("AB")
+	faults(() {
+		bytes_get(b, 5)
+	})
+	faults(() {
+		bytes_get(b, -1)
+	})
+})
+
+
+# bytes_slice
+run("bytes_slice extracts range", () {
+	let b = str_to_bytes("ABCDE")
+	equal(bytes_to_str(bytes_slice(b, 1, 4)), "BCD")
+})
+
+
+run("bytes_slice full range", () {
+	let b = str_to_bytes("ABC")
+	equal(bytes_to_str(bytes_slice(b, 0, 3)), "ABC")
+})
+
+
+run("bytes_slice empty range", () {
+	let b = str_to_bytes("ABC")
+	equal(bytes_length(bytes_slice(b, 1, 1)), 0)
+})
+
+
+# bytes_length
+run("bytes_length matches string byte count", () {
+	equal(bytes_length(str_to_bytes("hello")), 5)
+	equal(bytes_length(str_to_bytes("")), 0)
+})
+

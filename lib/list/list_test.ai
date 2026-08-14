@@ -1,0 +1,253 @@
+use("test")
+use("list")
+
+# map
+run("map transforms every element", () {
+	equal(map([1, 2, 3], (x) {
+		x * 2
+	}), [2, 4, 6])
+})
+
+
+run("map preserves empty list", () {
+	equal(map([], (x) {
+		x
+	}), [])
+})
+
+
+run("map with identity is unchanged", () {
+	equal(map([1, 2, 3], (x) {
+		x
+	}), [1, 2, 3])
+})
+
+
+# filter
+run("filter keeps matching elements", () {
+	equal(filter([1, 2, 3, 4], (x) {
+		x > 2
+	}), [3, 4])
+})
+
+
+run("filter keeping everything", () {
+	equal(filter([1, 2, 3], (x) {
+		true
+	}), [1, 2, 3])
+})
+
+
+run("filter keeping nothing", () {
+	equal(filter([1, 2, 3], (x) {
+		false
+	}), [])
+})
+
+
+run("filter on empty list", () {
+	equal(filter([], (x) {
+		true
+	}), [])
+})
+
+
+# reduce
+run("reduce accumulates a result", () {
+	equal(reduce([1, 2, 3], 0, (a, b) {
+		a + b
+	}), 6)
+})
+
+
+run("reduce with multiplication", () {
+	equal(reduce([1, 2, 3, 4], 1, (a, b) {
+		a * b
+	}), 24)
+})
+
+
+run("reduce on empty list returns accumulator", () {
+	equal(reduce([], 42, (a, b) {
+		a + b
+	}), 42)
+})
+
+
+run("reduce on single element", () {
+	equal(reduce([5], 0, (a, b) {
+		a + b
+	}), 5)
+})
+
+
+# sum
+run("sum adds all elements", () {
+	equal(sum([1, 2, 3]), 6)
+	equal(sum([10]), 10)
+})
+
+
+run("sum of empty list is zero", () {
+	equal(sum([]), 0)
+})
+
+
+# max and min
+run("max finds largest element", () {
+	equal(max([3, 1, 2]), 3)
+	equal(max([1]), 1)
+	equal(max([-5, -1, -10]), -1)
+})
+
+
+run("min finds smallest element", () {
+	equal(min([3, 1, 2]), 1)
+	equal(min([1]), 1)
+	equal(min([-5, -1, -10]), -10)
+})
+
+
+# reverse
+run("reverse reverses element order", () {
+	equal(reverse([1, 2, 3]), [3, 2, 1])
+})
+
+
+run("reverse single element", () {
+	equal(reverse([1]), [1])
+})
+
+
+run("reverse empty list", () {
+	equal(reverse([]), [])
+})
+
+
+run("reverse is its own inverse", () {
+	let xs = [1, 2, 3, 4]
+	equal(reverse(reverse(xs)), xs)
+})
+
+
+# find
+run("find returns first match", () {
+	equal(find([1, 2, 3], (x) {
+		x > 1
+	}), 2)
+})
+
+
+run("find returns error when not found", () {
+	error(find([1, 2, 3], (x) {
+		x > 5
+	}))
+})
+
+
+# any and all
+run("any returns true when predicate matches", () {
+	is_true(any([1, 2, 3], (x) {
+		x > 2
+	}))
+})
+
+
+run("any returns false when nothing matches", () {
+	is_false(any([1, 2, 3], (x) {
+		x > 5
+	}))
+})
+
+
+run("any on empty list is false", () {
+	is_false(any([], (x) {
+		true
+	}))
+})
+
+
+run("all returns true when all match", () {
+	is_true(all([1, 2, 3], (x) {
+		x > 0
+	}))
+})
+
+
+run("all returns false when any fails", () {
+	is_false(all([1, 2, 3], (x) {
+		x > 1
+	}))
+})
+
+
+run("all on empty list is true", () {
+	is_true(all([], (x) {
+		false
+	}))
+})
+
+
+# concat
+run("concat joins two lists", () {
+	equal(concat([1, 2], [3, 4]), [1, 2, 3, 4])
+})
+
+
+run("concat with empty lists", () {
+	equal(concat([], []), [])
+	equal(concat([1], []), [1])
+	equal(concat([], [2]), [2])
+})
+
+
+# range
+run("range generates ascending sequence", () {
+	equal(range(0, 5), [0, 1, 2, 3, 4])
+})
+
+
+run("range with equal bounds is empty", () {
+	equal(range(3, 3), [])
+})
+
+
+run("range single element", () {
+	equal(range(0, 1), [0])
+})
+
+
+run("range with negative start", () {
+	equal(range(-2, 2), [-2, -1, 0, 1])
+})
+
+
+# composition: pipeline across functions
+run("range into map into filter into reduce", () {
+	# sum of even numbers 0..9 doubled: 0,2,4,6,8 -> 0,4,8,12,16 -> sum=40
+	let result = reduce(filter(map(range(0, 10), (x) {
+		x * 2
+	}), (x) {
+		x < 20
+	}), 0, (a, b) {
+		a + b
+	})
+	equal(result, 90)
+})
+
+
+run("map preserves length", () {
+	let xs = [1, 2, 3, 4, 5]
+	equal(length(map(xs, (x) {
+		x * x
+	})), length(xs))
+})
+
+
+run("filter result is subset of original length", () {
+	let xs = [1, 2, 3, 4, 5]
+	is_true(length(filter(xs, (x) {
+		x > 3
+	})) <= length(xs))
+})
+

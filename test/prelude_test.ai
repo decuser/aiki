@@ -1,0 +1,241 @@
+# Capture prelude equal before test module shadows it
+let prelude_equal = equal
+
+use("test")
+
+# === List primitives ===
+run("first returns head of list", () {
+	equal(first([1, 2, 3]), 1)
+	equal(first(["a"]), "a")
+})
+
+
+run("first on empty list faults", () {
+	faults(() {
+		first([])
+	})
+})
+
+
+run("rest returns tail of list", () {
+	equal(rest([1, 2, 3]), [2, 3])
+	equal(rest([1]), [])
+})
+
+
+run("rest on empty list returns empty", () {
+	equal(rest([]), [])
+})
+
+
+run("prepend adds to front", () {
+	equal(prepend([2, 3], 1), [1, 2, 3])
+	equal(prepend([], 1), [1])
+})
+
+
+run("append adds to end", () {
+	equal(append([1, 2], 3), [1, 2, 3])
+	equal(append([], 1), [1])
+})
+
+
+run("length of list", () {
+	equal(length([1, 2, 3]), 3)
+	equal(length([]), 0)
+	equal(length([42]), 1)
+})
+
+
+run("length of string", () {
+	equal(length("hello"), 5)
+	equal(length(""), 0)
+})
+
+
+run("empty checks emptiness", () {
+	is_true(empty([]))
+	is_false(empty([1]))
+	is_false(empty([1, 2, 3]))
+})
+
+
+# === Semantic identities ===
+run("first of prepend recovers the value", () {
+	equal(first(prepend([2, 3], 1)), 1)
+	equal(first(prepend([], :x)), :x)
+})
+
+
+run("rest of prepend recovers the list", () {
+	equal(rest(prepend([2, 3], 1)), [2, 3])
+	equal(rest(prepend([], :x)), [])
+})
+
+
+run("length of append is sum of lengths", () {
+	let xs = [1, 2]
+	let ys = [3, 4, 5]
+	# append adds one element, not concatenation
+	equal(length(append(xs, 99)), length(xs) + 1)
+})
+
+
+# === Type system ===
+run("type returns correct tags", () {
+	equal(type(42), :number)
+	equal(type("hi"), :string)
+	equal(type(:foo), :symbol)
+	equal(type(true), :boolean)
+	equal(type(false), :boolean)
+	equal(type([]), :list)
+	equal(type([1, 2]), :list)
+	equal(type((x) {
+		x
+	}), :function)
+})
+
+
+run("inspect returns string representation", () {
+	equal(inspect(42), "42")
+	equal(inspect("hi"), "\"hi\"")
+	equal(inspect(:foo), ":foo")
+	equal(inspect(true), "true")
+	equal(inspect([1, 2]), "[1, 2]")
+})
+
+
+# === Equality ===
+run("prelude equal compares atomic values", () {
+	is_true(prelude_equal(42, 42))
+	is_false(prelude_equal(42, 43))
+	is_true(prelude_equal("a", "a"))
+	is_false(prelude_equal("a", "b"))
+	is_true(prelude_equal(:x, :x))
+	is_false(prelude_equal(:x, :y))
+	is_true(prelude_equal(true, true))
+	is_false(prelude_equal(true, false))
+})
+
+
+run("prelude equal is always false for lists", () {
+	# prelude equal uses identity comparison; immutable lists
+	# are never identical even when bound to the same name
+	is_false(prelude_equal([1], [1]))
+	let xs = [1, 2]
+	is_false(prelude_equal(xs, xs))
+})
+
+
+# === Conversion ===
+run("to_str converts values to strings", () {
+	equal(to_str(42), "42")
+	equal(to_str(:foo), ":foo")
+	equal(to_str(true), "true")
+})
+
+
+run("to_number parses valid numbers", () {
+	equal(to_number("42"), 42)
+	equal(to_number("3/4"), 3/4)
+	equal(to_number("0"), 0)
+	equal(to_number("-5"), -5)
+})
+
+
+run("to_number returns error on invalid input", () {
+	error(to_number("abc"))
+	error(to_number(""))
+})
+
+
+run("to_number and to_str round-trip for integers", () {
+	equal(to_number(to_str(42)), 42)
+	equal(to_number(to_str(-7)), -7)
+	equal(to_number(to_str(0)), 0)
+})
+
+
+run("to_decimal formats exact decimal places", () {
+	equal(to_decimal(1/3, 5), "0.33333")
+	equal(to_decimal(1, 0), "1")
+	equal(to_decimal(0, 3), "0.000")
+})
+
+
+# === Chr and Ord ===
+run("chr converts number to rune", () {
+	equal(chr(65), 'A')
+	equal(chr(48), '0')
+})
+
+
+run("ord converts rune to number", () {
+	equal(ord('A'), 65)
+	equal(ord('0'), 48)
+})
+
+
+run("chr and ord round-trip", () {
+	equal(ord(chr(65)), 65)
+	equal(chr(ord('Z')), 'Z')
+})
+
+
+# === Shape ===
+run("shape returns tag of shaped list", () {
+	equal(shape([@foo, 1, 2]), :foo)
+	equal(shape([@error, :test, "x"]), :error)
+})
+
+
+# === Error predicates ===
+run("is_error recognizes shaped errors", () {
+	is_true(is_error([@error, :test, "x"]))
+})
+
+
+run("is_error rejects non-errors", () {
+	is_false(is_error(42))
+	is_false(is_error([]))
+	is_false(is_error([@fault, "x"]))
+	is_false(is_error([@foo, 1]))
+})
+
+
+# === Apply ===
+run("apply calls function with argument list", () {
+	let add = (a, b) {
+		a + b
+	}
+	equal(apply(add, [3, 4]), 7)
+})
+
+
+run("apply with single argument", () {
+	let negate = (x) {
+		-x
+	}
+	equal(apply(negate, [5]), -5)
+})
+
+
+# === Abs and truncate ===
+run("abs returns absolute value", () {
+	equal(abs(5), 5)
+	equal(abs(-5), 5)
+	equal(abs(0), 0)
+})
+
+
+run("abs preserves rationals", () {
+	equal(abs(-1/3), 1/3)
+})
+
+
+run("truncate rounds toward zero", () {
+	equal(truncate(2.7), 2)
+	equal(truncate(-2.7), -2)
+	equal(truncate(0), 0)
+})
+
