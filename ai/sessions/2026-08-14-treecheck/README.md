@@ -19,6 +19,8 @@ without requiring a previous tree or a generated full-file manifest.
 
 1. `01-treecheck-invariant.md` — distribution disposition invariant, first-run
    orphan cleanup, CLI/validation integration, and evidence gate.
+2. `02-native-validation.md` — complete `make validate` pass in the normal
+   Go 1.24/Ebiten development environment.
 
 ## Established design constraints
 
@@ -38,5 +40,5 @@ authoritative tree is clean under the invariant.
 
 ## Next action
 
-Run `make validate` in the normal Go 1.24/Ebiten environment. No further
-treecheck design work is planned unless use exposes a missing structural family.
+None. The native `make validate` gate passed. No further treecheck design work
+is planned unless use exposes a missing structural family.
