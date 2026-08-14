@@ -16,8 +16,9 @@ import (
 
 // ModuleHelp holds help and doc data for a module.
 type ModuleHelp struct {
-	Funcs map[string]help.FuncEntry // function name -> help entry
-	Docs  map[string]help.DocEntry  // function name -> doc entry
+	Funcs    map[string]help.FuncEntry // function name -> help entry
+	Docs     map[string]help.DocEntry  // function name -> doc entry
+	Preamble string                    // user-facing setup code from @preamble
 }
 
 // ModuleRegistry maps package names to their file paths and caches loaded modules.
@@ -206,7 +207,9 @@ func (r *ModuleRegistry) loadModuleHelp(pkgName, aiPath string) error {
 			return fmt.Errorf("package '%s' missing required %s", pkgName, docPath)
 		}
 	} else {
-		docs, err := help.ParseDocFile(docPath, string(docData))
+		docSource := string(docData)
+		mh.Preamble = help.ParseDocPreamble(docSource)
+		docs, err := help.ParseDocFile(docPath, docSource)
 		if err != nil {
 			return fmt.Errorf("package '%s': %v", pkgName, err)
 		}

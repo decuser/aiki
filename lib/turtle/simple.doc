@@ -121,15 +121,11 @@ Displays the turtle indicator on the canvas.
 Visibility affects only the indicator; it does not affect movement or drawing.
 
 show_turtle()
-
-show_turtle()
 ===
 hide_turtle
 @unchecked
 Removes the turtle indicator from view.
 Visibility affects only the indicator; it does not affect movement or drawing.
-
-hide_turtle()
 
 hide_turtle()
 ===
@@ -140,15 +136,11 @@ Returning home does not draw a line, regardless of the current pen state.
 The pen state and drawing color are preserved.
 
 home()
-
-home()
 ===
 clear
 @unchecked
 Clears the canvas using its current background color.
 The turtle's position, heading, pen state, color, and visibility are unchanged.
-
-clear()
 
 clear()
 ===

@@ -91,9 +91,41 @@ func ParseHelpFile(file, source string) (map[string]FuncEntry, error) {
 	return entries, nil
 }
 
+// ParseDocPreamble returns the user-facing setup code carried by @preamble
+// directives in a .doc file. The @preamble marker itself belongs to the
+// executable-doc harness and is not part of displayed documentation.
+func ParseDocPreamble(source string) string {
+	var preamble []string
+	for _, line := range strings.Split(source, "\n") {
+		if !strings.HasPrefix(line, "@preamble") {
+			continue
+		}
+		payload := strings.TrimSpace(strings.TrimPrefix(line, "@preamble"))
+		if payload != "" {
+			preamble = append(preamble, payload)
+		}
+	}
+	return strings.Join(preamble, "\n")
+}
+
 // ParseDocFile parses a .doc file with === separated entries.
 func ParseDocFile(file, source string) (map[string]DocEntry, error) {
 	entries := make(map[string]DocEntry)
+
+	// @preamble directives belong to executable-doc test infrastructure, not
+	// to the user-facing documentation namespace. Ignore them here so the
+	// first real documentation entry is parsed normally. The raw .doc source
+	// remains unchanged for the executable-doc harness, which reads these
+	// directives directly.
+	var docLines []string
+	for _, line := range strings.Split(source, "\n") {
+		if strings.HasPrefix(line, "@preamble") {
+			continue
+		}
+		docLines = append(docLines, line)
+	}
+	source = strings.Join(docLines, "\n")
+
 	parts := strings.Split(source, "\n===\n")
 
 	for _, part := range parts {

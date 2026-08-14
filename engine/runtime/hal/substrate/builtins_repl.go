@@ -309,6 +309,18 @@ func showDoc(name string, ctx *hal.EvalContext) value.Value {
 	return value.EMPTY
 }
 
+func stripDocMarkers(doc string) string {
+	lines := strings.Split(doc, "\n")
+	kept := lines[:0]
+	for _, line := range lines {
+		if strings.HasPrefix(line, "@preamble") || strings.HasPrefix(line, "@unchecked") {
+			continue
+		}
+		kept = append(kept, line)
+	}
+	return strings.Join(kept, "\n")
+}
+
 func showModuleDoc(pkgName string) value.Value {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("Module: %s\n\n", pkgName))
@@ -317,6 +329,11 @@ func showModuleDoc(pkgName string) value.Value {
 	if mh == nil || len(mh.Docs) == 0 {
 		sb.WriteString("No documentation available.\n")
 	} else {
+		if mh.Preamble != "" {
+			sb.WriteString(mh.Preamble)
+			sb.WriteString("\n\n")
+		}
+
 		// Show all function docs
 		names := make([]string, 0, len(mh.Docs))
 		for name := range mh.Docs {
@@ -326,7 +343,7 @@ func showModuleDoc(pkgName string) value.Value {
 
 		for i, name := range names {
 			entry := mh.Docs[name]
-			sb.WriteString(fmt.Sprintf("%s\n%s\n", entry.Name, entry.Doc))
+			sb.WriteString(fmt.Sprintf("%s\n%s\n", entry.Name, stripDocMarkers(entry.Doc)))
 			if i < len(names)-1 {
 				sb.WriteString("\n---\n\n")
 			}
@@ -361,7 +378,11 @@ func showModuleFuncDoc(qualName string) value.Value {
 	if entry, ok := mh.Docs[funcName]; ok {
 		var sb strings.Builder
 		sb.WriteString(fmt.Sprintf("%s.%s\n\n", pkgName, entry.Name))
-		sb.WriteString(entry.Doc)
+		if mh.Preamble != "" {
+			sb.WriteString(mh.Preamble)
+			sb.WriteString("\n\n")
+		}
+		sb.WriteString(stripDocMarkers(entry.Doc))
 		sb.WriteString("\n")
 		fmt.Fprint(Stdout, sb.String())
 		return value.EMPTY

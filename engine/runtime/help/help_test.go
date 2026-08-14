@@ -163,3 +163,41 @@ func TestRegistry(t *testing.T) {
 		t.Errorf("ListFuncs = %v, want [print]", names)
 	}
 }
+
+func TestParseDocFileIgnoresPreambleDirective(t *testing.T) {
+	source := `@preamble use("turtle/simple")
+new
+Creates a turtle.
+
+new(dim)
+===
+clear
+Clears the canvas.
+
+clear()
+`
+
+	entries, err := ParseDocFile("test.doc", source)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if _, ok := entries[`@preamble use("turtle/simple")`]; ok {
+		t.Fatal("@preamble directive must not become a documentation entry")
+	}
+	if _, ok := entries["new"]; !ok {
+		t.Fatal("first real entry 'new' was not parsed")
+	}
+	if _, ok := entries["clear"]; !ok {
+		t.Fatal("entry 'clear' was not parsed")
+	}
+}
+
+func TestParseDocPreamblePreservesPayload(t *testing.T) {
+	source := `@preamble use("turtle/simple")
+new
+Creates a turtle.
+`
+	if got, want := ParseDocPreamble(source), `use("turtle/simple")`; got != want {
+		t.Fatalf("ParseDocPreamble() = %q, want %q", got, want)
+	}
+}

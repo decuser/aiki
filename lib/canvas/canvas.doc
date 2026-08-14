@@ -92,14 +92,10 @@ clear
 Clears the entire canvas to the current background color.
 
 clear(c)
-
-clear(c)
 ===
 destroy
 @unchecked
 Closes the canvas window and releases resources.
-
-destroy(c)
 
 destroy(c)
 ===
