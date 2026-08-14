@@ -9,27 +9,19 @@ run("floor rounds toward negative infinity", () {
 	equal(floor(-2.0), -2)
 })
 
-
 run("floor at zero", () {
 	equal(floor(0), 0)
 })
-
 
 run("floor on integers is identity", () {
 	equal(floor(3), 3)
 	equal(floor(-3), -3)
 })
 
-
 run("floor rejects non-number", () {
-	faults(() {
-		floor("abc")
-	})
-	faults(() {
-		floor(:foo)
-	})
+	faults(() { floor("abc") })
+	faults(() { floor(:foo) })
 })
-
 
 # ceil - normal, boundary, error
 run("ceil rounds toward positive infinity", () {
@@ -39,24 +31,18 @@ run("ceil rounds toward positive infinity", () {
 	equal(ceil(-2.0), -2)
 })
 
-
 run("ceil at zero", () {
 	equal(ceil(0), 0)
 })
-
 
 run("ceil on integers is identity", () {
 	equal(ceil(3), 3)
 	equal(ceil(-3), -3)
 })
 
-
 run("ceil rejects non-number", () {
-	faults(() {
-		ceil("abc")
-	})
+	faults(() { ceil("abc") })
 })
-
 
 # truncate - normal, boundary, error
 run("truncate rounds toward zero", () {
@@ -65,18 +51,13 @@ run("truncate rounds toward zero", () {
 	equal(truncate(2.0), 2)
 })
 
-
 run("truncate at zero", () {
 	equal(truncate(0), 0)
 })
 
-
 run("truncate rejects non-number", () {
-	faults(() {
-		truncate("abc")
-	})
+	faults(() { truncate("abc") })
 })
-
 
 # modulo - normal, boundary, error
 run("modulo computes euclidean remainder", () {
@@ -85,31 +66,22 @@ run("modulo computes euclidean remainder", () {
 	equal(modulo(0, 5), 0)
 })
 
-
 run("modulo with negative dividend", () {
 	equal(modulo(-10, 3), 2)
 	equal(modulo(-1, 3), 2)
 })
 
-
 run("modulo with negative divisor", () {
 	equal(modulo(10, -3), 1)
 })
 
-
 run("modulo rejects division by zero", () {
-	faults(() {
-		modulo(10, 0)
-	})
+	faults(() { modulo(10, 0) })
 })
-
 
 run("modulo rejects non-number", () {
-	faults(() {
-		modulo("a", 1)
-	})
+	faults(() { modulo("a", 1) })
 })
-
 
 # sqrt - normal, boundary
 run("sqrt of perfect squares is exact", () {
@@ -118,19 +90,43 @@ run("sqrt of perfect squares is exact", () {
 	equal(sqrt(1, 10), 1)
 })
 
-
 run("sqrt of zero", () {
 	equal(sqrt(0, 5), 0)
 })
-
 
 # sin/cos - known values
 run("sin at zero", () {
 	equal(sin(0, 5), 0)
 })
 
-
 run("cos at zero", () {
 	equal(cos(0, 5), 1)
 })
 
+run("sin faults on out-of-range argument", () {
+	# A number too large for float64 must fault, not crash
+	# float64 max is ~1.8e308, so 10^400 is safely beyond
+	let huge = 10 * 10 * 10 * 10 * 10 * 10 * 10 * 10 * 10 * 10
+	let huge = huge * huge * huge * huge
+	let huge = huge * huge * huge * huge * huge * huge * huge * huge * huge * huge
+	faults(() { sin(huge, 5) })
+})
+
+run("cos faults on out-of-range argument", () {
+	let huge = 10 * 10 * 10 * 10 * 10 * 10 * 10 * 10 * 10 * 10
+	let huge = huge * huge * huge * huge
+	let huge = huge * huge * huge * huge * huge * huge * huge * huge * huge * huge
+	faults(() { cos(huge, 5) })
+})
+
+run("sqrt faults on out-of-range argument", () {
+	let huge = 10 * 10 * 10 * 10 * 10 * 10 * 10 * 10 * 10 * 10
+	let huge = huge * huge * huge * huge
+	let huge = huge * huge * huge * huge * huge * huge * huge * huge * huge * huge
+	faults(() { sqrt(huge, 5) })
+})
+
+run("sqrt faults on negative via Sign check", () {
+	faults(() { sqrt(-4, 10) })
+	faults(() { sqrt(-1/1000000, 10) })
+})

@@ -2,6 +2,7 @@ package substrate
 
 import (
 	"image/color"
+	"math"
 	"sync"
 
 	"aiki/engine/runtime/hal"
@@ -374,8 +375,20 @@ func toInt(v value.Value) (int, bool) {
 	if !ok {
 		return 0, false
 	}
-	f, _ := n.Val.Float64()
-	return int(f), true
+	// Truncate the rational to an integer. Canvas coordinates are pixels;
+	// fractional values are expected from computed positions (e.g. turtle
+	// geometry) and truncation is the correct behavior at the display
+	// boundary. Out-of-range and non-finite values are rejected.
+	f, exact := n.Val.Float64()
+	if !exact && (math.IsInf(f, 0) || math.IsNaN(f)) {
+		return 0, false
+	}
+	i := int(f)
+	// Guard against overflow: int(f) is undefined when f is outside int range.
+	if f > float64(math.MaxInt32) || f < float64(math.MinInt32) {
+		return 0, false
+	}
+	return i, true
 }
 
 func parseColor(v value.Value) (color.RGBA, bool) {

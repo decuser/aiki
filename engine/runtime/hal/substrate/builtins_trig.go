@@ -17,8 +17,15 @@ func halCos(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if !ok {
 		return value.NewFault("cos: expected number")
 	}
-	f, _ := n.Val.Float64()
-	r := new(big.Rat).SetFloat64(math.Cos(f))
+	f, exact := n.Val.Float64()
+	if !exact && (math.IsInf(f, 0) || math.IsNaN(f)) {
+		return value.NewFault("cos: argument out of float64 range")
+	}
+	result := math.Cos(f)
+	r := new(big.Rat).SetFloat64(result)
+	if r == nil {
+		return value.NewFault("cos: result is not finite")
+	}
 	return &value.Number{Val: r}
 }
 
@@ -30,8 +37,15 @@ func halSin(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if !ok {
 		return value.NewFault("sin: expected number")
 	}
-	f, _ := n.Val.Float64()
-	r := new(big.Rat).SetFloat64(math.Sin(f))
+	f, exact := n.Val.Float64()
+	if !exact && (math.IsInf(f, 0) || math.IsNaN(f)) {
+		return value.NewFault("sin: argument out of float64 range")
+	}
+	result := math.Sin(f)
+	r := new(big.Rat).SetFloat64(result)
+	if r == nil {
+		return value.NewFault("sin: result is not finite")
+	}
 	return &value.Number{Val: r}
 }
 

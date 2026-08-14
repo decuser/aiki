@@ -94,11 +94,18 @@ func halSqrt(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if !ok {
 		return value.NewFault("sqrt: expected number")
 	}
-	f, _ := n.Val.Float64()
-	if f < 0 {
+	if n.Val.Sign() < 0 {
 		return value.NewFault("sqrt: negative number")
 	}
-	r := new(big.Rat).SetFloat64(math.Sqrt(f))
+	f, exact := n.Val.Float64()
+	if !exact && (math.IsInf(f, 0) || math.IsNaN(f)) {
+		return value.NewFault("sqrt: argument out of float64 range")
+	}
+	result := math.Sqrt(f)
+	r := new(big.Rat).SetFloat64(result)
+	if r == nil {
+		return value.NewFault("sqrt: result is not finite")
+	}
 	return &value.Number{Val: r}
 }
 
