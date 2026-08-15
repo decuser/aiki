@@ -113,7 +113,9 @@ func (e *Evaluator) validateHandlers() {
 }
 
 // syntheticHandlerNodes are parser-produced node types that do not correspond
-// to a named grammar production or TokenRef. Keep this list explicit.
+// to a named grammar production or TokenRef. Keep this list explicit. TERMINAL
+// nodes are synthesized by engine/syntax/parser.go while matching literal
+// terminals; grammar analysis intentionally reports only grammar-produced types.
 var syntheticHandlerNodes = map[string]struct{}{
 	"TERMINAL": {},
 }

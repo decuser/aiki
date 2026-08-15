@@ -1,3 +1,5 @@
+# The newline intentionally terminates x; -1 is a second expression.
+# No output is expected; an empty gold pins successful parsing of that ambiguity.
 let x = 5
 x
 -1

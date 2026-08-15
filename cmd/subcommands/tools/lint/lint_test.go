@@ -402,7 +402,7 @@ func TestRunFailsOnUndeclaredMalformedFile(t *testing.T) {
 
 func TestCheckFormattingSkipsDeclaredParseNegative(t *testing.T) {
 	dir := t.TempDir()
-	negative := filepath.Join(dir, "negative.ai")
+	negative := filepath.Join(dir, "negative_smoke.ai")
 	good := filepath.Join(dir, "good.ai")
 	if err := os.WriteFile(negative, []byte("# @negative parse\nlet x =\n"), 0o644); err != nil {
 		t.Fatal(err)
@@ -423,6 +423,17 @@ func TestCheckFormattingSkipsDeclaredParseNegative(t *testing.T) {
 	}
 	if len(files) != 1 || files[0] != good {
 		t.Fatalf("lint files = %v, want only %s", files, good)
+	}
+}
+
+func TestExpandLintPathsRejectsNegativeMarkerOutsideSmokeFixture(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "ordinary.ai")
+	if err := os.WriteFile(path, []byte("# @negative parse\nlet x =\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := expandLintPaths([]string{dir + "/..."}); err == nil {
+		t.Fatal("ordinary source used @negative parse as a lint exemption")
 	}
 }
 

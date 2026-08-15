@@ -53,3 +53,10 @@ func (t *TraceObserver) OnFormat(method string, output string, node string, dept
 	escaped = strings.ReplaceAll(escaped, "\t", "\\t")
 	fmt.Fprintf(t.out, "fmt: %s%s %q [%s]\n", indent, method, escaped, node)
 }
+
+func (t *TraceObserver) OnDiagnostic(kind string, message string, pos engine.Position) {
+	if t.fileOnly != "" && pos.File != "" && pos.File != t.fileOnly {
+		return
+	}
+	fmt.Fprintf(t.out, "diagnostic: %s %s at %d:%d\n", kind, message, pos.Line, pos.Col)
+}

@@ -533,6 +533,9 @@ func (p *ebnfParser) parseRegex() (string, error) {
 }
 
 func (p *ebnfParser) parseIdentifier() string {
+	// Grammar identifiers are intentionally ASCII today. This scanner advances
+	// byte-by-byte; permitting Unicode identifiers would require rune-aware
+	// decoding rather than widening the character predicate here.
 	start := p.pos
 	for p.pos < len(p.source) {
 		ch := p.source[p.pos]
