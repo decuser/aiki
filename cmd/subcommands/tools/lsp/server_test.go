@@ -162,3 +162,29 @@ func TestCompletionAndHoverUseLanguageService(t *testing.T) {
 		}
 	}
 }
+
+func TestNullableResponsesIncludeExplicitNullResult(t *testing.T) {
+	var in bytes.Buffer
+	in.Write(framed(map[string]any{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": map[string]any{}}))
+	in.Write(framed(map[string]any{"jsonrpc": "2.0", "method": "initialized", "params": map[string]any{}}))
+	src := "let x = 1\n"
+	in.Write(framed(map[string]any{"jsonrpc": "2.0", "method": "textDocument/didOpen", "params": map[string]any{"textDocument": map[string]any{"uri": "file:///tmp/test.ai", "languageId": "aiki", "version": 1, "text": src}}}))
+	in.Write(framed(map[string]any{"jsonrpc": "2.0", "id": 2, "method": "textDocument/hover", "params": map[string]any{"textDocument": map[string]any{"uri": "file:///tmp/test.ai"}, "position": map[string]any{"line": 0, "character": 0}}}))
+	in.Write(framed(map[string]any{"jsonrpc": "2.0", "id": 3, "method": "textDocument/definition", "params": map[string]any{"textDocument": map[string]any{"uri": "file:///tmp/test.ai"}, "position": map[string]any{"line": 0, "character": 0}}}))
+	in.Write(framed(map[string]any{"jsonrpc": "2.0", "id": 4, "method": "shutdown"}))
+	in.Write(framed(map[string]any{"jsonrpc": "2.0", "method": "exit"}))
+	var out bytes.Buffer
+	if err := Serve(&in, &out, testLSPService(t)); err != nil {
+		t.Fatal(err)
+	}
+	body := string(out.Bytes())
+	for _, want := range []string{
+		`{"jsonrpc":"2.0","id":2,"result":null}`,
+		`{"jsonrpc":"2.0","id":3,"result":null}`,
+		`{"jsonrpc":"2.0","id":4,"result":null}`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("missing explicit null response %s in %s", want, body)
+		}
+	}
+}

@@ -258,7 +258,11 @@ func (s *server) handle(msg message) (bool, error) {
 }
 
 func (s *server) reply(id json.RawMessage, result any) error {
-	return s.transport.write(response{JSONRPC: "2.0", ID: id, Result: result})
+	body, err := json.Marshal(result)
+	if err != nil {
+		return err
+	}
+	return s.transport.write(response{JSONRPC: "2.0", ID: id, Result: body})
 }
 
 func (s *server) replyError(id json.RawMessage, code int, message string) error {

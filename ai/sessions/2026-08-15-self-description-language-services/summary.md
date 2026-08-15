@@ -28,3 +28,12 @@ A source-position issue surfaced for Phase II. The Go lexer advances columns by
 UTF-8 bytes; Aiki string indexing is rune-oriented. ASCII conformance is exact,
 but editor/LSP work must decide the language-level position unit deliberately
 before non-ASCII positions are promised.
+
+## VS Code client boundary
+
+The final Phase-II editor confirms the adapter model rather than extending it.
+VS Code registers `.ai`, supplies lexical presentation, and launches `aiki lsp`
+through Microsoft's standard language client. `aiki.server.path` exists because
+live Xed testing demonstrated that a desktop editor's environment must be
+observed directly; an interactive shell PATH is not evidence of the editor's
+PATH. Semantic behavior remains entirely in Aiki's language-service/LSP layers.

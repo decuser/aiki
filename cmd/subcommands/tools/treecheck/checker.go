@@ -226,6 +226,14 @@ func (c *Checker) seedBuiltins() {
 			c.mark(p, "Xed Aiki LSP plugin descriptor")
 		case strings.HasPrefix(p, "extra/editors/xed/aiki_lsp/") && strings.HasSuffix(p, ".py"):
 			c.mark(p, "Xed Aiki LSP plugin source")
+		case p == "extra/editors/vscode/package.json":
+			c.mark(p, "VS Code Aiki extension manifest")
+		case p == "extra/editors/vscode/extension.js":
+			c.mark(p, "VS Code Aiki LSP client source")
+		case p == "extra/editors/vscode/language-configuration.json":
+			c.mark(p, "VS Code Aiki editor configuration")
+		case p == "extra/editors/vscode/syntaxes/aiki.tmLanguage.json":
+			c.mark(p, "VS Code Aiki lexical grammar")
 		}
 	}
 }
@@ -277,6 +285,17 @@ func (c *Checker) checkStructuralPairs() {
 		if p == "extra/editors/xed/aiki_lsp.plugin" && c.files["extra/editors/xed/aiki_lsp/__init__.py"] {
 			c.mark("extra/editors/xed/aiki_lsp.plugin", "Xed plugin descriptor paired with module")
 			c.mark("extra/editors/xed/aiki_lsp/__init__.py", "Xed plugin module paired with descriptor")
+		}
+		if p == "extra/editors/vscode/package.json" {
+			for _, q := range []string{
+				"extra/editors/vscode/extension.js",
+				"extra/editors/vscode/language-configuration.json",
+				"extra/editors/vscode/syntaxes/aiki.tmLanguage.json",
+			} {
+				if c.files[q] {
+					c.mark(q, "VS Code extension companion")
+				}
+			}
 		}
 	}
 }
@@ -355,6 +374,22 @@ func (c *Checker) structuralErrors() []Finding {
 		}
 		if p == "extra/editors/xed/aiki_lsp/__init__.py" && !c.files["extra/editors/xed/aiki_lsp.plugin"] {
 			out = append(out, Finding{Path: p, Reason: "Xed plugin module has no descriptor"})
+		}
+		if p == "extra/editors/vscode/package.json" {
+			for _, q := range []string{
+				"extra/editors/vscode/extension.js",
+				"extra/editors/vscode/language-configuration.json",
+				"extra/editors/vscode/syntaxes/aiki.tmLanguage.json",
+			} {
+				if !c.files[q] {
+					out = append(out, Finding{Path: p, Reason: "VS Code extension missing " + strings.TrimPrefix(q, "extra/editors/vscode/")})
+				}
+			}
+		}
+		if strings.HasPrefix(p, "extra/editors/vscode/") && p != "extra/editors/vscode/README.md" && p != "extra/editors/vscode/package.json" {
+			if !c.files["extra/editors/vscode/package.json"] {
+				out = append(out, Finding{Path: p, Reason: "VS Code extension companion has no package.json owner"})
+			}
 		}
 		if isNamedPackageSource(p) {
 			data, err := os.ReadFile(filepath.Join(c.Root, filepath.FromSlash(p)))

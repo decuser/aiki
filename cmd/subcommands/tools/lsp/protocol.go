@@ -20,7 +20,7 @@ type message struct {
 type response struct {
 	JSONRPC string          `json:"jsonrpc"`
 	ID      json.RawMessage `json:"id"`
-	Result  any             `json:"result,omitempty"`
+	Result  json.RawMessage `json:"result,omitempty"`
 	Error   *responseError  `json:"error,omitempty"`
 }
 

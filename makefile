@@ -1,4 +1,4 @@
-.PHONY: build clean dist distcheck baseline run test fmt lint treecheck check bless validate smoke smokegold visual aikitest runsamples enginesmoke enginesmokegold enginecoverage rigorous fuzz hooks profilesweep install-xed-plugin uninstall-xed-plugin
+.PHONY: build clean dist distcheck baseline run test fmt lint treecheck check bless validate smoke smokegold visual aikitest runsamples enginesmoke enginesmokegold enginecoverage rigorous fuzz hooks profilesweep install-xed-plugin uninstall-xed-plugin install-vscode-plugin uninstall-vscode-plugin
 
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 LDFLAGS := -ldflags "-X main.Version=$(VERSION)"
@@ -17,6 +17,12 @@ BASELINE_ARCHIVE := $(DIST_PARENT)/$(BASELINE_NAME).tar.gz
 USER_DATA_DIR ?= $(if $(XDG_DATA_HOME),$(XDG_DATA_HOME),$(HOME)/.local/share)
 XED_PLUGIN_DIR ?= $(USER_DATA_DIR)/xed/plugins
 XED_LANG_DIR ?= $(USER_DATA_DIR)/gtksourceview-4/language-specs
+
+NPM ?= npm
+NPX ?= npx
+CODE ?= code
+VSCODE_AIKI_EXTENSION_ID ?= aiki.aiki-language-services
+VSCODE_VSCE ?= @vscode/vsce@3.9.2
 
 build:
 	go build $(LDFLAGS) -o aiki ./cmd/aiki
@@ -183,3 +189,31 @@ PROFILE_DIR ?= profile-out
 # Reproducible semantic/substrate profiling sweep. Not part of validation.
 profilesweep: build
 	@extra/profiling/sweep.sh $(PROFILE_DIR)
+
+
+# Build and install the thin VS Code client entirely out of tree. npm
+# dependencies, package-lock data, and the VSIX live only in a disposable
+# staging directory; VS Code itself performs the supported extension install.
+install-vscode-plugin:
+	@set -eu; \
+	command -v "$(NPM)" >/dev/null 2>&1 || { echo "install-vscode-plugin: npm not found" >&2; exit 1; }; \
+	command -v "$(NPX)" >/dev/null 2>&1 || { echo "install-vscode-plugin: npx not found" >&2; exit 1; }; \
+	command -v "$(CODE)" >/dev/null 2>&1 || { echo "install-vscode-plugin: code not found" >&2; exit 1; }; \
+	tmp=$$(mktemp -d); \
+	trap 'rm -rf "$$tmp"' EXIT; \
+	cp -R extra/editors/vscode/. "$$tmp/"; \
+	cp LICENSE "$$tmp/LICENSE"; \
+	cd "$$tmp"; \
+	"$(NPM)" install --omit=dev --ignore-scripts --no-audit --no-fund; \
+	"$(NPX)" --yes "$(VSCODE_VSCE)" package --allow-missing-repository >/dev/null; \
+	vsix=$$(find "$$tmp" -maxdepth 1 -name '*.vsix' -print -quit); \
+	test -n "$$vsix" || { echo "install-vscode-plugin: VSIX was not produced" >&2; exit 1; }; \
+	"$(CODE)" --install-extension "$$vsix" --force; \
+	echo "Installed VS Code Aiki extension: $(VSCODE_AIKI_EXTENSION_ID)"; \
+	echo "Restart VS Code. Set 'aiki.server.path' if desktop VS Code cannot find the development aiki executable."
+
+uninstall-vscode-plugin:
+	@set -eu; \
+	command -v "$(CODE)" >/dev/null 2>&1 || { echo "uninstall-vscode-plugin: code not found" >&2; exit 1; }; \
+	"$(CODE)" --uninstall-extension "$(VSCODE_AIKI_EXTENSION_ID)"; \
+	echo "Removed VS Code Aiki extension: $(VSCODE_AIKI_EXTENSION_ID)"

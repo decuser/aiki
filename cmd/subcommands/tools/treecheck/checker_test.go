@@ -294,3 +294,58 @@ func TestXedPluginModuleWithoutDescriptorIsStructuralError(t *testing.T) {
 		t.Fatalf("expected structural error for %s, got %#v", path, result.Errors)
 	}
 }
+
+func TestVSCodeEditorArtifactsAreJustified(t *testing.T) {
+	root := minimalTree(t)
+	paths := []string{
+		"extra/editors/vscode/package.json",
+		"extra/editors/vscode/extension.js",
+		"extra/editors/vscode/language-configuration.json",
+		"extra/editors/vscode/syntaxes/aiki.tmLanguage.json",
+		"extra/editors/vscode/README.md",
+	}
+	writeTestFile(t, root, paths[0], "{}\n")
+	writeTestFile(t, root, paths[1], "module.exports = {};\n")
+	writeTestFile(t, root, paths[2], "{}\n")
+	writeTestFile(t, root, paths[3], "{}\n")
+	writeTestFile(t, root, paths[4], "# VS Code\n")
+
+	result, err := Check(root, "treecheck.allow")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range paths {
+		if hasFinding(result.Errors, path) || hasFinding(result.Orphans, path) {
+			t.Fatalf("VS Code editor artifact should be justified: %s errors=%#v orphans=%#v", path, result.Errors, result.Orphans)
+		}
+	}
+}
+
+func TestVSCodeManifestMissingClientIsStructuralError(t *testing.T) {
+	root := minimalTree(t)
+	writeTestFile(t, root, "extra/editors/vscode/package.json", "{}\n")
+	writeTestFile(t, root, "extra/editors/vscode/language-configuration.json", "{}\n")
+	writeTestFile(t, root, "extra/editors/vscode/syntaxes/aiki.tmLanguage.json", "{}\n")
+
+	result, err := Check(root, "treecheck.allow")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !hasFinding(result.Errors, "extra/editors/vscode/package.json") {
+		t.Fatalf("expected VS Code structural error, got %#v", result.Errors)
+	}
+}
+
+func TestVSCodeCompanionWithoutManifestIsStructuralError(t *testing.T) {
+	root := minimalTree(t)
+	path := "extra/editors/vscode/extension.js"
+	writeTestFile(t, root, path, "module.exports = {};\n")
+
+	result, err := Check(root, "treecheck.allow")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !hasFinding(result.Errors, path) {
+		t.Fatalf("expected structural error for %s, got %#v", path, result.Errors)
+	}
+}

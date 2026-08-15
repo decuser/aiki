@@ -19,6 +19,9 @@ Each test enforces that two parts of the distribution agree:
 11. Go lexer <-> independent Aiki lexer <-> reviewed lexical fixtures (`selfhost_lexer_conformance_test.go`)
 12. Go newline normalization <-> independent Aiki normalization <-> reviewed newline fixtures (`selfhost_newline_conformance_test.go`)
 13. Go parser <-> independent Aiki parser <-> engine parse-gold corpus (`selfhost_parser_conformance_test.go`)
+14. grammar lexical inventory <-> Xed GtkSourceView declaration (`xed_language_test.go`)
+15. grammar lexical inventory <-> VS Code TextMate declaration (`vscode_language_test.go`)
+16. VS Code language registration/client launch <-> thin `aiki lsp` adapter contract (`vscode_client_test.go`)
 
 ## handler_validation_test.go
 

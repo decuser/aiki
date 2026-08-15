@@ -92,7 +92,7 @@ func TestSymbolsAndDefinitionUseLexicalScopes(t *testing.T) {
 	}{
 		{engine.Position{Line: 3, Col: 13}, "x", 2},
 		{engine.Position{Line: 4, Col: 12}, "y", 3},
-		{engine.Position{Line: 4, Col: 16}, "outer", 1},
+		{engine.Position{Line: 4, Col: 18}, "outer", 1}, // caret may be inside the identifier
 	} {
 		got, err := s.Definition(doc, tc.pos)
 		if err != nil {

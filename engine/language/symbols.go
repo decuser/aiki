@@ -90,8 +90,37 @@ func (s *Service) Definition(doc Document, pos engine.Position) (DefinitionResul
 	if err != nil {
 		return DefinitionResult{}, err
 	}
-	sym, ok := idx.refs[posKey(pos)]
+	target, err := s.nameTokenAt(doc, pos)
+	if err != nil || target == nil {
+		return DefinitionResult{}, err
+	}
+	sym, ok := idx.refs[posKey(target.Pos)]
 	return DefinitionResult{Symbol: sym, Found: ok}, nil
+}
+
+// nameTokenAt returns the name token containing pos. Editor protocols report
+// the caret anywhere within an identifier; the symbol index is keyed by the
+// token's authoritative source position.
+func (s *Service) nameTokenAt(doc Document, pos engine.Position) (*syntax.Token, error) {
+	file := doc.Path
+	if file == "" {
+		file = doc.ID
+	}
+	lx := syntax.NewLexer(s.grammar, file, doc.Source, nil)
+	tokens, err := lx.Tokenize()
+	if err != nil {
+		return nil, err
+	}
+	for i := range tokens {
+		tok := &tokens[i]
+		if tok.Type != "NAME" || tok.Pos.Line != pos.Line {
+			continue
+		}
+		if pos.Col >= tok.Pos.Col && pos.Col <= tok.Pos.Col+len(tok.Lexeme) {
+			return tok, nil
+		}
+	}
+	return nil, nil
 }
 
 func (s *Service) buildSymbolIndex(doc Document) (*symbolIndex, error) {
