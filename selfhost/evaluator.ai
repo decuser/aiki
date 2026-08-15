@@ -1,0 +1,992 @@
+package "selfhost/evaluator"
+
+# Phase III evaluator for the independent Aiki front end.
+# The evaluator uses only ordinary Aiki values and prelude capabilities.
+let str = import("string")
+let file = import("file")
+let lex = import("./selfhost/lexer")
+let norm = import("./selfhost/normalize")
+let parser = import("./selfhost/parser")
+let rt = import("./selfhost/runtime")
+
+# Parser-owned node layout, redeclared so imported AST values are inspectable
+# in this module without sharing parser implementation machinery.
+let @node [kind, value, children, line, col]
+let @closure [params, rest_param, body, env]
+let @return_value [value]
+let @self_module [name, names, values]
+let @module_cache_entry [key, module]
+
+let fault = (kind, message) {
+	shaped(:self_fault, [kind, message])
+}
+
+let error_value = (kind, message) {
+	shaped(:error, [kind, message])
+}
+
+let is_fault = (value) {
+	equal(shape(value), :self_fault)
+}
+
+let module_cache = []
+let hal_bindings = []
+
+let configure_hal = (bindings) {
+	hal_bindings = bindings
+	return []
+}
+
+let symbol_name = (sym) {
+	let text = to_str(sym)
+	if length(text) > 0 {
+		if equal(text[0], ':') {
+			return str.substring(text, 1, length(text))
+		}
+	}
+	return text
+}
+
+let module_get = (mod, name) {
+	let i = 0
+	while i < length(mod.names) {
+		if equal(mod.names[i], name) {
+			return mod.values[i]
+		}
+		i = i + 1
+	}
+	return error_value(:import, "module '" + mod.name + "' has no export '" + name + "'")
+}
+
+let cache_get = (key) {
+	let i = 0
+	while i < length(module_cache) {
+		if equal(module_cache[i].key, key) {
+			return module_cache[i].module
+		}
+		i = i + 1
+	}
+	return []
+}
+
+let cache_put = (key, mod) {
+	module_cache = append(module_cache, [@module_cache_entry, key, mod])
+	return mod
+}
+
+let dirname = (path) {
+	let last = -1
+	let i = 0
+	while i < length(path) {
+		if equal(path[i], '/') {
+			last = i
+		}
+		i = i + 1
+	}
+	if last < 0 {
+		return "."
+	}
+	return str.substring(path, 0, last)
+}
+
+let without_last = (xs) {
+	let out = []
+	let i = 0
+	while i + 1 < length(xs) {
+		out = append(out, xs[i])
+		i = i + 1
+	}
+	return out
+}
+
+let clean_path = (path) {
+	let parts = str.split(path, "/")
+	let out = []
+	let i = 0
+	while i < length(parts) {
+		let part = parts[i]
+		if equal(part, "") or equal(part, ".") {
+		} else {
+			# nothing
+			if equal(part, "..") {
+				if not empty(out) {
+					let last = out[length(out) - 1]
+					if not equal(last, "..") {
+						out = without_last(out)
+					} else {
+						out = append(out, part)
+					}
+				} else {
+					out = append(out, part)
+				}
+			} else {
+				out = append(out, part)
+			}
+		}
+		i = i + 1
+	}
+	let result = str.join(out, "/")
+	if equal(result, "") {
+		return "."
+	}
+	return result
+}
+
+let resolve_module = (name, caller_env) {
+	# Relative module names may walk both down (./x) and up (../x). Keep the
+	# relative spelling intact and let the filesystem resolve dot segments.
+	if length(name) >= 2 {
+		if equal(name[0], '.') {
+			let rel = name
+			if not str.ends_with(rel, ".ai") {
+				rel = rel + ".ai"
+			}
+			let base = dirname(rt.env_get_file(caller_env))
+			let candidate = clean_path(base + "/" + rel)
+			if file.exists(candidate) {
+				return candidate
+			}
+			# Match the host loader: caller-relative first, then current-directory fallback.
+			let fallback = clean_path(rel)
+			if file.exists(fallback) {
+				return fallback
+			}
+			return error_value(:import, "cannot find module: " + name)
+		}
+	}
+	# Named modules follow Aiki's lib layout. Bare families with no direct
+	# module file default to their native implementation.
+	let direct = "lib/" + name + "/" + name + ".ai"
+	if file.exists(direct) {
+		return direct
+	}
+	let nested = "lib/" + name + ".ai"
+	if file.exists(nested) {
+		return nested
+	}
+	let native = "lib/" + name + "/native.ai"
+	if file.exists(native) {
+		return native
+	}
+	return error_value(:import, "cannot find module: " + name)
+}
+
+let read_source = (path) {
+	let h = file.open(path, :read)
+	if is_error(h) {
+		return h
+	}
+	let source = file.read_text(h)
+	file.close(h)
+	return source
+}
+
+let install_hal = (env) {
+	let i = 0
+	while i < length(hal_bindings) {
+		rt.env_define(env, hal_bindings[i][0], hal_bindings[i][1])
+		i = i + 1
+	}
+	return env
+}
+
+let load_module = (name, caller_env) {
+	let path = resolve_module(name, caller_env)
+	if is_error(path) {
+		return path
+	}
+	let cached = cache_get(path)
+	if not empty(cached) {
+		return cached
+	}
+	let source = read_source(path)
+	if is_error(source) {
+		return source
+	}
+	let tokens = lex.tokenize(source)
+	if is_error(tokens) {
+		return tokens
+	}
+	tokens = norm.normalize(tokens)
+	if is_error(tokens) {
+		return tokens
+	}
+	let ast = parser.parse(tokens)
+	if is_error(ast) {
+		return ast
+	}
+	# Modules are isolated from the caller. They inherit the interpreted root
+	# vocabulary, then receive the explicit HAL capability inventory needed by
+	# blessed standard-library source.
+	let root = caller_env
+	while not empty(rt.env_outer(root)) {
+		root = rt.env_outer(root)
+	}
+	let mod_env = rt.env_enclose(root)
+	rt.env_set_file(mod_env, path)
+	install_hal(mod_env)
+	install_module_intrinsics(mod_env)
+	let result = eval_node(ast, mod_env)
+	if is_fault(result) {
+		return result
+	}
+	let export_names = rt.env_get_exports(mod_env)
+	if empty(export_names) {
+		return fault(:import, "module has no exports: " + name)
+	}
+	let values = []
+	let i = 0
+	while i < length(export_names) {
+		let value = rt.env_get(mod_env, export_names[i])
+		if is_fault(value) {
+			return value
+		}
+		values = append(values, value)
+		i = i + 1
+	}
+	let declared = rt.env_get_package(mod_env)
+	if equal(declared, "") {
+		declared = name
+	}
+	return cache_put(path, [@self_module, declared, export_names, values])
+}
+
+let install_module_intrinsics = (env) {
+	let import_fn = (name, ...requested) {
+		let mod = load_module(name, env)
+		if is_error(mod) or is_fault(mod) {
+			return mod
+		}
+		if empty(requested) {
+			return mod
+		}
+		let i = 0
+		while i < length(requested) {
+			let n = symbol_name(requested[i])
+			let value = module_get(mod, n)
+			if is_error(value) or is_fault(value) {
+				return value
+			}
+			rt.env_define(env, n, value)
+			i = i + 1
+		}
+		return []
+	}
+	let use_fn = (name) {
+		let mod = load_module(name, env)
+		if is_error(mod) or is_fault(mod) {
+			return mod
+		}
+		let i = 0
+		while i < length(mod.names) {
+			rt.env_define(env, mod.names[i], mod.values[i])
+			i = i + 1
+		}
+		return []
+	}
+	let export_fn = (...names) {
+		let out = []
+		let i = 0
+		while i < length(names) {
+			out = append(out, symbol_name(names[i]))
+			i = i + 1
+		}
+		rt.env_set_exports(env, out)
+		return []
+	}
+	rt.env_define(env, "import", import_fn)
+	rt.env_define(env, "use", use_fn)
+	rt.env_define(env, "export", export_fn)
+	return env
+}
+
+let child = (node, index) {
+	node.children[index]
+}
+
+let decode_escape = (esc) {
+	if equal(esc, 'n') {
+		return "\n"
+	}
+	if equal(esc, 'r') {
+		return "\r"
+	}
+	if equal(esc, 't') {
+		return "\t"
+	}
+	if equal(esc, '\\') {
+		return "\\"
+	}
+	if equal(esc, '"') {
+		return "\""
+	}
+	if equal(esc, '\'') {
+		return "'"
+	}
+	return fault(:literal, "unsupported escape: \\" + to_str(esc))
+}
+
+let decode_escaped = (text) {
+	# text includes its surrounding quote characters.
+	let out = ""
+	let i = 1
+	let end = length(text) - 1
+	while i < end {
+		let ch = text[i]
+		if equal(ch, '\\') {
+			i = i + 1
+			if i >= end {
+				return fault(:literal, "unterminated escape")
+			}
+			let decoded = decode_escape(text[i])
+			if is_fault(decoded) {
+				return decoded
+			}
+			out = out + decoded
+		} else {
+			out = out + to_str(ch)
+		}
+		i = i + 1
+	}
+	return out
+}
+
+let eval_terminal_value = (node, env) {
+	if equal(node.kind, "NUMBER") {
+		return to_number(node.value)
+	}
+	if equal(node.kind, "STRING") {
+		return decode_escaped(node.value)
+	}
+	if equal(node.kind, "RUNE") {
+		let s = decode_escaped(node.value)
+		if is_fault(s) {
+			return s
+		}
+		if not equal(length(s), 1) {
+			return fault(:literal, "rune must contain one character")
+		}
+		return s[0]
+	}
+	if equal(node.kind, "SYMBOL") {
+		return to_symbol(str.substring(node.value, 1, length(node.value)))
+	}
+	if equal(node.kind, "NAME") {
+		return rt.env_get(env, node.value)
+	}
+	if equal(node.kind, "TERMINAL") {
+		if equal(node.value, "true") {
+			return true
+		}
+		if equal(node.value, "false") {
+			return false
+		}
+	}
+	return fault(:eval, "not a value terminal: " + node.kind)
+}
+
+let truthy = (value) {
+	if value {
+		return true
+	}
+	return false
+}
+
+let apply_binary = (op, left, right) {
+	if equal(op, "+") {
+		return left + right
+	}
+	if equal(op, "-") {
+		return left - right
+	}
+	if equal(op, "*") {
+		return left * right
+	}
+	if equal(op, "/") {
+		return left / right
+	}
+	if equal(op, "<") {
+		return left < right
+	}
+	if equal(op, ">") {
+		return left > right
+	}
+	if equal(op, "<=") {
+		return left <= right
+	}
+	if equal(op, ">=") {
+		return left >= right
+	}
+	if equal(op, "and") {
+		if truthy(left) {
+			return right
+		}
+		return left
+	}
+	if equal(op, "or") {
+		if truthy(left) {
+			return left
+		}
+		return right
+	}
+	return fault(:operator, "unknown binary operator: " + op)
+}
+
+let collect_call_args = (call_node, env) {
+	let args = []
+	let i = 0
+	while i < length(call_node.children) {
+		let c = call_node.children[i]
+		if equal(c.kind, "expr") {
+			let value = eval_expr(c, env)
+			if is_fault(value) {
+				return value
+			}
+			args = append(args, value)
+		}
+		i = i + 1
+	}
+	return args
+}
+
+let apply_value = (fn, args) {
+	if equal(shape(fn), :closure) {
+		let required = length(fn.params)
+		if equal(fn.rest_param, "") {
+			if not equal(length(args), required) {
+				return fault(:arity, "function: want " + to_str(required) + " arguments, got " + to_str(length(args)))
+			}
+		} else {
+			if length(args) < required {
+				return fault(:arity, "function: want at least " + to_str(required) + " arguments, got " + to_str(length(args)))
+			}
+		}
+		let call_env = rt.env_enclose(fn.env)
+		let i = 0
+		while i < required {
+			rt.env_define(call_env, fn.params[i], args[i])
+			i = i + 1
+		}
+		if not equal(fn.rest_param, "") {
+			let rest_args = []
+			while i < length(args) {
+				rest_args = append(rest_args, args[i])
+				i = i + 1
+			}
+			rt.env_define(call_env, fn.rest_param, rest_args)
+		}
+		let result = eval_node(fn.body, call_env)
+		if equal(shape(result), :return_value) {
+			return result.value
+		}
+		return result
+	}
+	if equal(type(fn), :function) {
+		return apply(fn, args)
+	}
+	return fault(:call, "attempt to call non-function: " + inspect(fn))
+}
+
+let eval_pipe_target = (node, piped, env) {
+	# A pipe target is a postfix expression. Resolve qualified access first,
+	# but delay the final call so the piped value can be prepended.
+	if not equal(node.kind, "postfix_expr") {
+		return fault(:pipe, "invalid pipe target")
+	}
+	let fn = eval_expr(node.children[0], env)
+	if is_fault(fn) {
+		return fn
+	}
+	let args = [piped]
+	let i = 1
+	while i < length(node.children) {
+		let op = node.children[i]
+		if equal(op.kind, "access") {
+			let field_name = op.children[1].value
+			if equal(shape(fn), :self_module) {
+				fn = module_get(fn, field_name)
+				if is_error(fn) or is_fault(fn) {
+					return fn
+				}
+			} else {
+				return fault(:pipe, "pipe access target is not a module")
+			}
+		} else {
+			if equal(op.kind, "call") {
+				let extra = collect_call_args(op, env)
+				if is_fault(extra) {
+					return extra
+				}
+				let j = 0
+				while j < length(extra) {
+					args = append(args, extra[j])
+					j = j + 1
+				}
+				return apply_value(fn, args)
+			}
+			return fault(:pipe, "invalid pipe target operation")
+		}
+		i = i + 1
+	}
+	return apply_value(fn, args)
+}
+
+let eval_expr = (node, env) {
+	if equal(node.kind, "expr") {
+		return eval_expr(child(node, 0), env)
+	}
+	if equal(node.kind, "literal") {
+		return eval_terminal_value(child(node, 0), env)
+	}
+	if equal(node.kind, "pipe_expr") {
+		let result = eval_expr(child(node, 0), env)
+		if is_fault(result) {
+			return result
+		}
+		let i = 2
+		while i < length(node.children) {
+			result = eval_pipe_target(node.children[i], result, env)
+			if is_fault(result) {
+				return result
+			}
+			i = i + 2
+		}
+		return result
+	}
+	if equal(node.kind, "infix_expr") {
+		let result = eval_expr(child(node, 0), env)
+		if is_fault(result) {
+			return result
+		}
+		let i = 1
+		while i < length(node.children) {
+			let op_node = node.children[i]
+			let right = eval_expr(node.children[i + 1], env)
+			if is_fault(right) {
+				return right
+			}
+			let op = op_node.children[0].value
+			result = apply_binary(op, result, right)
+			if is_fault(result) {
+				return result
+			}
+			i = i + 2
+		}
+		return result
+	}
+	if equal(node.kind, "unary_expr") {
+		let last = length(node.children) - 1
+		let result = eval_expr(node.children[last], env)
+		if is_fault(result) {
+			return result
+		}
+		let i = last - 1
+		while i >= 0 {
+			let op = node.children[i].value
+			if equal(op, "not") {
+				result = not result
+			} else {
+				if equal(op, "-") {
+					result = 0 - result
+				} else {
+					return fault(:operator, "unknown unary operator: " + op)
+				}
+			}
+			i = i - 1
+		}
+		return result
+	}
+	if equal(node.kind, "postfix_expr") {
+		let result = eval_expr(child(node, 0), env)
+		if is_fault(result) {
+			return result
+		}
+		let i = 1
+		while i < length(node.children) {
+			let op = node.children[i]
+			if equal(op.kind, "index") {
+				let index = eval_expr(op.children[1], env)
+				if is_fault(index) {
+					return index
+				}
+				result = result[index]
+			} else {
+				if equal(op.kind, "access") {
+					let field_name = op.children[1].value
+					if equal(shape(result), :self_module) {
+						result = module_get(result, field_name)
+						if is_fault(result) {
+							return result
+						}
+					} else {
+						let shape_sym = shape(result)
+						if equal(shape_sym, :list) {
+							return fault(:field, "field access on unshaped list")
+						}
+						let shape_text = to_str(shape_sym)
+						let shape_name = str.substring(shape_text, 1, length(shape_text))
+						let fields = rt.env_get_shape(env, shape_name)
+						if is_fault(fields) {
+							return fields
+						}
+						let f = 0
+						let found = -1
+						while f < length(fields) {
+							if equal(fields[f], field_name) {
+								found = f
+							}
+							f = f + 1
+						}
+						if found < 0 {
+							return fault(:field, "unknown field: " + field_name)
+						}
+						result = result[found]
+					}
+				} else {
+					if equal(op.kind, "call") {
+						let args = collect_call_args(op, env)
+						if is_fault(args) {
+							return args
+						}
+						result = apply_value(result, args)
+						if is_fault(result) {
+							return result
+						}
+					} else {
+						return fault(:eval, "unknown postfix operation: " + op.kind)
+					}
+				}
+			}
+			i = i + 1
+		}
+		return result
+	}
+	if equal(node.kind, "primary") {
+		if equal(length(node.children), 1) {
+			let c = child(node, 0)
+			if equal(c.kind, "list_literal") {
+				return eval_expr(c, env)
+			}
+			if equal(c.kind, "func_literal") {
+				return eval_expr(c, env)
+			}
+			return eval_terminal_value(c, env)
+		}
+		# Grouped expression: "(" expr ")".
+		return eval_expr(node.children[1], env)
+	}
+	if equal(node.kind, "list_literal") {
+		let shaped_name = ""
+		let values = []
+		let i = 1
+		if i < (length(node.children) - 1) {
+			if equal(node.children[i].kind, "SHAPE") {
+				shaped_name = str.substring(node.children[i].value, 1, length(node.children[i].value))
+				i = i + 1
+			}
+		}
+		while i < (length(node.children) - 1) {
+			let c = node.children[i]
+			if equal(c.kind, "expr") {
+				let value = eval_expr(c, env)
+				if is_fault(value) {
+					return value
+				}
+				values = append(values, value)
+			}
+			i = i + 1
+		}
+		if not equal(shaped_name, "") {
+			return shaped(to_symbol(shaped_name), values)
+		}
+		return values
+	}
+	if equal(node.kind, "func_literal") {
+		let params_node = node.children[1]
+		let names = []
+		let rest_name = ""
+		let i = 0
+		while i < length(params_node.children) {
+			let p = params_node.children[i]
+			if equal(p.kind, "param_list") {
+				let j = 0
+				while j < length(p.children) {
+					if equal(p.children[j].kind, "NAME") {
+						names = append(names, p.children[j].value)
+					}
+					j = j + 1
+				}
+			}
+			if equal(p.kind, "rest_param") {
+				rest_name = p.children[1].value
+			}
+			i = i + 1
+		}
+		return rt.closure_new(names, rest_name, node.children[3], env)
+	}
+	return fault(:eval, "unsupported expression node: " + node.kind)
+}
+
+let is_return = (value) {
+	equal(shape(value), :return_value)
+}
+
+let eval_block = (node, env) {
+	let result = []
+	let i = 0
+	while i < length(node.children) {
+		let c = node.children[i]
+		if not equal(c.kind, "TERMINAL") {
+			result = eval_node(c, env)
+			if is_fault(result) {
+				return result
+			}
+			if is_return(result) {
+				return result
+			}
+		}
+		i = i + 1
+	}
+	return result
+}
+
+let eval_let = (node, env) {
+	if length(node.children) > 1 {
+		if equal(node.children[1].kind, "SHAPE") {
+			let raw_name = node.children[1].value
+			let shape_name = str.substring(raw_name, 1, length(raw_name))
+			let fields = []
+			let i = 2
+			while i < length(node.children) {
+				let c = node.children[i]
+				if equal(c.kind, "field") {
+					fields = append(fields, c.children[0].value)
+				}
+				i = i + 1
+			}
+			rt.env_define_shape(env, shape_name, fields)
+			return []
+		}
+	}
+	let name = node.children[1].value
+	let value = eval_expr(node.children[3], env)
+	if is_fault(value) {
+		return value
+	}
+	rt.env_define(env, name, value)
+	return []
+}
+
+let eval_assign = (node, env) {
+	let name = node.children[0].value
+	let value = eval_expr(node.children[2], env)
+	if is_fault(value) {
+		return value
+	}
+	if not rt.env_assign(env, name, value) {
+		return fault(:name, "undefined variable: " + name)
+	}
+	return []
+}
+
+let eval_if = (node, env) {
+	let condition = eval_expr(node.children[1], env)
+	if is_fault(condition) {
+		return condition
+	}
+	if truthy(condition) {
+		return eval_node(node.children[2], env)
+	}
+	if length(node.children) > 3 {
+		return eval_node(node.children[4], env)
+	}
+	return []
+}
+
+let eval_while = (node, env) {
+	let result = []
+	let running = true
+	while running {
+		let condition = eval_expr(node.children[1], env)
+		if is_fault(condition) {
+			return condition
+		}
+		if truthy(condition) {
+			result = eval_node(node.children[2], env)
+			if is_fault(result) {
+				return result
+			}
+			if is_return(result) {
+				return result
+			}
+		} else {
+			running = false
+		}
+	}
+	return result
+}
+
+let atomic_pattern_equal = (pattern, value, env) {
+	let expected = eval_terminal_value(pattern, env)
+	if is_fault(expected) {
+		return false
+	}
+	return equal(expected, value)
+}
+
+let match_pattern = (pattern, value, bind_env, eval_env) {
+	# Unwrap literal and single-child pattern nodes.
+	if equal(pattern.kind, "literal") {
+		return match_pattern(pattern.children[0], value, bind_env, eval_env)
+	}
+	if equal(pattern.kind, "pattern") {
+		if equal(length(pattern.children), 1) {
+			return match_pattern(pattern.children[0], value, bind_env, eval_env)
+		}
+		if equal(pattern.children[0].kind, "TERMINAL") {
+			if equal(pattern.children[0].value, "[") {
+				if not equal(type(value), :list) {
+					return false
+				}
+				let shape_name = ""
+				let parts = []
+				let i = 1
+				while i < (length(pattern.children) - 1) {
+					let c = pattern.children[i]
+					if equal(c.kind, "SHAPE") {
+						shape_name = str.substring(c.value, 1, length(c.value))
+					} else {
+						if equal(c.kind, "pattern") {
+							parts = append(parts, c)
+						}
+					}
+					i = i + 1
+				}
+				if not equal(shape_name, "") {
+					if not equal(shape(value), to_symbol(shape_name)) {
+						return false
+					}
+				}
+				if not equal(length(parts), length(value)) {
+					return false
+				}
+				i = 0
+				while i < length(parts) {
+					if not match_pattern(parts[i], value[i], bind_env, eval_env) {
+						return false
+					}
+					i = i + 1
+				}
+				return true
+			}
+		}
+	}
+	if equal(pattern.kind, "NAME") {
+		if equal(pattern.value, "_") {
+			return true
+		}
+		rt.env_define(bind_env, pattern.value, value)
+		return true
+	}
+	if equal(pattern.kind, "TERMINAL") {
+		if equal(pattern.value, "_") {
+			return true
+		}
+		if equal(pattern.value, "true") or equal(pattern.value, "false") {
+			return atomic_pattern_equal(pattern, value, eval_env)
+		}
+	}
+	if equal(pattern.kind, "NUMBER") or equal(pattern.kind, "STRING") or equal(pattern.kind, "RUNE") or equal(pattern.kind, "SYMBOL") {
+		return atomic_pattern_equal(pattern, value, eval_env)
+	}
+	return false
+}
+
+let eval_match = (node, env) {
+	let value = eval_expr(node.children[1], env)
+	if is_fault(value) {
+		return value
+	}
+	let i = 3
+	while i < (length(node.children) - 1) {
+		let pattern = node.children[i]
+		let block = node.children[i + 1]
+		let match_env = rt.env_enclose(env)
+		if match_pattern(pattern, value, match_env, env) {
+			return eval_node(block, match_env)
+		}
+		i = i + 2
+	}
+	return []
+}
+
+let eval_node = (node, env) {
+	if equal(node.kind, "program") {
+		let result = []
+		let i = 0
+		while i < length(node.children) {
+			let c = node.children[i]
+			if not equal(c.kind, "TERMINAL") {
+				result = eval_node(c, env)
+				if is_fault(result) {
+					return result
+				}
+				if is_return(result) {
+					return result.value
+				}
+			}
+			i = i + 1
+		}
+		return result
+	}
+	if equal(node.kind, "statement") {
+		return eval_node(node.children[0], env)
+	}
+	if equal(node.kind, "expr_stmt") {
+		return eval_expr(node.children[0], env)
+	}
+	if equal(node.kind, "let_stmt") {
+		return eval_let(node, env)
+	}
+	if equal(node.kind, "assign_stmt") {
+		return eval_assign(node, env)
+	}
+	if equal(node.kind, "if_stmt") {
+		return eval_if(node, env)
+	}
+	if equal(node.kind, "while_stmt") {
+		return eval_while(node, env)
+	}
+	if equal(node.kind, "match_stmt") {
+		return eval_match(node, env)
+	}
+	if equal(node.kind, "return_stmt") {
+		let value = eval_expr(node.children[1], env)
+		if is_fault(value) {
+			return value
+		}
+		return rt.return_new(value)
+	}
+	if equal(node.kind, "block") {
+		return eval_block(node, env)
+	}
+	if equal(node.kind, "package_stmt") {
+		let text = node.children[1].value
+		let name = decode_escaped(text)
+		if is_fault(name) {
+			return name
+		}
+		rt.env_set_package(env, name)
+		return []
+	}
+	if equal(node.kind, "expr") {
+		return eval_expr(node, env)
+	}
+	return fault(:eval, "unsupported statement node: " + node.kind)
+}
+
+let eval_program = (node, env) {
+	eval_node(node, env)
+}
+
+export(:eval_expr, :eval_program, :configure_hal, :install_module_intrinsics, :load_module)

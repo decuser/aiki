@@ -2,11 +2,11 @@
 
 ## Status
 
-Proposed.
+Implemented — Phase I GATED; Phase II GATED/COMPLETE; Phase III Cuts III.0–III.5 GATED and Cut III.6 locally complete pending the final authoritative validation gate.
 
 ## Baseline
 
-This proposal is grounded in Aiki baseline `v0.4.0-alpha-13-gf719502` (`f719502`).
+Implementation began from Aiki baseline `v0.4.0-alpha-14-g9c78646` (`9c78646`).
 
 It replaces the repository's earlier VS-Code-centered language-server proposal and incorporates the separately developed self-hosting interpreter design into one implementation sequence. The substantive goals of both efforts are retained, but the work is reordered around a shared dependency: Aiki first needs an independently expressed, observable account of its own front end. That account then becomes evidence and conformance infrastructure for language services, while the full self-hosted evaluator follows afterward.
 
@@ -425,6 +425,17 @@ Any duplicated newline-policy constants in the Aiki implementation are executabl
 ---
 
 ## Cut I.4 — Aiki parser and normalized syntax projection
+
+### Implementation decision
+
+The neutral syntax projection reuses the repository's existing human-readable
+engine parse surface (`test/structure/engine/*.ai.parse.gold`): indentation,
+grammar/token node kind, one-based line/column, and terminal lexeme where one
+exists. This is grammar-shaped observable output rather than serialization of
+Go structs. Reusing the existing reviewed corpus avoids creating a second parse
+gold authority; the Go engine gates and the independent Aiki parser both have to
+agree with the same artifacts.
+
 
 Implement a recursive-descent Aiki parser matching the authoritative grammar.
 
@@ -929,13 +940,20 @@ Function, closure, recursion, and prelude-use fixtures agree with the Go interpr
 
 ## Cut III.4 — Modules
 
-Initially prefer delegation of module loading to the host mechanism if that preserves the intended proof without introducing hidden evaluator semantics.
+Self-host Aiki-source module loading end to end. The interpreter resolves the source path, reads the module, runs its own lexer/newline normalizer/parser/evaluator, evaluates in an isolated module environment, records package/export metadata, and caches the interpreted module value.
 
-A later extension may self-host module loading using file read + lex + parse + eval.
+The boundary is:
+
+```text
+Aiki source module -> self-hosted loader/evaluator
+HAL primitive      -> host capability
+```
+
+Blessed standard-library modules legitimately call `_` HAL primitives. A privileged bootstrap may capture those function values and configure interpreted blessed-library environments, but raw HAL values must not be exposed to ordinary callers. The bootstrap surface remains high-level (`run(source, file_name)`), preserving the scope gate.
 
 ### Gate
 
-Programs importing representative Aiki modules execute equivalently under the self-hosted path, with the chosen delegation boundary explicitly documented.
+Programs importing representative ordinary, transitive, relative, and HAL-backed Aiki modules execute equivalently under the self-hosted path. The bootstrap must not make raw HAL vocabulary available to ordinary user code.
 
 ---
 
@@ -960,7 +978,7 @@ Every failure is classified as:
 
 ### Gate
 
-The agreed acceptance corpus produces the same observable result/output/fault under both implementations.
+The agreed acceptance corpus produces the same observable result/output/fault under both implementations. The acceptance corpus may explicitly exclude behaviors already declared non-goals for the self-host proof (for example concurrency/select/spawn, debugger-only break fixtures, interactive input, and graphics), but every exclusion must be named rather than silently skipped.
 
 ---
 
@@ -980,6 +998,20 @@ Go interpreter
 The nested interpretation produces the same specified observable result as direct execution for the selected proof program(s).
 
 This is the final self-hosting proof.
+
+### Implemented proof
+
+The durable proof program evaluates `1 + 2 * 3`, whose Aiki left-to-right result is `9`, through:
+
+```text
+Go interpreter
+  -> Aiki-written bootstrap/interpreter
+      -> self-host-loaded Aiki bootstrap/interpreter
+          -> third-level Aiki program
+              -> 9
+```
+
+Two implementation-neutral performance corrections were required before the full proof became practical: the independent lexer snapshots source into runes once through the existing `string.chars` surface, and the self-host module loader canonicalizes path spellings so one physical module has one cache identity. The proof remains fully independently lexed, parsed, and evaluated; no Go parser/evaluator structures are shared.
 
 ---
 
@@ -1194,6 +1226,20 @@ Initial host delegation is acceptable if the boundary is explicit and the evalua
 ## Q7. Is tail-call optimization required for initial conformance?
 
 Do not implement it merely for completeness. Add it if the specified acceptance corpus or documented semantics require it.
+
+---
+
+## Q8. What unit is a source column?
+
+Phase-I implementation exposed a real cross-implementation difference: the
+current Go lexer advances columns by UTF-8 bytes, while ordinary Aiki string
+indexing is rune-oriented. ASCII positions therefore agree, but non-ASCII
+positions can diverge. Phase-I conformance fixtures are intentionally ASCII
+until this policy is decided deliberately. Phase II retains the existing one-based UTF-8-byte position as the internal
+compatibility surface and performs explicit protocol-boundary translation. The
+LSP adapter advertises UTF-16 and converts byte columns to UTF-16 code units;
+this avoids silently changing existing diagnostics while keeping editor positions
+correct.
 
 ---
 

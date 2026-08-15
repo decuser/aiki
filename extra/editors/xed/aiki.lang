@@ -1,7 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Aiki syntax highlighting for GtkSourceView editors (xed, gedit, etc.)
-  Install: sudo cp aiki.lang /usr/share/gtksourceview-4/language-specs/
+  Aiki syntax highlighting for GtkSourceView editors (Xed, gedit, etc.).
+  Install: copy aiki.lang into a GtkSourceView 4 language-specs directory.
+
+  The keyword and operator inventories below are executable-coupled to
+  engine/syntax/grammar.ebnfx by test/invariant/xed_language_test.go.
+  Builtins are intentionally not listed here: they are semantic vocabulary,
+  not lexical syntax, and are supplied by language services.
 -->
 <language id="aiki" name="Aiki" version="2.0" _section="Source">
   <metadata>
@@ -11,38 +16,33 @@
   </metadata>
 
   <styles>
-    <style id="comment"           name="Comment"               map-to="def:comment"/>
-    <style id="string"            name="String"                map-to="def:string"/>
-    <style id="keyword"           name="Keyword"               map-to="def:keyword"/>
-    <style id="type"              name="Type"                  map-to="def:type"/>
-    <style id="constant"          name="Constant"              map-to="def:constant"/>
-    <style id="symbol"            name="Symbol"                map-to="def:builtin"/>
-    <style id="operator"          name="Operator"              map-to="def:operator"/>
-    <style id="builtin"           name="Builtin"               map-to="def:identifier"/>
+    <style id="comment" name="Comment" map-to="def:comment"/>
+    <style id="string" name="String" map-to="def:string"/>
+    <style id="keyword" name="Keyword" map-to="def:keyword"/>
+    <style id="type" name="Type" map-to="def:type"/>
+    <style id="constant" name="Constant" map-to="def:constant"/>
+    <style id="symbol" name="Symbol" map-to="def:builtin"/>
+    <style id="operator" name="Operator" map-to="def:operator"/>
   </styles>
 
   <definitions>
     <context id="comment" style-ref="comment" end-at-line-end="true" class="comment" class-disabled="no-spell-check">
       <start>#</start>
-      <include>
-        <context ref="def:in-line-comment"/>
-      </include>
+      <include><context ref="def:in-line-comment"/></include>
     </context>
 
     <context id="string" style-ref="string" class="string" class-disabled="no-spell-check">
-      <start>"</start>
-      <end>"</end>
-      <include>
-        <context ref="def:escape"/>
-      </include>
+      <start>"</start><end>"</end>
+      <include><context ref="def:escape"/></include>
     </context>
 
     <context id="rune" style-ref="constant">
-      <start>'</start>
-      <end>'</end>
-      <include>
-        <context ref="def:escape"/>
-      </include>
+      <start>'</start><end>'</end>
+      <include><context ref="def:escape"/></include>
+    </context>
+
+    <context id="number" style-ref="constant">
+      <match>\b[0-9]+(\.[0-9]+)?(/[0-9]+)?\b</match>
     </context>
 
     <context id="shape" style-ref="type">
@@ -59,114 +59,20 @@
       <keyword>else</keyword>
       <keyword>while</keyword>
       <keyword>match</keyword>
+      <keyword>select</keyword>
+      <keyword>default</keyword>
       <keyword>return</keyword>
-      <keyword>export</keyword>
-      <keyword>from</keyword>
-      <keyword>use</keyword>
-    </context>
-
-    <context id="boolean" style-ref="constant">
       <keyword>true</keyword>
       <keyword>false</keyword>
-    </context>
-
-    <context id="logic-ops" style-ref="operator">
       <keyword>and</keyword>
       <keyword>or</keyword>
       <keyword>not</keyword>
+      <keyword>package</keyword>
     </context>
 
-    <context id="builtins" style-ref="builtin">
-      <!-- List -->
-      <keyword>first</keyword>
-      <keyword>rest</keyword>
-      <keyword>nth</keyword>
-      <keyword>len</keyword>
-      <keyword>prepend</keyword>
-      <keyword>append</keyword>
-      <!-- Type -->
-      <keyword>type</keyword>
-      <keyword>inspect</keyword>
-      <keyword>shape</keyword>
-      <keyword>equal</keyword>
-      <!-- Convert -->
-      <keyword>to_str</keyword>
-      <keyword>to_num</keyword>
-      <keyword>to_bytes</keyword>
-      <keyword>to_rune</keyword>
-      <keyword>to_decimal</keyword>
-      <!-- I/O -->
-      <keyword>print</keyword>
-      <keyword>read</keyword>
-      <keyword>open</keyword>
-      <keyword>create</keyword>
-      <keyword>fread</keyword>
-      <keyword>fwrite</keyword>
-      <keyword>fclose</keyword>
-      <!-- Math -->
-      <keyword>sqrt</keyword>
-      <keyword>abs</keyword>
-      <keyword>cos</keyword>
-      <keyword>sin</keyword>
-      <keyword>random</keyword>
-      <!-- Concurrency -->
-      <keyword>spawn</keyword>
-      <keyword>channel</keyword>
-      <keyword>send</keyword>
-      <keyword>recv</keyword>
-      <!-- Canvas -->
-      <keyword>canvas</keyword>
-      <keyword>get_bg</keyword>
-      <keyword>set_bg</keyword>
-      <keyword>get_fg</keyword>
-      <keyword>set_fg</keyword>
-      <keyword>pen_size</keyword>
-      <keyword>get_pen_size</keyword>
-      <keyword>line</keyword>
-      <keyword>rect</keyword>
-      <keyword>fill_rect</keyword>
-      <keyword>circle</keyword>
-      <keyword>fill_circle</keyword>
-      <keyword>oval</keyword>
-      <keyword>fill_oval</keyword>
-      <keyword>dot</keyword>
-      <keyword>text</keyword>
-      <keyword>clear</keyword>
-      <keyword>undo</keyword>
-      <keyword>redo</keyword>
-      <keyword>get_width</keyword>
-      <keyword>get_height</keyword>
-      <keyword>save</keyword>
-      <keyword>destroy</keyword>
-      <!-- System -->
-      <keyword>reset</keyword>
-      <keyword>fmt</keyword>
-      <keyword>load</keyword>
-      <keyword>restore</keyword>
-      <!-- Prelude -->
-      <keyword>each</keyword>
-      <keyword>map</keyword>
-      <keyword>filter</keyword>
-      <keyword>reduce</keyword>
-      <keyword>range</keyword>
-      <keyword>reverse</keyword>
-      <keyword>find</keyword>
-      <keyword>any</keyword>
-      <keyword>all</keyword>
-      <keyword>sum</keyword>
-      <keyword>max</keyword>
-      <keyword>min</keyword>
-      <keyword>hash_new</keyword>
-      <keyword>hash_get</keyword>
-      <keyword>hash_put</keyword>
-      <keyword>hash_has</keyword>
-      <keyword>hash_del</keyword>
-      <keyword>hash_keys</keyword>
-      <keyword>hash_values</keyword>
-    </context>
-
+    <!-- Keep longest operators first. -->
     <context id="operators" style-ref="operator">
-      <match>[-+*/%=&lt;&gt;!|]+</match>
+      <match>(\|&gt;|&lt;=|&gt;=|[+*/.&lt;&gt;=-])</match>
     </context>
 
     <context id="aiki" class="no-spell-check">
@@ -174,15 +80,11 @@
         <context ref="comment"/>
         <context ref="string"/>
         <context ref="rune"/>
+        <context ref="number"/>
         <context ref="shape"/>
         <context ref="symbol"/>
         <context ref="keywords"/>
-        <context ref="boolean"/>
-        <context ref="logic-ops"/>
-        <context ref="builtins"/>
         <context ref="operators"/>
-        <context ref="def:decimal"/>
-        <context ref="def:float"/>
       </include>
     </context>
   </definitions>

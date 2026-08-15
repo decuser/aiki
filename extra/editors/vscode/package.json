@@ -1,0 +1,53 @@
+{
+  "name": "aiki-language-services",
+  "displayName": "Aiki Language Services",
+  "description": "Thin VS Code client for the Aiki language server.",
+  "version": "0.1.0",
+  "publisher": "aiki",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.91.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onLanguage:aiki"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "aiki",
+        "aliases": [
+          "Aiki",
+          "aiki"
+        ],
+        "extensions": [
+          ".ai"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "aiki",
+        "scopeName": "source.aiki",
+        "path": "./syntaxes/aiki.tmLanguage.json"
+      }
+    ],
+    "configuration": {
+      "title": "Aiki",
+      "properties": {
+        "aiki.server.path": {
+          "type": "string",
+          "default": "aiki",
+          "description": "Path to the Aiki executable used to launch `aiki lsp`. Set an absolute path when desktop VS Code does not inherit your shell PATH."
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "vscode-languageclient": "^10.0.0"
+  }
+}

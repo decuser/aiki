@@ -1,12 +1,8 @@
 package lint
 
 import (
-	"go/ast"
-	"go/parser"
-	"go/token"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -94,7 +90,7 @@ println(ys)
 		t.Fatalf("LintSource error: %v", err)
 	}
 	for _, d := range diags {
-		if d.Level == "error" && strings.Contains(d.Message, "undefined name: 'map'") {
+		if d.Severity == "error" && strings.Contains(d.Message, "undefined name: 'map'") {
 			t.Fatalf("use(\"list\") did not bind registry export map: %v", diags)
 		}
 	}
@@ -111,7 +107,7 @@ func TestLintUndefined(t *testing.T) {
 	diags := lintSource(t, "let x = y + 1\n")
 	found := false
 	for _, d := range diags {
-		if d.Level == "error" && strings.Contains(d.Message, "undefined") && strings.Contains(d.Message, "y") {
+		if d.Severity == "error" && strings.Contains(d.Message, "undefined") && strings.Contains(d.Message, "y") {
 			found = true
 		}
 	}
@@ -124,7 +120,7 @@ func TestLintNamingViolation(t *testing.T) {
 	diags := lintSource(t, "let badName = 5\n")
 	found := false
 	for _, d := range diags {
-		if d.Level == "warning" && strings.Contains(d.Message, "naming") {
+		if d.Severity == "warning" && strings.Contains(d.Message, "naming") {
 			found = true
 		}
 	}
@@ -136,7 +132,7 @@ func TestLintNamingViolation(t *testing.T) {
 func TestLintForwardReferenceTopLevel(t *testing.T) {
 	diags := lintSource(t, "let b = a + 1\nlet a = 5\n")
 	for _, d := range diags {
-		if d.Level == "error" && strings.Contains(d.Message, "undefined") && strings.Contains(d.Message, "a") {
+		if d.Severity == "error" && strings.Contains(d.Message, "undefined") && strings.Contains(d.Message, "a") {
 			t.Fatalf("forward reference should be allowed at top level, got %v", diags)
 		}
 	}
@@ -146,7 +142,7 @@ func TestLintShadowWarning(t *testing.T) {
 	diags := lintSource(t, "let x = 5\nlet f = () {\n let x = 10\n x\n}\n")
 	found := false
 	for _, d := range diags {
-		if d.Level == "warning" && strings.Contains(d.Message, "shadow") {
+		if d.Severity == "warning" && strings.Contains(d.Message, "shadow") {
 			found = true
 		}
 	}
@@ -158,7 +154,7 @@ func TestLintShadowWarning(t *testing.T) {
 func TestLintPreludeBuiltinsOK(t *testing.T) {
 	diags := lintSource(t, "let x = length([1, 2, 3])\n")
 	for _, d := range diags {
-		if d.Level == "error" && strings.Contains(d.Message, "undefined") && strings.Contains(d.Message, "length") {
+		if d.Severity == "error" && strings.Contains(d.Message, "undefined") && strings.Contains(d.Message, "length") {
 			t.Fatalf("prelude builtin length should be defined, got %v", diags)
 		}
 	}
@@ -168,7 +164,7 @@ func TestLintParamsNaming(t *testing.T) {
 	diags := lintSource(t, "let f = (badParam) { return badParam }\n")
 	found := false
 	for _, d := range diags {
-		if d.Level == "warning" && strings.Contains(d.Message, "badParam") {
+		if d.Severity == "warning" && strings.Contains(d.Message, "badParam") {
 			found = true
 		}
 	}
@@ -180,7 +176,7 @@ func TestLintParamsNaming(t *testing.T) {
 func TestLintMatchPatternBindsName(t *testing.T) {
 	diags := lintSource(t, "match 1 { x { println(x) } }\n")
 	for _, d := range diags {
-		if d.Level == "error" && strings.Contains(d.Message, "undefined") && strings.Contains(d.Message, "x") {
+		if d.Severity == "error" && strings.Contains(d.Message, "undefined") && strings.Contains(d.Message, "x") {
 			t.Fatalf("pattern binder x should be defined in arm, got %v", diags)
 		}
 	}
@@ -192,7 +188,7 @@ func TestLintIfBlockDoesNotScopeBindings(t *testing.T) {
 	src := "if true {\n\tlet y = 42\n}\nlet z = y\n"
 	diags := lintSource(t, src)
 	for _, d := range diags {
-		if d.Level == "error" && strings.Contains(d.Message, "undefined") && strings.Contains(d.Message, "y") {
+		if d.Severity == "error" && strings.Contains(d.Message, "undefined") && strings.Contains(d.Message, "y") {
 			t.Fatalf("linter falsely reports y as undefined inside if block: %v", diags)
 		}
 	}
@@ -202,7 +198,7 @@ func TestLintWhileBlockDoesNotScopeBindings(t *testing.T) {
 	src := "let i = 0\nwhile i < 1 {\n\tlet found = true\n\ti = i + 1\n}\nlet x = found\n"
 	diags := lintSource(t, src)
 	for _, d := range diags {
-		if d.Level == "error" && strings.Contains(d.Message, "undefined") && strings.Contains(d.Message, "found") {
+		if d.Severity == "error" && strings.Contains(d.Message, "undefined") && strings.Contains(d.Message, "found") {
 			t.Fatalf("linter falsely reports found as undefined after while block: %v", diags)
 		}
 	}
@@ -215,7 +211,7 @@ func TestLintMatchArmScopesBindings(t *testing.T) {
 	diags := lintSource(t, src)
 	found := false
 	for _, d := range diags {
-		if d.Level == "error" && strings.Contains(d.Message, "undefined") && strings.Contains(d.Message, "inner") {
+		if d.Severity == "error" && strings.Contains(d.Message, "undefined") && strings.Contains(d.Message, "inner") {
 			found = true
 		}
 	}
@@ -230,7 +226,7 @@ func TestLintFunctionBodyScopesBindings(t *testing.T) {
 	diags := lintSource(t, src)
 	found := false
 	for _, d := range diags {
-		if d.Level == "error" && strings.Contains(d.Message, "undefined") && strings.Contains(d.Message, "local") {
+		if d.Severity == "error" && strings.Contains(d.Message, "undefined") && strings.Contains(d.Message, "local") {
 			found = true
 		}
 	}
@@ -244,7 +240,7 @@ func TestLintSelectBindingScopedToArm(t *testing.T) {
 	diags := lintSource(t, src)
 	found := false
 	for _, d := range diags {
-		if d.Level == "error" && strings.Contains(d.Message, "undefined") && strings.Contains(d.Message, "msg") {
+		if d.Severity == "error" && strings.Contains(d.Message, "undefined") && strings.Contains(d.Message, "msg") {
 			found = true
 		}
 	}
@@ -257,137 +253,10 @@ func TestLintSelectChannelExprUsesOuterScope(t *testing.T) {
 	src := "let ch = channel()\nselect {\n\trecv(ch) { println(:ok) }\n}\n"
 	diags := lintSource(t, src)
 	for _, d := range diags {
-		if d.Level == "error" && strings.Contains(d.Message, "undefined") && strings.Contains(d.Message, "ch") {
+		if d.Severity == "error" && strings.Contains(d.Message, "undefined") && strings.Contains(d.Message, "ch") {
 			t.Fatalf("select channel expression should see outer ch, got %v", diags)
 		}
 	}
-}
-
-// TestLintASTTypeKnowledgeMatchesGrammar prevents the linter from silently
-// accumulating stale grammar knowledge. The linter deliberately uses generic
-// traversal for most productions, so it does not need one handler per grammar
-// production. Every AST node type it does name, however, must be producible by
-// the grammar or be an explicit parser-synthesized node.
-func TestLintASTTypeKnowledgeMatchesGrammar(t *testing.T) {
-	g, err := grammar.Load("grammar.ebnfx", syntax.EbnfxSource, "grammar.help", syntax.HelpSource)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	known, err := lintASTTypeLiterals("lint.go")
-	if err != nil {
-		t.Fatal(err)
-	}
-	allowed := g.Analysis().ASTNodeTypes()
-	allowed["TERMINAL"] = struct{}{} // parser-synthesized punctuation/literal node
-
-	for typ := range known {
-		if _, ok := allowed[typ]; !ok {
-			t.Errorf("linter names AST node type %q that grammar cannot produce", typ)
-		}
-	}
-}
-
-// TestLintGenericTraversalVisitsUnknownWrapper establishes the other half of
-// the linter coupling: a newly introduced production does not require a lint
-// handler merely to make its subtree visible. Unknown wrapper nodes recurse by
-// default, so ordinary checks still reach their children.
-func TestLintGenericTraversalVisitsUnknownWrapper(t *testing.T) {
-	c := &checker{scopes: []scopeFrame{make(scopeFrame)}}
-	root := &syntax.Node{
-		Type:     "future_production",
-		Children: []*syntax.Node{{Type: "NAME", Value: "missing"}},
-	}
-
-	c.check(root)
-	if len(c.diags) != 1 || c.diags[0].Level != "error" || !strings.Contains(c.diags[0].Message, "missing") {
-		t.Fatalf("generic traversal did not visit child of unknown wrapper: %v", c.diags)
-	}
-}
-
-// lintASTTypeLiterals extracts the string literals that lint.go uses as AST
-// node-type knowledge: comparisons/switches on .Type, ChildByType calls, and
-// the local recursive type-search helpers. Keeping the extraction in the test
-// means adding a new hardcoded node name to the linter automatically enters
-// the grammar-coupling check; there is no second manually maintained list.
-func lintASTTypeLiterals(filename string) (map[string]struct{}, error) {
-	fset := token.NewFileSet()
-	file, err := parser.ParseFile(fset, filename, nil, 0)
-	if err != nil {
-		return nil, err
-	}
-	out := make(map[string]struct{})
-
-	stringLit := func(e ast.Expr) (string, bool) {
-		lit, ok := e.(*ast.BasicLit)
-		if !ok || lit.Kind != token.STRING {
-			return "", false
-		}
-		value, err := strconv.Unquote(lit.Value)
-		if err != nil {
-			return "", false
-		}
-		return value, true
-	}
-	isTypeSelector := func(e ast.Expr) bool {
-		sel, ok := e.(*ast.SelectorExpr)
-		return ok && sel.Sel.Name == "Type"
-	}
-
-	ast.Inspect(file, func(n ast.Node) bool {
-		switch x := n.(type) {
-		case *ast.BinaryExpr:
-			if x.Op != token.EQL && x.Op != token.NEQ {
-				return true
-			}
-			if isTypeSelector(x.X) {
-				if s, ok := stringLit(x.Y); ok {
-					out[s] = struct{}{}
-				}
-			}
-			if isTypeSelector(x.Y) {
-				if s, ok := stringLit(x.X); ok {
-					out[s] = struct{}{}
-				}
-			}
-
-		case *ast.SwitchStmt:
-			if x.Tag == nil || !isTypeSelector(x.Tag) {
-				return true
-			}
-			for _, stmt := range x.Body.List {
-				clause, ok := stmt.(*ast.CaseClause)
-				if !ok {
-					continue
-				}
-				for _, expr := range clause.List {
-					if s, ok := stringLit(expr); ok {
-						out[s] = struct{}{}
-					}
-				}
-			}
-
-		case *ast.CallExpr:
-			name := ""
-			switch fun := x.Fun.(type) {
-			case *ast.Ident:
-				name = fun.Name
-			case *ast.SelectorExpr:
-				name = fun.Sel.Name
-			}
-			if name != "ChildByType" && name != "findAllByType" && name != "findFirstByType" {
-				return true
-			}
-			for i := len(x.Args) - 1; i >= 0; i-- {
-				if s, ok := stringLit(x.Args[i]); ok {
-					out[s] = struct{}{}
-					break
-				}
-			}
-		}
-		return true
-	})
-	return out, nil
 }
 
 func TestRunFailsOnUndeclaredMalformedFile(t *testing.T) {

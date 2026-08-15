@@ -1,0 +1,42 @@
+# Executable coupling between the independent lexer tables and grammar.ebnfx.
+let grammar = import("./selfhost/grammar_authority")
+let lexer = import("./selfhost/lexer")
+
+# Shape definitions are local metadata. Re-declare the two projection shapes so
+# field access is explicit in this comparison client.
+let @token_authority [tokens, keywords, operators, delimiters, skips]
+let @lexical_authority [tokens, keywords, operators, delimiters, skips]
+
+let same = (a, b) {
+	if not equal(type(a), type(b)) {
+		return false
+	}
+	if equal(type(a), :list) {
+		if not equal(length(a), length(b)) {
+			return false
+		}
+		let i = 0
+		while i < length(a) {
+			if not same(a[i], b[i]) {
+				return false
+			}
+			i = i + 1
+		}
+		return true
+	}
+	return equal(a, b)
+}
+
+let expected = grammar.read_token_authority("engine/syntax/grammar.ebnfx")
+let actual = lexer.lexical_authority()
+
+if is_error(expected) {
+	println(inspect(expected))
+} else {
+	if same(expected.tokens, actual.tokens) and same(expected.keywords, actual.keywords) and same(expected.operators, actual.operators) and same(expected.delimiters, actual.delimiters) and same(expected.skips, actual.skips) {
+		println("ok")
+	} else {
+		println("grammar " + inspect(expected))
+		println("lexer " + inspect(actual))
+	}
+}

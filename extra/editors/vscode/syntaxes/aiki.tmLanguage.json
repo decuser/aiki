@@ -1,0 +1,56 @@
+{
+  "scopeName": "source.aiki",
+  "name": "Aiki",
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#string" },
+    { "include": "#rune" },
+    { "include": "#number" },
+    { "include": "#shape" },
+    { "include": "#symbol" },
+    { "include": "#keyword" },
+    { "include": "#operator" }
+  ],
+  "repository": {
+    "comment": {
+      "patterns": [
+        { "name": "comment.line.number-sign.aiki", "match": "#.*$" }
+      ]
+    },
+    "string": {
+      "patterns": [
+        { "name": "string.quoted.double.aiki", "begin": "\"", "end": "\"", "patterns": [{ "name": "constant.character.escape.aiki", "match": "\\\\." }] }
+      ]
+    },
+    "rune": {
+      "patterns": [
+        { "name": "string.quoted.single.aiki", "begin": "'", "end": "'", "patterns": [{ "name": "constant.character.escape.aiki", "match": "\\\\." }] }
+      ]
+    },
+    "number": {
+      "patterns": [
+        { "name": "constant.numeric.aiki", "match": "\\b[0-9]+(?:\\.[0-9]+)?(?:/[0-9]+)?\\b" }
+      ]
+    },
+    "shape": {
+      "patterns": [
+        { "name": "entity.name.type.aiki", "match": "@[A-Za-z_][A-Za-z0-9_]*" }
+      ]
+    },
+    "symbol": {
+      "patterns": [
+        { "name": "constant.other.symbol.aiki", "match": ":[A-Za-z_][A-Za-z0-9_]*" }
+      ]
+    },
+    "keyword": {
+      "patterns": [
+        { "name": "keyword.control.aiki", "match": "\\b(?:let|if|else|while|match|select|default|return|true|false|and|or|not|package)\\b" }
+      ]
+    },
+    "operator": {
+      "patterns": [
+        { "name": "keyword.operator.aiki", "match": "(?:\\|>|<=|>=|[+*/.<>\\-=])" }
+      ]
+    }
+  }
+}

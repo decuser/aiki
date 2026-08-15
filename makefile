@@ -1,4 +1,4 @@
-.PHONY: build clean dist distcheck baseline run test fmt lint treecheck check bless validate smoke smokegold visual aikitest runsamples enginesmoke enginesmokegold enginecoverage rigorous fuzz hooks profilesweep
+.PHONY: build clean dist distcheck baseline run test fmt lint treecheck check bless validate smoke smokegold visual aikitest runsamples enginesmoke enginesmokegold enginecoverage rigorous fuzz hooks profilesweep install-xed-plugin uninstall-xed-plugin install-vscode-plugin uninstall-vscode-plugin
 
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 LDFLAGS := -ldflags "-X main.Version=$(VERSION)"
@@ -13,6 +13,16 @@ DIST_ARCHIVE = $(DIST_PARENT)/$(DIST_NAME).tar.gz
 SOURCE_DIR_NAME := $(notdir $(CURDIR))
 BASELINE_NAME := aiki-baseline-$(VERSION)
 BASELINE_ARCHIVE := $(DIST_PARENT)/$(BASELINE_NAME).tar.gz
+
+USER_DATA_DIR ?= $(if $(XDG_DATA_HOME),$(XDG_DATA_HOME),$(HOME)/.local/share)
+XED_PLUGIN_DIR ?= $(USER_DATA_DIR)/xed/plugins
+XED_LANG_DIR ?= $(USER_DATA_DIR)/gtksourceview-4/language-specs
+
+NPM ?= npm
+NPX ?= npx
+CODE ?= code
+VSCODE_AIKI_EXTENSION_ID ?= aiki.aiki-language-services
+VSCODE_VSCE ?= @vscode/vsce@3.9.2
 
 build:
 	go build $(LDFLAGS) -o aiki ./cmd/aiki
@@ -144,9 +154,66 @@ hooks:
 	chmod +x .git/hooks/pre-commit .git/hooks/pre-push
 	@echo "Git hooks installed"
 
+# Install the user-local Xed integration from the repository. Remove Aiki's
+# previous installed copies first so renamed/deleted plugin files cannot linger.
+# XED_PLUGIN_DIR and XED_LANG_DIR may be overridden for nonstandard installs.
+install-xed-plugin:
+	@set -eu; \
+	plugin_dir="$(XED_PLUGIN_DIR)"; \
+	lang_dir="$(XED_LANG_DIR)"; \
+	test -n "$$plugin_dir"; \
+	test -n "$$lang_dir"; \
+	rm -rf "$$plugin_dir/aiki_lsp"; \
+	rm -f "$$plugin_dir/aiki_lsp.plugin" "$$lang_dir/aiki.lang"; \
+	mkdir -p "$$plugin_dir/aiki_lsp" "$$lang_dir"; \
+	install -m 0644 extra/editors/xed/aiki.lang "$$lang_dir/aiki.lang"; \
+	install -m 0644 extra/editors/xed/aiki_lsp.plugin "$$plugin_dir/aiki_lsp.plugin"; \
+	install -m 0644 extra/editors/xed/aiki_lsp/__init__.py "$$plugin_dir/aiki_lsp/__init__.py"; \
+	echo "Installed Xed Aiki language definition: $$lang_dir/aiki.lang"; \
+	echo "Installed Xed Aiki LSP plugin: $$plugin_dir/aiki_lsp.plugin"; \
+	echo "Restart Xed and enable 'Aiki Language Services' in Plugins."
+
+uninstall-xed-plugin:
+	@set -eu; \
+	plugin_dir="$(XED_PLUGIN_DIR)"; \
+	lang_dir="$(XED_LANG_DIR)"; \
+	test -n "$$plugin_dir"; \
+	test -n "$$lang_dir"; \
+	rm -rf "$$plugin_dir/aiki_lsp"; \
+	rm -f "$$plugin_dir/aiki_lsp.plugin" "$$lang_dir/aiki.lang"; \
+	echo "Removed user-local Xed Aiki integration."
+
 
 PROFILE_DIR ?= profile-out
 
 # Reproducible semantic/substrate profiling sweep. Not part of validation.
 profilesweep: build
 	@extra/profiling/sweep.sh $(PROFILE_DIR)
+
+
+# Build and install the thin VS Code client entirely out of tree. npm
+# dependencies, package-lock data, and the VSIX live only in a disposable
+# staging directory; VS Code itself performs the supported extension install.
+install-vscode-plugin:
+	@set -eu; \
+	command -v "$(NPM)" >/dev/null 2>&1 || { echo "install-vscode-plugin: npm not found" >&2; exit 1; }; \
+	command -v "$(NPX)" >/dev/null 2>&1 || { echo "install-vscode-plugin: npx not found" >&2; exit 1; }; \
+	command -v "$(CODE)" >/dev/null 2>&1 || { echo "install-vscode-plugin: code not found" >&2; exit 1; }; \
+	tmp=$$(mktemp -d); \
+	trap 'rm -rf "$$tmp"' EXIT; \
+	cp -R extra/editors/vscode/. "$$tmp/"; \
+	cp LICENSE "$$tmp/LICENSE"; \
+	cd "$$tmp"; \
+	"$(NPM)" install --omit=dev --ignore-scripts --no-audit --no-fund; \
+	"$(NPX)" --yes "$(VSCODE_VSCE)" package --allow-missing-repository >/dev/null; \
+	vsix=$$(find "$$tmp" -maxdepth 1 -name '*.vsix' -print -quit); \
+	test -n "$$vsix" || { echo "install-vscode-plugin: VSIX was not produced" >&2; exit 1; }; \
+	"$(CODE)" --install-extension "$$vsix" --force; \
+	echo "Installed VS Code Aiki extension: $(VSCODE_AIKI_EXTENSION_ID)"; \
+	echo "Restart VS Code. Set 'aiki.server.path' if desktop VS Code cannot find the development aiki executable."
+
+uninstall-vscode-plugin:
+	@set -eu; \
+	command -v "$(CODE)" >/dev/null 2>&1 || { echo "uninstall-vscode-plugin: code not found" >&2; exit 1; }; \
+	"$(CODE)" --uninstall-extension "$(VSCODE_AIKI_EXTENSION_ID)"; \
+	echo "Removed VS Code Aiki extension: $(VSCODE_AIKI_EXTENSION_ID)"

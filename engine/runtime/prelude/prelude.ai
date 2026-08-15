@@ -116,6 +116,14 @@ let to_number = (s) {
 	_to_number(s)
 }
 
+let to_symbol = (s) {
+	_to_symbol(s)
+}
+
+let shaped = (sym, elements) {
+	_make_shaped_list(sym, elements)
+}
+
 # REPL control (evaluator-privileged)
 let quit = () {
 	_quit()

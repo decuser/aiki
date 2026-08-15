@@ -150,11 +150,13 @@ func (l *Lexer) Next() (Token, error) {
 
 	if bestLen == 0 {
 		ch := l.source[l.pos]
-		return Token{}, fmt.Errorf("%s", engine.FormatWithCaret(
-			startPos,
-			engine.GetSourceLine(l.source, startPos.Line),
-			fmt.Sprintf("unexpected character '%c'", ch),
-		))
+		message := fmt.Sprintf("unexpected character '%c'", ch)
+		return Token{}, &SourceError{
+			Kind:     "lex",
+			Pos:      startPos,
+			Message:  message,
+			Rendered: engine.FormatWithCaret(startPos, engine.GetSourceLine(l.source, startPos.Line), message),
+		}
 	}
 
 	tok := Token{Type: bestType, Lexeme: bestLex, Pos: startPos}

@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"aiki/cmd/internal/testfixture"
-	aikifmt "aiki/cmd/subcommands/tools/fmt"
+	aikifmt "aiki/engine/formatter"
 	"aiki/engine/syntax"
 	"aiki/engine/syntax/grammar"
 )

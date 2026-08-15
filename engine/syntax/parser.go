@@ -36,35 +36,14 @@ func NewParser(g *grammar.Grammar, tokens []Token, source string, observer engin
 		observer = engine.SilentObserver{}
 	}
 
-	// Compile the grammar-declared newline policy once for this token stream.
-	// The parser applies the policy generically; Aiki's particular completion
-	// tokens, lexemes, and suppression delimiters live only in grammar.ebnfx.
-	rule := g.Newline
-	afterToken := make(map[string]struct{}, len(rule.AfterToken))
-	for _, name := range rule.AfterToken {
-		afterToken[name] = struct{}{}
-	}
-	afterLexeme := make(map[string]struct{}, len(rule.AfterLexeme))
-	for _, lexeme := range rule.AfterLexeme {
-		afterLexeme[lexeme] = struct{}{}
-	}
-	suppressOpen := make(map[string]string, len(rule.SuppressIn))
-	suppressClose := make(map[string]struct{}, len(rule.SuppressIn))
-	for _, pair := range rule.SuppressIn {
-		suppressOpen[pair[0]] = pair[1]
-		suppressClose[pair[1]] = struct{}{}
-	}
-	endsStatement := func(tok Token) bool {
-		if _, ok := afterToken[tok.Type]; ok {
-			return true
-		}
-		_, ok := afterLexeme[tok.Lexeme]
-		return ok
-	}
+	// Apply the grammar-declared skip/newline policy through the same neutral
+	// normalization seam used by cross-implementation conformance.
+	filtered, syntheticTerminators := normalizeTokens(g, tokens)
 
 	// The same grammar analysis used by enginesmoke supplies continuation
 	// membership for the targeted leftover-token diagnostic. Failure to derive
 	// it must never make parsing unavailable; it only disables that refinement.
+	rule := g.Newline
 	continuationTokens := make(map[string]bool)
 	continuationLexemes := make(map[string]bool)
 	analysis := g.Analysis()
@@ -83,41 +62,6 @@ func NewParser(g *grammar.Grammar, tokens []Token, source string, observer engin
 		}
 	}
 
-	// Filter @skip tokens and normalize physical newlines into statement
-	// terminators according to the grammar-declared policy.
-	filtered := make([]Token, 0, len(tokens))
-	syntheticTerminators := make(map[int]bool)
-	var suppressStack []string
-	for _, tok := range tokens {
-		if def, ok := g.GetToken(tok.Type); ok && def.Skip {
-			continue
-		}
-
-		// Suppression is delimiter-aware rather than an aggregate depth. An
-		// unmatched or mismatched closer cannot drive state negative or cancel a
-		// later legitimate opener; the grammar parser will report the malformed
-		// delimiter itself downstream.
-		if len(suppressStack) > 0 && tok.Lexeme == suppressStack[len(suppressStack)-1] {
-			suppressStack = suppressStack[:len(suppressStack)-1]
-		} else if closer, ok := suppressOpen[tok.Lexeme]; ok {
-			suppressStack = append(suppressStack, closer)
-		} else if _, ok := suppressClose[tok.Lexeme]; ok {
-			// Unmatched/mismatched closer: ignore for normalization state.
-		}
-
-		if tok.Type == rule.Token {
-			if len(suppressStack) == 0 && len(filtered) > 0 && endsStatement(filtered[len(filtered)-1]) {
-				syntheticTerminators[len(filtered)] = true
-				filtered = append(filtered, Token{
-					Type:   "DELIMITER",
-					Lexeme: ";",
-					Pos:    tok.Pos,
-				})
-			}
-			continue
-		}
-		filtered = append(filtered, tok)
-	}
 	return &Parser{
 		grammar:              g,
 		tokens:               filtered,
@@ -158,15 +102,15 @@ func (p *Parser) isContinuation(tok Token) bool {
 // renderFailure formats the best failure using grammar metadata.
 func (p *Parser) renderFailure() error {
 	if p.failure == nil {
-		return fmt.Errorf("parse error")
+		return &SourceError{Kind: "parse", Message: "parse error", Rendered: "parse error"}
 	}
 
 	f := p.failure
 	line := engine.GetSourceLine(p.source, f.Pos.Line)
 	caret := engine.FormatCaret(f.Pos.Col)
 
-	// Find the most relevant production in stack with @error
-	// Search from innermost (end) to outermost (start) - prefer specific errors
+	// Find the most relevant production in stack with @error.
+	// Search from innermost (end) to outermost (start) - prefer specific errors.
 	var prodName string
 	var meta grammar.Meta
 	for i := len(f.Stack) - 1; i >= 0; i-- {
@@ -181,35 +125,37 @@ func (p *Parser) renderFailure() error {
 	}
 
 	// For closing delimiters like '}' or ')', use the raw terminal error
-	// since "expected '}'" is clearer than a production error
+	// since "expected '}'" is clearer than a production error.
 	isClosingDelim := f.Expected == "'}'" || f.Expected == "')'" || f.Expected == "']'"
 
-	// Build error message
-	var msg strings.Builder
-	msg.WriteString(fmt.Sprintf("%s:%d:%d:\n", p.getFile(), f.Pos.Line, f.Pos.Col))
-	msg.WriteString(line + "\n")
-	msg.WriteString(caret + "\n")
-
+	var detail strings.Builder
 	if f.NewlineTerminated && p.grammar.Newline != nil {
-		msg.WriteString("the previous newline ended the statement")
+		detail.WriteString("the previous newline ended the statement")
 		if help := p.grammar.Newline.Meta.Help; help != "" {
-			msg.WriteString(fmt.Sprintf("\n\nnewline: %s", help))
+			detail.WriteString(fmt.Sprintf("\n\nnewline: %s", help))
 		}
-		msg.WriteString(fmt.Sprintf("\n\n'%s' continues an expression, but the newline terminated the expression before it.", f.Got))
-		msg.WriteString(fmt.Sprintf("\nPlace '%s' before the newline it continues.", f.Got))
+		detail.WriteString(fmt.Sprintf("\n\n'%s' continues an expression, but the newline terminated the expression before it.", f.Got))
+		detail.WriteString(fmt.Sprintf("\nPlace '%s' before the newline it continues.", f.Got))
 	} else if prodName != "" && meta.Error != "" && !isClosingDelim {
-		msg.WriteString(fmt.Sprintf("%s: %s", prodName, meta.Error))
+		detail.WriteString(fmt.Sprintf("%s: %s", prodName, meta.Error))
 		if meta.Template != "" {
-			msg.WriteString(fmt.Sprintf("\n\nSyntax: %s", meta.Template))
+			detail.WriteString(fmt.Sprintf("\n\nSyntax: %s", meta.Template))
 		}
 	} else {
-		msg.WriteString(fmt.Sprintf("expected %s", f.Expected))
+		detail.WriteString(fmt.Sprintf("expected %s", f.Expected))
 		if f.Got != "" && f.Got != "EOF" && f.Got != "end of input" {
-			msg.WriteString(fmt.Sprintf(", got '%s'", f.Got))
+			detail.WriteString(fmt.Sprintf(", got '%s'", f.Got))
 		}
 	}
 
-	return fmt.Errorf("%s", msg.String())
+	message := detail.String()
+	var rendered strings.Builder
+	rendered.WriteString(fmt.Sprintf("%s:%d:%d:\n", p.getFile(), f.Pos.Line, f.Pos.Col))
+	rendered.WriteString(line + "\n")
+	rendered.WriteString(caret + "\n")
+	rendered.WriteString(message)
+
+	return &SourceError{Kind: "parse", Pos: f.Pos, Message: message, Rendered: rendered.String()}
 }
 
 // getFile returns the source file name (or "<input>" if unknown).

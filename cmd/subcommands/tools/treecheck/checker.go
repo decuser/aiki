@@ -218,6 +218,22 @@ func (c *Checker) seedBuiltins() {
 			c.mark(p, "authoritative grammar artifact")
 		case p == "engine/runtime/prelude/prelude.ai" || p == "engine/runtime/prelude/prelude.help" || p == "engine/runtime/prelude/prelude.doc":
 			c.mark(p, "prelude artifact")
+		case strings.HasPrefix(p, "selfhost/") && strings.HasSuffix(p, ".ai"):
+			c.mark(p, "self-host implementation source")
+		case p == "extra/editors/xed/aiki.lang":
+			c.mark(p, "Xed GtkSourceView language definition")
+		case p == "extra/editors/xed/aiki_lsp.plugin":
+			c.mark(p, "Xed Aiki LSP plugin descriptor")
+		case strings.HasPrefix(p, "extra/editors/xed/aiki_lsp/") && strings.HasSuffix(p, ".py"):
+			c.mark(p, "Xed Aiki LSP plugin source")
+		case p == "extra/editors/vscode/package.json":
+			c.mark(p, "VS Code Aiki extension manifest")
+		case p == "extra/editors/vscode/extension.js":
+			c.mark(p, "VS Code Aiki LSP client source")
+		case p == "extra/editors/vscode/language-configuration.json":
+			c.mark(p, "VS Code Aiki editor configuration")
+		case p == "extra/editors/vscode/syntaxes/aiki.tmLanguage.json":
+			c.mark(p, "VS Code Aiki lexical grammar")
 		}
 	}
 }
@@ -253,6 +269,31 @@ func (c *Checker) checkStructuralPairs() {
 				gold := p + "." + stage + ".gold"
 				if c.files[gold] {
 					c.mark(gold, "engine structural gold")
+				}
+			}
+		}
+		if strings.HasPrefix(p, "test/conformance/syntax/") && strings.HasSuffix(p, ".input") {
+			projection := strings.TrimSuffix(p, ".input") + ".tokens"
+			c.mark(p, "syntax conformance input")
+			if c.files[projection] {
+				c.mark(projection, "syntax conformance token projection")
+			}
+		}
+		if p == "selfhost/token_authority.ai" && c.files["selfhost/token_authority.gold"] {
+			c.mark("selfhost/token_authority.gold", "self-host authority projection")
+		}
+		if p == "extra/editors/xed/aiki_lsp.plugin" && c.files["extra/editors/xed/aiki_lsp/__init__.py"] {
+			c.mark("extra/editors/xed/aiki_lsp.plugin", "Xed plugin descriptor paired with module")
+			c.mark("extra/editors/xed/aiki_lsp/__init__.py", "Xed plugin module paired with descriptor")
+		}
+		if p == "extra/editors/vscode/package.json" {
+			for _, q := range []string{
+				"extra/editors/vscode/extension.js",
+				"extra/editors/vscode/language-configuration.json",
+				"extra/editors/vscode/syntaxes/aiki.tmLanguage.json",
+			} {
+				if c.files[q] {
+					c.mark(q, "VS Code extension companion")
 				}
 			}
 		}
@@ -311,6 +352,43 @@ func (c *Checker) structuralErrors() []Finding {
 				if !c.files[gold] {
 					out = append(out, Finding{Path: p, Reason: "engine specimen missing " + stage + " gold"})
 				}
+			}
+		}
+		if strings.HasPrefix(p, "test/conformance/syntax/") && strings.HasSuffix(p, ".input") {
+			projection := strings.TrimSuffix(p, ".input") + ".tokens"
+			if !c.files[projection] {
+				out = append(out, Finding{Path: p, Reason: "syntax conformance input missing .tokens projection"})
+			}
+		}
+		if strings.HasPrefix(p, "test/conformance/syntax/") && strings.HasSuffix(p, ".tokens") {
+			input := strings.TrimSuffix(p, ".tokens") + ".input"
+			if !c.files[input] {
+				out = append(out, Finding{Path: p, Reason: "syntax conformance projection has no .input specimen"})
+			}
+		}
+		if p == "selfhost/token_authority.gold" && !c.files["selfhost/token_authority.ai"] {
+			out = append(out, Finding{Path: p, Reason: "self-host authority projection has no .ai owner"})
+		}
+		if p == "extra/editors/xed/aiki_lsp.plugin" && !c.files["extra/editors/xed/aiki_lsp/__init__.py"] {
+			out = append(out, Finding{Path: p, Reason: "Xed plugin descriptor has no Python module"})
+		}
+		if p == "extra/editors/xed/aiki_lsp/__init__.py" && !c.files["extra/editors/xed/aiki_lsp.plugin"] {
+			out = append(out, Finding{Path: p, Reason: "Xed plugin module has no descriptor"})
+		}
+		if p == "extra/editors/vscode/package.json" {
+			for _, q := range []string{
+				"extra/editors/vscode/extension.js",
+				"extra/editors/vscode/language-configuration.json",
+				"extra/editors/vscode/syntaxes/aiki.tmLanguage.json",
+			} {
+				if !c.files[q] {
+					out = append(out, Finding{Path: p, Reason: "VS Code extension missing " + strings.TrimPrefix(q, "extra/editors/vscode/")})
+				}
+			}
+		}
+		if strings.HasPrefix(p, "extra/editors/vscode/") && p != "extra/editors/vscode/README.md" && p != "extra/editors/vscode/package.json" {
+			if !c.files["extra/editors/vscode/package.json"] {
+				out = append(out, Finding{Path: p, Reason: "VS Code extension companion has no package.json owner"})
 			}
 		}
 		if isNamedPackageSource(p) {

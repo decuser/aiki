@@ -1,0 +1,1051 @@
+package "selfhost/parser"
+
+# Phase I / Cut I.4: independent hand-written recursive-descent parser.
+# Input is the normalized token stream produced by selfhost/normalize.
+let str = import("string")
+
+# Shape metadata is local to an environment. Re-declare the shared token shape
+# so field access on lexer-produced values has the same language-owned layout.
+let @token [kind, lexeme, line, col]
+let @node [kind, value, children, line, col]
+let @parse_result [node, pos]
+
+let parse_error = (tokens, pos, expected) {
+	if pos < length(tokens) {
+		let t = tokens[pos]
+		return shaped(:error, [:parse, to_str(t.line) + ":" + to_str(t.col) + ": expected " + expected + ", got " + inspect(t.lexeme)])
+	}
+	return shaped(:error, [:parse, "end of input: expected " + expected])
+}
+
+let node_at = (kind, value, children, tokens, pos) {
+	if pos < length(tokens) {
+		let t = tokens[pos]
+		return [@node, kind, value, children, t.line, t.col]
+	}
+	return [@node, kind, value, children, 0, 0]
+}
+
+let lexeme_at = (tokens, pos) {
+	if pos < length(tokens) {
+		return tokens[pos].lexeme
+	}
+	return ""
+}
+
+let kind_at = (tokens, pos) {
+	if pos < length(tokens) {
+		return tokens[pos].kind
+	}
+	return "EOF"
+}
+
+let parse_terminal = (tokens, pos, lexeme) {
+	if pos >= length(tokens) {
+		return parse_error(tokens, pos, inspect(lexeme))
+	}
+	let t = tokens[pos]
+	if not equal(t.lexeme, lexeme) {
+		return parse_error(tokens, pos, inspect(lexeme))
+	}
+	return [@parse_result, [@node, "TERMINAL", t.lexeme, [], t.line, t.col], pos + 1]
+}
+
+let parse_token = (tokens, pos, kind) {
+	if pos >= length(tokens) {
+		return parse_error(tokens, pos, kind)
+	}
+	let t = tokens[pos]
+	if not equal(t.kind, kind) {
+		return parse_error(tokens, pos, kind)
+	}
+	return [@parse_result, [@node, kind, t.lexeme, [], t.line, t.col], pos + 1]
+}
+
+let is_binop_lexeme = (s) {
+	equal(s, "+") or equal(s, "-") or equal(s, "*") or equal(s, "/") or equal(s, "<") or equal(s, ">") or equal(s, "<=") or equal(s, ">=") or equal(s, "and") or equal(s, "or")
+}
+
+let is_literal_start = (tokens, pos) {
+	let k = kind_at(tokens, pos)
+	let x = lexeme_at(tokens, pos)
+	equal(k, "NUMBER") or equal(k, "STRING") or equal(k, "RUNE") or equal(k, "SYMBOL") or equal(x, "true") or equal(x, "false")
+}
+
+# Forward references among these functions are intentional; Aiki top-level
+# closures share the module environment in which later parser functions bind.
+let parse_program = (tokens, pos) {
+	let start = pos
+	let children = []
+	let p = pos
+	while p < length(tokens) {
+		let statement = parse_statement(tokens, p)
+		if is_error(statement) {
+			return statement
+		}
+		children = append(children, statement.node)
+		p = statement.pos
+		if equal(lexeme_at(tokens, p), ";") {
+			let semi = parse_terminal(tokens, p, ";")
+			children = append(children, semi.node)
+			p = semi.pos
+		}
+	}
+	return [@parse_result, node_at("program", "", children, tokens, start), p]
+}
+
+let parse_statement = (tokens, pos) {
+	let start = pos
+	let x = lexeme_at(tokens, pos)
+	let child = []
+	if equal(x, "package") {
+		child = parse_package_stmt(tokens, pos)
+	} else {
+		if equal(x, "let") {
+			child = parse_let_stmt(tokens, pos)
+		} else {
+			if equal(x, "if") {
+				child = parse_if_stmt(tokens, pos)
+			} else {
+				if equal(x, "while") {
+					child = parse_while_stmt(tokens, pos)
+				} else {
+					if equal(x, "match") {
+						child = parse_match_stmt(tokens, pos)
+					} else {
+						if equal(x, "select") {
+							child = parse_select_stmt(tokens, pos)
+						} else {
+							if equal(x, "return") {
+								child = parse_return_stmt(tokens, pos)
+							} else {
+								if equal(kind_at(tokens, pos), "NAME") and equal(lexeme_at(tokens, pos + 1), "=") {
+									child = parse_assign_stmt(tokens, pos)
+								} else {
+									child = parse_expr_stmt(tokens, pos)
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	if is_error(child) {
+		return child
+	}
+	return [@parse_result, node_at("statement", "", [child.node], tokens, start), child.pos]
+}
+
+let parse_package_stmt = (tokens, pos) {
+	let start = pos
+	let children = []
+	let r = parse_terminal(tokens, pos, "package")
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	r = parse_token(tokens, r.pos, "STRING")
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	return [@parse_result, node_at("package_stmt", "", children, tokens, start), r.pos]
+}
+
+let parse_let_stmt = (tokens, pos) {
+	let start = pos
+	let children = []
+	let r = parse_terminal(tokens, pos, "let")
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	let p = r.pos
+	if equal(kind_at(tokens, p), "SHAPE") {
+		r = parse_token(tokens, p, "SHAPE")
+		children = append(children, r.node)
+		r = parse_terminal(tokens, r.pos, "[")
+		if is_error(r) {
+			return r
+		}
+		children = append(children, r.node)
+		p = r.pos
+		if not equal(lexeme_at(tokens, p), "]") {
+			r = parse_field(tokens, p)
+			if is_error(r) {
+				return r
+			}
+			children = append(children, r.node)
+			p = r.pos
+			while equal(lexeme_at(tokens, p), ",") {
+				r = parse_terminal(tokens, p, ",")
+				children = append(children, r.node)
+				r = parse_field(tokens, r.pos)
+				if is_error(r) {
+					return r
+				}
+				children = append(children, r.node)
+				p = r.pos
+			}
+		}
+		r = parse_terminal(tokens, p, "]")
+		if is_error(r) {
+			return r
+		}
+		children = append(children, r.node)
+		p = r.pos
+	} else {
+		r = parse_token(tokens, p, "NAME")
+		if is_error(r) {
+			return r
+		}
+		children = append(children, r.node)
+		r = parse_terminal(tokens, r.pos, "=")
+		if is_error(r) {
+			return r
+		}
+		children = append(children, r.node)
+		r = parse_expr(tokens, r.pos)
+		if is_error(r) {
+			return r
+		}
+		children = append(children, r.node)
+		p = r.pos
+	}
+	return [@parse_result, node_at("let_stmt", "", children, tokens, start), p]
+}
+
+let parse_field = (tokens, pos) {
+	let start = pos
+	let r = []
+	if equal(kind_at(tokens, pos), "NAME") {
+		r = parse_token(tokens, pos, "NAME")
+	} else {
+		r = parse_token(tokens, pos, "SHAPE")
+	}
+	if is_error(r) {
+		return r
+	}
+	return [@parse_result, node_at("field", "", [r.node], tokens, start), r.pos]
+}
+
+let parse_assign_stmt = (tokens, pos) {
+	let start = pos
+	let children = []
+	let r = parse_token(tokens, pos, "NAME")
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	r = parse_terminal(tokens, r.pos, "=")
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	r = parse_expr(tokens, r.pos)
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	return [@parse_result, node_at("assign_stmt", "", children, tokens, start), r.pos]
+}
+
+let parse_if_stmt = (tokens, pos) {
+	let start = pos
+	let children = []
+	let r = parse_terminal(tokens, pos, "if")
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	r = parse_expr(tokens, r.pos)
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	r = parse_block(tokens, r.pos)
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	let p = r.pos
+	if equal(lexeme_at(tokens, p), "else") {
+		r = parse_terminal(tokens, p, "else")
+		children = append(children, r.node)
+		p = r.pos
+		if equal(lexeme_at(tokens, p), "if") {
+			r = parse_if_stmt(tokens, p)
+		} else {
+			r = parse_block(tokens, p)
+		}
+		if is_error(r) {
+			return r
+		}
+		children = append(children, r.node)
+		p = r.pos
+	}
+	return [@parse_result, node_at("if_stmt", "", children, tokens, start), p]
+}
+
+let parse_while_stmt = (tokens, pos) {
+	let start = pos
+	let children = []
+	let r = parse_terminal(tokens, pos, "while")
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	r = parse_expr(tokens, r.pos)
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	r = parse_block(tokens, r.pos)
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	return [@parse_result, node_at("while_stmt", "", children, tokens, start), r.pos]
+}
+
+let parse_match_stmt = (tokens, pos) {
+	let start = pos
+	let children = []
+	let r = parse_terminal(tokens, pos, "match")
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	r = parse_expr(tokens, r.pos)
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	r = parse_terminal(tokens, r.pos, "{")
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	let p = r.pos
+	while not equal(lexeme_at(tokens, p), "}") {
+		r = parse_pattern(tokens, p)
+		if is_error(r) {
+			return r
+		}
+		children = append(children, r.node)
+		r = parse_block(tokens, r.pos)
+		if is_error(r) {
+			return r
+		}
+		children = append(children, r.node)
+		p = r.pos
+	}
+	r = parse_terminal(tokens, p, "}")
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	return [@parse_result, node_at("match_stmt", "", children, tokens, start), r.pos]
+}
+
+let parse_select_stmt = (tokens, pos) {
+	let start = pos
+	let children = []
+	let r = parse_terminal(tokens, pos, "select")
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	r = parse_terminal(tokens, r.pos, "{")
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	let p = r.pos
+	if equal(lexeme_at(tokens, p), "default") {
+		r = parse_select_default(tokens, p)
+		if is_error(r) {
+			return r
+		}
+		children = append(children, r.node)
+		p = r.pos
+	} else {
+		let count = 0
+		while equal(lexeme_at(tokens, p), "let") or equal(lexeme_at(tokens, p), "recv") {
+			r = parse_select_case(tokens, p)
+			if is_error(r) {
+				return r
+			}
+			children = append(children, r.node)
+			p = r.pos
+			count = count + 1
+		}
+		if equal(count, 0) {
+			return parse_error(tokens, p, "select case or default")
+		}
+		if equal(lexeme_at(tokens, p), "default") {
+			r = parse_select_default(tokens, p)
+			if is_error(r) {
+				return r
+			}
+			children = append(children, r.node)
+			p = r.pos
+		}
+	}
+	r = parse_terminal(tokens, p, "}")
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	return [@parse_result, node_at("select_stmt", "", children, tokens, start), r.pos]
+}
+
+let parse_select_case = (tokens, pos) {
+	let start = pos
+	let children = []
+	let p = pos
+	let r = []
+	if equal(lexeme_at(tokens, p), "let") {
+		r = parse_terminal(tokens, p, "let")
+		children = append(children, r.node)
+		r = parse_token(tokens, r.pos, "NAME")
+		if is_error(r) {
+			return r
+		}
+		children = append(children, r.node)
+		r = parse_terminal(tokens, r.pos, "=")
+		if is_error(r) {
+			return r
+		}
+		children = append(children, r.node)
+		p = r.pos
+	}
+	r = parse_terminal(tokens, p, "recv")
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	r = parse_terminal(tokens, r.pos, "(")
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	r = parse_expr(tokens, r.pos)
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	r = parse_terminal(tokens, r.pos, ")")
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	r = parse_block(tokens, r.pos)
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	return [@parse_result, node_at("select_case", "", children, tokens, start), r.pos]
+}
+
+let parse_select_default = (tokens, pos) {
+	let start = pos
+	let children = []
+	let r = parse_terminal(tokens, pos, "default")
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	r = parse_block(tokens, r.pos)
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	return [@parse_result, node_at("select_default", "", children, tokens, start), r.pos]
+}
+
+let parse_pattern = (tokens, pos) {
+	let start = pos
+	let children = []
+	let r = []
+	let p = pos
+	if equal(lexeme_at(tokens, p), "_") {
+		r = parse_terminal(tokens, p, "_")
+		children = append(children, r.node)
+		p = r.pos
+	} else {
+		if equal(kind_at(tokens, p), "NAME") {
+			r = parse_token(tokens, p, "NAME")
+			children = append(children, r.node)
+			p = r.pos
+		} else {
+			if is_literal_start(tokens, p) {
+				r = parse_literal(tokens, p)
+				if is_error(r) {
+					return r
+				}
+				children = append(children, r.node)
+				p = r.pos
+			} else {
+				if equal(lexeme_at(tokens, p), "[") {
+					r = parse_terminal(tokens, p, "[")
+					children = append(children, r.node)
+					p = r.pos
+					if equal(kind_at(tokens, p), "SHAPE") {
+						r = parse_token(tokens, p, "SHAPE")
+						children = append(children, r.node)
+						p = r.pos
+						while equal(lexeme_at(tokens, p), ",") {
+							r = parse_terminal(tokens, p, ",")
+							children = append(children, r.node)
+							r = parse_pattern(tokens, r.pos)
+							if is_error(r) {
+								return r
+							}
+							children = append(children, r.node)
+							p = r.pos
+						}
+					} else {
+						if not equal(lexeme_at(tokens, p), "]") {
+							r = parse_pattern(tokens, p)
+							if is_error(r) {
+								return r
+							}
+							children = append(children, r.node)
+							p = r.pos
+							while equal(lexeme_at(tokens, p), ",") {
+								r = parse_terminal(tokens, p, ",")
+								children = append(children, r.node)
+								r = parse_pattern(tokens, r.pos)
+								if is_error(r) {
+									return r
+								}
+								children = append(children, r.node)
+								p = r.pos
+							}
+						}
+					}
+					r = parse_terminal(tokens, p, "]")
+					if is_error(r) {
+						return r
+					}
+					children = append(children, r.node)
+					p = r.pos
+				} else {
+					return parse_error(tokens, p, "pattern")
+				}
+			}
+		}
+	}
+	return [@parse_result, node_at("pattern", "", children, tokens, start), p]
+}
+
+let parse_return_stmt = (tokens, pos) {
+	let start = pos
+	let children = []
+	let r = parse_terminal(tokens, pos, "return")
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	r = parse_expr(tokens, r.pos)
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	return [@parse_result, node_at("return_stmt", "", children, tokens, start), r.pos]
+}
+
+let parse_expr_stmt = (tokens, pos) {
+	let start = pos
+	let r = parse_expr(tokens, pos)
+	if is_error(r) {
+		return r
+	}
+	return [@parse_result, node_at("expr_stmt", "", [r.node], tokens, start), r.pos]
+}
+
+let parse_expr = (tokens, pos) {
+	let start = pos
+	let r = parse_pipe_expr(tokens, pos)
+	if is_error(r) {
+		return r
+	}
+	return [@parse_result, node_at("expr", "", [r.node], tokens, start), r.pos]
+}
+
+let parse_pipe_expr = (tokens, pos) {
+	let start = pos
+	let children = []
+	let r = parse_infix_expr(tokens, pos)
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	let p = r.pos
+	while equal(lexeme_at(tokens, p), "|>") {
+		r = parse_terminal(tokens, p, "|>")
+		children = append(children, r.node)
+		r = parse_postfix_expr(tokens, r.pos)
+		if is_error(r) {
+			return r
+		}
+		children = append(children, r.node)
+		p = r.pos
+	}
+	return [@parse_result, node_at("pipe_expr", "", children, tokens, start), p]
+}
+
+let parse_infix_expr = (tokens, pos) {
+	let start = pos
+	let children = []
+	let r = parse_unary_expr(tokens, pos)
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	let p = r.pos
+	while is_binop_lexeme(lexeme_at(tokens, p)) {
+		r = parse_binop(tokens, p)
+		if is_error(r) {
+			return r
+		}
+		children = append(children, r.node)
+		r = parse_unary_expr(tokens, r.pos)
+		if is_error(r) {
+			return r
+		}
+		children = append(children, r.node)
+		p = r.pos
+	}
+	return [@parse_result, node_at("infix_expr", "", children, tokens, start), p]
+}
+
+let parse_binop = (tokens, pos) {
+	let start = pos
+	let x = lexeme_at(tokens, pos)
+	if not is_binop_lexeme(x) {
+		return parse_error(tokens, pos, "binary operator")
+	}
+	let r = parse_terminal(tokens, pos, x)
+	return [@parse_result, node_at("BINOP", "", [r.node], tokens, start), r.pos]
+}
+
+let parse_unary_expr = (tokens, pos) {
+	let start = pos
+	let children = []
+	let p = pos
+	while equal(lexeme_at(tokens, p), "not") or equal(lexeme_at(tokens, p), "-") {
+		let r = parse_terminal(tokens, p, lexeme_at(tokens, p))
+		children = append(children, r.node)
+		p = r.pos
+	}
+	let r = parse_postfix_expr(tokens, p)
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	return [@parse_result, node_at("unary_expr", "", children, tokens, start), r.pos]
+}
+
+let parse_postfix_expr = (tokens, pos) {
+	let start = pos
+	let children = []
+	let r = parse_primary(tokens, pos)
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	let p = r.pos
+	let more = true
+	while more {
+		let x = lexeme_at(tokens, p)
+		if equal(x, "(") {
+			r = parse_call(tokens, p)
+		} else {
+			if equal(x, "[") {
+				r = parse_index(tokens, p)
+			} else {
+				if equal(x, ".") {
+					r = parse_access(tokens, p)
+				} else {
+					more = false
+				}
+			}
+		}
+		if more {
+			if is_error(r) {
+				return r
+			}
+			children = append(children, r.node)
+			p = r.pos
+		}
+	}
+	return [@parse_result, node_at("postfix_expr", "", children, tokens, start), p]
+}
+
+let parse_call = (tokens, pos) {
+	let start = pos
+	let children = []
+	let r = parse_terminal(tokens, pos, "(")
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	let p = r.pos
+	if not equal(lexeme_at(tokens, p), ")") {
+		r = parse_expr(tokens, p)
+		if is_error(r) {
+			return r
+		}
+		children = append(children, r.node)
+		p = r.pos
+		while equal(lexeme_at(tokens, p), ",") {
+			r = parse_terminal(tokens, p, ",")
+			children = append(children, r.node)
+			r = parse_expr(tokens, r.pos)
+			if is_error(r) {
+				return r
+			}
+			children = append(children, r.node)
+			p = r.pos
+		}
+	}
+	r = parse_terminal(tokens, p, ")")
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	return [@parse_result, node_at("call", "", children, tokens, start), r.pos]
+}
+
+let parse_index = (tokens, pos) {
+	let start = pos
+	let children = []
+	let r = parse_terminal(tokens, pos, "[")
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	r = parse_expr(tokens, r.pos)
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	r = parse_terminal(tokens, r.pos, "]")
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	return [@parse_result, node_at("index", "", children, tokens, start), r.pos]
+}
+
+let parse_access = (tokens, pos) {
+	let start = pos
+	let children = []
+	let r = parse_terminal(tokens, pos, ".")
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	r = parse_token(tokens, r.pos, "NAME")
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	return [@parse_result, node_at("access", "", children, tokens, start), r.pos]
+}
+
+let parse_primary = (tokens, pos) {
+	let start = pos
+	let children = []
+	let k = kind_at(tokens, pos)
+	let x = lexeme_at(tokens, pos)
+	let r = []
+	if equal(k, "NUMBER") or equal(k, "STRING") or equal(k, "RUNE") or equal(k, "SYMBOL") or equal(k, "NAME") {
+		r = parse_token(tokens, pos, k)
+		children = append(children, r.node)
+	} else {
+		if equal(x, "true") or equal(x, "false") {
+			r = parse_terminal(tokens, pos, x)
+			children = append(children, r.node)
+		} else {
+			if equal(x, "[") {
+				r = parse_list_literal(tokens, pos)
+				if is_error(r) {
+					return r
+				}
+				children = append(children, r.node)
+			} else {
+				if equal(x, "(") {
+					# Function literal and grouped expression share a prefix. Try the
+					# function grammar independently; fall back to grouping on failure.
+					r = parse_func_literal(tokens, pos)
+					if is_error(r) {
+						children = []
+						let open = parse_terminal(tokens, pos, "(")
+						children = append(children, open.node)
+						let expr = parse_expr(tokens, open.pos)
+						if is_error(expr) {
+							return expr
+						}
+						children = append(children, expr.node)
+						let close = parse_terminal(tokens, expr.pos, ")")
+						if is_error(close) {
+							return close
+						}
+						children = append(children, close.node)
+						r = [@parse_result, [], close.pos]
+					} else {
+						children = append(children, r.node)
+					}
+				} else {
+					return parse_error(tokens, pos, "primary expression")
+				}
+			}
+		}
+	}
+	return [@parse_result, node_at("primary", "", children, tokens, start), r.pos]
+}
+
+let parse_list_literal = (tokens, pos) {
+	let start = pos
+	let children = []
+	let r = parse_terminal(tokens, pos, "[")
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	let p = r.pos
+	if equal(kind_at(tokens, p), "SHAPE") {
+		r = parse_token(tokens, p, "SHAPE")
+		children = append(children, r.node)
+		p = r.pos
+		while equal(lexeme_at(tokens, p), ",") {
+			r = parse_terminal(tokens, p, ",")
+			children = append(children, r.node)
+			r = parse_expr(tokens, r.pos)
+			if is_error(r) {
+				return r
+			}
+			children = append(children, r.node)
+			p = r.pos
+		}
+	} else {
+		if not equal(lexeme_at(tokens, p), "]") {
+			r = parse_expr(tokens, p)
+			if is_error(r) {
+				return r
+			}
+			children = append(children, r.node)
+			p = r.pos
+			while equal(lexeme_at(tokens, p), ",") {
+				r = parse_terminal(tokens, p, ",")
+				children = append(children, r.node)
+				r = parse_expr(tokens, r.pos)
+				if is_error(r) {
+					return r
+				}
+				children = append(children, r.node)
+				p = r.pos
+			}
+		}
+	}
+	r = parse_terminal(tokens, p, "]")
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	return [@parse_result, node_at("list_literal", "", children, tokens, start), r.pos]
+}
+
+let parse_func_literal = (tokens, pos) {
+	let start = pos
+	let children = []
+	let r = parse_terminal(tokens, pos, "(")
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	r = parse_params(tokens, r.pos)
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	r = parse_terminal(tokens, r.pos, ")")
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	r = parse_block(tokens, r.pos)
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	return [@parse_result, node_at("func_literal", "", children, tokens, start), r.pos]
+}
+
+let parse_params = (tokens, pos) {
+	let start = pos
+	let children = []
+	let p = pos
+	let r = []
+	if not equal(lexeme_at(tokens, p), ")") {
+		if equal(lexeme_at(tokens, p), "...") {
+			r = parse_rest_param(tokens, p)
+			if is_error(r) {
+				return r
+			}
+			children = append(children, r.node)
+			p = r.pos
+		} else {
+			r = parse_param_list(tokens, p)
+			if is_error(r) {
+				return r
+			}
+			children = append(children, r.node)
+			p = r.pos
+			if equal(lexeme_at(tokens, p), ",") and equal(lexeme_at(tokens, p + 1), "...") {
+				r = parse_terminal(tokens, p, ",")
+				children = append(children, r.node)
+				r = parse_rest_param(tokens, r.pos)
+				if is_error(r) {
+					return r
+				}
+				children = append(children, r.node)
+				p = r.pos
+			}
+		}
+	}
+	return [@parse_result, node_at("params", "", children, tokens, start), p]
+}
+
+let parse_param_list = (tokens, pos) {
+	let start = pos
+	let children = []
+	let r = parse_token(tokens, pos, "NAME")
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	let p = r.pos
+	while equal(lexeme_at(tokens, p), ",") and equal(kind_at(tokens, p + 1), "NAME") {
+		r = parse_terminal(tokens, p, ",")
+		children = append(children, r.node)
+		r = parse_token(tokens, r.pos, "NAME")
+		children = append(children, r.node)
+		p = r.pos
+	}
+	return [@parse_result, node_at("param_list", "", children, tokens, start), p]
+}
+
+let parse_rest_param = (tokens, pos) {
+	let start = pos
+	let children = []
+	let r = parse_terminal(tokens, pos, "...")
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	r = parse_token(tokens, r.pos, "NAME")
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	return [@parse_result, node_at("rest_param", "", children, tokens, start), r.pos]
+}
+
+let parse_block = (tokens, pos) {
+	let start = pos
+	let children = []
+	let r = parse_terminal(tokens, pos, "{")
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	let p = r.pos
+	while not equal(lexeme_at(tokens, p), "}") {
+		r = parse_statement(tokens, p)
+		if is_error(r) {
+			return r
+		}
+		children = append(children, r.node)
+		p = r.pos
+		if equal(lexeme_at(tokens, p), ";") {
+			r = parse_terminal(tokens, p, ";")
+			children = append(children, r.node)
+			p = r.pos
+		}
+	}
+	r = parse_terminal(tokens, p, "}")
+	if is_error(r) {
+		return r
+	}
+	children = append(children, r.node)
+	return [@parse_result, node_at("block", "", children, tokens, start), r.pos]
+}
+
+let parse_literal = (tokens, pos) {
+	let start = pos
+	let children = []
+	let k = kind_at(tokens, pos)
+	let x = lexeme_at(tokens, pos)
+	let r = []
+	if equal(k, "NUMBER") or equal(k, "STRING") or equal(k, "RUNE") or equal(k, "SYMBOL") {
+		r = parse_token(tokens, pos, k)
+	} else {
+		if equal(x, "true") or equal(x, "false") {
+			r = parse_terminal(tokens, pos, x)
+		} else {
+			return parse_error(tokens, pos, "literal")
+		}
+	}
+	children = append(children, r.node)
+	return [@parse_result, node_at("literal", "", children, tokens, start), r.pos]
+}
+
+# Project to the same language-owned, human-readable grammar tree surface used
+# by engine *.parse.gold artifacts: indentation, kind, line:column, and value
+# only for terminal/token leaves.
+let project_node_lines = (node, depth) {
+	let indent = ""
+	let i = 0
+	while i < depth {
+		indent = indent + "  "
+		i = i + 1
+	}
+	let line = indent + node.kind + " " + to_str(node.line) + ":" + to_str(node.col)
+	if not equal(node.value, "") {
+		line = line + " " + inspect(node.value)
+	}
+	let out = [line]
+	let c = 0
+	while c < length(node.children) {
+		let child_lines = project_node_lines(node.children[c], depth + 1)
+		let j = 0
+		while j < length(child_lines) {
+			out = append(out, child_lines[j])
+			j = j + 1
+		}
+		c = c + 1
+	}
+	return out
+}
+
+let project_tree = (node) {
+	str.join(project_node_lines(node, 0), "\n")
+}
+
+let parse = (tokens) {
+	let r = parse_program(tokens, 0)
+	if is_error(r) {
+		return r
+	}
+	if not equal(r.pos, length(tokens)) {
+		return parse_error(tokens, r.pos, "end of input")
+	}
+	return r.node
+}
+
+export(:parse, :project_tree)

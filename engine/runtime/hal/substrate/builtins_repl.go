@@ -94,7 +94,7 @@ func showHelpIndex(ctx *hal.EvalContext) value.Value {
 				categories["IO"] = append(categories["IO"], name)
 			case contains([]string{"first", "rest", "length", "prepend", "append", "empty"}, name):
 				categories["List"] = append(categories["List"], name)
-			case contains([]string{"type", "inspect", "equal", "shape", "ord", "chr", "is_error", "to_str", "to_number", "to_decimal"}, name):
+			case contains([]string{"type", "inspect", "equal", "shape", "ord", "chr", "is_error", "to_str", "to_number", "to_symbol", "to_decimal", "shaped"}, name):
 				categories["Type"] = append(categories["Type"], name)
 			case contains([]string{"spawn", "channel", "send", "recv"}, name):
 				categories["Concurrency"] = append(categories["Concurrency"], name)

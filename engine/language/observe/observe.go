@@ -1,0 +1,56 @@
+// Package observe defines neutral language-service observation and
+// instrumentation contracts. It imports no language-service implementation
+// package so service internals can depend downward on these contracts.
+package observe
+
+// EventKind names observable language-service work.
+type EventKind string
+
+const (
+	EventDiagnosticsRequested EventKind = "diagnostics_requested"
+	EventDiagnosticProduced   EventKind = "diagnostic_produced"
+	EventSymbolsRequested     EventKind = "symbols_requested"
+	EventDefinitionRequested  EventKind = "definition_requested"
+	EventFormatRequested      EventKind = "format_requested"
+	EventFormatProduced       EventKind = "format_produced"
+	EventFormatRejected       EventKind = "format_rejected"
+	EventCompletionRequested  EventKind = "completion_requested"
+	EventHoverRequested       EventKind = "hover_requested"
+)
+
+// Event describes service work without exposing parser or protocol structs.
+type Event struct {
+	Kind       EventKind
+	DocumentID string
+	Detail     string
+}
+
+// Observer receives language-service events. Observers must not affect
+// service results.
+type Observer interface {
+	ObserveLanguage(Event)
+}
+
+// Metric names a measured service operation.
+type Metric string
+
+const (
+	MetricDiagnosticsRequest Metric = "diagnostics_request"
+	MetricLexRun             Metric = "lex_run"
+	MetricParseRun           Metric = "parse_run"
+	MetricAnalysisRun        Metric = "analysis_run"
+	MetricDiagnostic         Metric = "diagnostic"
+	MetricSymbolsRequest     Metric = "symbols_request"
+	MetricDefinitionRequest  Metric = "definition_request"
+	MetricFormatRequest      Metric = "format_request"
+	MetricFormatProduced     Metric = "format_produced"
+	MetricFormatRejected     Metric = "format_rejected"
+	MetricCompletionRequest  Metric = "completion_request"
+	MetricHoverRequest       Metric = "hover_request"
+)
+
+// Probe receives service measurements. Implementations used by concurrent
+// clients must be safe for concurrent use.
+type Probe interface {
+	HitLanguage(Metric, int64)
+}

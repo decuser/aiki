@@ -1,0 +1,5 @@
+tokens WHITESPACE NEWLINE COMMENT NUMBER STRING RUNE SYMBOL SHAPE KEYWORD OPERATOR DELIMITER NAME
+keywords let if else while match select default return true false and or not package
+operators + - * / < > <= >= |> . =
+delimiters ( ) [ ] { } , ; ...
+skips WHITESPACE COMMENT

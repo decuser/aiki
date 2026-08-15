@@ -1,0 +1,97 @@
+package "selfhost/normalize"
+
+# Phase I / Cut I.3: independent skip/newline normalization.
+let @token [kind, lexeme, line, col]
+let @normalization_authority [skips, newline_token, after_tokens, after_lexemes, suppress_pairs]
+
+let skip_tokens = ["WHITESPACE", "COMMENT"]
+let newline_token = "NEWLINE"
+let after_tokens = ["NAME", "NUMBER", "STRING", "RUNE", "SYMBOL"]
+let after_lexemes = [")", "]", "true", "false"]
+let suppress_pairs = [["(", ")"], ["[", "]"]]
+
+let normalization_authority = () {
+	[@normalization_authority, skip_tokens, newline_token, after_tokens, after_lexemes, suppress_pairs]
+}
+
+let contains_value = (xs, target) {
+	let i = 0
+	while i < length(xs) {
+		if equal(xs[i], target) {
+			return true
+		}
+		i = i + 1
+	}
+	return false
+}
+
+let closer_for = (lexeme) {
+	let i = 0
+	while i < length(suppress_pairs) {
+		if equal(suppress_pairs[i][0], lexeme) {
+			return suppress_pairs[i][1]
+		}
+		i = i + 1
+	}
+	return ""
+}
+
+let is_suppression_closer = (lexeme) {
+	let i = 0
+	while i < length(suppress_pairs) {
+		if equal(suppress_pairs[i][1], lexeme) {
+			return true
+		}
+		i = i + 1
+	}
+	return false
+}
+
+let ends_statement = (token) {
+	contains_value(after_tokens, token.kind) or contains_value(after_lexemes, token.lexeme)
+}
+
+let normalize = (tokens) {
+	let out = []
+	let suppress_stack = []
+	let i = 0
+	while i < length(tokens) {
+		let token = tokens[i]
+		if not contains_value(skip_tokens, token.kind) {
+			# Keep the expected closer at the front of the stack. A mismatched or
+			# unmatched closer does not alter suppression state.
+			let matched_close = false
+			if not empty(suppress_stack) {
+				if equal(token.lexeme, first(suppress_stack)) {
+					suppress_stack = rest(suppress_stack)
+					matched_close = true
+				}
+			}
+			if not matched_close {
+				let closer = closer_for(token.lexeme)
+				if not equal(closer, "") {
+					suppress_stack = prepend(suppress_stack, closer)
+				} else {
+					if is_suppression_closer(token.lexeme) {
+					}
+				}
+			}
+			# Deliberately no state change.
+			if equal(token.kind, newline_token) {
+				if empty(suppress_stack) {
+					if not empty(out) {
+						if ends_statement(out[length(out) - 1]) {
+							out = append(out, [@token, "DELIMITER", ";", token.line, token.col])
+						}
+					}
+				}
+			} else {
+				out = append(out, token)
+			}
+		}
+		i = i + 1
+	}
+	return out
+}
+
+export(:normalize, :normalization_authority)
