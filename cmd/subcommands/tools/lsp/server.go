@@ -52,10 +52,11 @@ func (s *server) handle(msg message) (bool, error) {
 	case "initialize":
 		return false, s.reply(msg.ID, map[string]any{
 			"capabilities": map[string]any{
-				"positionEncoding":       "utf-16",
-				"textDocumentSync":       map[string]any{"openClose": true, "change": 1},
-				"definitionProvider":     true,
-				"documentSymbolProvider": true,
+				"positionEncoding":           "utf-16",
+				"textDocumentSync":           map[string]any{"openClose": true, "change": 1},
+				"definitionProvider":         true,
+				"documentSymbolProvider":     true,
+				"documentFormattingProvider": true,
 			},
 			"serverInfo": map[string]any{"name": "aiki"},
 		})
@@ -121,6 +122,33 @@ func (s *server) handle(msg message) (bool, error) {
 			return false, s.reply(msg.ID, nil)
 		}
 		return false, s.reply(msg.ID, map[string]any{"uri": d.URI, "range": symbolRange(d.Text, def.Symbol)})
+	case "textDocument/formatting":
+		var p struct {
+			TextDocument struct {
+				URI string `json:"uri"`
+			} `json:"textDocument"`
+		}
+		if err := json.Unmarshal(msg.Params, &p); err != nil {
+			return false, err
+		}
+		d, ok := s.documents[p.TextDocument.URI]
+		if !ok {
+			return false, s.reply(msg.ID, []any{})
+		}
+		formatted, err := s.service.Format(language.Document{ID: d.URI, Path: d.Path, Source: d.Text, Version: d.Version})
+		if err != nil {
+			return false, s.replyError(msg.ID, -32602, err.Error())
+		}
+		if formatted == d.Text {
+			return false, s.reply(msg.ID, []any{})
+		}
+		return false, s.reply(msg.ID, []map[string]any{{
+			"range": map[string]any{
+				"start": map[string]int{"line": 0, "character": 0},
+				"end":   endLSPPosition(d.Text),
+			},
+			"newText": formatted,
+		}})
 	case "textDocument/documentSymbol":
 		var p struct {
 			TextDocument struct {
@@ -169,6 +197,10 @@ func (s *server) handle(msg message) (bool, error) {
 
 func (s *server) reply(id json.RawMessage, result any) error {
 	return s.transport.write(response{JSONRPC: "2.0", ID: id, Result: result})
+}
+
+func (s *server) replyError(id json.RawMessage, code int, message string) error {
+	return s.transport.write(response{JSONRPC: "2.0", ID: id, Error: &responseError{Code: code, Message: message}})
 }
 
 func (s *server) publishDiagnostics(d documentState) error {
@@ -296,4 +328,21 @@ func symbolRange(source string, sym language.Symbol) map[string]any {
 	start := lspPosition(source, sym.Pos.Line, sym.Pos.Col)
 	end := lspPosition(source, sym.Pos.Line, sym.Pos.Col+len(sym.Name))
 	return map[string]any{"start": start, "end": end}
+}
+
+func endLSPPosition(source string) map[string]int {
+	lines := strings.Split(source, "\n")
+	line := len(lines) - 1
+	if line < 0 {
+		line = 0
+	}
+	text := ""
+	if len(lines) > 0 {
+		text = lines[len(lines)-1]
+	}
+	units := 0
+	for _, r := range text {
+		units += len(utf16.Encode([]rune{r}))
+	}
+	return map[string]int{"line": line, "character": units}
 }

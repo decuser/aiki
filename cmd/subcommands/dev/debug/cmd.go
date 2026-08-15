@@ -14,7 +14,7 @@ import (
 	"aiki/engine/syntax"
 	"aiki/engine/syntax/grammar"
 
-	aikifmt "aiki/cmd/subcommands/tools/fmt"
+	aikifmt "aiki/engine/formatter"
 )
 
 // Run executes the debug subcommand with the given arguments.

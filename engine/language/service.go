@@ -7,6 +7,7 @@ import (
 	"errors"
 
 	"aiki/engine"
+	"aiki/engine/formatter"
 	languageobserve "aiki/engine/language/observe"
 	"aiki/engine/semantics/value"
 	"aiki/engine/syntax"
@@ -110,4 +111,25 @@ func diagnosticFromSyntaxError(err error, fallback string) Diagnostic {
 		Source:   fallback,
 		Message:  err.Error(),
 	}
+}
+
+// Format returns the canonical formatting of doc. The formatter's existing
+// parse-preservation gate remains authoritative; invalid or meaning-changing
+// transformations return an error rather than an edit.
+func (s *Service) Format(doc Document) (string, error) {
+	s.observe(languageobserve.EventFormatRequested, doc, "")
+	s.hit(languageobserve.MetricFormatRequest, 1)
+	file := doc.Path
+	if file == "" {
+		file = doc.ID
+	}
+	out, err := formatter.FormatSource(s.grammar, file, doc.Source)
+	if err != nil {
+		s.observe(languageobserve.EventFormatRejected, doc, err.Error())
+		s.hit(languageobserve.MetricFormatRejected, 1)
+		return "", err
+	}
+	s.observe(languageobserve.EventFormatProduced, doc, "")
+	s.hit(languageobserve.MetricFormatProduced, 1)
+	return out, nil
 }

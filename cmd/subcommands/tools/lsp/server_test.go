@@ -104,3 +104,39 @@ func TestDefinitionAndDocumentSymbols(t *testing.T) {
 		}
 	}
 }
+
+func TestFormattingUsesLanguageService(t *testing.T) {
+	var in bytes.Buffer
+	in.Write(framed(map[string]any{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": map[string]any{}}))
+	in.Write(framed(map[string]any{"jsonrpc": "2.0", "method": "initialized", "params": map[string]any{}}))
+	in.Write(framed(map[string]any{"jsonrpc": "2.0", "method": "textDocument/didOpen", "params": map[string]any{"textDocument": map[string]any{"uri": "file:///tmp/test.ai", "languageId": "aiki", "version": 1, "text": "let   x=1\n"}}}))
+	in.Write(framed(map[string]any{"jsonrpc": "2.0", "id": 2, "method": "textDocument/formatting", "params": map[string]any{"textDocument": map[string]any{"uri": "file:///tmp/test.ai"}, "options": map[string]any{"tabSize": 4, "insertSpaces": false}}}))
+	in.Write(framed(map[string]any{"jsonrpc": "2.0", "id": 3, "method": "shutdown"}))
+	in.Write(framed(map[string]any{"jsonrpc": "2.0", "method": "exit"}))
+	var out bytes.Buffer
+	if err := Serve(&in, &out, testLSPService(t)); err != nil {
+		t.Fatal(err)
+	}
+	body := string(out.Bytes())
+	for _, want := range []string{"documentFormattingProvider", `"newText":"let x = 1\n"`} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("missing %q in %s", want, body)
+		}
+	}
+}
+
+func TestFormattingRejectsInvalidSource(t *testing.T) {
+	var in bytes.Buffer
+	in.Write(framed(map[string]any{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": map[string]any{}}))
+	in.Write(framed(map[string]any{"jsonrpc": "2.0", "method": "initialized", "params": map[string]any{}}))
+	in.Write(framed(map[string]any{"jsonrpc": "2.0", "method": "textDocument/didOpen", "params": map[string]any{"textDocument": map[string]any{"uri": "file:///tmp/test.ai", "languageId": "aiki", "version": 1, "text": "let x =\n"}}}))
+	in.Write(framed(map[string]any{"jsonrpc": "2.0", "id": 2, "method": "textDocument/formatting", "params": map[string]any{"textDocument": map[string]any{"uri": "file:///tmp/test.ai"}, "options": map[string]any{}}}))
+	in.Write(framed(map[string]any{"jsonrpc": "2.0", "method": "exit"}))
+	var out bytes.Buffer
+	if err := Serve(&in, &out, testLSPService(t)); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(out.Bytes()), `"code":-32602`) {
+		t.Fatalf("expected formatting error response, got %s", out.String())
+	}
+}

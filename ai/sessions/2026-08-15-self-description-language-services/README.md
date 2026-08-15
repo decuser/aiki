@@ -1,6 +1,6 @@
 # Self-description and language services
 
-Status: ACTIVE — Phase I GATED; Phase II Cuts II.0–II.4 GATED; Cut II.5 ACTIVE at nvi handoff gate.
+Status: ACTIVE — Phase I GATED; Phase II Cuts II.0–II.5 GATED; Cut II.6 ACTIVE.
 
 Proposal: `proposals/aiki-self-description-language-services-proposal.md`
 
@@ -20,12 +20,13 @@ Baseline: `v0.4.0-alpha-14-g9c78646` (`9c78646`).
 10. `10-language-service-observation.md` — GATED.
 11. `11-lsp-shell.md` — GATED.
 12. `12-xed-support.md` — GATED; live Xed underline/clear gate passed.
-13. `13-symbol-definition-tags.md` — ACTIVE; implementation/local gates complete, authoritative validate + live nvi gate pending.
+13. `13-symbol-definition-tags.md` — GATED; authoritative validate and live nvi jump passed.
+14. `14-formatting-service.md` — ACTIVE.
 
 ## Current state
 
-Phase I and Phase II Cuts II.0–II.4 are GATED. The real Xed environment confirmed `.ai` recognition, grammar-coupled highlighting, LSP initialization/document synchronization, visible diagnostics, diagnostic clearing, Save-As transition handling, and the idempotent installer. Cut II.5 now adds one neutral symbol/definition authority with LSP and classic-tags projections. Local package tests pass in the disposable validation harness; authoritative validation and a live nvi tag jump remain.
+Phase I and Phase II Cuts II.0–II.5 are GATED. The real Xed environment confirmed `.ai` recognition, grammar-coupled highlighting, LSP initialization/document synchronization, visible diagnostics, diagnostic clearing, Save-As transition handling, and the idempotent installer. The live nvi gate also passed: a tags file generated for `extra/samples/string_utils.ai` resolved `my_slice` with `^]`. Cut II.6 now extracts the canonical formatter into a neutral engine capability and projects it through the language service/LSP without duplicating formatting logic.
 
 ## Exact next action
 
-Run `make validate`. If it passes, generate a tags file with `./aiki tags -o tags <path>`, open an Aiki source file in nvi with `:set tags=./tags`, and confirm `^]` on a top-level name jumps to its definition. Then mark II.5 GATED and begin II.6 formatting service.
+Complete Cut II.6: extract the canonical formatter below command adapters, add `Service.Format`, expose LSP `textDocument/formatting`, prove CLI/service equivalence and preserve the existing parse-preservation safety gate. Then run the authoritative `make validate`.

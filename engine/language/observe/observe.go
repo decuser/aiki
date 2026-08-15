@@ -11,6 +11,9 @@ const (
 	EventDiagnosticProduced   EventKind = "diagnostic_produced"
 	EventSymbolsRequested     EventKind = "symbols_requested"
 	EventDefinitionRequested  EventKind = "definition_requested"
+	EventFormatRequested      EventKind = "format_requested"
+	EventFormatProduced       EventKind = "format_produced"
+	EventFormatRejected       EventKind = "format_rejected"
 )
 
 // Event describes service work without exposing parser or protocol structs.
@@ -37,6 +40,9 @@ const (
 	MetricDiagnostic         Metric = "diagnostic"
 	MetricSymbolsRequest     Metric = "symbols_request"
 	MetricDefinitionRequest  Metric = "definition_request"
+	MetricFormatRequest      Metric = "format_request"
+	MetricFormatProduced     Metric = "format_produced"
+	MetricFormatRejected     Metric = "format_rejected"
 )
 
 // Probe receives service measurements. Implementations used by concurrent

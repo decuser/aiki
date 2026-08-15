@@ -103,3 +103,25 @@ parse diagnostic is visible, then correct the source and confirm it clears.
 ## Live gate
 
 Passed on the user's Xed workstation. `.ai` syntax highlighting is recognized; the plugin launches the development `aiki lsp`; `let x =` receives a visible red diagnostic underline; correcting it to `let x = 42` clears the diagnostic. Save-As URI transition and zero-width EOF diagnostic rendering were corrected during the live gate. `make install-xed-plugin` owns clean user-local installation.
+
+## Live environment evidence
+
+The Xed handoff was exercised in the user's real Xed environment. The final gate passed:
+
+- `.ai` files are recognized and syntax highlighted by the grammar-coupled `aiki.lang`.
+- the Python/libpeas plugin starts `aiki lsp` and completes LSP initialization;
+- an invalid `let x =` produces a visible red diagnostic squiggle;
+- correcting the source clears the diagnostic;
+- zero-width EOF diagnostics are expanded only for Xed rendering, without changing the authoritative LSP diagnostic;
+- untitled -> Save As `.ai` transitions are reconciled so the document becomes an LSP document without close/reopen.
+
+The repository provides idempotent installation targets:
+
+```sh
+make install-xed-plugin
+make uninstall-xed-plugin
+```
+
+The installer replaces stale installed Aiki plugin files and installs the current GtkSourceView language definition, plugin descriptor, and Python package under the user's XDG data directory.
+
+Desktop-launched Xed does not necessarily inherit shell startup PATH changes. In the live test its process PATH was only `/usr/local/bin:/usr/bin:/bin:/usr/local/games:/usr/games`. The practical development setup is therefore to ensure `aiki` is reachable on the actual desktop-session PATH (for example through a stable symlink in a directory already present there), then verify with `/proc/<xed-pid>/environ` rather than relying on shell `which`.

@@ -1,6 +1,7 @@
 package language
 
 import (
+	"aiki/engine/formatter"
 	"reflect"
 	"strings"
 	"testing"
@@ -100,5 +101,39 @@ func TestSymbolsAndDefinitionUseLexicalScopes(t *testing.T) {
 		if !got.Found || got.Symbol.Name != tc.want || got.Symbol.Pos.Line != tc.line {
 			t.Fatalf("definition at %#v = %#v", tc.pos, got)
 		}
+	}
+}
+
+func TestFormatUsesCanonicalFormatter(t *testing.T) {
+	g, err := grammar.Load("grammar.ebnfx", syntax.EbnfxSource, "grammar.help", syntax.HelpSource)
+	if err != nil {
+		t.Fatal(err)
+	}
+	svc := NewService(g)
+	doc := Document{ID: "test.ai", Path: "test.ai", Source: "let   x=1\n"}
+	got, err := svc.Format(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want, err := formatter.FormatSource(g, doc.Path, doc.Source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != want {
+		t.Fatalf("service format differs from canonical formatter:\nservice=%q\ncanonical=%q", got, want)
+	}
+	if got != "let x = 1\n" {
+		t.Fatalf("unexpected formatted result %q", got)
+	}
+}
+
+func TestFormatRejectsInvalidSource(t *testing.T) {
+	g, err := grammar.Load("grammar.ebnfx", syntax.EbnfxSource, "grammar.help", syntax.HelpSource)
+	if err != nil {
+		t.Fatal(err)
+	}
+	svc := NewService(g)
+	if _, err := svc.Format(Document{ID: "bad.ai", Path: "bad.ai", Source: "let x =\n"}); err == nil {
+		t.Fatal("expected invalid source to be rejected")
 	}
 }

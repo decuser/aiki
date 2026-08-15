@@ -1,6 +1,6 @@
 # Milestone 13 — symbol/definition service and nvi tags
 
-Status: ACTIVE — implementation and disposable package gates complete; authoritative `make validate` and live nvi tag jump pending.
+Status: GATED — authoritative validation and live nvi tag jump passed.
 
 ## Intent
 
@@ -25,8 +25,25 @@ A disposable Go 1.23 copy with only the graphics backend stubbed passed:
 
 The authoritative tree was not downgraded and no disposable stub is retained.
 
-## Handoff gate
+## Authoritative and live evidence
 
-1. Run `make validate` on the authoritative toolchain.
-2. Run `./aiki tags -o tags <chosen Aiki source path or directory>`.
-3. In nvi with `:set tags=./tags`, place the cursor on a top-level name and use `^]`; confirm the jump reaches the same source definition that LSP definition reports.
+- `make validate` passed on the authoritative tree/toolchain.
+- Generated tags for the actual file under test with:
+
+  ```sh
+  ./aiki tags -o tags extra/samples/string_utils.ai
+  ```
+
+- In nvi, `:set tags=./tags` followed by `^]` on the `my_slice` call jumped to the top-level `my_slice` definition; `^T` returns.
+- An earlier `tag not found` result was correctly traced to using a tags file generated for `selfhost/` rather than the source corpus being edited. Tags are corpus-specific.
+
+## Operational note
+
+For nvi, regenerate `tags` for the source tree/file being edited. The minimal workflow is:
+
+```sh
+./aiki tags -o tags <path>
+nvi <file.ai>
+```
+
+Then `:set tags=./tags`, `^]` to jump, and `^T` to return.
