@@ -50,3 +50,18 @@ func halSystemEnv(args []value.Value, ctx *hal.EvalContext) value.Value {
 	}
 	return &value.String{Val: v}
 }
+
+func halModuleRoots(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 0 {
+		return value.NewFault("module_roots: want 0 arguments, got %d", len(args))
+	}
+	if GlobalRegistry == nil {
+		return value.NewFault("module_roots: module registry is not initialized")
+	}
+	roots := GlobalRegistry.Roots()
+	elements := make([]value.Value, len(roots))
+	for i, root := range roots {
+		elements[i] = &value.String{Val: root}
+	}
+	return &value.List{Elements: elements}
+}

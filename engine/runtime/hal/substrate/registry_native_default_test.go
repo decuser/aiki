@@ -149,3 +149,21 @@ func TestModuleRootsDoNotScanWorkingDirectoryItself(t *testing.T) {
 		}
 	}
 }
+
+func TestModuleRegistryRootsReturnsCopyInLookupOrder(t *testing.T) {
+	want := []string{"/dist/lib", "/dist/vendor", "/work/lib", "/home/user/.aiki/lib"}
+	r := NewModuleRegistry(want)
+	got := r.Roots()
+	if len(got) != len(want) {
+		t.Fatalf("roots length: got %d, want %d", len(got), len(want))
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("root %d: got %q, want %q", i, got[i], want[i])
+		}
+	}
+	got[0] = "/mutated"
+	if reread := r.Roots(); reread[0] != want[0] {
+		t.Fatalf("Roots exposed mutable registry state: got %q, want %q", reread[0], want[0])
+	}
+}

@@ -1,6 +1,6 @@
 # Self-description and language services
 
-Status: ACTIVE — Phase I and Phase II GATED/COMPLETE; Phase III Cuts III.0–III.5 GATED; Cut III.6 locally complete with authoritative validation pending.
+Status: ACTIVE — Phases I–III GATED/COMPLETE; post-completion out-of-tree selfhost named-module resolution correction and authority-test absolute-root fix pending authoritative validation.
 
 Proposal: `proposals/aiki-self-description-language-services-proposal.md`
 
@@ -34,11 +34,13 @@ Baseline: `v0.4.0-alpha-14-g9c78646` (`9c78646`).
 24. `24-selfhost-modules.md` — locally GATED; authoritative gate pending.
 25. `25-selfhost-behavior-conformance.md` — locally GATED; authoritative gate pending.
 26. `26-self-interpretation-performance-boundary.md` — SUPERSEDED by measured completion.
-27. `27-self-interpretation-complete.md` — locally GATED; authoritative validation pending.
+27. `27-self-interpretation-complete.md` — GATED.
+28. `28-iii6-chars-bootstrap-coupling-fix.md` — GATED; authoritative validate passed.
+29. `29-selfhost-out-of-tree-path-imports.md` — ACTIVE; out-of-tree named-module resolution correction pending authoritative gate.
 
 ## Current state
 
-Phase I and Phase II are GATED. Phase III now includes the independent runtime/evaluator, self-hosted module loader/cache/export path, scoped HAL bootstrap, behavior-conformance corpus, and a successful full nested self-interpretation proof.
+Phases I–III are GATED/COMPLETE. Phase III includes the independent runtime/evaluator, self-hosted module loader/cache/export path, scoped HAL bootstrap, behavior-conformance corpus, and a successful full nested self-interpretation proof.
 
 Cut III.6 measurement corrected the earlier performance diagnosis. The dominant cost was repeated string/rune work in the independent lexer; after a linear `string.chars` realization and lexer dispatch cleanup, the nested path exposed two module-identity defects: missing current-directory fallback for path imports and non-canonical cache keys. Both now match the reference loader's observable behavior.
 
@@ -46,4 +48,4 @@ The complete proof executes `1 + 2 * 3` through an Aiki-written interpreter whic
 
 ## Exact next action
 
-Run authoritative `make validate` for the final III.6 delta. If it passes, mark III.6 and Phase III GATED/COMPLETE and close this implementation session.
+Run authoritative `make validate` with the authority-test absolute-root correction. Then from `~/forge/dev/test` rerun the one-level and nested selfhost drivers without profiling. If both return the expected result, mark Milestone 29 GATED and only then repeat the profiling comparison.

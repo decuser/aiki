@@ -320,6 +320,12 @@ func findPackageName(node *syntax.Node) string {
 	return ""
 }
 
+// Roots returns a copy of the configured named-module search roots in lookup order.
+// Callers may inspect the distribution policy without mutating registry state.
+func (r *ModuleRegistry) Roots() []string {
+	return append([]string(nil), r.roots...)
+}
+
 // Lookup returns the file path for a public package name.
 func (r *ModuleRegistry) Lookup(name string) (string, bool) {
 	path, ok := r.paths[name]

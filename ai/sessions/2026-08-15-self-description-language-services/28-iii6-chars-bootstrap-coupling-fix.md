@@ -1,6 +1,6 @@
 # Milestone 28 — III.6 `_chars` bootstrap coupling correction
 
-Status: ACTIVE
+Status: GATED
 
 ## Validation finding
 
@@ -25,4 +25,4 @@ self-hosted module environments.
 
 ## Gate
 
-ACTIVE pending authoritative `make validate`.
+GATED — authoritative `make validate` passed after the `_chars` bootstrap correction.

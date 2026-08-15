@@ -252,6 +252,28 @@ func buildAiki(t *testing.T) string {
 	return exe
 }
 
+func runAikiFile(exe, path, workDir string) (stdout, stderr string, exitCode int, err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, exe, path)
+	cmd.Dir = workDir
+	var outBuf, errBuf bytes.Buffer
+	cmd.Stdout = &outBuf
+	cmd.Stderr = &errBuf
+
+	runErr := cmd.Run()
+	stdout = outBuf.String()
+	stderr = errBuf.String()
+
+	if runErr != nil {
+		if ee, ok := runErr.(*exec.ExitError); ok {
+			return stdout, stderr, ee.ExitCode(), nil
+		}
+		return stdout, stderr, 1, runErr
+	}
+	return stdout, stderr, 0, nil
+}
+
 func runAikiSource(exe, source, workDir string) (stdout, stderr string, exitCode int, err error) {
 	tmp, err := os.CreateTemp("", "aiki-doc-*.ai")
 	if err != nil {

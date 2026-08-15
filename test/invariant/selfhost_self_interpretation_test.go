@@ -5,7 +5,6 @@ import (
 	"context"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -19,7 +18,6 @@ import (
 // expected result exercises Aiki's left-to-right arithmetic semantics:
 // 1 + 2 * 3 == 9.
 func TestSelfhostSelfInterpretation(t *testing.T) {
-	root := distributionRoot(t)
 	exe := buildAiki(t)
 
 	source := `let bootstrap = import("selfhost/bootstrap")
@@ -44,7 +42,10 @@ println(inspect(result))
 	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, exe, tmp.Name())
-	cmd.Dir = filepath.Clean(root)
+	// Run from outside the distribution tree. Named distribution imports must
+	// resolve from the executable, while selfhost-internal path imports must
+	// resolve from the importing file rather than accidentally from process CWD.
+	cmd.Dir = t.TempDir()
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr

@@ -17,17 +17,13 @@ func TestSelfhostTokenAuthority(t *testing.T) {
 	sourcePath := filepath.Join(root, "selfhost", "token_authority.ai")
 	goldPath := filepath.Join(root, "selfhost", "token_authority.gold")
 
-	source, err := os.ReadFile(sourcePath)
-	if err != nil {
-		t.Fatalf("read token authority extractor: %v", err)
-	}
 	gold, err := os.ReadFile(goldPath)
 	if err != nil {
 		t.Fatalf("read token authority gold: %v", err)
 	}
 
 	exe := buildAiki(t)
-	stdout, stderr, exitCode, err := runAikiSource(exe, string(source), root)
+	stdout, stderr, exitCode, err := runAikiFile(exe, sourcePath, root)
 	if err != nil {
 		t.Fatalf("run token authority extractor: %v", err)
 	}

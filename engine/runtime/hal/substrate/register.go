@@ -50,6 +50,7 @@ func (g *GoRuntime) registerHAL() {
 	// Host program environment
 	g.register("_system_args", halSystemArgs)
 	g.register("_system_env", halSystemEnv)
+	g.register("_module_roots", halModuleRoots)
 
 	// Canvas
 	g.register("_canvas", halCanvas)

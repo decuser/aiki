@@ -1,6 +1,6 @@
 # Executable coupling for the independent normalization tables.
-let grammar = import("./selfhost/grammar_authority")
-let normalize = import("./selfhost/normalize")
+let grammar = import("./grammar_authority")
+let normalize = import("./normalize")
 
 let @token_authority [tokens, keywords, operators, delimiters, skips]
 let @newline_authority [token, after_tokens, after_lexemes, suppress_pairs]

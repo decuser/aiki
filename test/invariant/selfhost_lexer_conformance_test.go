@@ -19,11 +19,8 @@ func TestSelfhostLexerConformance(t *testing.T) {
 
 	// First prove that the independent lexer's duplicated enumerated tables are
 	// still exactly the lexical facts derived by Aiki from grammar.ebnfx.
-	checkSource, err := os.ReadFile(filepath.Join(root, "selfhost", "check_lexer_authority.ai"))
-	if err != nil {
-		t.Fatalf("read lexer authority check: %v", err)
-	}
-	stdout, stderr, exitCode, err := runAikiSource(exe, string(checkSource), root)
+	checkPath := filepath.Join(root, "selfhost", "check_lexer_authority.ai")
+	stdout, stderr, exitCode, err := runAikiFile(exe, checkPath, root)
 	if err != nil {
 		t.Fatalf("run lexer authority check: %v", err)
 	}

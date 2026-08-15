@@ -1,6 +1,6 @@
 # Executable coupling between the independent lexer tables and grammar.ebnfx.
-let grammar = import("./selfhost/grammar_authority")
-let lexer = import("./selfhost/lexer")
+let grammar = import("./grammar_authority")
+let lexer = import("./lexer")
 
 # Shape definitions are local metadata. Re-declare the two projection shapes so
 # field access is explicit in this comparison client.

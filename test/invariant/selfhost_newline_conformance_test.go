@@ -17,11 +17,8 @@ func TestSelfhostNewlineConformance(t *testing.T) {
 	root := distributionRoot(t)
 	exe := buildAiki(t)
 
-	checkSource, err := os.ReadFile(filepath.Join(root, "selfhost", "check_normalization_authority.ai"))
-	if err != nil {
-		t.Fatalf("read normalization authority check: %v", err)
-	}
-	stdout, stderr, exitCode, err := runAikiSource(exe, string(checkSource), root)
+	checkPath := filepath.Join(root, "selfhost", "check_normalization_authority.ai")
+	stdout, stderr, exitCode, err := runAikiFile(exe, checkPath, root)
 	if err != nil {
 		t.Fatalf("run normalization authority check: %v", err)
 	}

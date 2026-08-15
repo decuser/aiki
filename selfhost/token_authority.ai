@@ -1,5 +1,5 @@
 # Phase I / Cut I.0 executable projection of grammar lexical authority.
-let grammar = import("./selfhost/grammar_authority")
+let grammar = import("./grammar_authority")
 let authority = grammar.read_token_authority("engine/syntax/grammar.ebnfx")
 if is_error(authority) {
 	println(inspect(authority))

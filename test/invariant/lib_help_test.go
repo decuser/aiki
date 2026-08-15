@@ -48,7 +48,10 @@ type module struct {
 // distributionRoot locates the repository root relative to this test's package.
 func distributionRoot(t *testing.T) string {
 	t.Helper()
-	root := filepath.Join("..", "..")
+	root, err := filepath.Abs(filepath.Join("..", ".."))
+	if err != nil {
+		t.Fatalf("resolve distribution root: %v", err)
+	}
 	if _, err := os.Stat(filepath.Join(root, "go.mod")); err != nil {
 		t.Fatalf("cannot find distribution root at %s: %v", root, err)
 	}

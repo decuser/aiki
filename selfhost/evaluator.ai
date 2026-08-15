@@ -4,10 +4,10 @@ package "selfhost/evaluator"
 # The evaluator uses only ordinary Aiki values and prelude capabilities.
 let str = import("string")
 let file = import("file")
-let lex = import("./selfhost/lexer")
-let norm = import("./selfhost/normalize")
-let parser = import("./selfhost/parser")
-let rt = import("./selfhost/runtime")
+let lex = import("./lexer")
+let norm = import("./normalize")
+let parser = import("./parser")
+let rt = import("./runtime")
 
 # Parser-owned node layout, redeclared so imported AST values are inspectable
 # in this module without sharing parser implementation machinery.
@@ -31,9 +31,15 @@ let is_fault = (value) {
 
 let module_cache = []
 let hal_bindings = []
+let module_roots = []
 
 let configure_hal = (bindings) {
 	hal_bindings = bindings
+	return []
+}
+
+let configure_module_roots = (roots) {
+	module_roots = roots
 	return []
 }
 
@@ -100,6 +106,12 @@ let without_last = (xs) {
 }
 
 let clean_path = (path) {
+	let absolute = false
+	if length(path) > 0 {
+		if equal(path[0], '/') {
+			absolute = true
+		}
+	}
 	let parts = str.split(path, "/")
 	let out = []
 	let i = 0
@@ -127,14 +139,52 @@ let clean_path = (path) {
 	}
 	let result = str.join(out, "/")
 	if equal(result, "") {
+		if absolute {
+			return "/"
+		}
 		return "."
+	}
+	if absolute {
+		return "/" + result
 	}
 	return result
 }
 
+let basename = (path) {
+	let last = -1
+	let i = 0
+	while i < length(path) {
+		if equal(path[i], '/') {
+			last = i
+		}
+		i = i + 1
+	}
+	if last < 0 {
+		return path
+	}
+	return str.substring(path, last + 1, length(path))
+}
+
+let resolve_in_root = (root, name) {
+	let nested = clean_path(root + "/" + name + ".ai")
+	if file.exists(nested) {
+		return nested
+	}
+	let leaf = basename(name)
+	let direct = clean_path(root + "/" + name + "/" + leaf + ".ai")
+	if file.exists(direct) {
+		return direct
+	}
+	let native = clean_path(root + "/" + name + "/native.ai")
+	if file.exists(native) {
+		return native
+	}
+	return []
+}
+
 let resolve_module = (name, caller_env) {
-	# Relative module names may walk both down (./x) and up (../x). Keep the
-	# relative spelling intact and let the filesystem resolve dot segments.
+	# Relative module names may walk both down (./x) and up (../x). Resolve
+	# from the importing source first, then use the host-compatible CWD fallback.
 	if length(name) >= 2 {
 		if equal(name[0], '.') {
 			let rel = name
@@ -146,7 +196,6 @@ let resolve_module = (name, caller_env) {
 			if file.exists(candidate) {
 				return candidate
 			}
-			# Match the host loader: caller-relative first, then current-directory fallback.
 			let fallback = clean_path(rel)
 			if file.exists(fallback) {
 				return fallback
@@ -154,19 +203,16 @@ let resolve_module = (name, caller_env) {
 			return error_value(:import, "cannot find module: " + name)
 		}
 	}
-	# Named modules follow Aiki's lib layout. Bare families with no direct
-	# module file default to their native implementation.
-	let direct = "lib/" + name + "/" + name + ".ai"
-	if file.exists(direct) {
-		return direct
-	}
-	let nested = "lib/" + name + ".ai"
-	if file.exists(nested) {
-		return nested
-	}
-	let native = "lib/" + name + "/native.ai"
-	if file.exists(native) {
-		return native
+	# Named modules are located through the same ordered module-root inventory
+	# as the host registry. The self-host loader still owns source loading and
+	# evaluation; the host supplies only distribution/search-root facts.
+	let i = 0
+	while i < length(module_roots) {
+		let candidate = resolve_in_root(module_roots[i], name)
+		if not empty(candidate) {
+			return candidate
+		}
+		i = i + 1
 	}
 	return error_value(:import, "cannot find module: " + name)
 }
@@ -989,4 +1035,4 @@ let eval_program = (node, env) {
 	eval_node(node, env)
 }
 
-export(:eval_expr, :eval_program, :configure_hal, :install_module_intrinsics, :load_module)
+export(:eval_expr, :eval_program, :configure_hal, :configure_module_roots, :install_module_intrinsics, :load_module)
