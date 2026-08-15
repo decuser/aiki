@@ -95,7 +95,7 @@ func New(runtime hal.RuntimeContract, observer engine.Observer) *Evaluator {
 // SetGrammar sets the grammar and validates handler coverage.
 func (e *Evaluator) SetGrammar(g *grammar.Grammar) {
 	e.grammar = g
-	e.binaryOperators = grammarTerminalAlternatives(g, "BINOP")
+	e.binaryOperators = g.Analysis().TerminalAlternatives("BINOP")
 	e.validateHandlers()
 	if err := validateBinaryOperatorCoverage(e.binaryOperators, binaryOperatorSemantics); err != nil {
 		panic(err)
@@ -119,13 +119,7 @@ var syntheticHandlerNodes = map[string]struct{}{
 }
 
 func validateHandlerCoverage(g *grammar.Grammar, hs map[string]handlerFunc) error {
-	want := make(map[string]struct{}, len(g.Productions)+8)
-	for name := range g.Productions {
-		want[name] = struct{}{}
-	}
-	for name := range grammarTokenRefs(g) {
-		want[name] = struct{}{}
-	}
+	want := g.Analysis().ASTNodeTypes()
 	for name := range syntheticHandlerNodes {
 		want[name] = struct{}{}
 	}
@@ -141,58 +135,6 @@ func validateHandlerCoverage(g *grammar.Grammar, hs map[string]handlerFunc) erro
 		}
 	}
 	return nil
-}
-
-func grammarTokenRefs(g *grammar.Grammar) map[string]struct{} {
-	refs := make(map[string]struct{})
-	var walk func(grammar.Expression)
-	walk = func(expr grammar.Expression) {
-		switch e := expr.(type) {
-		case *grammar.TokenRef:
-			refs[e.Name] = struct{}{}
-		case *grammar.Sequence:
-			for _, child := range e.Exprs {
-				walk(child)
-			}
-		case *grammar.Alternative:
-			for _, child := range e.Exprs {
-				walk(child)
-			}
-		case *grammar.Repetition:
-			walk(e.Expr)
-		case *grammar.Option:
-			walk(e.Expr)
-		case *grammar.Group:
-			walk(e.Expr)
-		}
-	}
-	for _, p := range g.Productions {
-		walk(p.Expr)
-	}
-	return refs
-}
-
-func grammarTerminalAlternatives(g *grammar.Grammar, production string) map[string]struct{} {
-	out := make(map[string]struct{})
-	p, ok := g.Productions[production]
-	if !ok {
-		return out
-	}
-	var walk func(grammar.Expression)
-	walk = func(expr grammar.Expression) {
-		switch x := expr.(type) {
-		case *grammar.Terminal:
-			out[x.Value] = struct{}{}
-		case *grammar.Alternative:
-			for _, child := range x.Exprs {
-				walk(child)
-			}
-		case *grammar.Group:
-			walk(x.Expr)
-		}
-	}
-	walk(p.Expr)
-	return out
 }
 
 func (e *Evaluator) isBinaryOperator(s string) bool {

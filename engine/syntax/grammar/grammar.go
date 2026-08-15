@@ -13,6 +13,7 @@ type Grammar struct {
 	Productions map[string]*Production
 	Start       string
 	Newline     *NewlineRule
+	analysis    *Analysis
 }
 
 // NewlineRule declares how physical newline tokens become statement boundaries.
