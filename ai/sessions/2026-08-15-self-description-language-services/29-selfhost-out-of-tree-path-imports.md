@@ -1,6 +1,6 @@
 # Milestone 29 — selfhost out-of-tree module resolution
 
-Status: ACTIVE
+Status: GATED
 
 ## Finding
 
@@ -48,9 +48,7 @@ fault path and are not valid scale measurements.
 
 ## Gate
 
-ACTIVE pending authoritative `make validate`, then direct out-of-tree execution
-of both selfhost drivers from `~/forge/dev/test`. Only successful drivers may be
-profiled for scale comparison.
+GATED. Authoritative `make validate` passed after the absolute-root harness correction. Direct execution from `~/forge/dev/test` then succeeded at one and two self-host levels; the cleaned profiling drivers both reached the expected final value `9`. The out-of-tree recursive profile was subsequently collected successfully.
 
 ## Validation follow-up
 
@@ -77,4 +75,4 @@ Authoritative validation after the source-identity correction exposed a test-har
 
 Correction: `distributionRoot()` now returns an absolute repository root. Source-relative programs can therefore execute from their real paths while the child process uses the repository root as its working directory, without double-applying a relative prefix. This is a harness correction only; self-host import semantics are unchanged.
 
-Status remains ACTIVE pending authoritative `make validate`.
+Authoritative `make validate` subsequently passed; see Gate above.

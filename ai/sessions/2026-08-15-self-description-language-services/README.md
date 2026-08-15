@@ -1,6 +1,6 @@
 # Self-description and language services
 
-Status: ACTIVE — Phases I–III GATED/COMPLETE; post-completion out-of-tree selfhost named-module resolution correction and authority-test absolute-root fix pending authoritative validation.
+Status: COMPLETE — Phases I–III and the post-completion out-of-tree selfhost correction are GATED.
 
 Proposal: `proposals/aiki-self-description-language-services-proposal.md`
 
@@ -36,7 +36,7 @@ Baseline: `v0.4.0-alpha-14-g9c78646` (`9c78646`).
 26. `26-self-interpretation-performance-boundary.md` — SUPERSEDED by measured completion.
 27. `27-self-interpretation-complete.md` — GATED.
 28. `28-iii6-chars-bootstrap-coupling-fix.md` — GATED; authoritative validate passed.
-29. `29-selfhost-out-of-tree-path-imports.md` — ACTIVE; out-of-tree named-module resolution correction pending authoritative gate.
+29. `29-selfhost-out-of-tree-path-imports.md` — GATED; authoritative validate and direct recursive out-of-tree execution passed.
 
 ## Current state
 
@@ -48,4 +48,4 @@ The complete proof executes `1 + 2 * 3` through an Aiki-written interpreter whic
 
 ## Exact next action
 
-Run authoritative `make validate` with the authority-test absolute-root correction. Then from `~/forge/dev/test` rerun the one-level and nested selfhost drivers without profiling. If both return the expected result, mark Milestone 29 GATED and only then repeat the profiling comparison.
+None for this session. Out-of-tree recursive self-hosting and profiling were successfully demonstrated; subsequent experiment-framework work is recorded separately.

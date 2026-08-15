@@ -234,9 +234,23 @@ func (c *Checker) seedBuiltins() {
 			c.mark(p, "VS Code Aiki editor configuration")
 		case p == "extra/editors/vscode/syntaxes/aiki.tmLanguage.json":
 			c.mark(p, "VS Code Aiki lexical grammar")
+		case p == "experiments/README.md":
+			c.mark(p, "experiments collection guide")
+		case matchedExperimentArtifact(p):
+			c.mark(p, "distributed experiment artifact")
 		}
 	}
 }
+
+func matchedExperimentArtifact(p string) bool {
+	parts := strings.Split(filepath.ToSlash(p), "/")
+	if len(parts) < 3 || parts[0] != "experiments" {
+		return false
+	}
+	return experimentDirectoryRE.MatchString(parts[1])
+}
+
+var experimentDirectoryRE = regexp.MustCompile(`^[0-9]{3}-[a-z0-9]+(?:-[a-z0-9]+)*$`)
 
 func matchedProfileDriver(p string) bool {
 	base := filepath.Base(p)
@@ -310,6 +324,21 @@ func isNamedPackageSource(path string) bool {
 func (c *Checker) structuralErrors() []Finding {
 	var out []Finding
 	packages := make(map[string][]string)
+	experimentDirs := make(map[string]bool)
+	for p := range c.files {
+		parts := strings.Split(filepath.ToSlash(p), "/")
+		if len(parts) >= 3 && parts[0] == "experiments" && experimentDirectoryRE.MatchString(parts[1]) {
+			experimentDirs["experiments/"+parts[1]] = true
+		}
+	}
+	for dir := range experimentDirs {
+		for _, companion := range []string{"README.md", "experiment/PROCEDURE.md", "experiment/run.sh"} {
+			path := dir + "/" + companion
+			if !c.files[path] {
+				out = append(out, Finding{Path: dir, Reason: "experiment missing " + companion})
+			}
+		}
+	}
 
 	for p := range c.files {
 		if strings.HasPrefix(p, "lib/") && strings.HasSuffix(p, ".ai") && !strings.HasSuffix(p, "_test.ai") {

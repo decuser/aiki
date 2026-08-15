@@ -42,6 +42,7 @@ dist: build
 	mkdir -p "$(DIST_DIR)"; \
 	cp aiki LICENSE README.md "$(DIST_DIR)/"; \
 	cp -R lib "$(DIST_DIR)/lib"; \
+	cp -R experiments "$(DIST_DIR)/experiments"; \
 	if [ -d vendor ]; then cp -R vendor "$(DIST_DIR)/vendor"; fi; \
 	tar -C "$(DIST_PARENT)" -czf "$(DIST_ARCHIVE)" "$(DIST_NAME)"; \
 	echo "$(DIST_DIR)"; \
@@ -56,6 +57,7 @@ distcheck: dist
 	tmp=$$(mktemp -d); \
 	trap 'rm -rf "$$tmp"' EXIT; \
 	tar -xzf "$(DIST_ARCHIVE)" -C "$$tmp"; \
+	test -f "$$tmp/$(DIST_NAME)/experiments/README.md" || { echo "distcheck: experiments collection missing from archive" >&2; exit 1; }; \
 	mkdir -p "$$tmp/work/one" "$$tmp/work/two"; \
 	printf '%s\n' 'package decoy' > "$$tmp/work/one/decoy.ai"; \
 	printf '%s\n' 'package decoy' > "$$tmp/work/two/decoy.ai"; \
@@ -63,7 +65,11 @@ distcheck: dist
 	cd "$$tmp/work"; \
 	PATH="$$tmp/$(DIST_NAME):$$PATH" aiki check.ai > output.txt; \
 	grep -qx '6' output.txt; \
-	echo "distcheck ok: relocatable archive loads shipped modules outside source tree"
+	created=$$(PATH="$$tmp/$(DIST_NAME):$$PATH" aiki experiment new "Distribution probe" | sed -n 's/^created //p'); \
+	test -n "$$created"; \
+	test -f "$$created/README.md"; \
+	test -x "$$created/run.sh"; \
+	echo "distcheck ok: relocatable archive loads shipped modules and scaffolds out-of-tree experiments"
 
 # Capture a portable development baseline beside the source tree. Unlike dist,
 # this is a repository snapshot: it intentionally includes .git so branch,

@@ -157,6 +157,18 @@ make validate   # check and compare against blessed golds; never writes them
 
 See `docs/testing.md` before updating gold files and `docs/adding-to-aiki.md` before extending the implementation.
 
+
+## Experiments
+
+Aiki distributes reproducible empirical investigations separately from the automated validation suite. New experiments are normally created out of tree while taking their sequence number from the running distribution:
+
+```bash
+cd /path/to/scratch
+aiki experiment new "Profiler calibration"
+```
+
+The command reads the next number from the distribution's `experiments/` directory but creates the numbered experiment directory in the caller's current working directory. Each experiment separates procedure and materials (`experiment/`), raw observations (`results/`), and interpretation (`analyses/`). The generated runner logs each run into `results/`. Finished experiments are promoted into `experiments/` manually. See `experiments/README.md` for the experiment contract.
+
 ## Editor Support
 
 Aiki exposes editor-independent language services through `aiki lsp`. Xed and
@@ -197,6 +209,7 @@ engine/runtime/          HAL, prelude, runtime support
 lib/                     Aiki library packages
 extra/samples/           example programs
 extra/editors/           editor support
+experiments/              reproducible empirical investigations
 test/                    tests and expected outputs
 docs/                    design and contributor notes
 ai/                      gated engineering record

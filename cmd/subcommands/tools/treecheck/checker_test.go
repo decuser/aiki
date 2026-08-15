@@ -349,3 +349,57 @@ func TestVSCodeCompanionWithoutManifestIsStructuralError(t *testing.T) {
 		t.Fatalf("expected structural error for %s, got %#v", path, result.Errors)
 	}
 }
+
+func TestDistributedExperimentArtifactsAreJustified(t *testing.T) {
+	root := minimalTree(t)
+	paths := map[string]string{
+		"experiments/README.md":                                           "# Experiments\n",
+		"experiments/001-profiler-calibration/README.md":                  "# Experiment 001\n",
+		"experiments/001-profiler-calibration/experiment/PROCEDURE.md":    "# Procedure\n",
+		"experiments/001-profiler-calibration/experiment/run.sh":          "#!/bin/sh\n",
+		"experiments/001-profiler-calibration/experiment/native.ai":       "println(9)\n",
+		"experiments/001-profiler-calibration/results/run.txt":            "evidence\n",
+		"experiments/001-profiler-calibration/analyses/interpretation.md": "analysis\n",
+	}
+	for path, body := range paths {
+		writeTestFile(t, root, path, body)
+	}
+
+	result, err := Check(root, "treecheck.allow")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for path := range paths {
+		if hasFinding(result.Errors, path) || hasFinding(result.Orphans, path) {
+			t.Fatalf("experiment artifact should be justified: %s errors=%#v orphans=%#v", path, result.Errors, result.Orphans)
+		}
+	}
+}
+
+func TestMalformedExperimentDirectoryIsNotAutomaticallyJustified(t *testing.T) {
+	root := minimalTree(t)
+	path := "experiments/profiler-calibration/experiment/run.sh"
+	writeTestFile(t, root, path, "#!/bin/sh\n")
+
+	result, err := Check(root, "treecheck.allow")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !hasFinding(result.Orphans, path) {
+		t.Fatalf("malformed experiment directory should remain orphaned: errors=%#v orphans=%#v", result.Errors, result.Orphans)
+	}
+}
+
+func TestDistributedExperimentRequiresReadmeAndRunner(t *testing.T) {
+	root := minimalTree(t)
+	path := "experiments/002-scale/experiment/native.ai"
+	writeTestFile(t, root, path, "println(9)\n")
+
+	result, err := Check(root, "treecheck.allow")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !hasFinding(result.Errors, "experiments/002-scale") {
+		t.Fatalf("experiment without required hierarchy should be structural error: errors=%#v", result.Errors)
+	}
+}

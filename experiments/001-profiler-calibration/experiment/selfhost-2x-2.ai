@@ -1,0 +1,9 @@
+let bootstrap = import("selfhost/bootstrap")
+
+let inner = "let bootstrap = import(\"selfhost/bootstrap\")\nlet result = 9\nlet i = 0\n\nwhile i < 2 {\n    result = bootstrap.run(\"1 + 2 * 3\\n\", \"probe.ai\")\n    i = i + 1\n}\n\nresult\n"
+
+let result = bootstrap.run(inner, "inner.ai")
+
+if not equal(result, 9) {
+    println("FAIL: expected 9, got " + inspect(result))
+}
