@@ -40,23 +40,65 @@ var GlobalRegistry *ModuleRegistry
 // inside the distribution appears in help() and doc() like any other, so a
 // user cannot tell which modules are held to the standard.
 //
-// The roots import also scans - the working directory and the user library -
-// are deliberately outside this set. A developer's own modules are their own
-// business.
+// The user library is deliberately outside this set. Local/path imports are
+// resolved explicitly from the importing file rather than discovered by the
+// named-package registry.
 func DistributionModuleRoots() []string {
 	return []string{"lib", "vendor"}
 }
 
-// DefaultModuleRoots returns every directory import scans, in order. It is the
-// distribution roots plus the working directory and the user library, neither
-// of which belongs to the distribution.
-func DefaultModuleRoots(homeDir string) []string {
-	roots := []string{"."}
-	roots = append(roots, DistributionModuleRoots()...)
+// ModuleRoots returns every explicit directory the named-package registry scans,
+// in order. Shipped modules are resolved relative to the executable, which makes
+// an unpacked Aiki distribution relocatable. A development tree contributes
+// only its conventional ./lib and ./vendor roots; the working directory itself
+// is never recursively scanned. The user library is searched last.
+//
+// executableDir and workingDir are explicit so the path policy can be tested
+// without depending on the location of the test binary or test process.
+func ModuleRoots(homeDir, executableDir, workingDir string) []string {
+	var roots []string
+	seen := make(map[string]bool)
+	add := func(path string) {
+		if path == "" {
+			return
+		}
+		clean := filepath.Clean(path)
+		if seen[clean] {
+			return
+		}
+		seen[clean] = true
+		roots = append(roots, clean)
+	}
+	addDistributionRoots := func(base string) {
+		if base == "" {
+			return
+		}
+		for _, root := range DistributionModuleRoots() {
+			add(filepath.Join(base, root))
+		}
+	}
+
+	addDistributionRoots(executableDir)
+	addDistributionRoots(workingDir)
 	if homeDir != "" {
-		roots = append(roots, filepath.Join(homeDir, ".aiki", "lib"))
+		add(filepath.Join(homeDir, ".aiki", "lib"))
 	}
 	return roots
+}
+
+// DefaultModuleRoots resolves the running executable and current working
+// directory, then applies the standard module-root policy. Failure to resolve
+// either location merely omits that class of roots.
+func DefaultModuleRoots(homeDir string) []string {
+	executableDir := ""
+	if exe, err := os.Executable(); err == nil {
+		executableDir = filepath.Dir(exe)
+	}
+	workingDir := ""
+	if wd, err := os.Getwd(); err == nil {
+		workingDir = wd
+	}
+	return ModuleRoots(homeDir, executableDir, workingDir)
 }
 
 // NewModuleRegistry creates a new registry with the given roots.

@@ -1,16 +1,54 @@
-.PHONY: build clean install run test fmt lint treecheck check bless validate smoke smokegold visual aikitest runsamples enginesmoke enginesmokegold enginecoverage rigorous fuzz hooks profilesweep
+.PHONY: build clean dist distcheck run test fmt lint treecheck check bless validate smoke smokegold visual aikitest runsamples enginesmoke enginesmokegold enginecoverage rigorous fuzz hooks profilesweep
 
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 LDFLAGS := -ldflags "-X main.Version=$(VERSION)"
+
+DIST_PARENT ?= $(abspath ..)
+DIST_OS ?= $(shell go env GOOS)
+DIST_ARCH ?= $(shell go env GOARCH)
+DIST_NAME := aiki-$(VERSION)-$(DIST_OS)-$(DIST_ARCH)
+DIST_DIR := $(DIST_PARENT)/$(DIST_NAME)
+DIST_ARCHIVE := $(DIST_PARENT)/$(DIST_NAME).tar.gz
 
 build:
 	go build $(LDFLAGS) -o aiki ./cmd/aiki
 
 clean:
 	rm -f aiki
+	rm -rf "$(DIST_DIR)"
+	rm -f "$(DIST_ARCHIVE)"
 
-install: build
-	cp aiki ~/bin/
+# Build a relocatable user distribution beside the source tree. The executable
+# lives at the distribution root so users can add that one directory to PATH.
+dist: build
+	@set -eu; \
+	rm -rf "$(DIST_DIR)"; \
+	rm -f "$(DIST_ARCHIVE)"; \
+	mkdir -p "$(DIST_DIR)"; \
+	cp aiki LICENSE README.md "$(DIST_DIR)/"; \
+	cp -R lib "$(DIST_DIR)/lib"; \
+	if [ -d vendor ]; then cp -R vendor "$(DIST_DIR)/vendor"; fi; \
+	tar -C "$(DIST_PARENT)" -czf "$(DIST_ARCHIVE)" "$(DIST_NAME)"; \
+	echo "$(DIST_DIR)"; \
+	echo "$(DIST_ARCHIVE)"
+
+# Prove the published archive is independent of both the source tree and the
+# sibling staging directory: unpack it under a temporary prefix, run from an
+# unrelated directory via PATH, ignore decoy packages beneath that directory,
+# and use a shipped library module.
+distcheck: dist
+	@set -eu; \
+	tmp=$$(mktemp -d); \
+	trap 'rm -rf "$$tmp"' EXIT; \
+	tar -xzf "$(DIST_ARCHIVE)" -C "$$tmp"; \
+	mkdir -p "$$tmp/work/one" "$$tmp/work/two"; \
+	printf '%s\n' 'package decoy' > "$$tmp/work/one/decoy.ai"; \
+	printf '%s\n' 'package decoy' > "$$tmp/work/two/decoy.ai"; \
+	printf '%s\n' 'use("list")' 'println(sum([1, 2, 3]))' > "$$tmp/work/check.ai"; \
+	cd "$$tmp/work"; \
+	PATH="$$tmp/$(DIST_NAME):$$PATH" aiki check.ai > output.txt; \
+	grep -qx '6' output.txt; \
+	echo "distcheck ok: relocatable archive loads shipped modules outside source tree"
 
 run: build
 	./aiki

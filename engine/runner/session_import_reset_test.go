@@ -9,7 +9,11 @@ import (
 func TestSessionImportAfterReset(t *testing.T) {
 	tmp := t.TempDir()
 
-	// Create a minimal module in the temp dir so registry scan finds it via root "."
+	// Create a minimal module under the conventional development lib root.
+	if err := os.MkdirAll(filepath.Join(tmp, "lib"), 0o755); err != nil {
+		t.Fatalf("mkdir lib: %v", err)
+	}
+
 	mod := `package "import_target"
 
 export(:ANSWER, :add_two)
@@ -20,8 +24,13 @@ let add_two = (x) {
 	return x + 2
 }
 `
-	if err := os.WriteFile(filepath.Join(tmp, "import_target.ai"), []byte(mod), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(tmp, "lib", "import_target.ai"), []byte(mod), 0o644); err != nil {
 		t.Fatalf("write module: %v", err)
+	}
+	for _, ext := range []string{".help", ".doc"} {
+		if err := os.WriteFile(filepath.Join(tmp, "lib", "import_target"+ext), nil, 0o644); err != nil {
+			t.Fatalf("write module metadata: %v", err)
+		}
 	}
 
 	wd, err := os.Getwd()

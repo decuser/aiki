@@ -110,19 +110,44 @@ func TestAllowPrefixSuppressesIntentionalStandaloneTree(t *testing.T) {
 	}
 }
 
-func TestImportedPackageHelperIsJustified(t *testing.T) {
+func TestBareImportJustifiesOnlyNamedPackageRoots(t *testing.T) {
 	root := minimalTree(t)
 	writeTestFile(t, root, "test/behavior/import_smoke.ai", "import(\"target\", :x)\n")
 	writeTestFile(t, root, "test/behavior/import_smoke.gold", "EXIT:0\n")
-	path := "test/behavior/target.ai"
-	writeTestFile(t, root, path, "package \"target\"\nexport(:x)\nlet x = 1\n")
+
+	local := "test/behavior/target.ai"
+	writeTestFile(t, root, local, "package \"target\"\nexport(:x)\nlet x = 1\n")
+
+	lib := "lib/target.ai"
+	writeTestFile(t, root, lib, "package \"target\"\nexport(:x)\nlet x = 1\n")
+	writeTestFile(t, root, "lib/target.help", "")
+	writeTestFile(t, root, "lib/target.doc", "")
+
+	result, err := Check(root, "treecheck.allow")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !hasFinding(result.Orphans, local) {
+		t.Fatalf("bare import must not justify arbitrary local package: %#v", result.Orphans)
+	}
+	if hasFinding(result.Orphans, lib) || hasFinding(result.Errors, lib) {
+		t.Fatalf("bare import should justify named package root: errors=%#v orphans=%#v", result.Errors, result.Orphans)
+	}
+}
+
+func TestRelativeImportedHelperIsJustified(t *testing.T) {
+	root := minimalTree(t)
+	writeTestFile(t, root, "test/behavior/import_smoke.ai", "import(\"./import_target\", :x)\n")
+	writeTestFile(t, root, "test/behavior/import_smoke.gold", "EXIT:0\n")
+	path := "test/behavior/import_target.ai"
+	writeTestFile(t, root, path, "package \"import_target\"\nexport(:x)\nlet x = 1\n")
 
 	result, err := Check(root, "treecheck.allow")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if hasFinding(result.Orphans, path) {
-		t.Fatalf("imported helper package reported as orphan: %#v", result.Orphans)
+		t.Fatalf("relative imported helper reported as orphan: %#v", result.Orphans)
 	}
 }
 

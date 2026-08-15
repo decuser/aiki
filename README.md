@@ -16,36 +16,64 @@ Aiki is usable, but it is still alpha software. Syntax, libraries, tooling, and 
 
 ## Getting Started
 
-Aiki is implemented in Go and uses Ebitengine for graphics. On Linux, Aiki needs Ebitengine's native system libraries even when using a prebuilt binary. Building Aiki from source additionally requires Go 1.24 or later and `make`.
-
-On Debian or Ubuntu, install `make` and the Linux packages required by Ebitengine:
+Aiki's normal user installation is a release archive. Unpack it in a stable
+location and add that directory to `PATH`:
 
 ```bash
-sudo apt install make gcc libc6-dev libgl1-mesa-dev \
+mkdir -p ~/opt
+tar xzf aiki-<version>-linux-amd64.tar.gz -C ~/opt
+export PATH="$HOME/opt/aiki-<version>-linux-amd64:$PATH"
+```
+
+Put the `PATH` line in your shell startup file if you want it to persist. Then
+Aiki is available like any other command:
+
+```bash
+aiki                 # start the REPL
+aiki program.ai      # run a program
+```
+
+The release directory is relocatable: the `aiki` executable finds its shipped
+`lib/` and `vendor/` modules relative to itself rather than relative to the
+directory from which you run it. Named packages are resolved only from those
+explicit distribution roots and `~/.aiki/lib`; Aiki does not recursively scan
+the current working directory for packages. Local source files are imported
+explicitly by relative path, for example `import("./helper", ...)`.
+
+On Linux, Aiki uses Ebitengine for graphics and therefore needs its native system
+libraries even when using a prebuilt binary. On Debian or Ubuntu:
+
+```bash
+sudo apt install gcc libc6-dev libgl1-mesa-dev \
     libxcursor-dev libxi-dev libxinerama-dev \
     libxrandr-dev libxxf86vm-dev libasound2-dev \
     pkg-config
 ```
 
-If you are building from source, install Go 1.24 or later. From the Aiki repository, run:
+### Building Aiki from source
+
+Development additionally requires Go 1.24 or later and `make`. From the Aiki
+repository:
 
 ```bash
 make validate
 ```
 
-This builds Aiki and runs the complete validation suite. Then start the REPL:
+Use `./aiki` when you specifically want the development build in the source
+tree. To generate the user distribution and prove that it runs independently of
+the source tree:
 
 ```bash
-./aiki
+make distcheck
 ```
 
-Or run an Aiki program:
-
-```bash
-./aiki extra/samples/pipeline.ai
-```
-
-Prebuilt binaries are convenient for trying Aiki. Building from source is recommended for development, validation, and following the alpha as it evolves.
+`make dist` writes both the unpacked user distribution and its `.tar.gz`
+archive beside the source tree. For example, from `~/forge/dev/aiki` it produces
+sibling paths named `aiki-<version>-<os>-<arch>/` and
+`aiki-<version>-<os>-<arch>.tar.gz`. The user distribution contains the built
+`aiki` executable, its shipped library, and the small set of files needed to
+use and identify the release; it is separate from the development source tree
+and does not require Go.
 
 ## Try Aiki
 

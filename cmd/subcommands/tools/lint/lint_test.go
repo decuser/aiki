@@ -54,7 +54,7 @@ func lintSource(t *testing.T, src string) []Diagnostic {
 
 func TestLintUseResolvesRegistryPackage(t *testing.T) {
 	dir := t.TempDir()
-	moduleDir := filepath.Join(dir, "packages", "list")
+	moduleDir := filepath.Join(dir, "lib", "list")
 	if err := os.MkdirAll(moduleDir, 0755); err != nil {
 		t.Fatal(err)
 	}
@@ -64,6 +64,11 @@ export(:map)
 `
 	if err := os.WriteFile(filepath.Join(moduleDir, "list.ai"), []byte(moduleSource), 0644); err != nil {
 		t.Fatal(err)
+	}
+	for _, ext := range []string{".help", ".doc"} {
+		if err := os.WriteFile(filepath.Join(moduleDir, "list"+ext), nil, 0644); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	oldwd, err := os.Getwd()
