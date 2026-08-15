@@ -242,3 +242,55 @@ func TestSyntaxConformanceProjectionWithoutInputIsStructuralError(t *testing.T) 
 		t.Fatalf("expected structural error for %s, got %#v", path, result.Errors)
 	}
 }
+
+func TestXedEditorArtifactsAreJustified(t *testing.T) {
+	root := minimalTree(t)
+	paths := []string{
+		"extra/editors/xed/aiki.lang",
+		"extra/editors/xed/aiki_lsp.plugin",
+		"extra/editors/xed/aiki_lsp/__init__.py",
+		"extra/editors/xed/README.md",
+	}
+	writeTestFile(t, root, paths[0], "<language/>\n")
+	writeTestFile(t, root, paths[1], "[Plugin]\nLoader=python3\nModule=aiki_lsp\n")
+	writeTestFile(t, root, paths[2], "# plugin\n")
+	writeTestFile(t, root, paths[3], "# Xed\n")
+
+	result, err := Check(root, "treecheck.allow")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range paths {
+		if hasFinding(result.Errors, path) || hasFinding(result.Orphans, path) {
+			t.Fatalf("Xed editor artifact should be justified: %s errors=%#v orphans=%#v", path, result.Errors, result.Orphans)
+		}
+	}
+}
+
+func TestXedPluginDescriptorWithoutModuleIsStructuralError(t *testing.T) {
+	root := minimalTree(t)
+	path := "extra/editors/xed/aiki_lsp.plugin"
+	writeTestFile(t, root, path, "[Plugin]\nLoader=python3\nModule=aiki_lsp\n")
+
+	result, err := Check(root, "treecheck.allow")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !hasFinding(result.Errors, path) {
+		t.Fatalf("expected structural error for %s, got %#v", path, result.Errors)
+	}
+}
+
+func TestXedPluginModuleWithoutDescriptorIsStructuralError(t *testing.T) {
+	root := minimalTree(t)
+	path := "extra/editors/xed/aiki_lsp/__init__.py"
+	writeTestFile(t, root, path, "# plugin\n")
+
+	result, err := Check(root, "treecheck.allow")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !hasFinding(result.Errors, path) {
+		t.Fatalf("expected structural error for %s, got %#v", path, result.Errors)
+	}
+}

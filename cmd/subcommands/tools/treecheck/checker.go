@@ -220,6 +220,12 @@ func (c *Checker) seedBuiltins() {
 			c.mark(p, "prelude artifact")
 		case strings.HasPrefix(p, "selfhost/") && strings.HasSuffix(p, ".ai"):
 			c.mark(p, "self-host implementation source")
+		case p == "extra/editors/xed/aiki.lang":
+			c.mark(p, "Xed GtkSourceView language definition")
+		case p == "extra/editors/xed/aiki_lsp.plugin":
+			c.mark(p, "Xed Aiki LSP plugin descriptor")
+		case strings.HasPrefix(p, "extra/editors/xed/aiki_lsp/") && strings.HasSuffix(p, ".py"):
+			c.mark(p, "Xed Aiki LSP plugin source")
 		}
 	}
 }
@@ -267,6 +273,10 @@ func (c *Checker) checkStructuralPairs() {
 		}
 		if p == "selfhost/token_authority.ai" && c.files["selfhost/token_authority.gold"] {
 			c.mark("selfhost/token_authority.gold", "self-host authority projection")
+		}
+		if p == "extra/editors/xed/aiki_lsp.plugin" && c.files["extra/editors/xed/aiki_lsp/__init__.py"] {
+			c.mark("extra/editors/xed/aiki_lsp.plugin", "Xed plugin descriptor paired with module")
+			c.mark("extra/editors/xed/aiki_lsp/__init__.py", "Xed plugin module paired with descriptor")
 		}
 	}
 }
@@ -339,6 +349,12 @@ func (c *Checker) structuralErrors() []Finding {
 		}
 		if p == "selfhost/token_authority.gold" && !c.files["selfhost/token_authority.ai"] {
 			out = append(out, Finding{Path: p, Reason: "self-host authority projection has no .ai owner"})
+		}
+		if p == "extra/editors/xed/aiki_lsp.plugin" && !c.files["extra/editors/xed/aiki_lsp/__init__.py"] {
+			out = append(out, Finding{Path: p, Reason: "Xed plugin descriptor has no Python module"})
+		}
+		if p == "extra/editors/xed/aiki_lsp/__init__.py" && !c.files["extra/editors/xed/aiki_lsp.plugin"] {
+			out = append(out, Finding{Path: p, Reason: "Xed plugin module has no descriptor"})
 		}
 		if isNamedPackageSource(p) {
 			data, err := os.ReadFile(filepath.Join(c.Root, filepath.FromSlash(p)))

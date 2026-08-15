@@ -1214,8 +1214,11 @@ Phase-I implementation exposed a real cross-implementation difference: the
 current Go lexer advances columns by UTF-8 bytes, while ordinary Aiki string
 indexing is rune-oriented. ASCII positions therefore agree, but non-ASCII
 positions can diverge. Phase-I conformance fixtures are intentionally ASCII
-until this policy is decided deliberately. Phase II must resolve the language's
-source-position unit before translating positions into editor/LSP encodings.
+until this policy is decided deliberately. Phase II retains the existing one-based UTF-8-byte position as the internal
+compatibility surface and performs explicit protocol-boundary translation. The
+LSP adapter advertises UTF-16 and converts byte columns to UTF-16 code units;
+this avoids silently changing existing diagnostics while keeping editor positions
+correct.
 
 ---
 

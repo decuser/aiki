@@ -4,19 +4,13 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"regexp"
 	"strings"
 
+	"aiki/engine/language"
 	"aiki/engine/semantics/value"
 	"aiki/engine/syntax"
 	"aiki/engine/syntax/grammar"
 )
-
-var packageDeclRE = regexp.MustCompile(`(?m)^\s*package\s+"[^"]+"\s*$`)
-
-func hasPackageDecl(src string) bool {
-	return packageDeclRE.FindStringIndex(src) != nil
-}
 
 // Run executes lint.
 // Current implementation is format-first: fail if any file is not already
@@ -90,7 +84,7 @@ func Run(args []string) int {
 			if !*includePrelude {
 				continue
 			}
-		} else if hasPackageDecl(string(src)) {
+		} else if language.HasPackageDeclaration(string(src)) {
 			// Package modules are evaluated in an env enclosed by the prelude env,
 			// inheriting ScopePrelude (see substrate import implementation).
 			scope = value.ScopePrelude
@@ -102,13 +96,13 @@ func Run(args []string) int {
 			return 1
 		}
 		for _, d := range diags {
-			if d.Level == "warning" && !*showWarnings {
+			if d.Severity == "warning" && !*showWarnings {
 				continue
 			}
-			if d.Level == "warning" && strings.HasPrefix(d.Message, "shadowing:") && !*showShadow {
+			if d.Severity == "warning" && strings.HasPrefix(d.Message, "shadowing:") && !*showShadow {
 				continue
 			}
-			if d.Level == "error" {
+			if d.Severity == "error" {
 				anyError = true
 			}
 			fmt.Fprintln(os.Stderr, formatDiagnostic(path, string(src), d))
@@ -125,7 +119,7 @@ func formatDiagnostic(path string, source string, d Diagnostic) string {
 	// Keep output consistent with engine parse error presentation.
 	line := getSourceLine(source, d.Pos.Line)
 	expandedLine, caret := expandTabsWithCaret(line, d.Pos.Col, 8)
-	return fmt.Sprintf("%s:%d:%d:\n%s\n%s\n%s: %s", path, d.Pos.Line, d.Pos.Col, expandedLine, caret, d.Level, d.Message)
+	return fmt.Sprintf("%s:%d:%d:\n%s\n%s\n%s: %s", path, d.Pos.Line, d.Pos.Col, expandedLine, caret, d.Severity, d.Message)
 }
 
 // expandTabsWithCaret expands tabs to spaces using a fixed tab width and

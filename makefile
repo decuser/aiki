@@ -1,4 +1,4 @@
-.PHONY: build clean dist distcheck baseline run test fmt lint treecheck check bless validate smoke smokegold visual aikitest runsamples enginesmoke enginesmokegold enginecoverage rigorous fuzz hooks profilesweep
+.PHONY: build clean dist distcheck baseline run test fmt lint treecheck check bless validate smoke smokegold visual aikitest runsamples enginesmoke enginesmokegold enginecoverage rigorous fuzz hooks profilesweep install-xed-plugin uninstall-xed-plugin
 
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 LDFLAGS := -ldflags "-X main.Version=$(VERSION)"
@@ -13,6 +13,10 @@ DIST_ARCHIVE = $(DIST_PARENT)/$(DIST_NAME).tar.gz
 SOURCE_DIR_NAME := $(notdir $(CURDIR))
 BASELINE_NAME := aiki-baseline-$(VERSION)
 BASELINE_ARCHIVE := $(DIST_PARENT)/$(BASELINE_NAME).tar.gz
+
+USER_DATA_DIR ?= $(if $(XDG_DATA_HOME),$(XDG_DATA_HOME),$(HOME)/.local/share)
+XED_PLUGIN_DIR ?= $(USER_DATA_DIR)/xed/plugins
+XED_LANG_DIR ?= $(USER_DATA_DIR)/gtksourceview-4/language-specs
 
 build:
 	go build $(LDFLAGS) -o aiki ./cmd/aiki
@@ -143,6 +147,35 @@ hooks:
 	cp hooks/pre-push .git/hooks/pre-push
 	chmod +x .git/hooks/pre-commit .git/hooks/pre-push
 	@echo "Git hooks installed"
+
+# Install the user-local Xed integration from the repository. Remove Aiki's
+# previous installed copies first so renamed/deleted plugin files cannot linger.
+# XED_PLUGIN_DIR and XED_LANG_DIR may be overridden for nonstandard installs.
+install-xed-plugin:
+	@set -eu; \
+	plugin_dir="$(XED_PLUGIN_DIR)"; \
+	lang_dir="$(XED_LANG_DIR)"; \
+	test -n "$$plugin_dir"; \
+	test -n "$$lang_dir"; \
+	rm -rf "$$plugin_dir/aiki_lsp"; \
+	rm -f "$$plugin_dir/aiki_lsp.plugin" "$$lang_dir/aiki.lang"; \
+	mkdir -p "$$plugin_dir/aiki_lsp" "$$lang_dir"; \
+	install -m 0644 extra/editors/xed/aiki.lang "$$lang_dir/aiki.lang"; \
+	install -m 0644 extra/editors/xed/aiki_lsp.plugin "$$plugin_dir/aiki_lsp.plugin"; \
+	install -m 0644 extra/editors/xed/aiki_lsp/__init__.py "$$plugin_dir/aiki_lsp/__init__.py"; \
+	echo "Installed Xed Aiki language definition: $$lang_dir/aiki.lang"; \
+	echo "Installed Xed Aiki LSP plugin: $$plugin_dir/aiki_lsp.plugin"; \
+	echo "Restart Xed and enable 'Aiki Language Services' in Plugins."
+
+uninstall-xed-plugin:
+	@set -eu; \
+	plugin_dir="$(XED_PLUGIN_DIR)"; \
+	lang_dir="$(XED_LANG_DIR)"; \
+	test -n "$$plugin_dir"; \
+	test -n "$$lang_dir"; \
+	rm -rf "$$plugin_dir/aiki_lsp"; \
+	rm -f "$$plugin_dir/aiki_lsp.plugin" "$$lang_dir/aiki.lang"; \
+	echo "Removed user-local Xed Aiki integration."
 
 
 PROFILE_DIR ?= profile-out

@@ -1,0 +1,84 @@
+package lsp
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
+	"strings"
+	"testing"
+
+	"aiki/engine/language"
+	"aiki/engine/syntax"
+	"aiki/engine/syntax/grammar"
+)
+
+func framed(v any) []byte {
+	b, _ := json.Marshal(v)
+	return []byte(fmt.Sprintf("Content-Length: %d\r\n\r\n%s", len(b), b))
+}
+
+func testLSPService(t *testing.T) *language.Service {
+	t.Helper()
+	g, err := grammar.Load("grammar.ebnfx", syntax.EbnfxSource, "grammar.help", syntax.HelpSource)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return language.NewService(g)
+}
+
+func readFrames(t *testing.T, data []byte) []map[string]any {
+	t.Helper()
+	tr := newTransport(bytes.NewReader(data), io.Discard)
+	var out []map[string]any
+	for {
+		msg, err := tr.read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		b, _ := json.Marshal(msg)
+		var m map[string]any
+		if err := json.Unmarshal(b, &m); err != nil {
+			t.Fatal(err)
+		}
+		out = append(out, m)
+	}
+	return out
+}
+
+func TestInitializeAndPublishDiagnostics(t *testing.T) {
+	var in bytes.Buffer
+	in.Write(framed(map[string]any{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": map[string]any{}}))
+	in.Write(framed(map[string]any{"jsonrpc": "2.0", "method": "initialized", "params": map[string]any{}}))
+	in.Write(framed(map[string]any{"jsonrpc": "2.0", "method": "textDocument/didOpen", "params": map[string]any{"textDocument": map[string]any{"uri": "file:///tmp/test.ai", "languageId": "aiki", "version": 1, "text": "let x =\n"}}}))
+	in.Write(framed(map[string]any{"jsonrpc": "2.0", "id": 2, "method": "shutdown"}))
+	in.Write(framed(map[string]any{"jsonrpc": "2.0", "method": "exit"}))
+	var out bytes.Buffer
+	if err := Serve(&in, &out, testLSPService(t)); err != nil {
+		t.Fatal(err)
+	}
+	frames := readFrames(t, out.Bytes())
+	if len(frames) != 3 {
+		t.Fatalf("frames=%d %#v", len(frames), frames)
+	}
+	body := string(out.Bytes())
+	for _, want := range []string{"positionEncoding", "utf-16", "textDocument/publishDiagnostics", "aiki-parse"} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("output missing %q: %s", want, body)
+		}
+	}
+}
+
+func TestByteColumnConvertsToUTF16(t *testing.T) {
+	p := lspPosition("αx", 1, 3) // α occupies two UTF-8 bytes, one UTF-16 code unit.
+	if p["character"] != 1 {
+		t.Fatalf("position=%v", p)
+	}
+	p = lspPosition("😀x", 1, 5) // emoji occupies four UTF-8 bytes, two UTF-16 code units.
+	if p["character"] != 2 {
+		t.Fatalf("position=%v", p)
+	}
+}

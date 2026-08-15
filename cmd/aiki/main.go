@@ -19,6 +19,7 @@ import (
 	aikitest "aiki/cmd/subcommands/dev/test"
 	aikifmt "aiki/cmd/subcommands/tools/fmt"
 	aikilint "aiki/cmd/subcommands/tools/lint"
+	aikilsp "aiki/cmd/subcommands/tools/lsp"
 	aikiprofile "aiki/cmd/subcommands/tools/profile"
 	aikitreecheck "aiki/cmd/subcommands/tools/treecheck"
 )
@@ -36,6 +37,8 @@ func main() {
 			os.Exit(aikifmt.Run(os.Args[2:]))
 		case "lint":
 			os.Exit(aikilint.Run(os.Args[2:]))
+		case "lsp":
+			os.Exit(aikilsp.Run(os.Args[2:]))
 		case "profile":
 			os.Exit(aikiprofile.Run(os.Args[2:]))
 		case "treecheck":
