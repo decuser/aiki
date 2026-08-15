@@ -22,6 +22,7 @@ Each test enforces that two parts of the distribution agree:
 14. grammar lexical inventory <-> Xed GtkSourceView declaration (`xed_language_test.go`)
 15. grammar lexical inventory <-> VS Code TextMate declaration (`vscode_language_test.go`)
 16. VS Code language registration/client launch <-> thin `aiki lsp` adapter contract (`vscode_client_test.go`)
+17. self-host runtime environment semantics <-> focused lexical-scope probe (`selfhost_runtime_test.go`)
 
 ## handler_validation_test.go
 
@@ -56,4 +57,4 @@ Verify Phase-I self-description/conformance couplings. The independent Aiki
 front end does not reuse the Go lexer or parser. Both implementations are
 checked against reviewed language-owned artifacts: extracted grammar facts,
 lexical/newline conformance fixtures, and the existing engine parse-gold
-corpus.
+corpus. Phase III adds a focused runtime-environment gate proving lexical lookup, shadowing, enclosing assignment, and shared closure capture using ordinary Aiki state.

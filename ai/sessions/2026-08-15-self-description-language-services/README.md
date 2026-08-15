@@ -1,6 +1,6 @@
 # Self-description and language services
 
-Status: ACTIVE — Phase I GATED; Phase II Cuts II.0–II.7 GATED; Cut II.8 ACTIVE.
+Status: ACTIVE — Phase I GATED; Phase II GATED/COMPLETE; Phase III Cut III.0 ACTIVE; Cut III.1 BLOCKED on dynamic native-value construction.
 
 Proposal: `proposals/aiki-self-description-language-services-proposal.md`
 
@@ -23,16 +23,19 @@ Baseline: `v0.4.0-alpha-14-g9c78646` (`9c78646`).
 13. `13-symbol-definition-tags.md` — GATED; authoritative validate and live nvi jump passed.
 14. `14-formatting-service.md` — GATED; authoritative validate passed.
 15. `15-completion-hover.md` — GATED; authoritative validate passed.
-16. `16-vscode-client.md` — ACTIVE.
+16. `16-vscode-client.md` — GATED.
+17. `17-phase-ii-handoff.md` — GATED; Phase II complete.
+18. `18-selfhost-runtime-environment.md` — ACTIVE; implementation/disposable execution complete, authoritative gate pending.
+19. `19-selfhost-dynamic-value-construction-gap.md` — BLOCKED; dynamic symbol/shaped-list construction requires an explicit language-level decision.
 
 ## Current state
 
-Phase I and Phase II Cuts II.0–II.7 are GATED. Cut II.8 adds the final Phase-II consumer: a thin VS Code client over `aiki lsp`, plus lexical-only TextMate presentation executable-coupled to the grammar. The extension has an explicit `aiki.server.path` setting so desktop launch does not depend on interactive-shell PATH.
+Phase I and Phase II are GATED. Xed, nvi, and VS Code have all passed their live client gates over the shared language-service authorities.
 
-The live Xed PATH lesson remains explicit: desktop-launched editors may inherit only the desktop-session PATH. Inspect the editor process environment rather than inferring it from shell `which`; use a stable executable path or editor launch setting.
+Phase III has begun. `selfhost/runtime.ai` implements lexical environments as ordinary Aiki closures over persistent binding lists, preserving shadowing, enclosing assignment, and shared capture without `store` or a map. A focused invariant test is present for the authoritative repository gate.
 
-VS Code live testing has confirmed extension discovery/highlighting, hover after the explicit-null JSON-RPC correction, and canonical formatting. It also exposed and corrected definition lookup at caret positions inside identifiers. The VS Code installer now builds and installs a VSIX entirely out of tree rather than copying a staged directory into `~/.vscode/extensions`.
+Cut III.1 exposed a deliberate self-hosting boundary issue: ordinary user-level Aiki cannot dynamically construct an arbitrary native symbol from a source lexeme, and arbitrary shaped-list construction is likewise not exposed at user/prelude level (`_make_shaped_list` exists only below the HAL boundary). Hard-coded symbol tables, wrapper values, or delegating through `load()` would weaken or invalidate the intended proof.
 
 ## Exact next action
 
-Merge the II.8 definition/installer correction, run authoritative `make validate`, then run `make install-vscode-plugin` and restart VS Code. Recheck Go to Definition with the caret anywhere inside a source-defined name, then complete the remaining live VS Code gate (diagnostic/clear and completion if not yet observed). If all live checks pass, mark II.8 GATED and Phase II complete at its handoff.
+Review the dynamic-value construction finding in Milestone 19 and deliberately choose a general Aiki-level surface for constructing native symbols and shaped lists. Then resume Cut III.1 using only that ordinary public/prelude-level capability. The current III.0 implementation should be included in the next authoritative `make validate` run.

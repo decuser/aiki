@@ -1,0 +1,118 @@
+package "selfhost/runtime"
+
+# Phase III / Cut III.0: runtime structures for the interpreted program.
+# Environments are ordinary Aiki closures over a mutable lexical bindings list.
+# This preserves shared lexical environments without introducing store/map as a
+# self-hosting-only dependency.
+let @binding [name, value]
+let @env [get, define, assign, has, has_own, outer]
+let @closure [params, rest_param, body, env]
+let @return_value [value]
+
+let binding_find = (bindings, name) {
+	let i = length(bindings) - 1
+	while i >= 0 {
+		let b = bindings[i]
+		if equal(b.name, name) {
+			return i
+		}
+		i = i - 1
+	}
+	return -1
+}
+
+let replace_at = (xs, index, value) {
+	let out = []
+	let i = 0
+	while i < length(xs) {
+		if equal(i, index) {
+			out = append(out, value)
+		} else {
+			out = append(out, xs[i])
+		}
+		i = i + 1
+	}
+	return out
+}
+
+let env_new = (outer) {
+	let bindings = []
+	let has_own = (name) {
+		binding_find(bindings, name) >= 0
+	}
+	let has = (name) {
+		if has_own(name) {
+			return true
+		}
+		if not empty(outer) {
+			return outer.has(name)
+		}
+		return false
+	}
+	let get = (name) {
+		let index = binding_find(bindings, name)
+		if index >= 0 {
+			return bindings[index].value
+		}
+		if not empty(outer) {
+			return outer.get(name)
+		}
+		return [@error, :name, "undefined variable: " + name]
+	}
+	let define = (name, value) {
+		let index = binding_find(bindings, name)
+		let b = [@binding, name, value]
+		if index >= 0 {
+			bindings = replace_at(bindings, index, b)
+		} else {
+			bindings = append(bindings, b)
+		}
+		return value
+	}
+	let assign = (name, value) {
+		let index = binding_find(bindings, name)
+		if index >= 0 {
+			bindings = replace_at(bindings, index, [@binding, name, value])
+			return true
+		}
+		if not empty(outer) {
+			return outer.assign(name, value)
+		}
+		return false
+	}
+	return [@env, get, define, assign, has, has_own, outer]
+}
+
+let env_get = (env, name) {
+	env.get(name)
+}
+
+let env_define = (env, name, value) {
+	env.define(name, value)
+}
+
+let env_assign = (env, name, value) {
+	env.assign(name, value)
+}
+
+let env_has = (env, name) {
+	env.has(name)
+}
+
+let env_has_own = (env, name) {
+	env.has_own(name)
+}
+
+let env_enclose = (env) {
+	env_new(env)
+}
+
+let closure_new = (params, rest_param, body, env) {
+	[@closure, params, rest_param, body, env]
+}
+
+let return_new = (value) {
+	[@return_value, value]
+}
+
+export(:env_new, :env_get, :env_define, :env_assign, :env_has, :env_has_own, :env_enclose, :closure_new, :return_new)

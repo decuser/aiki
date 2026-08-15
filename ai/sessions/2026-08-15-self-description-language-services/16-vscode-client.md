@@ -1,6 +1,6 @@
 # Milestone 16 — VS Code client
 
-Status: ACTIVE
+Status: GATED
 
 ## Intent
 
@@ -119,3 +119,10 @@ VSIX was. The Make target now encodes that proven flow.
 The latest `@vscode/vsce` dependency chain emitted Node >=22 engine warnings on
 Node 20.19.2 during the live experiment, but packaging completed successfully;
 those warnings were not the cause of the earlier failure.
+
+
+## Authoritative live gate — COMPLETE
+
+After the null-result, definition-position, and VSIX-install corrections, the user exercised the installed extension in VS Code and confirmed the complete client surface: syntax highlighting, diagnostic appearance and clearing, completion, hover, Go to Definition, and canonical Format Document all work. The extension was installed through the out-of-tree VSIX path.
+
+Cut II.8 is GATED. Phase II is complete.
