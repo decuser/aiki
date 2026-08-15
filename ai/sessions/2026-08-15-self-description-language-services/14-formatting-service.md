@@ -1,6 +1,6 @@
 # Milestone 14 — formatting service
 
-Status: ACTIVE — implementation and disposable local gates complete; authoritative `make validate` pending.
+Status: GATED — implementation/local gates complete and authoritative `make validate` passed.
 
 ## Intent
 
@@ -49,3 +49,8 @@ A full disposable command build could not run because the environment lacks netw
 ## Handoff
 
 Run `make validate` on the authoritative tree. If it passes, mark II.6 GATED and begin II.7 completion and hover/inspect.
+
+
+## Authoritative gate
+
+The user ran `make validate` on the authoritative Phase-II tree and it passed. Cut II.6 is GATED.

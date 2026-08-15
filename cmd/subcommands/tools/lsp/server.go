@@ -57,6 +57,8 @@ func (s *server) handle(msg message) (bool, error) {
 				"definitionProvider":         true,
 				"documentSymbolProvider":     true,
 				"documentFormattingProvider": true,
+				"completionProvider":         map[string]any{},
+				"hoverProvider":              true,
 			},
 			"serverInfo": map[string]any{"name": "aiki"},
 		})
@@ -122,6 +124,66 @@ func (s *server) handle(msg message) (bool, error) {
 			return false, s.reply(msg.ID, nil)
 		}
 		return false, s.reply(msg.ID, map[string]any{"uri": d.URI, "range": symbolRange(d.Text, def.Symbol)})
+	case "textDocument/completion":
+		var p struct {
+			TextDocument struct {
+				URI string `json:"uri"`
+			} `json:"textDocument"`
+			Position struct{ Line, Character int } `json:"position"`
+		}
+		if err := json.Unmarshal(msg.Params, &p); err != nil {
+			return false, err
+		}
+		d, ok := s.documents[p.TextDocument.URI]
+		if !ok {
+			return false, s.reply(msg.ID, []any{})
+		}
+		pos := aikiPosition(d.Text, p.Position.Line, p.Position.Character)
+		pos.File = d.Path
+		items, err := s.service.Completion(language.Document{ID: d.URI, Path: d.Path, Source: d.Text, Version: d.Version}, pos, scopeForDocument(d))
+		if err != nil {
+			return false, s.reply(msg.ID, []any{})
+		}
+		out := make([]map[string]any, 0, len(items))
+		for _, item := range items {
+			kind := 6
+			if item.Kind == "shape" {
+				kind = 22
+			}
+			out = append(out, map[string]any{"label": item.Name, "kind": kind, "detail": item.Detail})
+		}
+		return false, s.reply(msg.ID, out)
+	case "textDocument/hover":
+		var p struct {
+			TextDocument struct {
+				URI string `json:"uri"`
+			} `json:"textDocument"`
+			Position struct{ Line, Character int } `json:"position"`
+		}
+		if err := json.Unmarshal(msg.Params, &p); err != nil {
+			return false, err
+		}
+		d, ok := s.documents[p.TextDocument.URI]
+		if !ok {
+			return false, s.reply(msg.ID, nil)
+		}
+		pos := aikiPosition(d.Text, p.Position.Line, p.Position.Character)
+		pos.File = d.Path
+		h, err := s.service.Hover(language.Document{ID: d.URI, Path: d.Path, Source: d.Text, Version: d.Version}, pos)
+		if err != nil || !h.Found {
+			return false, s.reply(msg.ID, nil)
+		}
+		parts := []string{}
+		if h.Signature != "" {
+			parts = append(parts, "```aiki\n"+h.Signature+"\n```")
+		}
+		if h.Summary != "" {
+			parts = append(parts, h.Summary)
+		}
+		if h.Documentation != "" {
+			parts = append(parts, h.Documentation)
+		}
+		return false, s.reply(msg.ID, map[string]any{"contents": map[string]any{"kind": "markdown", "value": strings.Join(parts, "\n\n")}})
 	case "textDocument/formatting":
 		var p struct {
 			TextDocument struct {

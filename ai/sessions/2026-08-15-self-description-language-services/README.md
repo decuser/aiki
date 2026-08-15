@@ -1,6 +1,6 @@
 # Self-description and language services
 
-Status: ACTIVE — Phase I GATED; Phase II Cuts II.0–II.5 GATED; Cut II.6 ACTIVE.
+Status: ACTIVE — Phase I GATED; Phase II Cuts II.0–II.6 GATED; Cut II.7 ACTIVE.
 
 Proposal: `proposals/aiki-self-description-language-services-proposal.md`
 
@@ -21,12 +21,15 @@ Baseline: `v0.4.0-alpha-14-g9c78646` (`9c78646`).
 11. `11-lsp-shell.md` — GATED.
 12. `12-xed-support.md` — GATED; live Xed underline/clear gate passed.
 13. `13-symbol-definition-tags.md` — GATED; authoritative validate and live nvi jump passed.
-14. `14-formatting-service.md` — ACTIVE.
+14. `14-formatting-service.md` — GATED; authoritative validate passed.
+15. `15-completion-hover.md` — ACTIVE.
 
 ## Current state
 
-Phase I and Phase II Cuts II.0–II.5 are GATED. The real Xed environment confirmed `.ai` recognition, grammar-coupled highlighting, LSP initialization/document synchronization, visible diagnostics, diagnostic clearing, Save-As transition handling, and the idempotent installer. The live nvi gate also passed: a tags file generated for `extra/samples/string_utils.ai` resolved `my_slice` with `^]`. Cut II.6 now extracts the canonical formatter into a neutral engine capability and projects it through the language service/LSP without duplicating formatting logic.
+Phase I and Phase II Cuts II.0–II.6 are GATED. Xed and nvi live gates are preserved in Milestones 12–13. Cut II.7 adds completion and hover/inspect to the neutral language-service contract and projects them through LSP; implementation and disposable package gates pass, while authoritative validation is pending.
+
+The live Xed PATH lesson is explicit: desktop-launched Xed may inherit only the desktop-session PATH, not `.bashrc`/interactive-shell PATH. Verify the actual process environment via `/proc/<xed-pid>/environ`; ensure the development `aiki` is reachable through a stable path present there.
 
 ## Exact next action
 
-Complete Cut II.6: extract the canonical formatter below command adapters, add `Service.Format`, expose LSP `textDocument/formatting`, prove CLI/service equivalence and preserve the existing parse-preservation safety gate. Then run the authoritative `make validate`.
+Run authoritative `make validate` for Cut II.7. If it passes, mark II.7 GATED and begin II.8, the thin VS Code client / Phase-II completion handoff.

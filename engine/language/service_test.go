@@ -137,3 +137,61 @@ func TestFormatRejectsInvalidSource(t *testing.T) {
 		t.Fatal("expected invalid source to be rejected")
 	}
 }
+
+type completionCatalog struct{}
+
+func (completionCatalog) VisibleNames(scope value.Scope) []string { return []string{"print", "length"} }
+func (completionCatalog) Help(name string) (HelpEntry, bool) {
+	if name == "print" {
+		return HelpEntry{Name: "print", Template: "print(val, ...)", Summary: "Print values.", Doc: "Prints values without a newline."}, true
+	}
+	return HelpEntry{}, false
+}
+func (completionCatalog) ModuleSource(currentFile, moduleName string) (string, string, bool) {
+	return "", "", false
+}
+
+func TestCompletionUsesLexicalScopeAndCatalog(t *testing.T) {
+	g, err := grammar.Load("grammar.ebnfx", syntax.EbnfxSource, "grammar.help", syntax.HelpSource)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := NewService(g, completionCatalog{})
+	src := "let outer = 1\nlet f = (x) {\n    let inner = x\n    return inner + outer\n}\n"
+	items, err := s.Completion(Document{Path: "test.ai", Source: src}, engine.Position{Line: 4, Col: 12}, value.ScopeUser)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]bool{}
+	for _, item := range items {
+		got[item.Name] = true
+	}
+	for _, want := range []string{"outer", "f", "x", "inner", "print", "length"} {
+		if !got[want] {
+			t.Fatalf("completion missing %q: %#v", want, items)
+		}
+	}
+}
+
+func TestHoverUsesLexicalDefinitionAndAuthoredHelp(t *testing.T) {
+	g, err := grammar.Load("grammar.ebnfx", syntax.EbnfxSource, "grammar.help", syntax.HelpSource)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := NewService(g, completionCatalog{})
+	doc := Document{Path: "test.ai", Source: "let outer = 1\nlet f = () { return outer }\nlet z = print(outer)\n"}
+	h, err := s.Hover(doc, engine.Position{Line: 2, Col: 21})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !h.Found || h.Name != "outer" || !strings.Contains(h.Summary, "defined at 1") {
+		t.Fatalf("lexical hover=%#v", h)
+	}
+	h, err = s.Hover(doc, engine.Position{Line: 3, Col: 9})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !h.Found || h.Signature != "print(val, ...)" || h.Summary != "Print values." {
+		t.Fatalf("help hover=%#v", h)
+	}
+}

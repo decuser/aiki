@@ -41,9 +41,25 @@ func (s *symbolScope) lookup(name string) (Symbol, bool) {
 	return Symbol{}, false
 }
 
+func (s *symbolScope) visible() []Symbol {
+	seen := map[string]bool{}
+	var out []Symbol
+	for p := s; p != nil; p = p.parent {
+		for name, sym := range p.defs {
+			if !seen[name] {
+				seen[name] = true
+				out = append(out, sym)
+			}
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
+	return out
+}
+
 type symbolIndex struct {
 	symbols []Symbol
 	refs    map[string]Symbol
+	visible map[string][]Symbol
 }
 
 func posKey(p engine.Position) string { return fmt.Sprintf("%d:%d", p.Line, p.Col) }
@@ -93,7 +109,7 @@ func (s *Service) buildSymbolIndex(doc Document) (*symbolIndex, error) {
 	if err != nil {
 		return nil, err
 	}
-	idx := &symbolIndex{refs: map[string]Symbol{}}
+	idx := &symbolIndex{refs: map[string]Symbol{}, visible: map[string][]Symbol{}}
 	global := newSymbolScope(nil)
 	// Aiki top-level lets are mutually visible to structural analysis.
 	if root != nil && root.Type == "program" {
@@ -138,6 +154,7 @@ func (idx *symbolIndex) addDef(scope *symbolScope, n *syntax.Node, kind string, 
 	return sym
 }
 func (idx *symbolIndex) addRef(scope *symbolScope, n *syntax.Node) {
+	idx.visible[posKey(n.Pos)] = scope.visible()
 	if sym, ok := scope.lookup(n.Value); ok {
 		idx.refs[posKey(n.Pos)] = sym
 	}

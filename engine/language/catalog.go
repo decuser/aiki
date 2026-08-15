@@ -2,9 +2,18 @@ package language
 
 import "aiki/engine/semantics/value"
 
-// Catalog supplies workspace/runtime facts needed by structural language
-// analysis without coupling the service core to a concrete host substrate.
+// HelpEntry is authored help/documentation projected into language services.
+type HelpEntry struct {
+	Name     string
+	Template string
+	Summary  string
+	Doc      string
+}
+
+// Catalog supplies workspace/runtime facts needed by language services without
+// coupling the service core to a concrete host substrate.
 type Catalog interface {
-	BuiltinNames(scope value.Scope) []string
+	VisibleNames(scope value.Scope) []string
+	Help(name string) (HelpEntry, bool)
 	ModuleSource(currentFile, moduleName string) (path string, source string, ok bool)
 }

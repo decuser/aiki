@@ -140,3 +140,25 @@ func TestFormattingRejectsInvalidSource(t *testing.T) {
 		t.Fatalf("expected formatting error response, got %s", out.String())
 	}
 }
+
+func TestCompletionAndHoverUseLanguageService(t *testing.T) {
+	var in bytes.Buffer
+	in.Write(framed(map[string]any{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": map[string]any{}}))
+	in.Write(framed(map[string]any{"jsonrpc": "2.0", "method": "initialized", "params": map[string]any{}}))
+	src := "let outer = 1\nlet f = (x) { return outer + x }\n"
+	in.Write(framed(map[string]any{"jsonrpc": "2.0", "method": "textDocument/didOpen", "params": map[string]any{"textDocument": map[string]any{"uri": "file:///tmp/test.ai", "languageId": "aiki", "version": 1, "text": src}}}))
+	in.Write(framed(map[string]any{"jsonrpc": "2.0", "id": 2, "method": "textDocument/completion", "params": map[string]any{"textDocument": map[string]any{"uri": "file:///tmp/test.ai"}, "position": map[string]any{"line": 1, "character": 23}}}))
+	in.Write(framed(map[string]any{"jsonrpc": "2.0", "id": 3, "method": "textDocument/hover", "params": map[string]any{"textDocument": map[string]any{"uri": "file:///tmp/test.ai"}, "position": map[string]any{"line": 1, "character": 24}}}))
+	in.Write(framed(map[string]any{"jsonrpc": "2.0", "id": 4, "method": "shutdown"}))
+	in.Write(framed(map[string]any{"jsonrpc": "2.0", "method": "exit"}))
+	var out bytes.Buffer
+	if err := Serve(&in, &out, testLSPService(t)); err != nil {
+		t.Fatal(err)
+	}
+	body := string(out.Bytes())
+	for _, want := range []string{"completionProvider", "hoverProvider", `"label":"outer"`, "defined at 1:5"} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("missing %q in %s", want, body)
+		}
+	}
+}

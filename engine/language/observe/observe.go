@@ -14,6 +14,8 @@ const (
 	EventFormatRequested      EventKind = "format_requested"
 	EventFormatProduced       EventKind = "format_produced"
 	EventFormatRejected       EventKind = "format_rejected"
+	EventCompletionRequested  EventKind = "completion_requested"
+	EventHoverRequested       EventKind = "hover_requested"
 )
 
 // Event describes service work without exposing parser or protocol structs.
@@ -43,6 +45,8 @@ const (
 	MetricFormatRequest      Metric = "format_request"
 	MetricFormatProduced     Metric = "format_produced"
 	MetricFormatRejected     Metric = "format_rejected"
+	MetricCompletionRequest  Metric = "completion_request"
+	MetricHoverRequest       Metric = "hover_request"
 )
 
 // Probe receives service measurements. Implementations used by concurrent

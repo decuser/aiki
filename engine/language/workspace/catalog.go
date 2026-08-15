@@ -5,10 +5,13 @@ package workspace
 import (
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"aiki/engine/language"
 	"aiki/engine/runtime/hal/substrate"
+	"aiki/engine/runtime/help"
+	"aiki/engine/runtime/prelude"
 	"aiki/engine/semantics/value"
 	"aiki/engine/syntax/grammar"
 )
@@ -25,8 +28,42 @@ func NewCatalog(g *grammar.Grammar) *Catalog {
 	return &Catalog{grammar: g, runtime: substrate.NewGoRuntime()}
 }
 
-func (c *Catalog) BuiltinNames(scope value.Scope) []string {
-	return c.runtime.BuiltinNames(scope)
+func (c *Catalog) VisibleNames(scope value.Scope) []string {
+	set := map[string]bool{}
+	for _, name := range c.runtime.BuiltinNames(scope) {
+		set[name] = true
+	}
+	if scope == value.ScopeUser {
+		funcs, err := help.ParseHelpFile("prelude.help", prelude.HelpSource)
+		if err == nil {
+			for name := range funcs {
+				set[name] = true
+			}
+		}
+	}
+	out := make([]string, 0, len(set))
+	for name := range set {
+		out = append(out, name)
+	}
+	sort.Strings(out)
+	return out
+}
+
+func (c *Catalog) Help(name string) (language.HelpEntry, bool) {
+	funcs, err := help.ParseHelpFile("prelude.help", prelude.HelpSource)
+	if err != nil {
+		return language.HelpEntry{}, false
+	}
+	entry, ok := funcs[name]
+	if !ok {
+		return language.HelpEntry{}, false
+	}
+	docs, _ := help.ParseDocFile("prelude.doc", prelude.DocSource)
+	doc := ""
+	if d, found := docs[name]; found {
+		doc = d.Doc
+	}
+	return language.HelpEntry{Name: name, Template: entry.Template, Summary: entry.Help, Doc: doc}, true
 }
 
 func (c *Catalog) ModuleSource(currentFile, name string) (string, string, bool) {

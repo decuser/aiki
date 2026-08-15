@@ -78,7 +78,7 @@ func makeGlobals(lintScope value.Scope, catalog Catalog) scopeFrame {
 	}
 	// Runtime-visible names come through the neutral catalog contract.
 	if catalog != nil {
-		for _, name := range catalog.BuiltinNames(lintScope) {
+		for _, name := range catalog.VisibleNames(lintScope) {
 			globals[name] = true
 		}
 	}
