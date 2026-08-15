@@ -34,6 +34,20 @@ func hasFinding(findings []Finding, path string) bool {
 	return false
 }
 
+func TestAuditFindingsLedgerIsRepositoryArtifact(t *testing.T) {
+	root := minimalTree(t)
+	path := "docs/audit-findings.md"
+	writeTestFile(t, root, path, "# Audit findings\n")
+
+	result, err := Check(root, "treecheck.allow")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if hasFinding(result.Errors, path) || hasFinding(result.Orphans, path) {
+		t.Fatalf("audit findings ledger should be justified: errors=%#v orphans=%#v", result.Errors, result.Orphans)
+	}
+}
+
 func TestEngineGoldWithoutSpecimenIsStructuralError(t *testing.T) {
 	root := minimalTree(t)
 	path := "test/structure/engine/orphan_engine.ai.lex.gold"

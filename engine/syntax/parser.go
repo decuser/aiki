@@ -48,10 +48,11 @@ func NewParser(g *grammar.Grammar, tokens []Token, source string, observer engin
 	for _, lexeme := range rule.AfterLexeme {
 		afterLexeme[lexeme] = struct{}{}
 	}
-	suppressDelta := make(map[string]int, len(rule.SuppressIn)*2)
+	suppressOpen := make(map[string]string, len(rule.SuppressIn))
+	suppressClose := make(map[string]struct{}, len(rule.SuppressIn))
 	for _, pair := range rule.SuppressIn {
-		suppressDelta[pair[0]]++
-		suppressDelta[pair[1]]--
+		suppressOpen[pair[0]] = pair[1]
+		suppressClose[pair[1]] = struct{}{}
 	}
 	endsStatement := func(tok Token) bool {
 		if _, ok := afterToken[tok.Type]; ok {
@@ -67,6 +68,11 @@ func NewParser(g *grammar.Grammar, tokens []Token, source string, observer engin
 	continuationTokens := make(map[string]bool)
 	continuationLexemes := make(map[string]bool)
 	analysis := g.Analysis()
+	if analysis.NewlineError != nil {
+		if diagnostics, ok := observer.(engine.DiagnosticObserver); ok {
+			diagnostics.OnDiagnostic("grammar-newline-analysis", analysis.NewlineError.Error(), rule.Pos)
+		}
+	}
 	if analysis.Newline != nil {
 		for _, symbol := range analysis.Newline.Continuation {
 			if symbol.Token != "" {
@@ -81,16 +87,26 @@ func NewParser(g *grammar.Grammar, tokens []Token, source string, observer engin
 	// terminators according to the grammar-declared policy.
 	filtered := make([]Token, 0, len(tokens))
 	syntheticTerminators := make(map[int]bool)
-	suppressDepth := 0
+	var suppressStack []string
 	for _, tok := range tokens {
 		if def, ok := g.GetToken(tok.Type); ok && def.Skip {
 			continue
 		}
 
-		suppressDepth += suppressDelta[tok.Lexeme]
+		// Suppression is delimiter-aware rather than an aggregate depth. An
+		// unmatched or mismatched closer cannot drive state negative or cancel a
+		// later legitimate opener; the grammar parser will report the malformed
+		// delimiter itself downstream.
+		if len(suppressStack) > 0 && tok.Lexeme == suppressStack[len(suppressStack)-1] {
+			suppressStack = suppressStack[:len(suppressStack)-1]
+		} else if closer, ok := suppressOpen[tok.Lexeme]; ok {
+			suppressStack = append(suppressStack, closer)
+		} else if _, ok := suppressClose[tok.Lexeme]; ok {
+			// Unmatched/mismatched closer: ignore for normalization state.
+		}
 
 		if tok.Type == rule.Token {
-			if suppressDepth == 0 && len(filtered) > 0 && endsStatement(filtered[len(filtered)-1]) {
+			if len(suppressStack) == 0 && len(filtered) > 0 && endsStatement(filtered[len(filtered)-1]) {
 				syntheticTerminators[len(filtered)] = true
 				filtered = append(filtered, Token{
 					Type:   "DELIMITER",

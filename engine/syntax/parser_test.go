@@ -223,6 +223,46 @@ func TestParserError(t *testing.T) {
 	}
 }
 
+func TestParserSuppressionIgnoresUnmatchedCloser(t *testing.T) {
+	g := loadTestGrammar(t)
+	tokens := []Token{
+		{Type: "DELIMITER", Lexeme: "]", Pos: engine.Position{File: "test.ai", Line: 1, Col: 1}},
+		{Type: "DELIMITER", Lexeme: "(", Pos: engine.Position{File: "test.ai", Line: 1, Col: 2}},
+		{Type: "NUMBER", Lexeme: "1", Pos: engine.Position{File: "test.ai", Line: 1, Col: 3}},
+		{Type: "NEWLINE", Lexeme: "\n", Pos: engine.Position{File: "test.ai", Line: 1, Col: 4}},
+		{Type: "DELIMITER", Lexeme: ")", Pos: engine.Position{File: "test.ai", Line: 2, Col: 1}},
+	}
+
+	p := NewParser(g, tokens, "]\n(1\n)", nil)
+	for _, tok := range p.tokens {
+		if tok.Lexeme == ";" {
+			t.Fatalf("unmatched closer corrupted later suppression; inserted terminator at %v", tok.Pos)
+		}
+	}
+}
+
+func TestParserReportsUnavailableNewlineAnalysisToDiagnosticObserver(t *testing.T) {
+	g := loadTestGrammar(t)
+	delete(g.Productions, "expr")
+	g.Reanalyze()
+
+	var kind, message string
+	obs := &testParserObserver{
+		onDiagnostic: func(gotKind, gotMessage string, pos engine.Position) {
+			kind = gotKind
+			message = gotMessage
+		},
+	}
+
+	_ = NewParser(g, nil, "", obs)
+	if kind != "grammar-newline-analysis" {
+		t.Fatalf("diagnostic kind = %q, want grammar-newline-analysis", kind)
+	}
+	if !strings.Contains(message, "no expr production") {
+		t.Fatalf("diagnostic message = %q, want missing expr reason", message)
+	}
+}
+
 // Helper functions
 
 func findNode(node *Node, nodeType string) *Node {
@@ -249,7 +289,8 @@ func findAllNodes(node *Node, nodeType string) []*Node {
 }
 
 type testParserObserver struct {
-	onParse func(production string, depth int, pos engine.Position)
+	onParse      func(production string, depth int, pos engine.Position)
+	onDiagnostic func(kind string, message string, pos engine.Position)
 }
 
 func (o *testParserObserver) OnLex(token, lexeme string, pos engine.Position) {}
@@ -261,6 +302,11 @@ func (o *testParserObserver) OnParse(production string, depth int, pos engine.Po
 func (o *testParserObserver) OnEval(node, result string, scope int, pos engine.Position) {}
 func (o *testParserObserver) OnEffect(action, target string, pos engine.Position)        {}
 func (o *testParserObserver) OnFormat(method, output, node string, depth int)            {}
+func (o *testParserObserver) OnDiagnostic(kind, message string, pos engine.Position) {
+	if o.onDiagnostic != nil {
+		o.onDiagnostic(kind, message, pos)
+	}
+}
 
 func TestParserSelect(t *testing.T) {
 	ast := parseSource(t, `select {

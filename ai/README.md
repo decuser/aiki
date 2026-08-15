@@ -1,263 +1,288 @@
 ---
 name: aiki
 description: >
-  Use this skill for any conversation involving the Aiki programming language
-  project — implementation work, code review, design discussion, paper review,
-  planning, or any session where the user provides an aiki tarball or refers to
-  the Aiki codebase, its ai/ working record, proposals, docs, or lib modules.
-  Also trigger when the user mentions concepts specific to Aiki: HAL boundary,
-  exact rationals, isolated spawn, semantic profiling, store/bits/select, the
-  7094 emulator, executable documentation, or the SPLASH-E submission. Trigger
-  even for non-coding sessions (discussion, review, planning) because the
-  working method applies to all substantial Aiki work and the session record
-  must be maintained.
+  Use this skill for any substantial conversation involving the Aiki programming
+  language project: implementation, review, design, planning, proposals, papers,
+  repository work, or any session involving an Aiki tarball, the ai/ working
+  record, proposals, docs, tests, or language-specific architecture. The working
+  method applies to coding and non-coding work alike.
 ---
 
-# Aiki project skill
+# Aiki working method
 
-## What Aiki is
+## Purpose
 
-Aiki is a programming language hosted in Go. Its defining commitments are
-exact rational arithmetic (no hidden floating-point state) and isolated
-spawn-based concurrency (no shared mutable memory between spawned
-computations). The implementation comprises a lexer, parser, and tree-walking
-evaluator, a HAL (hardware abstraction layer) contract separating the
-evaluator from the Go substrate, a scope-gated builtin registry, a module
-system, a prelude, and a standard library.
-
-The user (Will) is the language designer. He works from observable behavior
-and documented surface, not from reading the Go implementation directly.
-This is deliberate and constitutive of the project's method — do not suggest
-he read the implementation code as a remedy for any problem.
-
-## Working method
-
-All substantial Aiki work — including non-coding sessions — follows a
-serial-cut, evidence-gated, restartable method. The authoritative record
-lives in `ai/` inside the repository.
-
-### Rules
-
-1. Keep one authoritative working tree. Do not create a new tree or archive
-   for each stage unless explicitly requested.
-2. Work in small serial cuts. Finish, validate, and record one coherent cut
-   before extending the next.
-3. Keep the user informed while work is active. Report meaningful
-   checkpoints: what changed, what was discovered, what failed, and what is
-   being validated. Never imply work continues after a turn has ended.
-4. Record progress in the repository as it happens. The session log is not
-   disposable scratch material. It is engineering provenance.
-5. Gate claims with evidence. A cut is not GATED until its stated validation
-   has actually run. Distinguish source inspection, compilation, unit tests,
-   integration tests, race tests, smoke/gold checks, and environment-limited
-   validation.
-6. Record discoveries, not just edits. If work exposes a design flaw,
-   measurement artifact, invalid assumption, or limitation, record the
-   finding and the decision that followed.
-7. Preserve restartability. Before a turn can reasonably end, update the
-   current session index with the exact status and next action.
-8. Do not hide environmental limitations. Record toolchain, dependency,
-   network, or runtime constraints and any disposable harness used to work
-   around them.
-9. Prefer correction over accretion. If a later cut reveals an earlier
-   assumption was wrong, correct the implementation and record the correction
-   rather than layering a workaround on top.
-10. Keep generated artifacts intentional. Record which outputs are evidence
-    worth retaining and which are temporary.
-
-### Session layout
-
-```text
-ai/
-  README.md                    durable working rules (do not overwrite)
-  sessions/
-    README.md                  pointer to current session
-    YYYY-MM-DD/
-      README.md                live session index / restart point
-      summary.md               curated conceptual narrative
-      01-<milestone>.md        first gated milestone
-      02-<milestone>.md        ...
-```
-
-- The dated `README.md` is the mutable restart point. Update it whenever
-  status changes.
-- `summary.md` preserves the conceptual/design narrative: the problem, how
-  thinking developed, important distinctions, surprises, and resulting
-  architecture. It is a curated summary, not a chat transcript.
-- Numbered milestone files are the durable engineering record. Edit them only
-  to correct factual errors or add clearly marked follow-up notes.
-
-### Status vocabulary
-
-Use these words consistently in milestone and session records:
-
-- `PLANNED` — defined but not started.
-- `ACTIVE` — currently being changed or validated.
-- `BLOCKED` — cannot proceed until a stated condition changes.
-- `GATED` — implementation and stated validation completed.
-- `COMPLETE` — the session has no further planned work before review/delivery.
-- `SUPERSEDED` — later work intentionally replaced the milestone's conclusion.
-
-### Git workflow
-
-Substantial proposal/feature work should preserve its development line in Git history.
-
-1. Create a named project branch for the work.
-2. Commit coherent project milestones on that branch and push meaningful branches to all configured remotes unless there is a specific reason not to.
-3. Integrate completed work into `master` with a **non-fast-forward merge** so the branch-and-merge structure remains visible in the commit graph. Do not fast-forward completed project branches.
-4. Validate the integrated `master` tree before pushing the merge to remotes.
-5. After the branch is merged, validated, and present on the remotes, the local branch pointer may be deleted to keep the local branch list uncluttered. Deleting the local pointer does not remove the branch ancestry or merge structure from history.
-6. Keep release tags separate from project branches: tags mark exact release commits; non-fast-forward merges preserve project development lines.
-
-Typical lifecycle:
-
-```text
-git switch -c <project-branch>
-# work, validate, commit, and push the branch to remotes
-git switch master
-git merge --no-ff <project-branch>
-# validate integrated master
-git push <remote> master
-# ensure <project-branch> is pushed to the remotes
-git branch -d <project-branch>   # optional local cleanup after merge/sync
-```
-
-Set Git to prefer this merge policy by default:
-
-```text
-git config --global merge.ff false
-```
-
-### Starting or resuming work
-
-When a tarball arrives or Aiki work begins:
-
-1. Read this skill.
-2. If a tarball was provided, extract it and find the most recent directory
-   under `ai/sessions/`.
-3. Read that session's `README.md` and the latest numbered milestone.
-4. Inspect the working tree before assuming the recorded state matches files.
-5. Continue from the recorded next action.
-
-When starting a new calendar-date session, create a new date directory. Its
-`README.md` should link the prior session and state what is being continued
-or started.
-
-### Non-coding sessions
-
-The working method applies to sessions that involve no code changes —
-design discussion, paper review, planning, proposal writing, code review
-without modification, or any other substantial exchange about Aiki.
-
-For such sessions:
-
-- Create or continue a dated session directory.
-- Record milestones for substantive decisions, reviews, or findings.
-  A milestone for a non-coding session records intent, the discussion or
-  review conducted, decisions reached, and any action items established.
-- Use status `GATED` when the discussion reached a conclusion or decision;
-  `COMPLETE` when the session has no further planned discussion.
-- Write a `summary.md` when the session produced conceptual or design
-  insight worth preserving beyond the milestone record.
-
-The test is whether another instance of Claude — or the same instance after
-an interrupted chat — could answer three questions without guessing:
+Aiki work follows a serial-cut, evidence-gated, restartable method. The goal is
+not merely to produce code or prose, but to leave behind a repository state from
+which another AI instance — or the same instance after interruption — can answer
+without guessing:
 
 1. What is true now?
 2. Why is it that way?
 3. What exactly should happen next?
 
-If the session produced answers to any of those that aren't already recorded,
-it warrants a session entry.
+The repository, not the chat, is the durable record.
 
-## Delivering session records
+The user is the language designer and works from Aiki's observable behavior and
+documented surface. Do not make reading the Go implementation a prerequisite for
+understanding or deciding language behavior.
 
-At the end of any session that produced `ai/` content, package the updated
-`ai/` directory as a drop-in tarball the user can extract and merge into the
-repository.
+## Core principles
+
+1. **One authoritative working tree.** Work in one tree unless a separate tree is
+   explicitly requested. Do not manufacture a new source archive for every cut.
+2. **Small serial cuts.** Constrain the next coherent change, complete it, validate
+   it, and record it before extending the work.
+3. **Evidence before claims.** A cut is not `GATED` until its stated validation has
+   actually run. Distinguish inspection, compilation, unit tests, integration
+   tests, race tests, smoke/gold checks, and environment-limited validation.
+4. **Record discoveries as well as edits.** Invalid assumptions, design flaws,
+   limitations, measurement artifacts, and unexpected behavior are engineering
+   results and must survive the chat.
+5. **Prefer correction over accretion.** When later evidence disproves an earlier
+   assumption, correct the design or implementation and record the correction;
+   do not layer a workaround over a false premise.
+6. **Preserve restartability.** At any real interruption or handoff, leave an exact
+   status and next action in the current session record.
+7. **Make limitations explicit.** Record unavailable toolchains, dependencies,
+   network constraints, disposable harnesses, and anything that limits the
+   strength of a validation claim.
+8. **Keep generated artifacts intentional.** Distinguish retained evidence from
+   disposable output. Do not allow accidental files to become part of the tree.
+9. **Single authority for facts.** When multiple subsystems need the same fact,
+   locate the declaration that owns it, derive reusable facts near that authority,
+   and make consumers use the derived view rather than reconstructing it.
+   Consumer-specific meaning, representation, and policy remain local.
+10. **Keep the user informed during substantial work.** Report meaningful
+    checkpoints, discoveries, failures, and validation results. Never imply that
+    work continues after the turn has ended.
+
+## Project lifecycle
+
+Substantial work normally follows this flow:
+
+```text
+finding / idea
+    ↓
+proposal (when the work needs an explicit design contract)
+    ↓
+named project branch
+    ↓
+small serial cuts
+    ↓
+evidence gates
+    ↓
+project reconciliation
+    ↓
+non-fast-forward merge to master
+    ↓
+validation of integrated master
+    ↓
+synchronize meaningful branches and master to remotes
+```
+
+Not every small repair needs a proposal. Use one when the work introduces or
+changes architecture, language behavior, a cross-cutting invariant, or enough
+scope that intent could drift during execution.
+
+### Findings, proposals, bugs, and sessions
+
+These artifacts have different jobs:
+
+- `docs/audit-findings.md` is the repository-wide ledger of credible engineering
+  findings from audits and reviews. Findings receive stable IDs and a disposition
+  such as `OPEN`, `PLANNED`, `RESOLVED`, `ACCEPTED`, or `DEFERRED`.
+- `proposals/` defines bounded intended work: what will change, why, constraints,
+  acceptance criteria, planned cuts, and which audit findings it addresses.
+- `buglist.md` contains current unresolved defects. It is not a history of every
+  observation, accepted limitation, or resolved audit finding.
+- `ai/sessions/` records execution: decisions, discoveries, departures from the
+  proposal, validation evidence, caveats, and restart state.
+
+A project may close audit findings without adding them to the buglist. A finding
+that remains a genuine unresolved defect should remain represented in the
+repository-wide defect record.
+
+## Serial cuts and status
+
+Use these status words consistently:
+
+- `PLANNED` — defined but not started.
+- `ACTIVE` — currently being changed or validated.
+- `BLOCKED` — cannot proceed until a stated condition changes.
+- `GATED` — the cut's implementation or decision and its stated validation are
+  complete.
+- `COMPLETE` — the project/session has no remaining planned work before normal
+  review, merge, or delivery.
+- `SUPERSEDED` — later work intentionally replaced the earlier conclusion.
+
+A cut should have one coherent purpose. If a gate exposes a different defect,
+record it and either add a new bounded cut or defer it; do not silently fold an
+unrelated repair into the current claim.
+
+Golds and other evidence artifacts may be corrected while establishing a new
+baseline if the expected artifact itself is wrong. After a baseline is gated,
+change evidence only for an explicit, planned behavior or representation change.
+
+## Working record
+
+The durable AI record lives in the repository:
+
+```text
+ai/
+  README.md                    durable working method
+  sessions/
+    README.md                  pointer to current/latest session
+    YYYY-MM-DD[-project]/
+      README.md                live index and restart point
+      summary.md               curated conceptual narrative
+      01-<milestone>.md        durable milestone record
+      02-<milestone>.md
+      ...
+```
+
+The exact dated-directory naming convention may include a project suffix when
+multiple substantial projects occur on the same date.
+
+### Session files
+
+- The dated `README.md` is the mutable project/session index. It states current
+  status, gated milestones, unresolved discoveries, and the exact next action.
+- `summary.md` preserves the conceptual story: the problem, how the reasoning
+  developed, important distinctions, surprises, and resulting architecture. It
+  is curated provenance, not a chat transcript.
+- Numbered milestone files are the durable engineering record. Once gated, edit
+  them only to correct factual errors or add clearly marked follow-up notes.
+
+Maintain the record as work proceeds, but normally **deliver the consolidated
+session material at project completion or at a genuine interruption/handoff**.
+Do not generate a separate `ai/` tarball after every routine cut merely because a
+cut completed.
+
+For non-coding Aiki work — design discussion, paper review, proposal development,
+planning, or code review without edits — use the same record when the discussion
+produces durable decisions, findings, or next actions that are not already
+captured elsewhere.
+
+## Starting or resuming work
+
+When substantial Aiki work begins:
+
+1. Read this working method.
+2. If a baseline/archive was supplied, inspect it rather than assuming the chat
+   describes its current state.
+3. Read `ai/sessions/README.md`, then the current/latest session `README.md` and
+   latest relevant milestone.
+4. Read the controlling proposal and any audit-finding IDs it cites.
+5. Inspect Git status, branch, and relevant tree state before making changes.
+6. Continue from the recorded next action or create a new project session when
+   starting genuinely new work.
+
+Do not ask the user to repeat information that the repository record already
+contains.
+
+## Git workflow
+
+Substantial proposal/feature work uses named project branches and preserves the
+development line in history.
+
+1. Create a named project branch.
+2. Commit coherent work on that branch.
+3. Push meaningful project branches to all configured remotes unless there is a
+   specific reason not to.
+4. Integrate completed project branches into `master` with a **non-fast-forward
+   merge**. Do not fast-forward completed project branches.
+5. Validate the integrated `master` tree.
+6. Push the merged `master` and meaningful project branches to the remotes.
+7. After merge, validation, and synchronization, the local project-branch pointer
+   may be deleted to keep the local branch list small. The merge ancestry and
+   remote branch refs remain.
+
+Typical lifecycle:
+
+```text
+git switch -c <project-branch>
+# work, validate, commit, push branch
+
+git switch master
+git merge --no-ff <project-branch>
+make validate
+# push master and project branch to configured remotes
+
+git branch -d <project-branch>   # optional local cleanup
+```
+
+Prefer non-fast-forward merges globally:
+
+```text
+git config --global merge.ff false
+```
+
+Release tags are separate from project branches. Tags identify exact release
+commits; non-fast-forward merges preserve bounded development lines.
+
+## Validation
+
+Use the strongest relevant evidence for the cut. The standard repository gate is
+`make validate`; when a cut is small, focused tests may be used during execution,
+but they do not substitute for the final repository gate when the project claims
+integration-level correctness.
+
+The standard validation surface includes, as applicable:
+
+```text
+go test ./...                 Go tests
+./aiki test ./...             Aiki-native tests
+./aiki smoke test/behavior/   behavior/gold tests
+./aiki enginesmoke ...        grammar coverage and engine structural golds
+./aiki treecheck              distribution-tree integrity
+race checks                   concurrent packages when relevant
+```
+
+When environment constraints prevent the authoritative gate, record exactly what
+was run and what remains unverified. A locally compatible harness is useful
+evidence but must not be described as the full gate.
+
+For non-coding work, validation means that decisions and findings are internally
+consistent, rationale is recorded, open questions have dispositions, and the next
+action is explicit.
+
+## Handoff and delivery
+
+Before a project/session ends or work is handed off:
+
+- reconcile the proposal against what was actually implemented;
+- update any referenced audit findings and unresolved bugs;
+- record gated and blocked cuts accurately;
+- distinguish intentional behavior changes from baseline-preserving work;
+- update the session `README.md` and `summary.md`;
+- ensure the working tree contains no unexplained generated files;
+- state the exact next Git or engineering action if the project is not complete.
+
+When delivering only the AI working record, package it rooted at `ai/` so it can
+merge directly into the repository:
 
 ```bash
-# Build a tarball rooted at ai/ that merges cleanly
 tar czf ai-session.tgz ai/
 ```
 
-The tarball must:
-- Be rooted at `ai/` so it extracts into the right place.
-- Never overwrite `ai/README.md` or `ai/sessions/README.md` unless those
-  files were intentionally changed during the session.
-- Only add or update files under the current session's dated directory,
-  plus updating `ai/sessions/README.md` to point to the current session
-  if a new date directory was created.
-- Never include files outside `ai/`.
+Do not overwrite durable working-method files unless they were intentionally
+changed as part of the project.
 
-Present the tarball to the user at the end of the session.
+## Minimal project orientation
 
-## Project structure
-
-Key directories and what they contain:
+Aiki's detailed architecture belongs in its source, proposals, and documentation,
+not in this working-method file. For orientation only:
 
 ```text
-cmd/                    CLI entry points (aiki, subcommands)
-engine/
-  profiling.go          semantic probe types (SemanticKind, SemanticProbe, etc.)
-  runner/               session, profile, smoke runners
-  runtime/
-    hal/                HAL contract (RuntimeContract, ContextCallable, etc.)
-      substrate/        Go implementation of HAL (builtins, registry, store)
-    help/               help system
-    prelude/            prelude loader
-  semantics/
-    evaluator/          tree-walking evaluator, counters
-    value/              value model (Number, List, Store, Channel, Env, etc.)
-  syntax/               lexer, parser, grammar
-lib/                    standard library modules (Aiki source + help + doc)
-docs/                   user-facing documentation
-proposals/              design proposals
-extra/                  editors, profiling workloads, samples
-test/                   boundary, canary, contract, fuzz, invariant, property tests
-ai/                     AI working record (this method)
+cmd/         command-line tools
+engine/      syntax, evaluator, runtime, runners
+lib/         Aiki standard-library modules
+docs/        user-facing and architectural documentation
+proposals/   bounded design contracts
+test/        behavioral, structural, invariant, fuzz, and property tests
+ai/          AI working provenance
 ```
 
-## Key architectural concepts
-
-- **HAL boundary**: the evaluator delegates all host effects through
-  `RuntimeContract`. Builtins are scope-gated (prelude vs user).
-- **Value model**: exact rationals via `big.Rat`, persistent immutable lists,
-  explicit mutable `Store`, opaque `Channel`. No floats.
-- **Isolated spawn**: spawned computations get `NewIsolatedEnclosedEnv` —
-  separate call stack, shared prelude vocabulary, no mutable state leakage.
-  `Store` is an explicit, documented exception.
-- **NewCallEnv**: lexical bindings from the defining environment, dynamic
-  execution state (stack, probe) from the caller. This split is load-bearing
-  for concurrency correctness.
-- **Executable documentation**: doc examples are parsed and run as
-  subprocess tests. The doc corpus is the spec; the Go is a fungible
-  implementation.
-- **Semantic profiling**: deterministic Aiki-level counts (arithmetic,
-  comparison, call, iteration, index, send, receive, store_read, store_write)
-  plus opt-in source attribution, plus correlated Go CPU profiling via pprof
-  labels across the HAL boundary.
-
-## Validation workflow
-
-The standard validation sequence (when doing code work):
-
-```text
-go test ./...                 all Go tests
-Aiki-native tests             lib/*/test_*.ai via test framework
-behavior smokes               test/behavior/*.ai vs .gold
-grammar coverage              32 productions across 10 inputs
-engine gold check             test/structure/engine/ inputs
-race checks                   go test -race on concurrent packages
-```
-
-For non-coding sessions, validation means: session record is internally
-consistent, decisions are recorded with rationale, and next actions are
-specified.
-
-## Current state and priorities
-
-Read the latest `ai/sessions/` entry for current state. The identified
-feature priority order is: `bits` → `store` → `select` → profiler.
-Store and profiler are now implemented. The executable documentation effort
-(Stages 4–5) is in progress.
+Current implementation state and priorities belong in the latest session/project
+record, not here. This file should change only when the **method** changes.

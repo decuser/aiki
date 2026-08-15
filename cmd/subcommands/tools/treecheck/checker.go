@@ -190,7 +190,7 @@ func (c *Checker) mark(path, reason string) {
 }
 
 func (c *Checker) seedBuiltins() {
-	roots := []string{".gitignore", "LICENSE", "README.md", "buglist.md", "go.mod", "go.sum", "makefile", c.AllowFile}
+	roots := []string{".gitignore", "LICENSE", "README.md", "buglist.md", "docs/audit-findings.md", "go.mod", "go.sum", "makefile", c.AllowFile}
 	for _, p := range roots {
 		c.mark(p, "repository root artifact")
 	}

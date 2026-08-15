@@ -44,9 +44,12 @@ when the specimen intentionally does not parse:
 ```
 
 The marker is a general negative-fixture declaration; `parse` is currently the
-only supported kind. Unknown kinds are errors. A parse-negative fixture is
-excluded from formatter and linter source traversal because successful parsing
-is not part of that specimen's contract.
+only supported kind. Unknown kinds are errors. Negative declarations are valid
+only on `*_smoke.ai` specimens; placing one in ordinary `.ai` source is an
+error, so application or library source cannot exempt itself from formatter or
+linter coverage. A parse-negative fixture is excluded from formatter and linter
+source traversal because successful parsing is not part of that specimen's
+contract.
 
 Intent and evidence are checked separately. `# @negative parse` is the intent;
 the smoke transcript is the observation. Smoke validation requires both

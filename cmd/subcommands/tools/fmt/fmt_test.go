@@ -137,12 +137,23 @@ func TestRunFailsOnUndeclaredMalformedFile(t *testing.T) {
 
 func TestFormatPathSkipsDeclaredParseNegative(t *testing.T) {
 	dir := t.TempDir()
-	path := filepath.Join(dir, "negative.ai")
+	path := filepath.Join(dir, "negative_smoke.ai")
 	if err := os.WriteFile(path, []byte("# @negative parse\nlet x =\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := FormatPath(dir+"/...", Config{}); err != nil {
 		t.Fatalf("declared parse-negative was not skipped: %v", err)
+	}
+}
+
+func TestFormatPathRejectsNegativeMarkerOutsideSmokeFixture(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "ordinary.ai")
+	if err := os.WriteFile(path, []byte("# @negative parse\nlet x =\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := FormatPath(dir+"/...", Config{}); err == nil {
+		t.Fatal("ordinary source used @negative parse as a formatting exemption")
 	}
 }
 
