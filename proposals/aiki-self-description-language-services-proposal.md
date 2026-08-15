@@ -2,7 +2,7 @@
 
 ## Status
 
-Active — Phase I GATED; Phase II through Cut II.4 GATED; Cut II.5 at nvi handoff.
+Implemented — Phase I GATED; Phase II GATED/COMPLETE; Phase III Cuts III.0–III.5 GATED and Cut III.6 locally complete pending the final authoritative validation gate.
 
 ## Baseline
 
@@ -998,6 +998,20 @@ Go interpreter
 The nested interpretation produces the same specified observable result as direct execution for the selected proof program(s).
 
 This is the final self-hosting proof.
+
+### Implemented proof
+
+The durable proof program evaluates `1 + 2 * 3`, whose Aiki left-to-right result is `9`, through:
+
+```text
+Go interpreter
+  -> Aiki-written bootstrap/interpreter
+      -> self-host-loaded Aiki bootstrap/interpreter
+          -> third-level Aiki program
+              -> 9
+```
+
+Two implementation-neutral performance corrections were required before the full proof became practical: the independent lexer snapshots source into runes once through the existing `string.chars` surface, and the self-host module loader canonicalizes path spellings so one physical module has one cache identity. The proof remains fully independently lexed, parsed, and evaluated; no Go parser/evaluator structures are shared.
 
 ---
 

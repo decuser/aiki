@@ -174,6 +174,19 @@ formatting, completion, and hover come from the same language-service core.
 See `extra/editors/xed/README.md` and `extra/editors/vscode/README.md` for the
 editor-specific setup and live checks.
 
+## Self-Description and Self-Hosting
+
+Aiki includes an independent interpreter written in Aiki under `selfhost/`. It
+lexes, normalizes, parses, evaluates, and self-host-loads Aiki source modules
+without reusing the Go lexer/parser/evaluator implementation. Cross-implementation
+invariants compare lexical, syntactic, module, and behavioral results. The final
+bootstrap invariant runs the Aiki-written interpreter through itself and requires
+a third-level Aiki program to produce the specified result.
+
+The Go implementation remains the production runtime and bootstrap substrate;
+self-hosting is a conformance and boundary-sufficiency proof, not a replacement
+for the Go runtime.
+
 ## Repository Layout
 
 ```text

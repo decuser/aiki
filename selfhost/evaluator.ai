@@ -89,17 +89,67 @@ let dirname = (path) {
 	return str.substring(path, 0, last)
 }
 
+let without_last = (xs) {
+	let out = []
+	let i = 0
+	while i + 1 < length(xs) {
+		out = append(out, xs[i])
+		i = i + 1
+	}
+	return out
+}
+
+let clean_path = (path) {
+	let parts = str.split(path, "/")
+	let out = []
+	let i = 0
+	while i < length(parts) {
+		let part = parts[i]
+		if equal(part, "") or equal(part, ".") {
+		} else {
+			# nothing
+			if equal(part, "..") {
+				if not empty(out) {
+					let last = out[length(out) - 1]
+					if not equal(last, "..") {
+						out = without_last(out)
+					} else {
+						out = append(out, part)
+					}
+				} else {
+					out = append(out, part)
+				}
+			} else {
+				out = append(out, part)
+			}
+		}
+		i = i + 1
+	}
+	let result = str.join(out, "/")
+	if equal(result, "") {
+		return "."
+	}
+	return result
+}
+
 let resolve_module = (name, caller_env) {
+	# Relative module names may walk both down (./x) and up (../x). Keep the
+	# relative spelling intact and let the filesystem resolve dot segments.
 	if length(name) >= 2 {
-		if equal(name[0], '.') and equal(name[1], '/') {
-			let rel = str.substring(name, 2, length(name))
+		if equal(name[0], '.') {
+			let rel = name
 			if not str.ends_with(rel, ".ai") {
 				rel = rel + ".ai"
 			}
 			let base = dirname(rt.env_get_file(caller_env))
-			let candidate = base + "/" + rel
+			let candidate = clean_path(base + "/" + rel)
 			if file.exists(candidate) {
 				return candidate
+			}
+			# Match the host loader: caller-relative first, then current-directory fallback.
+			let fallback = clean_path(rel)
+			if file.exists(fallback) {
+				return fallback
 			}
 			return error_value(:import, "cannot find module: " + name)
 		}

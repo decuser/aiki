@@ -28,6 +28,7 @@ Each test enforces that two parts of the distribution agree:
 20. prelude exports <-> explicit self-host host-value bridge (`selfhost_prelude_bridge_test.go`)
 21. reference module behavior <-> self-hosted source-module loader (`selfhost_module_test.go`)
 22. behavior gold corpus <-> independent self-host evaluator (`selfhost_behavior_acceptance_test.go`)
+23. Go bootstrap -> Aiki interpreter -> Aiki interpreter -> third-level Aiki result (`selfhost_self_interpretation_test.go`)
 
 ## handler_validation_test.go
 
@@ -62,4 +63,4 @@ Verify Phase-I self-description/conformance couplings. The independent Aiki
 front end does not reuse the Go lexer or parser. Both implementations are
 checked against reviewed language-owned artifacts: extracted grammar facts,
 lexical/newline conformance fixtures, and the existing engine parse-gold
-corpus. Phase III adds runtime-environment, expression, statement/function, prelude-bridge, module-loading, and behavior-acceptance couplings. These compare the independent evaluator against reference behavior while keeping the bridge vocabulary coupled to the real prelude authority and preserving self-hosted Aiki-source module loading.
+corpus. Phase III adds runtime-environment, expression, statement/function, prelude-bridge, module-loading, and behavior-acceptance couplings. These compare the independent evaluator against reference behavior while keeping the bridge vocabulary coupled to the real prelude authority and preserving self-hosted Aiki-source module loading. The final self-interpretation invariant runs the Aiki-written interpreter through itself and requires the third-level program to produce the same Aiki result.

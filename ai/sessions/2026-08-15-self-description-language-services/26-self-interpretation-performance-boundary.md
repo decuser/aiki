@@ -1,6 +1,6 @@
 # Milestone 26 — Self-interpretation performance boundary
 
-Status: BLOCKED — semantics have not failed; the selected full bootstrap proof is not yet practical at current interpreter-on-interpreter speed.
+Status: SUPERSEDED — subsequent measurement and correction completed the full proof; see Milestone 27.
 
 ## Attempt
 
@@ -31,3 +31,8 @@ Do not weaken the proof by silently host-parsing the inner parser or sharing Go 
 3. accept a deliberately long-running full proof outside ordinary `make validate` if measurement shows finite completion.
 
 The next session should measure before choosing among these.
+
+
+## Follow-up
+
+The original diagnosis was refined by measurement. The first dominant cost was repeated whole-string rune conversion in the independent lexer. After that was corrected, the trustworthy nested proof exposed two module-resolution issues: missing current-directory fallback for path imports and spelling-sensitive cache keys for paths containing `.`/`..`. Once path behavior matched the host loader and module identities were canonicalized, the full nested proof completed successfully. See `27-self-interpretation-complete.md`.

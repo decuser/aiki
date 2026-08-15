@@ -23,13 +23,48 @@ let lexical_authority = () {
 	[@lexical_authority, token_names, keywords, operators, delimiters, skip_tokens]
 }
 
-let contains_value = (xs, target) {
-	let i = 0
-	while i < length(xs) {
-		if equal(xs[i], target) {
-			return true
-		}
-		i = i + 1
+let is_keyword = (word) {
+	if equal(word, "let") {
+		return true
+	}
+	if equal(word, "if") {
+		return true
+	}
+	if equal(word, "else") {
+		return true
+	}
+	if equal(word, "while") {
+		return true
+	}
+	if equal(word, "match") {
+		return true
+	}
+	if equal(word, "select") {
+		return true
+	}
+	if equal(word, "default") {
+		return true
+	}
+	if equal(word, "return") {
+		return true
+	}
+	if equal(word, "true") {
+		return true
+	}
+	if equal(word, "false") {
+		return true
+	}
+	if equal(word, "and") {
+		return true
+	}
+	if equal(word, "or") {
+		return true
+	}
+	if equal(word, "not") {
+		return true
+	}
+	if equal(word, "package") {
+		return true
 	}
 	return false
 }
@@ -52,64 +87,113 @@ let is_name_continue = (r) {
 	is_name_start(r) or is_digit(r)
 }
 
-let code_at = (source, at) {
-	if (at < 0) or (at >= length(source)) {
+let code_at = (chars, at) {
+	if (at < 0) or (at >= length(chars)) {
 		return 0 - 1
 	}
-	return ord(source[at])
+	return ord(chars[at])
 }
 
-let is_digit_at = (source, at) {
-	let n = code_at(source, at)
+let is_digit_at = (chars, at) {
+	let n = code_at(chars, at)
 	(n >= 48) and (n <= 57)
 }
 
-let is_name_start_at = (source, at) {
-	let n = code_at(source, at)
+let is_name_start_at = (chars, at) {
+	let n = code_at(chars, at)
 	((n >= 65) and (n <= 90)) or ((n >= 97) and (n <= 122)) or equal(n, 95)
 }
 
-let is_name_continue_at = (source, at) {
-	is_name_start_at(source, at) or is_digit_at(source, at)
+let is_name_continue_at = (chars, at) {
+	is_name_start_at(chars, at) or is_digit_at(chars, at)
 }
 
-let starts_at = (source, at, literal) {
-	let end = at + length(literal)
-	if end > length(source) {
-		return false
-	}
-	equal(str.substring(source, at, end), literal)
-}
-
-let longest_literal = (source, at, literals) {
-	let best = ""
-	let i = 0
-	while i < length(literals) {
-		let candidate = literals[i]
-		if starts_at(source, at, candidate) {
-			if length(candidate) > length(best) {
-				best = candidate
+let literal_token = (chars, at, n) {
+	let code = code_at(chars, at)
+	if equal(code, 46) {
+		if at + 2 < n {
+			if equal(code_at(chars, at + 1), 46) {
+				if equal(code_at(chars, at + 2), 46) {
+					return ["DELIMITER", at + 3]
+				}
 			}
 		}
-		i = i + 1
+		return ["OPERATOR", at + 1]
 	}
-	return best
+	if equal(code, 60) {
+		if at + 1 < n {
+			if equal(code_at(chars, at + 1), 61) {
+				return ["OPERATOR", at + 2]
+			}
+		}
+		return ["OPERATOR", at + 1]
+	}
+	if equal(code, 62) {
+		if at + 1 < n {
+			if equal(code_at(chars, at + 1), 61) {
+				return ["OPERATOR", at + 2]
+			}
+		}
+		return ["OPERATOR", at + 1]
+	}
+	if equal(code, 124) {
+		if at + 1 < n {
+			if equal(code_at(chars, at + 1), 62) {
+				return ["OPERATOR", at + 2]
+			}
+		}
+		return []
+	}
+	if equal(code, 43) {
+		return ["OPERATOR", at + 1]
+	}
+	if equal(code, 45) {
+		return ["OPERATOR", at + 1]
+	}
+	if equal(code, 42) {
+		return ["OPERATOR", at + 1]
+	}
+	if equal(code, 47) {
+		return ["OPERATOR", at + 1]
+	}
+	if equal(code, 61) {
+		return ["OPERATOR", at + 1]
+	}
+	if equal(code, 40) {
+		return ["DELIMITER", at + 1]
+	}
+	if equal(code, 41) {
+		return ["DELIMITER", at + 1]
+	}
+	if equal(code, 91) {
+		return ["DELIMITER", at + 1]
+	}
+	if equal(code, 93) {
+		return ["DELIMITER", at + 1]
+	}
+	if equal(code, 123) {
+		return ["DELIMITER", at + 1]
+	}
+	if equal(code, 125) {
+		return ["DELIMITER", at + 1]
+	}
+	if equal(code, 44) {
+		return ["DELIMITER", at + 1]
+	}
+	if equal(code, 59) {
+		return ["DELIMITER", at + 1]
+	}
+	return []
 }
 
-let position_after = (lexeme, line, col) {
-	let i = 0
-	let out_line = line
-	let out_col = col
-	while i < length(lexeme) {
-		if equal(ord(lexeme[i]), 10) {
-			out_line = out_line + 1
-			out_col = 1
-		} else {
-			out_col = out_col + 1
-		}
+let text_from = (chars, start, end) {
+	let out = ""
+	let i = start
+	while i < end {
+		out = out + to_str(chars[i])
 		i = i + 1
 	}
-	return [out_line, out_col]
+	return out
 }
 
 let lex_error = (line, col, message) {
@@ -117,18 +201,19 @@ let lex_error = (line, col, message) {
 }
 
 let tokenize = (source) {
+	let chars = str.chars(source)
 	let out = []
 	let i = 0
 	let line = 1
 	let col = 1
-	let n = length(source)
+	let n = length(chars)
 	while i < n {
 		let start = i
 		let start_line = line
 		let start_col = col
 		let kind = ""
 		let end = i
-		let ch = source[i]
+		let ch = chars[i]
 		let code = ord(ch)
 		# WHITESPACE: space, tab, carriage return; physical newline is separate.
 		if equal(code, 32) or equal(code, 9) or equal(code, 13) {
@@ -136,7 +221,7 @@ let tokenize = (source) {
 			end = i + 1
 			let scanning = true
 			while (end < n) and scanning {
-				let c = ord(source[end])
+				let c = ord(chars[end])
 				if equal(c, 32) or equal(c, 9) or equal(c, 13) {
 					end = end + 1
 				} else {
@@ -148,7 +233,7 @@ let tokenize = (source) {
 			if equal(code, 10) {
 				kind = "NEWLINE"
 				end = i + 1
-				while (end < n) and equal(code_at(source, end), 10) {
+				while (end < n) and equal(code_at(chars, end), 10) {
 					end = end + 1
 				}
 			} else {
@@ -156,7 +241,7 @@ let tokenize = (source) {
 				if equal(code, 35) {
 					kind = "COMMENT"
 					end = i + 1
-					while (end < n) and (not equal(code_at(source, end), 10)) {
+					while (end < n) and (not equal(code_at(chars, end), 10)) {
 						end = end + 1
 					}
 				} else {
@@ -164,18 +249,18 @@ let tokenize = (source) {
 					if is_digit(ch) {
 						kind = "NUMBER"
 						end = i + 1
-						while (end < n) and is_digit_at(source, end) {
+						while (end < n) and is_digit_at(chars, end) {
 							end = end + 1
 						}
-						if (end + 1 < n) and equal(code_at(source, end), 46) and is_digit_at(source, end + 1) {
+						if (end + 1 < n) and equal(code_at(chars, end), 46) and is_digit_at(chars, end + 1) {
 							end = end + 2
-							while (end < n) and is_digit_at(source, end) {
+							while (end < n) and is_digit_at(chars, end) {
 								end = end + 1
 							}
 						}
-						if (end + 1 < n) and equal(code_at(source, end), 47) and is_digit_at(source, end + 1) {
+						if (end + 1 < n) and equal(code_at(chars, end), 47) and is_digit_at(chars, end + 1) {
 							end = end + 2
-							while (end < n) and is_digit_at(source, end) {
+							while (end < n) and is_digit_at(chars, end) {
 								end = end + 1
 							}
 						}
@@ -185,9 +270,9 @@ let tokenize = (source) {
 							let j = i + 1
 							let closed = false
 							while (j < n) and (not closed) {
-								let c = ord(source[j])
+								let c = ord(chars[j])
 								if equal(c, 92) {
-									if (j + 1 < n) and (not equal(code_at(source, j + 1), 10)) {
+									if (j + 1 < n) and (not equal(code_at(chars, j + 1), 10)) {
 										j = j + 2
 									} else {
 										return lex_error(start_line, start_col, "unexpected character '\"'")
@@ -212,13 +297,13 @@ let tokenize = (source) {
 								if i + 2 >= n {
 									return lex_error(start_line, start_col, "unexpected character apostrophe")
 								}
-								if equal(code_at(source, i + 1), 92) {
-									if (i + 3 >= n) or equal(code_at(source, i + 2), 10) or (not equal(code_at(source, i + 3), 39)) {
+								if equal(code_at(chars, i + 1), 92) {
+									if (i + 3 >= n) or equal(code_at(chars, i + 2), 10) or (not equal(code_at(chars, i + 3), 39)) {
 										return lex_error(start_line, start_col, "unexpected character apostrophe")
 									}
 									end = i + 4
 								} else {
-									if equal(code_at(source, i + 1), 39) or (not equal(code_at(source, i + 2), 39)) {
+									if equal(code_at(chars, i + 1), 39) or (not equal(code_at(chars, i + 2), 39)) {
 										return lex_error(start_line, start_col, "unexpected character apostrophe")
 									}
 									end = i + 3
@@ -227,7 +312,7 @@ let tokenize = (source) {
 							} else {
 								# SYMBOL / SHAPE: prefix followed by an identifier.
 								if equal(code, 58) or equal(code, 64) {
-									if (i + 1 >= n) or (not is_name_start_at(source, i + 1)) {
+									if (i + 1 >= n) or (not is_name_start_at(chars, i + 1)) {
 										return lex_error(start_line, start_col, "unexpected character " + to_str(ch))
 									}
 									if equal(code, 58) {
@@ -236,37 +321,29 @@ let tokenize = (source) {
 										kind = "SHAPE"
 									}
 									end = i + 2
-									while (end < n) and is_name_continue_at(source, end) {
+									while (end < n) and is_name_continue_at(chars, end) {
 										end = end + 1
 									}
 								} else {
 									# NAME / KEYWORD: maximal identifier first, then classify exact keyword.
 									if is_name_start(ch) {
 										end = i + 1
-										while (end < n) and is_name_continue_at(source, end) {
+										while (end < n) and is_name_continue_at(chars, end) {
 											end = end + 1
 										}
-										let word = str.substring(source, i, end)
-										if contains_value(keywords, word) {
+										let word = text_from(chars, i, end)
+										if is_keyword(word) {
 											kind = "KEYWORD"
 										} else {
 											kind = "NAME"
 										}
 									} else {
-										# Literal token classes compete by longest match. OPERATOR
-										# precedes DELIMITER on an equal-length tie in grammar order.
-										let op = longest_literal(source, i, operators)
-										let delim = longest_literal(source, i, delimiters)
-										if (length(op) > 0) and (length(op) >= length(delim)) {
-											kind = "OPERATOR"
-											end = i + length(op)
+										let literal = literal_token(chars, i, n)
+										if length(literal) > 0 {
+											kind = literal[0]
+											end = literal[1]
 										} else {
-											if length(delim) > 0 {
-												kind = "DELIMITER"
-												end = i + length(delim)
-											} else {
-												return lex_error(start_line, start_col, "unexpected character " + to_str(ch))
-											}
+											return lex_error(start_line, start_col, "unexpected character " + to_str(ch))
 										}
 									}
 								}
@@ -276,11 +353,14 @@ let tokenize = (source) {
 				}
 			}
 		}
-		let lexeme = str.substring(source, start, end)
+		let lexeme = text_from(chars, start, end)
 		out = append(out, [@token, kind, lexeme, start_line, start_col])
-		let next_pos = position_after(lexeme, line, col)
-		line = next_pos[0]
-		col = next_pos[1]
+		if equal(kind, "NEWLINE") {
+			line = line + (end - start)
+			col = 1
+		} else {
+			col = col + (end - start)
+		}
 		i = end
 	}
 	return out

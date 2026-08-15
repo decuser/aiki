@@ -1,6 +1,6 @@
 # Self-description and language services
 
-Status: ACTIVE — Phase I GATED; Phase II GATED/COMPLETE; Phase III Cuts III.0–III.5 locally gated; Cut III.6 BLOCKED on practical parser self-parse performance.
+Status: ACTIVE — Phase I and Phase II GATED/COMPLETE; Phase III Cuts III.0–III.5 GATED; Cut III.6 locally complete with authoritative validation pending.
 
 Proposal: `proposals/aiki-self-description-language-services-proposal.md`
 
@@ -33,16 +33,17 @@ Baseline: `v0.4.0-alpha-14-g9c78646` (`9c78646`).
 23. `23-module-boundary.md` — SUPERSEDED by the self-hosted module decision.
 24. `24-selfhost-modules.md` — locally GATED; authoritative gate pending.
 25. `25-selfhost-behavior-conformance.md` — locally GATED; authoritative gate pending.
-26. `26-self-interpretation-performance-boundary.md` — BLOCKED on practical nested parser self-parse performance.
+26. `26-self-interpretation-performance-boundary.md` — SUPERSEDED by measured completion.
+27. `27-self-interpretation-complete.md` — locally GATED; authoritative validation pending.
 
 ## Current state
 
-Phase I and Phase II are GATED. Phase III now has an independent runtime environment, evaluator, self-hosted module loader/cache/export path, scoped HAL bootstrap, and a representative behavior-conformance corpus. `to_symbol` and `shaped` close the dynamic value-construction gaps discovered by self-hosting.
+Phase I and Phase II are GATED. Phase III now includes the independent runtime/evaluator, self-hosted module loader/cache/export path, scoped HAL bootstrap, behavior-conformance corpus, and a successful full nested self-interpretation proof.
 
-Behavior conformance exposed and corrected two real evaluator issues: recoverable `[@error, ...]` values are no longer conflated with internal halts, and qualified module access in pipeline targets now resolves correctly. Internal evaluator halts use the private `:self_fault` control shape.
+Cut III.6 measurement corrected the earlier performance diagnosis. The dominant cost was repeated string/rune work in the independent lexer; after a linear `string.chars` realization and lexer dispatch cleanup, the nested path exposed two module-identity defects: missing current-directory fallback for path imports and non-canonical cache keys. Both now match the reference loader's observable behavior.
 
-Cut III.6 has begun. A traced nested-interpreter attempt successfully entered the inner bootstrap and self-host-loaded the lexer and normalizer, but parser-self-parse exceeded practical local time bounds without producing a semantic fault. This is recorded as a performance boundary rather than a failed self-hosting claim.
+The complete proof executes `1 + 2 * 3` through an Aiki-written interpreter which self-host-loads another Aiki interpreter and returns `9`, preserving Aiki's left-to-right semantics at the third level. The local run completes in roughly 30 seconds.
 
 ## Exact next action
 
-Run authoritative `make validate` for the Phase-III delta through III.5. If it passes, measure the nested parser-self-parse path before changing semantics or weakening the self-interpretation criterion. The immediate III.6 question is performance, not correctness.
+Run authoritative `make validate` for the final III.6 delta. If it passes, mark III.6 and Phase III GATED/COMPLETE and close this implementation session.

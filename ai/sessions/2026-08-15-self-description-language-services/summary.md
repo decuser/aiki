@@ -58,3 +58,12 @@ Behavior conformance exposed a semantic distinction that focused probes had miss
 The representative behavior corpus now agrees across exact arithmetic, closures/recursion, pattern matching, pipelines, relative imports, pure and FFI-backed modules, Unicode regex positions, strings, bytes, hashes, newline policy, and file effects. Concurrency/select/spawn, debugger-only fixtures, interactive input/error handling, and graphics remain explicitly outside the current self-host proof rather than silently omitted.
 
 The final self-interpretation attempt reached a performance boundary rather than a semantic contradiction. An outer self-hosted interpreter successfully entered the inner bootstrap and loaded the inner lexer and normalizer, then spent more than a minute in parser-self-parse of `selfhost/parser.ai` without producing a fault. Full nested interpretation therefore remains an open performance/proof-engineering problem: the next action is measurement and optimization, not host-parser substitution.
+
+
+## Phase III completion: self-interpretation
+
+The full self-interpretation proof ultimately succeeded without weakening implementation independence. Measurement overturned the initial assumption that parser recursion was the main obstacle. The dominant cost was the interaction between the independent character scanner and Aiki's string-index realization; snapshotting runes once through an optimized existing `string.chars` surface cut the workload substantially. Further lexical dispatch cleanup reduced semantic call and allocation pressure again.
+
+Once performance exposed actual execution rather than timeout, the nested bootstrap revealed that the self-host module loader was not yet observationally equivalent to Aiki's host loader for path imports: it lacked the current-directory fallback and treated different `.`/`..` spellings of one physical file as distinct cache keys. Correcting those rules both fixed semantics and prevented repeated loading of the interpreter stack.
+
+The final proof is now literal rather than aspirational: Go runs an Aiki-written interpreter; that interpreter self-host-loads and runs another Aiki bootstrap/interpreter; the third-level program `1 + 2 * 3` returns `9`. No Go parser or evaluator structures are reused by the inner implementations.

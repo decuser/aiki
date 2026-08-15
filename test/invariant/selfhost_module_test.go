@@ -19,6 +19,7 @@ func TestSelfhostModuleLoading(t *testing.T) {
 	}{
 		{"list", "let list = import(\"list\")\n", `list.sum([1, 2, 3, 4])`},
 		{"string transitive", "let string = import(\"string\")\n", `string.trim("  hello  ")`},
+		{"string HAL chars", "let string = import(\"string\")\n", `string.chars("hi")`},
 		{"math ffi", "let math = import(\"math/ffi\")\n", `math.floor(7/2)`},
 		{"selective import", "import(\"list\", :sum)\n", `sum([2, 3, 4])`},
 	}

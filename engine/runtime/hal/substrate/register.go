@@ -81,6 +81,7 @@ func (g *GoRuntime) registerHAL() {
 	// String (Unicode case conversion)
 	g.register("_upper", halUpper)
 	g.register("_lower", halLower)
+	g.register("_chars", halChars)
 	g.register("_upper_rune", halUpperRune)
 	g.register("_lower_rune", halLowerRune)
 
