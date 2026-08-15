@@ -218,6 +218,8 @@ func (c *Checker) seedBuiltins() {
 			c.mark(p, "authoritative grammar artifact")
 		case p == "engine/runtime/prelude/prelude.ai" || p == "engine/runtime/prelude/prelude.help" || p == "engine/runtime/prelude/prelude.doc":
 			c.mark(p, "prelude artifact")
+		case strings.HasPrefix(p, "selfhost/") && strings.HasSuffix(p, ".ai"):
+			c.mark(p, "self-host implementation source")
 		}
 	}
 }
@@ -255,6 +257,16 @@ func (c *Checker) checkStructuralPairs() {
 					c.mark(gold, "engine structural gold")
 				}
 			}
+		}
+		if strings.HasPrefix(p, "test/conformance/syntax/") && strings.HasSuffix(p, ".input") {
+			projection := strings.TrimSuffix(p, ".input") + ".tokens"
+			c.mark(p, "syntax conformance input")
+			if c.files[projection] {
+				c.mark(projection, "syntax conformance token projection")
+			}
+		}
+		if p == "selfhost/token_authority.ai" && c.files["selfhost/token_authority.gold"] {
+			c.mark("selfhost/token_authority.gold", "self-host authority projection")
 		}
 	}
 }
@@ -312,6 +324,21 @@ func (c *Checker) structuralErrors() []Finding {
 					out = append(out, Finding{Path: p, Reason: "engine specimen missing " + stage + " gold"})
 				}
 			}
+		}
+		if strings.HasPrefix(p, "test/conformance/syntax/") && strings.HasSuffix(p, ".input") {
+			projection := strings.TrimSuffix(p, ".input") + ".tokens"
+			if !c.files[projection] {
+				out = append(out, Finding{Path: p, Reason: "syntax conformance input missing .tokens projection"})
+			}
+		}
+		if strings.HasPrefix(p, "test/conformance/syntax/") && strings.HasSuffix(p, ".tokens") {
+			input := strings.TrimSuffix(p, ".tokens") + ".input"
+			if !c.files[input] {
+				out = append(out, Finding{Path: p, Reason: "syntax conformance projection has no .input specimen"})
+			}
+		}
+		if p == "selfhost/token_authority.gold" && !c.files["selfhost/token_authority.ai"] {
+			out = append(out, Finding{Path: p, Reason: "self-host authority projection has no .ai owner"})
 		}
 		if isNamedPackageSource(p) {
 			data, err := os.ReadFile(filepath.Join(c.Root, filepath.FromSlash(p)))

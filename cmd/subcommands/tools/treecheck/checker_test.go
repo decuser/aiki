@@ -179,3 +179,66 @@ func TestDeletedTrackedPathIsNotTreatedAsPresent(t *testing.T) {
 		t.Fatalf("deleted tracked path should not be checked: errors=%#v orphans=%#v", result.Errors, result.Orphans)
 	}
 }
+
+func TestSelfHostSourcesAndAuthorityProjectionAreJustified(t *testing.T) {
+	root := minimalTree(t)
+	writeTestFile(t, root, "selfhost/lexer.ai", "let lex = (source) { source }\n")
+	writeTestFile(t, root, "selfhost/token_authority.ai", "println(\"authority\")\n")
+	writeTestFile(t, root, "selfhost/token_authority.gold", "authority\n")
+
+	result, err := Check(root, "treecheck.allow")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{"selfhost/lexer.ai", "selfhost/token_authority.ai", "selfhost/token_authority.gold"} {
+		if hasFinding(result.Errors, path) || hasFinding(result.Orphans, path) {
+			t.Fatalf("self-host artifact should be justified: %s errors=%#v orphans=%#v", path, result.Errors, result.Orphans)
+		}
+	}
+}
+
+func TestSyntaxConformancePairIsJustified(t *testing.T) {
+	root := minimalTree(t)
+	input := "test/conformance/syntax/lex/basic.input"
+	projection := "test/conformance/syntax/lex/basic.tokens"
+	writeTestFile(t, root, input, "let x = 1\n")
+	writeTestFile(t, root, projection, "NAME let\n")
+
+	result, err := Check(root, "treecheck.allow")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{input, projection} {
+		if hasFinding(result.Errors, path) || hasFinding(result.Orphans, path) {
+			t.Fatalf("syntax conformance pair should be justified: %s errors=%#v orphans=%#v", path, result.Errors, result.Orphans)
+		}
+	}
+}
+
+func TestSyntaxConformanceInputWithoutProjectionIsStructuralError(t *testing.T) {
+	root := minimalTree(t)
+	path := "test/conformance/syntax/lex/orphan.input"
+	writeTestFile(t, root, path, "let x = 1\n")
+
+	result, err := Check(root, "treecheck.allow")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !hasFinding(result.Errors, path) {
+		t.Fatalf("expected structural error for %s, got %#v", path, result.Errors)
+	}
+}
+
+func TestSyntaxConformanceProjectionWithoutInputIsStructuralError(t *testing.T) {
+	root := minimalTree(t)
+	path := "test/conformance/syntax/lex/orphan.tokens"
+	writeTestFile(t, root, path, "NAME let\n")
+
+	result, err := Check(root, "treecheck.allow")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !hasFinding(result.Errors, path) {
+		t.Fatalf("expected structural error for %s, got %#v", path, result.Errors)
+	}
+}

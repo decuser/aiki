@@ -1,0 +1,133 @@
+package "selfhost/grammar_authority"
+
+# Narrow Phase-I grammar projection. This reads only the @tokens block from the
+# authoritative grammar; it is deliberately not a general EBNF parser.
+let file = import("file")
+let str = import("string")
+
+let @token_authority [tokens, keywords, operators, delimiters, skips]
+let @newline_authority [token, after_tokens, after_lexemes, suppress_pairs]
+
+let extract_token_authority = (source) {
+	let tokens = []
+	let keywords = []
+	let operators = []
+	let delimiters = []
+	let skips = []
+	let in_tokens = false
+	let done = false
+	let lines = str.lines(source)
+	let i = 0
+	while (i < length(lines)) and (not done) {
+		let line = str.trim(lines[i])
+		if equal(line, "@tokens {") {
+			in_tokens = true
+		} else {
+			if in_tokens {
+				if equal(line, "}") {
+					done = true
+				} else {
+					let words = str.words(line)
+					if not empty(words) {
+						let name = first(words)
+						if str.is_upper(name[0]) {
+							tokens = append(tokens, name)
+							if str.contains(line, "@skip") {
+								skips = append(skips, name)
+							}
+							if equal(name, "KEYWORD") {
+								keywords = rest(words)
+							}
+							if equal(name, "OPERATOR") {
+								operators = rest(words)
+							}
+							if equal(name, "DELIMITER") {
+								delimiters = rest(words)
+							}
+						}
+					}
+				}
+			}
+		}
+		i = i + 1
+	}
+	return [@token_authority, tokens, keywords, operators, delimiters, skips]
+}
+
+let read_token_authority = (path) {
+	let f = file.open(path, :read)
+	if is_error(f) {
+		return f
+	}
+	let source = file.read_text(f)
+	file.close(f)
+	if is_error(source) {
+		return source
+	}
+	return extract_token_authority(source)
+}
+
+let emit_token_authority = (authority) {
+	println("tokens " + str.join(authority.tokens, " "))
+	println("keywords " + str.join(authority.keywords, " "))
+	println("operators " + str.join(authority.operators, " "))
+	println("delimiters " + str.join(authority.delimiters, " "))
+	println("skips " + str.join(authority.skips, " "))
+}
+
+let extract_newline_authority = (source) {
+	let token = ""
+	let after_tokens = []
+	let after_lexemes = []
+	let suppress_pairs = []
+	let in_newline = false
+	let done = false
+	let lines = str.lines(source)
+	let i = 0
+	while (i < length(lines)) and (not done) {
+		let line = str.trim(lines[i])
+		if equal(line, "@newline {") {
+			in_newline = true
+		} else {
+			if in_newline {
+				if equal(line, "}") {
+					done = true
+				} else {
+					let words = str.words(line)
+					if not empty(words) {
+						let directive = first(words)
+						if equal(directive, "token") {
+							token = words[1]
+						}
+						if equal(directive, "after_token") {
+							after_tokens = rest(words)
+						}
+						if equal(directive, "after_lexeme") {
+							after_lexemes = rest(words)
+						}
+						if equal(directive, "suppress_in") {
+							suppress_pairs = append(suppress_pairs, [words[1], words[2]])
+						}
+					}
+				}
+			}
+		}
+		i = i + 1
+	}
+	return [@newline_authority, token, after_tokens, after_lexemes, suppress_pairs]
+}
+
+let read_newline_authority = (path) {
+	let f = file.open(path, :read)
+	if is_error(f) {
+		return f
+	}
+	let source = file.read_text(f)
+	file.close(f)
+	if is_error(source) {
+		return source
+	}
+	return extract_newline_authority(source)
+}
+
+export(:extract_token_authority, :read_token_authority, :emit_token_authority, :extract_newline_authority, :read_newline_authority)

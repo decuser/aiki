@@ -1,0 +1,6 @@
+let x =
+1
++ 2
+if true {
+println(x)
+}

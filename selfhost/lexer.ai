@@ -1,0 +1,300 @@
+package "selfhost/lexer"
+
+# Phase I / Cut I.2: independent Aiki lexer.
+#
+# This implementation intentionally does not call the Go lexer or use regular
+# expressions. It realizes the lexical language independently with ordinary
+# Aiki string/rune/list operations. Enumerated lexical tables are exposed so
+# the invariant harness can couple them back to grammar.ebnfx.
+let str = import("string")
+
+let @token [kind, lexeme, line, col]
+let @lexical_authority [tokens, keywords, operators, delimiters, skips]
+
+let token_names = ["WHITESPACE", "NEWLINE", "COMMENT", "NUMBER", "STRING", "RUNE", "SYMBOL", "SHAPE", "KEYWORD", "OPERATOR", "DELIMITER", "NAME"]
+
+let keywords = ["let", "if", "else", "while", "match", "select", "default", "return", "true", "false", "and", "or", "not", "package"]
+
+let operators = ["+", "-", "*", "/", "<", ">", "<=", ">=", "|>", ".", "="]
+let delimiters = ["(", ")", "[", "]", "{", "}", ",", ";", "..."]
+let skip_tokens = ["WHITESPACE", "COMMENT"]
+
+let lexical_authority = () {
+	[@lexical_authority, token_names, keywords, operators, delimiters, skip_tokens]
+}
+
+let contains_value = (xs, target) {
+	let i = 0
+	while i < length(xs) {
+		if equal(xs[i], target) {
+			return true
+		}
+		i = i + 1
+	}
+	return false
+}
+
+let is_digit = (r) {
+	let n = ord(r)
+	(n >= 48) and (n <= 57)
+}
+
+let is_alpha = (r) {
+	let n = ord(r)
+	((n >= 65) and (n <= 90)) or ((n >= 97) and (n <= 122))
+}
+
+let is_name_start = (r) {
+	is_alpha(r) or equal(ord(r), 95)
+}
+
+let is_name_continue = (r) {
+	is_name_start(r) or is_digit(r)
+}
+
+let code_at = (source, at) {
+	if (at < 0) or (at >= length(source)) {
+		return 0 - 1
+	}
+	return ord(source[at])
+}
+
+let is_digit_at = (source, at) {
+	let n = code_at(source, at)
+	(n >= 48) and (n <= 57)
+}
+
+let is_name_start_at = (source, at) {
+	let n = code_at(source, at)
+	((n >= 65) and (n <= 90)) or ((n >= 97) and (n <= 122)) or equal(n, 95)
+}
+
+let is_name_continue_at = (source, at) {
+	is_name_start_at(source, at) or is_digit_at(source, at)
+}
+
+let starts_at = (source, at, literal) {
+	let end = at + length(literal)
+	if end > length(source) {
+		return false
+	}
+	equal(str.substring(source, at, end), literal)
+}
+
+let longest_literal = (source, at, literals) {
+	let best = ""
+	let i = 0
+	while i < length(literals) {
+		let candidate = literals[i]
+		if starts_at(source, at, candidate) {
+			if length(candidate) > length(best) {
+				best = candidate
+			}
+		}
+		i = i + 1
+	}
+	return best
+}
+
+let position_after = (lexeme, line, col) {
+	let i = 0
+	let out_line = line
+	let out_col = col
+	while i < length(lexeme) {
+		if equal(ord(lexeme[i]), 10) {
+			out_line = out_line + 1
+			out_col = 1
+		} else {
+			out_col = out_col + 1
+		}
+		i = i + 1
+	}
+	return [out_line, out_col]
+}
+
+let lex_error = (line, col, message) {
+	[@error, :lex, to_str(line) + ":" + to_str(col) + ": " + message]
+}
+
+let tokenize = (source) {
+	let out = []
+	let i = 0
+	let line = 1
+	let col = 1
+	let n = length(source)
+	while i < n {
+		let start = i
+		let start_line = line
+		let start_col = col
+		let kind = ""
+		let end = i
+		let ch = source[i]
+		let code = ord(ch)
+		# WHITESPACE: space, tab, carriage return; physical newline is separate.
+		if equal(code, 32) or equal(code, 9) or equal(code, 13) {
+			kind = "WHITESPACE"
+			end = i + 1
+			let scanning = true
+			while (end < n) and scanning {
+				let c = ord(source[end])
+				if equal(c, 32) or equal(c, 9) or equal(c, 13) {
+					end = end + 1
+				} else {
+					scanning = false
+				}
+			}
+		} else {
+			# NEWLINE: one or more physical LF characters.
+			if equal(code, 10) {
+				kind = "NEWLINE"
+				end = i + 1
+				while (end < n) and equal(code_at(source, end), 10) {
+					end = end + 1
+				}
+			} else {
+				# COMMENT: from # through, but not including, physical newline.
+				if equal(code, 35) {
+					kind = "COMMENT"
+					end = i + 1
+					while (end < n) and (not equal(code_at(source, end), 10)) {
+						end = end + 1
+					}
+				} else {
+					# NUMBER: integer, optional decimal fraction, optional /digits.
+					if is_digit(ch) {
+						kind = "NUMBER"
+						end = i + 1
+						while (end < n) and is_digit_at(source, end) {
+							end = end + 1
+						}
+						if (end + 1 < n) and equal(code_at(source, end), 46) and is_digit_at(source, end + 1) {
+							end = end + 2
+							while (end < n) and is_digit_at(source, end) {
+								end = end + 1
+							}
+						}
+						if (end + 1 < n) and equal(code_at(source, end), 47) and is_digit_at(source, end + 1) {
+							end = end + 2
+							while (end < n) and is_digit_at(source, end) {
+								end = end + 1
+							}
+						}
+					} else {
+						# STRING: quote, zero or more ordinary/escaped chars, quote.
+						if equal(code, 34) {
+							let j = i + 1
+							let closed = false
+							while (j < n) and (not closed) {
+								let c = ord(source[j])
+								if equal(c, 92) {
+									if (j + 1 < n) and (not equal(code_at(source, j + 1), 10)) {
+										j = j + 2
+									} else {
+										return lex_error(start_line, start_col, "unexpected character '\"'")
+									}
+								} else {
+									if equal(c, 34) {
+										j = j + 1
+										closed = true
+									} else {
+										j = j + 1
+									}
+								}
+							}
+							if not closed {
+								return lex_error(start_line, start_col, "unexpected character '\"'")
+							}
+							kind = "STRING"
+							end = j
+						} else {
+							# RUNE: exactly one ordinary character or one backslash escape.
+							if equal(code, 39) {
+								if i + 2 >= n {
+									return lex_error(start_line, start_col, "unexpected character apostrophe")
+								}
+								if equal(code_at(source, i + 1), 92) {
+									if (i + 3 >= n) or equal(code_at(source, i + 2), 10) or (not equal(code_at(source, i + 3), 39)) {
+										return lex_error(start_line, start_col, "unexpected character apostrophe")
+									}
+									end = i + 4
+								} else {
+									if equal(code_at(source, i + 1), 39) or (not equal(code_at(source, i + 2), 39)) {
+										return lex_error(start_line, start_col, "unexpected character apostrophe")
+									}
+									end = i + 3
+								}
+								kind = "RUNE"
+							} else {
+								# SYMBOL / SHAPE: prefix followed by an identifier.
+								if equal(code, 58) or equal(code, 64) {
+									if (i + 1 >= n) or (not is_name_start_at(source, i + 1)) {
+										return lex_error(start_line, start_col, "unexpected character " + to_str(ch))
+									}
+									if equal(code, 58) {
+										kind = "SYMBOL"
+									} else {
+										kind = "SHAPE"
+									}
+									end = i + 2
+									while (end < n) and is_name_continue_at(source, end) {
+										end = end + 1
+									}
+								} else {
+									# NAME / KEYWORD: maximal identifier first, then classify exact keyword.
+									if is_name_start(ch) {
+										end = i + 1
+										while (end < n) and is_name_continue_at(source, end) {
+											end = end + 1
+										}
+										let word = str.substring(source, i, end)
+										if contains_value(keywords, word) {
+											kind = "KEYWORD"
+										} else {
+											kind = "NAME"
+										}
+									} else {
+										# Literal token classes compete by longest match. OPERATOR
+										# precedes DELIMITER on an equal-length tie in grammar order.
+										let op = longest_literal(source, i, operators)
+										let delim = longest_literal(source, i, delimiters)
+										if (length(op) > 0) and (length(op) >= length(delim)) {
+											kind = "OPERATOR"
+											end = i + length(op)
+										} else {
+											if length(delim) > 0 {
+												kind = "DELIMITER"
+												end = i + length(delim)
+											} else {
+												return lex_error(start_line, start_col, "unexpected character " + to_str(ch))
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		let lexeme = str.substring(source, start, end)
+		out = append(out, [@token, kind, lexeme, start_line, start_col])
+		let next_pos = position_after(lexeme, line, col)
+		line = next_pos[0]
+		col = next_pos[1]
+		i = end
+	}
+	return out
+}
+
+let project_tokens = (tokens) {
+	let lines = []
+	let i = 0
+	while i < length(tokens) {
+		let t = tokens[i]
+		lines = append(lines, to_str(t.line) + ":" + to_str(t.col) + " " + t.kind + " " + inspect(t.lexeme))
+		i = i + 1
+	}
+	return str.join(lines, "\n")
+}
+
+export(:tokenize, :project_tokens, :lexical_authority)

@@ -1,0 +1,2 @@
+let letter = 1<=2 >= 1 |> f ... . = + - * / < >
+select { default { return letter } }

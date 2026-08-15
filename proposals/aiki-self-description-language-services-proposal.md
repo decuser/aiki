@@ -2,11 +2,11 @@
 
 ## Status
 
-Proposed.
+Active — Phase I implemented; authoritative Go 1.24 validation pending.
 
 ## Baseline
 
-This proposal is grounded in Aiki baseline `v0.4.0-alpha-13-gf719502` (`f719502`).
+Implementation began from Aiki baseline `v0.4.0-alpha-14-g9c78646` (`9c78646`).
 
 It replaces the repository's earlier VS-Code-centered language-server proposal and incorporates the separately developed self-hosting interpreter design into one implementation sequence. The substantive goals of both efforts are retained, but the work is reordered around a shared dependency: Aiki first needs an independently expressed, observable account of its own front end. That account then becomes evidence and conformance infrastructure for language services, while the full self-hosted evaluator follows afterward.
 
@@ -425,6 +425,17 @@ Any duplicated newline-policy constants in the Aiki implementation are executabl
 ---
 
 ## Cut I.4 — Aiki parser and normalized syntax projection
+
+### Implementation decision
+
+The neutral syntax projection reuses the repository's existing human-readable
+engine parse surface (`test/structure/engine/*.ai.parse.gold`): indentation,
+grammar/token node kind, one-based line/column, and terminal lexeme where one
+exists. This is grammar-shaped observable output rather than serialization of
+Go structs. Reusing the existing reviewed corpus avoids creating a second parse
+gold authority; the Go engine gates and the independent Aiki parser both have to
+agree with the same artifacts.
+
 
 Implement a recursive-descent Aiki parser matching the authoritative grammar.
 
@@ -1194,6 +1205,17 @@ Initial host delegation is acceptable if the boundary is explicit and the evalua
 ## Q7. Is tail-call optimization required for initial conformance?
 
 Do not implement it merely for completeness. Add it if the specified acceptance corpus or documented semantics require it.
+
+---
+
+## Q8. What unit is a source column?
+
+Phase-I implementation exposed a real cross-implementation difference: the
+current Go lexer advances columns by UTF-8 bytes, while ordinary Aiki string
+indexing is rune-oriented. ASCII positions therefore agree, but non-ASCII
+positions can diverge. Phase-I conformance fixtures are intentionally ASCII
+until this policy is decided deliberately. Phase II must resolve the language's
+source-position unit before translating positions into editor/LSP encodings.
 
 ---
 

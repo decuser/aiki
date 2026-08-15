@@ -15,6 +15,10 @@ Each test enforces that two parts of the distribution agree:
 7. doc entry disposition: every entry is checked or @unchecked (`doc_examples_test.go`)
 8. every shipped module has both help and doc (`lib_help_test.go`, `doc_examples_test.go`)
 9. ebiten import confined to one file (`graphics_boundary_test.go`)
+10. grammar token authority <-> self-host token inventory (`selfhost_token_authority_test.go`)
+11. Go lexer <-> independent Aiki lexer <-> reviewed lexical fixtures (`selfhost_lexer_conformance_test.go`)
+12. Go newline normalization <-> independent Aiki normalization <-> reviewed newline fixtures (`selfhost_newline_conformance_test.go`)
+13. Go parser <-> independent Aiki parser <-> engine parse-gold corpus (`selfhost_parser_conformance_test.go`)
 
 ## handler_validation_test.go
 
@@ -41,3 +45,12 @@ module loads). Every entry must have one disposition or the other.
 
 Confirms ebiten is imported by exactly one file and that the
 language core packages are free of it.
+
+
+## selfhost_*_test.go
+
+Verify Phase-I self-description/conformance couplings. The independent Aiki
+front end does not reuse the Go lexer or parser. Both implementations are
+checked against reviewed language-owned artifacts: extracted grammar facts,
+lexical/newline conformance fixtures, and the existing engine parse-gold
+corpus.

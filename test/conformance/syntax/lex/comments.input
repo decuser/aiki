@@ -1,0 +1,4 @@
+# head
+let	x=1  # tail
+
+return x
