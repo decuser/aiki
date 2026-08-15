@@ -1,6 +1,6 @@
 # Self-description and language services
 
-Status: ACTIVE — Phase I GATED; Phase II Cuts II.0–II.3 GATED; Cut II.4 ACTIVE at final Xed presentation gate.
+Status: ACTIVE — Phase I GATED; Phase II Cuts II.0–II.4 GATED; Cut II.5 ACTIVE at nvi handoff gate.
 
 Proposal: `proposals/aiki-self-description-language-services-proposal.md`
 
@@ -19,23 +19,13 @@ Baseline: `v0.4.0-alpha-14-g9c78646` (`9c78646`).
 9. `09-language-service-diagnostics.md` — GATED.
 10. `10-language-service-observation.md` — GATED.
 11. `11-lsp-shell.md` — GATED.
-12. `12-xed-support.md` — ACTIVE; static gates complete, live Xed gate pending.
+12. `12-xed-support.md` — GATED; live Xed underline/clear gate passed.
+13. `13-symbol-definition-tags.md` — ACTIVE; implementation/local gates complete, authoritative validate + live nvi gate pending.
 
 ## Current state
 
-Phase I is GATED by authoritative `make validate`. Phase II has established the
-neutral language-service diagnostics core, catalog inversion, behavior-neutral
-observer/probe seam, and the `aiki lsp` stdio adapter. Xed lexical support is
-current and grammar-coupled. Live workstation tracing has confirmed Xed → LSP
-initialization → document synchronization → published diagnostics. Two adapter
-defects found during that gate (Save As URI transition and zero-width diagnostic
-presentation) are corrected, and an idempotent `make install-xed-plugin` target
-now owns user-local installation. Cut II.4 remains ACTIVE only until the
-corrected visual underline/clear behavior is confirmed in Xed.
+Phase I and Phase II Cuts II.0–II.4 are GATED. The real Xed environment confirmed `.ai` recognition, grammar-coupled highlighting, LSP initialization/document synchronization, visible diagnostics, diagnostic clearing, Save-As transition handling, and the idempotent installer. Cut II.5 now adds one neutral symbol/definition authority with LSP and classic-tags projections. Local package tests pass in the disposable validation harness; authoritative validation and a live nvi tag jump remain.
 
 ## Exact next action
 
-Run `make install-xed-plugin`, restart Xed, and confirm that `let x =` receives
-a visible diagnostic underline and that changing it to `let x = 42` clears the
-underline. Then run/confirm `make validate`; if both gates pass, mark II.4 GATED
-and begin Cut II.5 (symbol/definition service plus nvi tags adapter).
+Run `make validate`. If it passes, generate a tags file with `./aiki tags -o tags <path>`, open an Aiki source file in nvi with `:set tags=./tags`, and confirm `^]` on a top-level name jumps to its definition. Then mark II.5 GATED and begin II.6 formatting service.

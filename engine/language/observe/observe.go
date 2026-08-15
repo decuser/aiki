@@ -9,6 +9,8 @@ type EventKind string
 const (
 	EventDiagnosticsRequested EventKind = "diagnostics_requested"
 	EventDiagnosticProduced   EventKind = "diagnostic_produced"
+	EventSymbolsRequested     EventKind = "symbols_requested"
+	EventDefinitionRequested  EventKind = "definition_requested"
 )
 
 // Event describes service work without exposing parser or protocol structs.
@@ -33,6 +35,8 @@ const (
 	MetricParseRun           Metric = "parse_run"
 	MetricAnalysisRun        Metric = "analysis_run"
 	MetricDiagnostic         Metric = "diagnostic"
+	MetricSymbolsRequest     Metric = "symbols_request"
+	MetricDefinitionRequest  Metric = "definition_request"
 )
 
 // Probe receives service measurements. Implementations used by concurrent

@@ -2,7 +2,7 @@
 
 ## Status
 
-Active — Phase I implemented; authoritative Go 1.24 validation pending.
+Active — Phase I GATED; Phase II through Cut II.4 GATED; Cut II.5 at nvi handoff.
 
 ## Baseline
 

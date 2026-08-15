@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"aiki/engine"
+
 	languageobserve "aiki/engine/language/observe"
 	"aiki/engine/semantics/value"
 	"aiki/engine/syntax"
@@ -68,5 +70,35 @@ func TestObservationAndProbeAreBehaviorNeutral(t *testing.T) {
 	}
 	if len(o.events) < 2 || p.counts[languageobserve.MetricDiagnosticsRequest] != 1 || p.counts[languageobserve.MetricAnalysisRun] != 1 || p.counts[languageobserve.MetricDiagnostic] != 1 {
 		t.Fatalf("events=%v counts=%v", o.events, p.counts)
+	}
+}
+
+func TestSymbolsAndDefinitionUseLexicalScopes(t *testing.T) {
+	s := testService(t)
+	src := "let outer = 1\nlet f = (x) {\n    let y = x\n    return y + outer\n}\n"
+	doc := Document{Path: "test.ai", Source: src}
+	syms, err := s.Symbols(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(syms) != 4 {
+		t.Fatalf("symbols=%#v", syms)
+	}
+	for _, tc := range []struct {
+		pos  engine.Position
+		want string
+		line int
+	}{
+		{engine.Position{Line: 3, Col: 13}, "x", 2},
+		{engine.Position{Line: 4, Col: 12}, "y", 3},
+		{engine.Position{Line: 4, Col: 16}, "outer", 1},
+	} {
+		got, err := s.Definition(doc, tc.pos)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !got.Found || got.Symbol.Name != tc.want || got.Symbol.Pos.Line != tc.line {
+			t.Fatalf("definition at %#v = %#v", tc.pos, got)
+		}
 	}
 }

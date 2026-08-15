@@ -21,6 +21,7 @@ import (
 	aikilint "aiki/cmd/subcommands/tools/lint"
 	aikilsp "aiki/cmd/subcommands/tools/lsp"
 	aikiprofile "aiki/cmd/subcommands/tools/profile"
+	aikitags "aiki/cmd/subcommands/tools/tags"
 	aikitreecheck "aiki/cmd/subcommands/tools/treecheck"
 )
 
@@ -41,6 +42,8 @@ func main() {
 			os.Exit(aikilsp.Run(os.Args[2:]))
 		case "profile":
 			os.Exit(aikiprofile.Run(os.Args[2:]))
+		case "tags":
+			os.Exit(aikitags.Run(os.Args[2:]))
 		case "treecheck":
 			os.Exit(aikitreecheck.Run(os.Args[2:]))
 		case "smoke":

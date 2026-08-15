@@ -82,3 +82,25 @@ func TestByteColumnConvertsToUTF16(t *testing.T) {
 		t.Fatalf("position=%v", p)
 	}
 }
+
+func TestDefinitionAndDocumentSymbols(t *testing.T) {
+	var in bytes.Buffer
+	in.Write(framed(map[string]any{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": map[string]any{}}))
+	in.Write(framed(map[string]any{"jsonrpc": "2.0", "method": "initialized", "params": map[string]any{}}))
+	src := "let outer = 1\nlet f = () { return outer }\n"
+	in.Write(framed(map[string]any{"jsonrpc": "2.0", "method": "textDocument/didOpen", "params": map[string]any{"textDocument": map[string]any{"uri": "file:///tmp/test.ai", "languageId": "aiki", "version": 1, "text": src}}}))
+	in.Write(framed(map[string]any{"jsonrpc": "2.0", "id": 2, "method": "textDocument/definition", "params": map[string]any{"textDocument": map[string]any{"uri": "file:///tmp/test.ai"}, "position": map[string]any{"line": 1, "character": 20}}}))
+	in.Write(framed(map[string]any{"jsonrpc": "2.0", "id": 3, "method": "textDocument/documentSymbol", "params": map[string]any{"textDocument": map[string]any{"uri": "file:///tmp/test.ai"}}}))
+	in.Write(framed(map[string]any{"jsonrpc": "2.0", "id": 4, "method": "shutdown"}))
+	in.Write(framed(map[string]any{"jsonrpc": "2.0", "method": "exit"}))
+	var out bytes.Buffer
+	if err := Serve(&in, &out, testLSPService(t)); err != nil {
+		t.Fatal(err)
+	}
+	body := string(out.Bytes())
+	for _, want := range []string{"definitionProvider", "documentSymbolProvider", "\"line\":0", "outer", "f"} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("missing %q in %s", want, body)
+		}
+	}
+}

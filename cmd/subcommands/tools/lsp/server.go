@@ -8,6 +8,7 @@ import (
 	"unicode/utf16"
 	"unicode/utf8"
 
+	"aiki/engine"
 	"aiki/engine/language"
 	"aiki/engine/semantics/value"
 )
@@ -51,8 +52,10 @@ func (s *server) handle(msg message) (bool, error) {
 	case "initialize":
 		return false, s.reply(msg.ID, map[string]any{
 			"capabilities": map[string]any{
-				"positionEncoding": "utf-16",
-				"textDocumentSync": map[string]any{"openClose": true, "change": 1},
+				"positionEncoding":       "utf-16",
+				"textDocumentSync":       map[string]any{"openClose": true, "change": 1},
+				"definitionProvider":     true,
+				"documentSymbolProvider": true,
 			},
 			"serverInfo": map[string]any{"name": "aiki"},
 		})
@@ -97,6 +100,54 @@ func (s *server) handle(msg message) (bool, error) {
 		d.Version = p.TextDocument.Version
 		s.documents[d.URI] = d
 		return false, s.publishDiagnostics(d)
+	case "textDocument/definition":
+		var p struct {
+			TextDocument struct {
+				URI string `json:"uri"`
+			} `json:"textDocument"`
+			Position struct{ Line, Character int } `json:"position"`
+		}
+		if err := json.Unmarshal(msg.Params, &p); err != nil {
+			return false, err
+		}
+		d, ok := s.documents[p.TextDocument.URI]
+		if !ok {
+			return false, s.reply(msg.ID, nil)
+		}
+		pos := aikiPosition(d.Text, p.Position.Line, p.Position.Character)
+		pos.File = d.Path
+		def, err := s.service.Definition(language.Document{ID: d.URI, Path: d.Path, Source: d.Text, Version: d.Version}, pos)
+		if err != nil || !def.Found {
+			return false, s.reply(msg.ID, nil)
+		}
+		return false, s.reply(msg.ID, map[string]any{"uri": d.URI, "range": symbolRange(d.Text, def.Symbol)})
+	case "textDocument/documentSymbol":
+		var p struct {
+			TextDocument struct {
+				URI string `json:"uri"`
+			} `json:"textDocument"`
+		}
+		if err := json.Unmarshal(msg.Params, &p); err != nil {
+			return false, err
+		}
+		d, ok := s.documents[p.TextDocument.URI]
+		if !ok {
+			return false, s.reply(msg.ID, []any{})
+		}
+		syms, err := s.service.Symbols(language.Document{ID: d.URI, Path: d.Path, Source: d.Text, Version: d.Version})
+		if err != nil {
+			return false, s.reply(msg.ID, []any{})
+		}
+		out := make([]map[string]any, 0, len(syms))
+		for _, sym := range syms {
+			kind := 13
+			if sym.Kind == "shape" {
+				kind = 23
+			}
+			r := symbolRange(d.Text, sym)
+			out = append(out, map[string]any{"name": sym.Name, "kind": kind, "range": r, "selectionRange": r})
+		}
+		return false, s.reply(msg.ID, out)
 	case "textDocument/didClose":
 		var p struct {
 			TextDocument struct {
@@ -211,4 +262,38 @@ func nextLSPPosition(source string, line, byteCol int) map[string]int {
 		size = 1
 	}
 	return lspPosition(source, line, byteCol+size)
+}
+
+func aikiPosition(source string, line0, utf16col int) engine.Position {
+	lines := strings.Split(source, "\n")
+	if line0 < 0 {
+		line0 = 0
+	}
+	if line0 >= len(lines) {
+		line0 = len(lines) - 1
+	}
+	if line0 < 0 {
+		return engine.Position{Line: 1, Col: 1}
+	}
+	text := lines[line0]
+	units := 0
+	byteIdx := 0
+	for byteIdx < len(text) {
+		r, size := utf8.DecodeRuneInString(text[byteIdx:])
+		n := len(utf16.Encode([]rune{r}))
+		if units+n > utf16col {
+			break
+		}
+		units += n
+		byteIdx += size
+		if units == utf16col {
+			break
+		}
+	}
+	return engine.Position{Line: line0 + 1, Col: byteIdx + 1}
+}
+func symbolRange(source string, sym language.Symbol) map[string]any {
+	start := lspPosition(source, sym.Pos.Line, sym.Pos.Col)
+	end := lspPosition(source, sym.Pos.Line, sym.Pos.Col+len(sym.Name))
+	return map[string]any{"start": start, "end": end}
 }

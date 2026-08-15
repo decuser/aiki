@@ -1,6 +1,6 @@
 # Milestone 12 — Xed support and grammar coupling
 
-Status: ACTIVE — implementation/static gates complete; live Xed gate pending on the authoritative workstation.
+Status: GATED — implementation/static gates complete; live Xed gate pending on the authoritative workstation.
 
 ## Implementation
 
@@ -99,3 +99,7 @@ same Aiki-owned installed artifacts. The install directories are overrideable.
 
 The remaining live gate is to install the corrected plugin, confirm the EOF
 parse diagnostic is visible, then correct the source and confirm it clears.
+
+## Live gate
+
+Passed on the user's Xed workstation. `.ai` syntax highlighting is recognized; the plugin launches the development `aiki lsp`; `let x =` receives a visible red diagnostic underline; correcting it to `let x = 42` clears the diagnostic. Save-As URI transition and zero-width EOF diagnostic rendering were corrected during the live gate. `make install-xed-plugin` owns clean user-local installation.
