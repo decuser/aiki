@@ -109,7 +109,7 @@ func TestHandlerCoverageMatchesGrammarAST(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	refs := grammarTokenRefs(g)
+	refs := g.Analysis().TokenRefs()
 	for _, name := range []string{"NAME", "NUMBER", "STRING", "RUNE", "SYMBOL", "SHAPE"} {
 		if _, ok := refs[name]; !ok {
 			t.Errorf("expected production TokenRef %s", name)
@@ -162,7 +162,7 @@ func TestBinaryOperatorCoverageMatchesGrammar(t *testing.T) {
 		t.Fatalf("load grammar: %v", err)
 	}
 
-	ops := grammarTerminalAlternatives(g, "BINOP")
+	ops := g.Analysis().TerminalAlternatives("BINOP")
 	if err := validateBinaryOperatorCoverage(ops, binaryOperatorSemantics); err != nil {
 		t.Fatal(err)
 	}
@@ -181,7 +181,7 @@ func TestBinaryOperatorCoverageRejectsBothDirections(t *testing.T) {
 	if err != nil {
 		t.Fatalf("load grammar: %v", err)
 	}
-	ops := grammarTerminalAlternatives(g, "BINOP")
+	ops := g.Analysis().TerminalAlternatives("BINOP")
 
 	missing := make(map[string]binaryOperatorKind, len(binaryOperatorSemantics)-1)
 	for op, kind := range binaryOperatorSemantics {

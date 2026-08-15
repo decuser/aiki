@@ -51,6 +51,19 @@ func (g *Grammar) AnalyzeNewlineRule() (*NewlineAnalysis, error) {
 	if g == nil {
 		return nil, fmt.Errorf("nil grammar")
 	}
+	a := g.Analysis()
+	if a.NewlineError != nil {
+		return nil, a.NewlineError
+	}
+	return a.Newline, nil
+}
+
+// deriveNewlineAnalysis performs the newline-specific portion of central
+// grammar analysis. It is called only while building Grammar.Analysis.
+func deriveNewlineAnalysis(g *Grammar) (*NewlineAnalysis, error) {
+	if g == nil {
+		return nil, fmt.Errorf("nil grammar")
+	}
 	if g.Newline == nil {
 		return nil, fmt.Errorf("grammar has no newline rule")
 	}
@@ -61,17 +74,17 @@ func (g *Grammar) AnalyzeNewlineRule() (*NewlineAnalysis, error) {
 		return nil, fmt.Errorf("grammar has no statement production")
 	}
 
-	a := &grammarAnalyzer{g: g, nullableMemo: make(map[string]bool), nullableDone: make(map[string]bool)}
+	analyzer := &grammarAnalyzer{g: g, nullableMemo: make(map[string]bool), nullableDone: make(map[string]bool)}
 
-	ends, err := a.lastProduction("expr", make(map[string]bool))
+	ends, err := analyzer.lastProduction("expr", make(map[string]bool))
 	if err != nil {
 		return nil, err
 	}
-	firstStmt, err := a.firstProduction("statement", make(map[string]bool))
+	firstStmt, err := analyzer.firstProduction("statement", make(map[string]bool))
 	if err != nil {
 		return nil, err
 	}
-	cont, err := a.contProduction("expr", make(map[string]bool))
+	cont, err := analyzer.contProduction("expr", make(map[string]bool))
 	if err != nil {
 		return nil, err
 	}

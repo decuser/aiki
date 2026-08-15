@@ -81,7 +81,7 @@ func TestFormatterProductionCoverageMatchesGrammar(t *testing.T) {
 		t.Fatalf("load grammar: %v", err)
 	}
 
-	for name := range g.Productions {
+	for _, name := range g.Analysis().ProductionNames() {
 		if _, ok := productionPrinters[name]; ok {
 			continue
 		}
@@ -90,13 +90,17 @@ func TestFormatterProductionCoverageMatchesGrammar(t *testing.T) {
 		}
 		t.Errorf("grammar production %q has no formatter disposition", name)
 	}
+	productions := make(map[string]struct{}, len(g.Analysis().ProductionNames()))
+	for _, name := range g.Analysis().ProductionNames() {
+		productions[name] = struct{}{}
+	}
 	for name := range productionPrinters {
-		if _, ok := g.Productions[name]; !ok {
+		if _, ok := productions[name]; !ok {
 			t.Errorf("formatter dispatch %q is not a grammar production", name)
 		}
 	}
 	for name := range handledByParent {
-		if _, ok := g.Productions[name]; !ok {
+		if _, ok := productions[name]; !ok {
 			t.Errorf("parent-handled formatter node %q is not a grammar production", name)
 		}
 		if _, dispatched := productionPrinters[name]; dispatched {

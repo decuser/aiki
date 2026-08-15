@@ -7,7 +7,7 @@ description: >
   the Aiki codebase, its ai/ working record, proposals, docs, or lib modules.
   Also trigger when the user mentions concepts specific to Aiki: HAL boundary,
   exact rationals, isolated spawn, semantic profiling, store/bits/select, the
-  7094 emulator, executable documentation. Trigger
+  7094 emulator, executable documentation, or the SPLASH-E submission. Trigger
   even for non-coding sessions (discussion, review, planning) because the
   working method applies to all substantial Aiki work and the session record
   must be maintained.
@@ -98,6 +98,36 @@ Use these words consistently in milestone and session records:
 - `COMPLETE` — the session has no further planned work before review/delivery.
 - `SUPERSEDED` — later work intentionally replaced the milestone's conclusion.
 
+### Git workflow
+
+Substantial proposal/feature work should preserve its development line in Git history.
+
+1. Create a named project branch for the work.
+2. Commit coherent project milestones on that branch and push meaningful branches to all configured remotes unless there is a specific reason not to.
+3. Integrate completed work into `master` with a **non-fast-forward merge** so the branch-and-merge structure remains visible in the commit graph. Do not fast-forward completed project branches.
+4. Validate the integrated `master` tree before pushing the merge to remotes.
+5. After the branch is merged, validated, and present on the remotes, the local branch pointer may be deleted to keep the local branch list uncluttered. Deleting the local pointer does not remove the branch ancestry or merge structure from history.
+6. Keep release tags separate from project branches: tags mark exact release commits; non-fast-forward merges preserve project development lines.
+
+Typical lifecycle:
+
+```text
+git switch -c <project-branch>
+# work, validate, commit, and push the branch to remotes
+git switch master
+git merge --no-ff <project-branch>
+# validate integrated master
+git push <remote> master
+# ensure <project-branch> is pushed to the remotes
+git branch -d <project-branch>   # optional local cleanup after merge/sync
+```
+
+Set Git to prefer this merge policy by default:
+
+```text
+git config --global merge.ff false
+```
+
 ### Starting or resuming work
 
 When a tarball arrives or Aiki work begins:
@@ -142,44 +172,25 @@ it warrants a session entry.
 
 ## Delivering session records
 
-Delivery follows the scope of the work. The `ai/` record is always part of the
-authoritative repository state, but it does not require a separate archive
-when the repository itself changed.
-
-### Repository-changing sessions
-
-If the session changed code, tests, documentation, proposals, library modules,
-or any other repository content outside `ai/`, deliver one full repository
-tarball that already contains the updated `ai/` directory. Do not also produce
-a separate `ai-session.tgz` unless the user explicitly asks for one.
-
-The full tarball should:
-- be rooted at the repository directory so it extracts as one coherent tree;
-- include the current `ai/` working record;
-- exclude `.git/`, disposable validation harnesses, temporary files, and stale
-  or locally built binaries unless they are intentionally part of the cut;
-- be inspected after creation and accompanied by a checksum when practical.
-
-### Session-record-only sessions
-
-If the session changed only files under `ai/`, package the updated `ai/`
-directory as a small drop-in archive:
+At the end of any session that produced `ai/` content, package the updated
+`ai/` directory as a drop-in tarball the user can extract and merge into the
+repository.
 
 ```bash
 # Build a tarball rooted at ai/ that merges cleanly
 tar czf ai-session.tgz ai/
 ```
 
-That archive must:
-- be rooted at `ai/` so it extracts into the right place;
-- never overwrite `ai/README.md` or `ai/sessions/README.md` unless those files
-  were intentionally changed during the session;
-- only add or update files under the current session's dated directory, plus
-  updating `ai/sessions/README.md` if a new date directory was created;
-- never include files outside `ai/`.
+The tarball must:
+- Be rooted at `ai/` so it extracts into the right place.
+- Never overwrite `ai/README.md` or `ai/sessions/README.md` unless those
+  files were intentionally changed during the session.
+- Only add or update files under the current session's dated directory,
+  plus updating `ai/sessions/README.md` to point to the current session
+  if a new date directory was created.
+- Never include files outside `ai/`.
 
-Present exactly the archive appropriate to the work performed, unless the user
-requests an additional packaging form.
+Present the tarball to the user at the end of the session.
 
 ## Project structure
 

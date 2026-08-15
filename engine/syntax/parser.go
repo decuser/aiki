@@ -66,8 +66,9 @@ func NewParser(g *grammar.Grammar, tokens []Token, source string, observer engin
 	// it must never make parsing unavailable; it only disables that refinement.
 	continuationTokens := make(map[string]bool)
 	continuationLexemes := make(map[string]bool)
-	if analysis, err := g.AnalyzeNewlineRule(); err == nil {
-		for _, symbol := range analysis.Continuation {
+	analysis := g.Analysis()
+	if analysis.Newline != nil {
+		for _, symbol := range analysis.Newline.Continuation {
 			if symbol.Token != "" {
 				continuationTokens[symbol.Token] = true
 			} else {

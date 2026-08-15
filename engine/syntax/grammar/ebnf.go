@@ -68,6 +68,7 @@ func (p *ebnfParser) Parse() (*Grammar, error) {
 	for _, prod := range g.Productions {
 		prod.Expr = resolveRefs(prod.Expr, g.Productions)
 	}
+	g.Reanalyze()
 	return g, nil
 }
 

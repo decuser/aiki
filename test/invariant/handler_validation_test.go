@@ -58,6 +58,7 @@ func TestHandlerValidationPanicsOnMissingTokenHandler(t *testing.T) {
 		original,
 		&grammar.TokenRef{Name: "FAKE_TOKEN"},
 	}}
+	g.Reanalyze()
 
 	ev := evaluator.New(nil, nil)
 	ev.SetGrammar(g) // should panic

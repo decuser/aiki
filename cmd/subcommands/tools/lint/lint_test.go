@@ -273,7 +273,7 @@ func TestLintASTTypeKnowledgeMatchesGrammar(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	allowed := grammarASTNodeTypes(g)
+	allowed := g.Analysis().ASTNodeTypes()
 	allowed["TERMINAL"] = struct{}{} // parser-synthesized punctuation/literal node
 
 	for typ := range known {
@@ -298,39 +298,6 @@ func TestLintGenericTraversalVisitsUnknownWrapper(t *testing.T) {
 	if len(c.diags) != 1 || c.diags[0].Level != "error" || !strings.Contains(c.diags[0].Message, "missing") {
 		t.Fatalf("generic traversal did not visit child of unknown wrapper: %v", c.diags)
 	}
-}
-
-func grammarASTNodeTypes(g *grammar.Grammar) map[string]struct{} {
-	out := make(map[string]struct{}, len(g.Productions)+8)
-	for name := range g.Productions {
-		out[name] = struct{}{}
-	}
-
-	var walk func(grammar.Expression)
-	walk = func(expr grammar.Expression) {
-		switch e := expr.(type) {
-		case *grammar.TokenRef:
-			out[e.Name] = struct{}{}
-		case *grammar.Sequence:
-			for _, child := range e.Exprs {
-				walk(child)
-			}
-		case *grammar.Alternative:
-			for _, child := range e.Exprs {
-				walk(child)
-			}
-		case *grammar.Repetition:
-			walk(e.Expr)
-		case *grammar.Option:
-			walk(e.Expr)
-		case *grammar.Group:
-			walk(e.Expr)
-		}
-	}
-	for _, prod := range g.Productions {
-		walk(prod.Expr)
-	}
-	return out
 }
 
 // lintASTTypeLiterals extracts the string literals that lint.go uses as AST

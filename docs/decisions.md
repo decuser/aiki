@@ -108,3 +108,49 @@ add `}` to the completion set or permit unambiguous leading continuations.
 **Disposition:** Grammar analysis accepted. Current newline behavior preserved.
 No new hard startup invariant beyond declaration validity. Syntax-policy changes
 deferred to a separate proposal.
+
+## D3. Derived grammar knowledge is centralized
+
+**Date:** 2026-08-15
+
+**Question:** Should evaluator, formatter, linter, parser diagnostics, and
+structural tooling independently walk grammar expressions to derive the
+structural facts they need?
+
+**Decision:** No. A parsed grammar now owns one cached `grammar.Analysis`.
+Shared structural facts are derived centrally and consumed from that analysis.
+Consumers may still interpret grammar expressions directly when that is their
+job, and may compile derived facts into local representations optimized for
+execution.
+
+The centralized analysis currently owns:
+
+- production names;
+- production-referenced token classes;
+- grammar-producible AST node types;
+- literal terminals structurally contained by each named production;
+- one cached newline analysis, with a retained derivation error when the
+  Aiki-specific newline prerequisites are unavailable.
+
+The parser's generic EBNF interpretation remains local to the parser.
+Enginesmoke's expression rendering remains local presentation logic. Parser
+lookup maps for newline filtering remain parser-specific compiled data.
+Evaluator exceptions for parser-synthesized nodes such as `TERMINAL` remain
+evaluator policy.
+
+**Rationale:** The grammar-authority work made `grammar.ebnfx` the sole source
+of syntax, but several consumers still carried their own walkers for answering
+the same structural questions. Those walkers did not create a second syntax
+specification, but they did create multiple implementations of "what the
+grammar says" and therefore another drift surface.
+
+Centralizing the derivation preserves the more important boundary: one
+authority for facts, local authority for meaning and policy. It also avoids the
+opposite error of moving consumer-specific performance representations or
+semantic decisions into the grammar package merely because they use grammar
+facts.
+
+**Disposition:** Accepted architectural rule: **parse once; derive shared
+structural facts once; consume everywhere.** Apply this rule where concrete
+duplicated derivation exists; do not treat it as a mandate for a repository-wide
+abstraction campaign.

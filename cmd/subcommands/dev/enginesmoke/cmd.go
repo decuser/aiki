@@ -529,16 +529,17 @@ func dumpGrammar(g *grammar.Grammar) []byte {
 
 	// Derived newline-policy analysis. Keeping this in the structural dump makes
 	// the consequences of grammar changes visible alongside the declaration.
-	if analysis, err := g.AnalyzeNewlineRule(); err != nil {
-		fmt.Fprintf(&buf, "  analysis_error=%s\n", strconv.Quote(err.Error()))
-	} else {
-		fmt.Fprintf(&buf, "  expression_end=%s\n", strconv.Quote(joinSurfaceSymbols(analysis.ExpressionEnd)))
-		fmt.Fprintf(&buf, "  statement_first=%s\n", strconv.Quote(joinSurfaceSymbols(analysis.StatementFirst)))
-		fmt.Fprintf(&buf, "  continuation=%s\n", strconv.Quote(joinSurfaceSymbols(analysis.Continuation)))
-		fmt.Fprintf(&buf, "  ambiguous=%s\n", strconv.Quote(joinSurfaceSymbols(analysis.Ambiguous)))
-		fmt.Fprintf(&buf, "  overblocked=%s\n", strconv.Quote(joinSurfaceSymbols(analysis.Overblocked)))
-		fmt.Fprintf(&buf, "  uncovered_end=%s\n", strconv.Quote(joinSurfaceSymbols(analysis.UncoveredEnd)))
-		fmt.Fprintf(&buf, "  declared_impossible=%s\n", strconv.Quote(joinSurfaceSymbols(analysis.DeclaredImpossible)))
+	analysis := g.Analysis()
+	if analysis.NewlineError != nil {
+		fmt.Fprintf(&buf, "  analysis_error=%s\n", strconv.Quote(analysis.NewlineError.Error()))
+	} else if analysis.Newline != nil {
+		fmt.Fprintf(&buf, "  expression_end=%s\n", strconv.Quote(joinSurfaceSymbols(analysis.Newline.ExpressionEnd)))
+		fmt.Fprintf(&buf, "  statement_first=%s\n", strconv.Quote(joinSurfaceSymbols(analysis.Newline.StatementFirst)))
+		fmt.Fprintf(&buf, "  continuation=%s\n", strconv.Quote(joinSurfaceSymbols(analysis.Newline.Continuation)))
+		fmt.Fprintf(&buf, "  ambiguous=%s\n", strconv.Quote(joinSurfaceSymbols(analysis.Newline.Ambiguous)))
+		fmt.Fprintf(&buf, "  overblocked=%s\n", strconv.Quote(joinSurfaceSymbols(analysis.Newline.Overblocked)))
+		fmt.Fprintf(&buf, "  uncovered_end=%s\n", strconv.Quote(joinSurfaceSymbols(analysis.Newline.UncoveredEnd)))
+		fmt.Fprintf(&buf, "  declared_impossible=%s\n", strconv.Quote(joinSurfaceSymbols(analysis.Newline.DeclaredImpossible)))
 	}
 
 	// Productions
