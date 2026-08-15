@@ -1,4 +1,4 @@
-import("import_target", :ANSWER, :add_two)
+import("./import_target", :ANSWER, :add_two)
 
 print("IMPORT\n")
 print(ANSWER, "\n")

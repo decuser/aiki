@@ -117,3 +117,35 @@ func TestRegistryCanonicalListExcludesAliases(t *testing.T) {
 		}
 	}
 }
+
+func TestModuleRootsUseExplicitDistributionAndDevelopmentRoots(t *testing.T) {
+	home := filepath.Join("home", "user")
+	exe := filepath.Join("opt", "aiki")
+	work := filepath.Join("forge", "dev", "aiki")
+	got := ModuleRoots(home, exe, work)
+	want := []string{
+		filepath.Join(exe, "lib"),
+		filepath.Join(exe, "vendor"),
+		filepath.Join(work, "lib"),
+		filepath.Join(work, "vendor"),
+		filepath.Join(home, ".aiki", "lib"),
+	}
+	if len(got) != len(want) {
+		t.Fatalf("module roots: got %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("module root %d: got %q, want %q", i, got[i], want[i])
+		}
+	}
+}
+
+func TestModuleRootsDoNotScanWorkingDirectoryItself(t *testing.T) {
+	work := filepath.Join("forge", "dev")
+	got := ModuleRoots("", "", work)
+	for _, root := range got {
+		if root == filepath.Clean(work) {
+			t.Fatalf("working directory must not be a registry root: %v", got)
+		}
+	}
+}

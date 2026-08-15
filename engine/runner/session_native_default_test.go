@@ -8,7 +8,7 @@ import (
 
 func TestSessionImportsNativeDefaultByBareName(t *testing.T) {
 	tmp := t.TempDir()
-	modDir := filepath.Join(tmp, "widget")
+	modDir := filepath.Join(tmp, "lib", "widget")
 	if err := os.MkdirAll(modDir, 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
@@ -19,6 +19,11 @@ export(:answer)
 `
 	if err := os.WriteFile(filepath.Join(modDir, "native.ai"), []byte(mod), 0o644); err != nil {
 		t.Fatalf("write module: %v", err)
+	}
+	for _, ext := range []string{".help", ".doc"} {
+		if err := os.WriteFile(filepath.Join(modDir, "native"+ext), nil, 0o644); err != nil {
+			t.Fatalf("write module metadata: %v", err)
+		}
 	}
 
 	wd, err := os.Getwd()

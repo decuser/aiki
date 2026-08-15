@@ -259,6 +259,13 @@ func (c *Checker) checkStructuralPairs() {
 	}
 }
 
+func isNamedPackageSource(path string) bool {
+	if !strings.HasSuffix(path, ".ai") {
+		return false
+	}
+	return strings.HasPrefix(path, "lib/") || strings.HasPrefix(path, "vendor/")
+}
+
 func (c *Checker) structuralErrors() []Finding {
 	var out []Finding
 	packages := make(map[string][]string)
@@ -306,7 +313,7 @@ func (c *Checker) structuralErrors() []Finding {
 				}
 			}
 		}
-		if strings.HasSuffix(p, ".ai") {
+		if isNamedPackageSource(p) {
 			data, err := os.ReadFile(filepath.Join(c.Root, filepath.FromSlash(p)))
 			if err == nil {
 				if m := packageRE.FindSubmatch(data); m != nil {
@@ -330,7 +337,7 @@ func (c *Checker) structuralErrors() []Finding {
 func (c *Checker) resolveAikiPackageReferences() {
 	packageFiles := make(map[string][]string)
 	for p := range c.files {
-		if !strings.HasSuffix(p, ".ai") {
+		if !isNamedPackageSource(p) {
 			continue
 		}
 		data, err := os.ReadFile(filepath.Join(c.Root, filepath.FromSlash(p)))
@@ -355,6 +362,19 @@ func (c *Checker) resolveAikiPackageReferences() {
 			}
 			for _, m := range importRE.FindAllSubmatch(data, -1) {
 				name := string(m[1])
+				if strings.HasPrefix(name, "./") || strings.HasPrefix(name, "../") {
+					target := filepath.ToSlash(filepath.Clean(filepath.Join(filepath.Dir(p), name)))
+					if filepath.Ext(target) == "" {
+						target += ".ai"
+					}
+					if c.files[target] {
+						if _, ok := c.justified[target]; !ok {
+							c.mark(target, "imported by "+p)
+							changed = true
+						}
+					}
+					continue
+				}
 				for _, target := range packageFiles[name] {
 					if _, ok := c.justified[target]; ok {
 						continue
