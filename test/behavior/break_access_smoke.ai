@@ -1,0 +1,7 @@
+# @negative parse
+use("string")
+
+let s = string
+	.upper("abc")
+
+println(s)

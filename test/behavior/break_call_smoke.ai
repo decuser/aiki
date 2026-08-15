@@ -1,0 +1,10 @@
+let foo = () {
+	return (n) {
+		return n
+	}
+}
+
+let bar = 1
+
+foo()
+(bar)

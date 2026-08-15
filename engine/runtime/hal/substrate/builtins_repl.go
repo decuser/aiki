@@ -124,6 +124,7 @@ func showHelpIndex(ctx *hal.EvalContext) value.Value {
 
 	sb.WriteString("\nUse help(\"name\") for prelude functions, help(\"module\") for module info,\n")
 	sb.WriteString("help(\"module.func\") for module functions.\n")
+	sb.WriteString("Use help(\"newline\") for the grammar-declared newline policy.\n")
 	sb.WriteString("Use doc(\"name\") for full documentation.\n")
 
 	outputHelp(sb.String())
@@ -153,8 +154,18 @@ func showHelp(name string, ctx *hal.EvalContext) value.Value {
 		}
 	}
 
-	// Check grammar for syntax help
+	// Check grammar for syntax help.
 	if ctx != nil && ctx.Grammar != nil {
+		if name == "newline" && ctx.Grammar.Newline != nil {
+			var sb strings.Builder
+			sb.WriteString("newline\n")
+			if ctx.Grammar.Newline.Meta.Help != "" {
+				sb.WriteString(fmt.Sprintf("  %s\n", ctx.Grammar.Newline.Meta.Help))
+			}
+			outputHelp(sb.String())
+			return value.EMPTY
+		}
+
 		// Try production name directly
 		if prod, ok := ctx.Grammar.GetProduction(name); ok {
 			var sb strings.Builder

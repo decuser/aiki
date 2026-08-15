@@ -34,6 +34,21 @@ func (p *ebnfParser) Parse() (*Grammar, error) {
 		p.skipWhitespaceAndComments()
 	}
 
+	if p.peek() == '@' && p.lookingAt("@newline") {
+		rule, err := p.parseNewlineBlock()
+		if err != nil {
+			return nil, err
+		}
+		g.Newline = rule
+		p.skipWhitespaceAndComments()
+	}
+	if g.Newline == nil {
+		return nil, p.error("missing @newline declaration")
+	}
+	if err := validateNewlineDeclaration(g); err != nil {
+		return nil, err
+	}
+
 	for p.pos < len(p.source) {
 		p.skipWhitespaceAndComments()
 		if p.pos >= len(p.source) {
@@ -102,6 +117,146 @@ func (p *ebnfParser) parseTokensBlock() ([]TokenDef, error) {
 		return nil, p.error("expected '}'")
 	}
 	return tokens, nil
+}
+
+func (p *ebnfParser) parseNewlineBlock() (*NewlineRule, error) {
+	startPos := p.position()
+	if !p.consumeString("@newline") {
+		return nil, p.error("expected @newline")
+	}
+	p.skipWhitespaceAndComments()
+	if !p.consume('{') {
+		return nil, p.error("expected '{'")
+	}
+
+	rule := &NewlineRule{Pos: startPos}
+	p.skipWhitespaceAndComments()
+	for p.peek() != '}' && p.pos < len(p.source) {
+		if p.peek() == '@' {
+			if !p.lookingAt("@help") {
+				return nil, p.error("unknown @newline decorator")
+			}
+			name, value := p.parseDecorator()
+			if name != "help" {
+				return nil, p.error("expected @help")
+			}
+			rule.Meta.Help = value
+			p.skipWhitespaceAndComments()
+			continue
+		}
+
+		directivePos := p.position()
+		name := p.parseIdentifier()
+		if name == "" {
+			return nil, p.error("expected @newline directive")
+		}
+		p.skipSpaces()
+		args := strings.Fields(strings.TrimSpace(p.parseUntilNewlineOrAt()))
+		switch name {
+		case "token":
+			if len(args) != 1 {
+				return nil, fmt.Errorf("%s:%d:%d: @newline token expects exactly one token name", directivePos.File, directivePos.Line, directivePos.Col)
+			}
+			if rule.Token != "" {
+				return nil, fmt.Errorf("%s:%d:%d: duplicate @newline token directive", directivePos.File, directivePos.Line, directivePos.Col)
+			}
+			rule.Token = args[0]
+		case "after_token":
+			if len(args) == 0 {
+				return nil, fmt.Errorf("%s:%d:%d: @newline after_token requires at least one token name", directivePos.File, directivePos.Line, directivePos.Col)
+			}
+			rule.AfterToken = append(rule.AfterToken, args...)
+		case "after_lexeme":
+			if len(args) == 0 {
+				return nil, fmt.Errorf("%s:%d:%d: @newline after_lexeme requires at least one lexeme", directivePos.File, directivePos.Line, directivePos.Col)
+			}
+			rule.AfterLexeme = append(rule.AfterLexeme, args...)
+		case "suppress_in":
+			if len(args) != 2 {
+				return nil, fmt.Errorf("%s:%d:%d: @newline suppress_in expects an opener and closer", directivePos.File, directivePos.Line, directivePos.Col)
+			}
+			rule.SuppressIn = append(rule.SuppressIn, [2]string{args[0], args[1]})
+		default:
+			return nil, fmt.Errorf("%s:%d:%d: unknown @newline directive %q", directivePos.File, directivePos.Line, directivePos.Col, name)
+		}
+		p.skipWhitespaceAndComments()
+	}
+	if !p.consume('}') {
+		return nil, p.error("expected '}'")
+	}
+	return rule, nil
+}
+
+func validateNewlineDeclaration(g *Grammar) error {
+	r := g.Newline
+	if r == nil {
+		return fmt.Errorf("missing @newline declaration")
+	}
+	if r.Token == "" {
+		return fmt.Errorf("%s:%d:%d: @newline missing token directive", r.Pos.File, r.Pos.Line, r.Pos.Col)
+	}
+
+	tokenNames := make(map[string]bool, len(g.Tokens))
+	literalLexemes := make(map[string]bool)
+	for _, tok := range g.Tokens {
+		tokenNames[tok.Name] = true
+		for _, lexeme := range strings.Fields(tok.Literal) {
+			literalLexemes[lexeme] = true
+		}
+	}
+	if !tokenNames[r.Token] {
+		return fmt.Errorf("%s:%d:%d: @newline token %q is not declared in @tokens", r.Pos.File, r.Pos.Line, r.Pos.Col, r.Token)
+	}
+
+	seenTokens := make(map[string]bool)
+	for _, name := range r.AfterToken {
+		if !tokenNames[name] {
+			return fmt.Errorf("%s:%d:%d: @newline after_token %q is not declared in @tokens", r.Pos.File, r.Pos.Line, r.Pos.Col, name)
+		}
+		if seenTokens[name] {
+			return fmt.Errorf("%s:%d:%d: duplicate @newline after_token %q", r.Pos.File, r.Pos.Line, r.Pos.Col, name)
+		}
+		seenTokens[name] = true
+	}
+
+	seenLexemes := make(map[string]bool)
+	for _, lexeme := range r.AfterLexeme {
+		if !literalLexemes[lexeme] {
+			return fmt.Errorf("%s:%d:%d: @newline after_lexeme %q is not declared by a literal token", r.Pos.File, r.Pos.Line, r.Pos.Col, lexeme)
+		}
+		if seenLexemes[lexeme] {
+			return fmt.Errorf("%s:%d:%d: duplicate @newline after_lexeme %q", r.Pos.File, r.Pos.Line, r.Pos.Col, lexeme)
+		}
+		seenLexemes[lexeme] = true
+	}
+
+	seenPairs := make(map[[2]string]bool)
+	openers := make(map[string]string)
+	closers := make(map[string]string)
+	for _, pair := range r.SuppressIn {
+		if !literalLexemes[pair[0]] || !literalLexemes[pair[1]] {
+			return fmt.Errorf("%s:%d:%d: @newline suppress_in %q %q must name literal lexemes", r.Pos.File, r.Pos.Line, r.Pos.Col, pair[0], pair[1])
+		}
+		if pair[0] == pair[1] {
+			return fmt.Errorf("%s:%d:%d: @newline suppress_in opener and closer must differ: %q", r.Pos.File, r.Pos.Line, r.Pos.Col, pair[0])
+		}
+		if seenPairs[pair] {
+			return fmt.Errorf("%s:%d:%d: duplicate @newline suppress_in %q %q", r.Pos.File, r.Pos.Line, r.Pos.Col, pair[0], pair[1])
+		}
+		if prior, ok := openers[pair[0]]; ok && prior != pair[1] {
+			return fmt.Errorf("%s:%d:%d: @newline opener %q has conflicting closers %q and %q", r.Pos.File, r.Pos.Line, r.Pos.Col, pair[0], prior, pair[1])
+		}
+		if prior, ok := closers[pair[1]]; ok && prior != pair[0] {
+			return fmt.Errorf("%s:%d:%d: @newline closer %q has conflicting openers %q and %q", r.Pos.File, r.Pos.Line, r.Pos.Col, pair[1], prior, pair[0])
+		}
+		seenPairs[pair] = true
+		openers[pair[0]] = pair[1]
+		closers[pair[1]] = pair[0]
+	}
+	if len(r.AfterToken) == 0 && len(r.AfterLexeme) == 0 {
+		return fmt.Errorf("%s:%d:%d: @newline requires after_token or after_lexeme", r.Pos.File, r.Pos.Line, r.Pos.Col)
+	}
+	return nil
 }
 
 func (p *ebnfParser) parseTokenDef() (TokenDef, error) {

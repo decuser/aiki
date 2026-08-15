@@ -32,14 +32,6 @@ func (e *Evaluator) makeFault(node *syntax.Node, env *value.Env, format string, 
 	)
 }
 
-func isOperator(s string) bool {
-	switch s {
-	case "+", "-", "*", "/", "<", ">", "<=", ">=", "and", "or":
-		return true
-	}
-	return false
-}
-
 // resolveTailCalls drains internal tail call sentinels so they never escape evaluator boundaries.
 func (e *Evaluator) resolveTailCalls(v value.Value, env *value.Env) value.Value {
 	for {

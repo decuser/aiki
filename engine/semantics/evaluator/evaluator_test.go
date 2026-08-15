@@ -99,3 +99,121 @@ func TestEvalPipe(t *testing.T) {
 		t.Errorf("got %s", v.Inspect())
 	}
 }
+
+func TestHandlerCoverageMatchesGrammarAST(t *testing.T) {
+	g, err := grammar.Load("grammar.ebnfx", syntax.EbnfxSource, "grammar.help", syntax.HelpSource)
+	if err != nil {
+		t.Fatalf("load grammar: %v", err)
+	}
+	if err := validateHandlerCoverage(g, handlers); err != nil {
+		t.Fatal(err)
+	}
+
+	refs := grammarTokenRefs(g)
+	for _, name := range []string{"NAME", "NUMBER", "STRING", "RUNE", "SYMBOL", "SHAPE"} {
+		if _, ok := refs[name]; !ok {
+			t.Errorf("expected production TokenRef %s", name)
+		}
+	}
+	if _, ok := g.Productions["BINOP"]; !ok {
+		t.Error("expected BINOP to be a named production")
+	}
+	if _, ok := refs["BINOP"]; ok {
+		t.Error("BINOP is a production, not a TokenRef")
+	}
+	for _, name := range []string{"KEYWORD", "OPERATOR", "DELIMITER", "NEWLINE"} {
+		if _, ok := refs[name]; ok {
+			t.Errorf("lexical-only token unexpectedly production-referenced: %s", name)
+		}
+		if _, ok := handlers[name]; ok {
+			t.Errorf("lexical-only token unexpectedly has evaluator handler: %s", name)
+		}
+	}
+}
+
+func TestHandlerCoverageRejectsBothDirections(t *testing.T) {
+	g, err := grammar.Load("grammar.ebnfx", syntax.EbnfxSource, "grammar.help", syntax.HelpSource)
+	if err != nil {
+		t.Fatalf("load grammar: %v", err)
+	}
+
+	missing := make(map[string]handlerFunc, len(handlers))
+	for name, h := range handlers {
+		missing[name] = h
+	}
+	delete(missing, "NAME")
+	if err := validateHandlerCoverage(g, missing); err == nil {
+		t.Fatal("expected missing grammar node handler to fail")
+	}
+
+	extra := make(map[string]handlerFunc, len(handlers)+1)
+	for name, h := range handlers {
+		extra[name] = h
+	}
+	extra["KEYWORD"] = (*Evaluator).evalTerminal
+	if err := validateHandlerCoverage(g, extra); err == nil {
+		t.Fatal("expected handler without grammar AST node to fail")
+	}
+}
+
+func TestBinaryOperatorCoverageMatchesGrammar(t *testing.T) {
+	g, err := grammar.Load("grammar.ebnfx", syntax.EbnfxSource, "grammar.help", syntax.HelpSource)
+	if err != nil {
+		t.Fatalf("load grammar: %v", err)
+	}
+
+	ops := grammarTerminalAlternatives(g, "BINOP")
+	if err := validateBinaryOperatorCoverage(ops, binaryOperatorSemantics); err != nil {
+		t.Fatal(err)
+	}
+	if len(ops) != 10 {
+		t.Fatalf("BINOP alternatives = %d, want 10", len(ops))
+	}
+	for _, op := range []string{"+", "-", "*", "/", "<", ">", "<=", ">=", "and", "or"} {
+		if _, ok := ops[op]; !ok {
+			t.Errorf("grammar BINOP missing %q", op)
+		}
+	}
+}
+
+func TestBinaryOperatorCoverageRejectsBothDirections(t *testing.T) {
+	g, err := grammar.Load("grammar.ebnfx", syntax.EbnfxSource, "grammar.help", syntax.HelpSource)
+	if err != nil {
+		t.Fatalf("load grammar: %v", err)
+	}
+	ops := grammarTerminalAlternatives(g, "BINOP")
+
+	missing := make(map[string]binaryOperatorKind, len(binaryOperatorSemantics)-1)
+	for op, kind := range binaryOperatorSemantics {
+		if op != "+" {
+			missing[op] = kind
+		}
+	}
+	if err := validateBinaryOperatorCoverage(ops, missing); err == nil {
+		t.Fatal("expected grammar operator without evaluator semantics to fail")
+	}
+
+	extra := make(map[string]binaryOperatorKind, len(binaryOperatorSemantics)+1)
+	for op, kind := range binaryOperatorSemantics {
+		extra[op] = kind
+	}
+	extra["fake-op"] = operatorAdd
+	if err := validateBinaryOperatorCoverage(ops, extra); err == nil {
+		t.Fatal("expected evaluator operator without grammar BINOP to fail")
+	}
+}
+
+func TestBinaryOperatorMembershipComesFromGrammar(t *testing.T) {
+	g, err := grammar.Load("grammar.ebnfx", syntax.EbnfxSource, "grammar.help", syntax.HelpSource)
+	if err != nil {
+		t.Fatalf("load grammar: %v", err)
+	}
+	ev := New(substrate.NewGoRuntime(), nil)
+	ev.SetGrammar(g)
+	if !ev.isBinaryOperator("+") {
+		t.Fatal("expected grammar-declared + to be an operator")
+	}
+	if ev.isBinaryOperator("fake-op") {
+		t.Fatal("unexpected operator not declared by grammar")
+	}
+}

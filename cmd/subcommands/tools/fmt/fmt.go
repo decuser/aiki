@@ -2,12 +2,14 @@ package fmt
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"aiki/cmd/internal/testfixture"
 	"aiki/engine/syntax"
 	"aiki/engine/syntax/grammar"
 )
@@ -27,6 +29,15 @@ type Config struct {
 // FormatPath formats a file, directory pattern (./...), or a single path.
 // Returns true if any file changed (or would change in ListOnly mode).
 func FormatPath(path string, cfg Config) (bool, error) {
+	if !strings.HasSuffix(path, "/...") && !strings.HasSuffix(path, string(filepath.Separator)+"...") {
+		skip, err := testfixture.IsParseNegative(path)
+		if err != nil {
+			return false, err
+		}
+		if skip {
+			return false, nil
+		}
+	}
 	if strings.HasSuffix(path, string(filepath.Separator)+"...") || strings.HasSuffix(path, "/...") {
 		dir := strings.TrimSuffix(path, "/...")
 		dir = strings.TrimSuffix(dir, string(filepath.Separator)+"...")
@@ -44,7 +55,8 @@ func loadGrammar() (*grammar.Grammar, error) {
 
 func formatDir(dir string, cfg Config) (bool, error) {
 	changedAny := false
-	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+	var formatErrs []error
+	walkErr := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -57,11 +69,16 @@ func formatDir(dir string, cfg Config) (bool, error) {
 		if !strings.HasSuffix(path, ".ai") {
 			return nil
 		}
+		skip, ferr := testfixture.IsParseNegative(path)
+		if ferr != nil {
+			return ferr
+		}
+		if skip {
+			return nil
+		}
 		changed, ferr := formatFile(path, cfg, io.Discard)
 		if ferr != nil {
-			// Continue formatting other files but remember the first error.
-			// This matches gofmt like behavior.
-			fmt.Fprintln(os.Stderr, path+":", ferr)
+			formatErrs = append(formatErrs, fmt.Errorf("%s: %w", path, ferr))
 			return nil
 		}
 		if changed {
@@ -69,7 +86,10 @@ func formatDir(dir string, cfg Config) (bool, error) {
 		}
 		return nil
 	})
-	return changedAny, err
+	if walkErr != nil {
+		return changedAny, walkErr
+	}
+	return changedAny, errors.Join(formatErrs...)
 }
 
 func formatFile(path string, cfg Config, stdout io.Writer) (bool, error) {

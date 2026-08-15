@@ -2,42 +2,93 @@ package evaluator
 
 import (
 	"aiki/engine"
+	"fmt"
 	"math/big"
 
 	"aiki/engine/semantics/value"
 	"aiki/engine/syntax"
 )
 
+type binaryOperatorKind int
+
+const (
+	operatorAdd binaryOperatorKind = iota
+	operatorSub
+	operatorMul
+	operatorDiv
+	operatorLt
+	operatorGt
+	operatorLte
+	operatorGte
+	operatorAnd
+	operatorOr
+)
+
+// binaryOperatorSemantics is the evaluator's authority on operator meaning.
+// Membership is checked bidirectionally against the grammar's BINOP production.
+var binaryOperatorSemantics = map[string]binaryOperatorKind{
+	"+":   operatorAdd,
+	"-":   operatorSub,
+	"*":   operatorMul,
+	"/":   operatorDiv,
+	"<":   operatorLt,
+	">":   operatorGt,
+	"<=":  operatorLte,
+	">=":  operatorGte,
+	"and": operatorAnd,
+	"or":  operatorOr,
+}
+
+func validateBinaryOperatorCoverage(grammarOps map[string]struct{}, semanticOps map[string]binaryOperatorKind) error {
+	for op := range grammarOps {
+		if _, ok := semanticOps[op]; !ok {
+			return fmt.Errorf("grammar BINOP has no evaluator semantics: %s", op)
+		}
+	}
+	for op := range semanticOps {
+		if _, ok := grammarOps[op]; !ok {
+			return fmt.Errorf("evaluator operator has no grammar BINOP: %s", op)
+		}
+	}
+	return nil
+}
+
 func (e *Evaluator) applyOperator(op string, left, right value.Value, node *syntax.Node, env *value.Env) value.Value {
-	switch op {
-	case "+", "-", "*", "/":
+	kind, ok := binaryOperatorSemantics[op]
+	if !ok {
+		return e.makeFault(node, env, "unknown operator: %s", op)
+	}
+
+	switch kind {
+	case operatorAdd, operatorSub, operatorMul, operatorDiv:
 		e.semanticHit(engine.SemanticArithmetic, node, env)
-	case "<", ">", "<=", ">=":
+	case operatorLt, operatorGt, operatorLte, operatorGte:
 		e.semanticHit(engine.SemanticComparison, node, env)
 	}
-	switch op {
-	case "+":
+
+	switch kind {
+	case operatorAdd:
 		return e.opAdd(left, right, node, env)
-	case "-":
+	case operatorSub:
 		return e.opSub(left, right, node, env)
-	case "*":
+	case operatorMul:
 		return e.opMul(left, right, node, env)
-	case "/":
+	case operatorDiv:
 		return e.opDiv(left, right, node, env)
-	case "<":
+	case operatorLt:
 		return e.opLt(left, right, node, env)
-	case ">":
+	case operatorGt:
 		return e.opGt(left, right, node, env)
-	case "<=":
+	case operatorLte:
 		return e.opLte(left, right, node, env)
-	case ">=":
+	case operatorGte:
 		return e.opGte(left, right, node, env)
-	case "and":
+	case operatorAnd:
 		if !value.IsTruthy(left) {
 			return left
 		}
 		return right
-	case "or":
+	case operatorOr:
 		if value.IsTruthy(left) {
 			return left
 		}

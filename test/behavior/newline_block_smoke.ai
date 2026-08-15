@@ -1,0 +1,13 @@
+use("list")
+
+let double = (n) {
+	return n * 2
+}
+
+let f = () {
+	let data = [1, 2, 3]
+	let out = data |> map(double)
+	return out
+}
+
+println(f())

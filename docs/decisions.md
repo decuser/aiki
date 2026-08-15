@@ -45,3 +45,66 @@ carried indefinitely by the resulting number.
 
 **Disposition:** Accepted boundary semantics. Closed. No numeric-model
 change.
+
+---
+
+## D2. Newline policy remains behavior-preserving while grammar analysis is made explicit
+
+**Date:** 2026-08-14
+
+**Question:** Once newline termination is declared in `grammar.ebnfx`, should
+grammar-derived analysis immediately impose a stronger startup invariant or
+change Aiki's leading-continuation behavior?
+
+**Decision:** No. Preserve the current language behavior in this proposal and
+make the structural consequences of the rule explicit and executable. The
+grammar now derives expression endings, statement starts, expression
+continuations, ambiguous continuations, overblocked continuations, and newline
+completion entries that do not correspond to possible expression endings.
+These sets are checked against the current grammar and surfaced in the engine
+structural gold. No additional hard startup invariant is adopted in this cut.
+
+For the current grammar the derived sets are:
+
+    END(expr)
+        NAME NUMBER RUNE STRING SYMBOL ) ] false true }
+
+    CONTINUATION(expr)
+        ( * + - . / < <= > >= [ and or |>
+
+    FIRST(statement) intersect CONTINUATION(expr)
+        ( - [
+
+    unambiguous continuations blocked by the current rule
+        * + . / < <= > >= and or |>
+
+    complete expression endings not covered by the current newline rule
+        }
+
+    declared completion entries that cannot end an expression
+        none
+
+The uncovered `}` is significant. A function literal is a primary expression,
+so a complete expression can end at its closing brace. Because `}` is not in
+the current completion set, a newline after a function literal does not force a
+statement boundary. A following continuation can therefore attach to the
+function literal across that newline. This behavior is now pinned by a behavior
+smoke rather than changed here.
+
+**Rationale:** The grammar analysis shows that the existing rule embodies two
+independent policy choices rather than one simple soundness condition. It
+intentionally prefers a new statement for the ambiguous followers `(`, `[`, and
+`-` after declared completion endings, while also forbidding several
+unambiguous leading continuations. At the same time, it does not cover every
+possible expression ending because `}` is omitted. Turning "all expression
+endings must terminate" into a startup invariant would therefore require a
+language change, and treating overblocking as an error would require a different
+language change. Neither belongs in a behavior-preserving authority refactor.
+
+The useful invariant at this stage is epistemic: the relationship is derived,
+visible, and executable. Future syntax work can decide separately whether to
+add `}` to the completion set or permit unambiguous leading continuations.
+
+**Disposition:** Grammar analysis accepted. Current newline behavior preserved.
+No new hard startup invariant beyond declaration validity. Syntax-policy changes
+deferred to a separate proposal.

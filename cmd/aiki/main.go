@@ -33,24 +33,19 @@ func main() {
 			fmt.Println(Version)
 			return
 		case "fmt":
-			aikifmt.Run(os.Args[2:])
-			return
+			os.Exit(aikifmt.Run(os.Args[2:]))
 		case "lint":
-			aikilint.Run(os.Args[2:])
-			return
+			os.Exit(aikilint.Run(os.Args[2:]))
 		case "profile":
 			os.Exit(aikiprofile.Run(os.Args[2:]))
 		case "treecheck":
 			os.Exit(aikitreecheck.Run(os.Args[2:]))
 		case "smoke":
-			aikismoke.Run(os.Args[2:])
-			return
+			os.Exit(aikismoke.Run(os.Args[2:]))
 		case "enginesmoke":
-			aikienginesmoke.Run(os.Args[2:])
-			return
+			os.Exit(aikienginesmoke.Run(os.Args[2:]))
 		case "debug":
-			aikidebug.Run(os.Args[2:])
-			return
+			os.Exit(aikidebug.Run(os.Args[2:]))
 		case "test":
 			os.Exit(aikitest.Run(os.Args[2:]))
 		}

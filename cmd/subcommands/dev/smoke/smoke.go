@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"aiki/cmd/internal/testfixture"
 )
 
 func Run(args []string) int {
@@ -55,6 +57,10 @@ func Run(args []string) int {
 
 func blessPair(aiPath string) error {
 	goldPath := strings.TrimSuffix(aiPath, ".ai") + ".gold"
+	negativeKind, err := testfixture.NegativeKindOf(aiPath)
+	if err != nil {
+		return err
+	}
 
 	// Preserve authored stimulus/presentation directives from an existing gold.
 	var stdin []byte
@@ -81,6 +87,9 @@ func blessPair(aiPath string) error {
 	stdout, stderr, exitCode, err := runAikiFile(aiPath, stdin, canvasPath)
 	if err != nil {
 		return fmt.Errorf("run error: %w", err)
+	}
+	if err := validateNegativeObservation(aiPath, negativeKind, stderr, exitCode); err != nil {
+		return err
 	}
 
 	var canvas []string
@@ -171,10 +180,17 @@ func collectSmokeFiles(args []string) ([]string, error) {
 
 func runPair(aiPath string) error {
 	goldPath := strings.TrimSuffix(aiPath, ".ai") + ".gold"
+	negativeKind, err := testfixture.NegativeKindOf(aiPath)
+	if err != nil {
+		return err
+	}
 
 	stdin, expOut, expErr, expExit, expCanvas, displays, err := loadTranscript(goldPath)
 	if err != nil {
 		return fmt.Errorf("load transcript: %w", err)
+	}
+	if err := validateNegativeObservation(aiPath+" gold", negativeKind, expErr, expExit); err != nil {
+		return err
 	}
 
 	// When the gold contains CANVAS: lines, run the program with the
@@ -245,6 +261,23 @@ func runPair(aiPath string) error {
 		}
 	}
 
+	return nil
+}
+
+func validateNegativeObservation(label string, kind testfixture.NegativeKind, stderr []byte, exitCode int) error {
+	parseFailure := exitCode != 0 && bytes.HasPrefix(stderr, []byte("parser: "))
+	switch kind {
+	case testfixture.NegativeParse:
+		if !parseFailure {
+			return fmt.Errorf("%s: declared @negative parse but observation is not a parser failure", label)
+		}
+	case testfixture.NegativeNone:
+		if parseFailure {
+			return fmt.Errorf("%s: parser failure is not declared with # @negative parse", label)
+		}
+	default:
+		return fmt.Errorf("%s: unsupported negative kind %q", label, kind)
+	}
 	return nil
 }
 

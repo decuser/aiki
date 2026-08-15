@@ -33,6 +33,29 @@ The underlying commands are:
 
 `smoke --gold` preserves authored `IN:` and `DISPLAY:` directives from an existing transcript, then regenerates observed `OUT:`, `ERR:`, `EXIT:`, and `CANVAS:` records using the smoke framework's canonical transcript encoding. A new no-input smoke can be blessed without an existing gold; input-bearing smokes should establish their `IN:` directives before blessing.
 
+### Negative behavior fixtures
+
+A smoke specimen whose intended behavior is failure declares that intent in a
+leading source comment. The declaration is textual so it remains readable even
+when the specimen intentionally does not parse:
+
+```text
+# @negative parse
+```
+
+The marker is a general negative-fixture declaration; `parse` is currently the
+only supported kind. Unknown kinds are errors. A parse-negative fixture is
+excluded from formatter and linter source traversal because successful parsing
+is not part of that specimen's contract.
+
+Intent and evidence are checked separately. `# @negative parse` is the intent;
+the smoke transcript is the observation. Smoke validation requires both
+directions: every declared parse-negative must have a nonzero parser-failure
+transcript, and every parser-failure transcript must belong to a specimen that
+declares `# @negative parse`. Blessing applies the same check to the observed
+run before writing a gold, so a newly broken ordinary specimen cannot authorize
+itself by being reblessed.
+
 `enginesmoke --gold` refuses to bless an incomplete structural suite: every EBNF production must first be exercised by at least one `*_engine.ai` specimen.
 
 ## `make validate`

@@ -1,6 +1,7 @@
 package invariant
 
 import (
+	"fmt"
 	"testing"
 
 	"aiki/engine/semantics/evaluator"
@@ -15,8 +16,8 @@ func TestHandlerValidationPanicsOnMissingHandler(t *testing.T) {
 		if r == nil {
 			t.Error("expected panic for missing handler")
 		}
-		msg, ok := r.(string)
-		if !ok || msg != "grammar production has no handler: fake_stmt" {
+		msg := fmt.Sprint(r)
+		if msg != "grammar AST node has no evaluator handler: fake_stmt" {
 			t.Errorf("unexpected panic message: %v", r)
 		}
 	}()
@@ -33,23 +34,30 @@ func TestHandlerValidationPanicsOnMissingHandler(t *testing.T) {
 	ev.SetGrammar(g) // should panic
 }
 
-// TestHandlerValidationPanicsOnMissingTokenHandler verifies that missing token handlers panic at startup.
+// TestHandlerValidationPanicsOnMissingTokenHandler verifies that a TokenRef
+// reachable from a production requires an evaluator handler. Merely defining a
+// lexer token is not enough to make it an AST node.
 func TestHandlerValidationPanicsOnMissingTokenHandler(t *testing.T) {
 	defer func() {
 		r := recover()
 		if r == nil {
-			t.Error("expected panic for missing token handler")
+			t.Fatal("expected panic for missing token handler")
+		}
+		msg := fmt.Sprint(r)
+		if msg != "grammar AST node has no evaluator handler: FAKE_TOKEN" {
+			t.Errorf("unexpected panic message: %v", r)
 		}
 	}()
 
-	g := &grammar.Grammar{
-		Productions: map[string]*grammar.Production{
-			"program": {},
-		},
-		Tokens: []grammar.TokenDef{
-			{Name: "FAKE_TOKEN", Skip: false}, // no handler for this
-		},
+	g, err := grammar.Load("grammar.ebnfx", syntax.EbnfxSource, "grammar.help", syntax.HelpSource)
+	if err != nil {
+		t.Fatalf("load grammar: %v", err)
 	}
+	original := g.Productions["program"].Expr
+	g.Productions["program"].Expr = &grammar.Sequence{Exprs: []grammar.Expression{
+		original,
+		&grammar.TokenRef{Name: "FAKE_TOKEN"},
+	}}
 
 	ev := evaluator.New(nil, nil)
 	ev.SetGrammar(g) // should panic

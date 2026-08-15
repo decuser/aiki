@@ -52,10 +52,11 @@ func LintSource(g *grammar.Grammar, file string, source string, lintScope value.
 type scopeFrame map[string]bool
 
 type checker struct {
-	scopes      []scopeFrame
-	diags       []Diagnostic
-	grammar     *grammar.Grammar
-	currentFile string
+	scopes         []scopeFrame
+	diags          []Diagnostic
+	grammar        *grammar.Grammar
+	currentFile    string
+	moduleRegistry *substrate.ModuleRegistry
 }
 
 var snakeRe = regexp.MustCompile(`^_?[a-z][a-z0-9_]*$`)
@@ -374,45 +375,41 @@ func (c *checker) resolveModuleExports(moduleName string) []string {
 	return extractExportsFromSource(string(data), c.grammar)
 }
 
-// resolveModulePath finds the .ai file for a module name.
-// Mirrors the runtime resolution logic.
+// resolveModulePath mirrors the runtime's distinction between path imports and
+// registry imports. A path such as "./helpers" resolves relative to the current
+// file; a public name such as "list" resolves through the module registry (for
+// example to lib/list/list.ai, or through a bare native-default alias).
 func (c *checker) resolveModulePath(name string) string {
-	// Try relative to current file
-	if c.currentFile != "" && c.currentFile != "<unknown>" {
-		dir := filepath.Dir(c.currentFile)
-		candidate := filepath.Join(dir, name+".ai")
-		if _, err := os.Stat(candidate); err == nil {
-			return candidate
+	if substrate.IsPathImport(name) {
+		path := name
+		if !strings.HasSuffix(path, ".ai") {
+			path += ".ai"
 		}
-	}
-
-	// Try as-is with .ai extension
-	candidate := name + ".ai"
-	if _, err := os.Stat(candidate); err == nil {
-		return candidate
-	}
-
-	// Try lib/ directory relative to cwd
-	libCandidate := filepath.Join("lib", name+".ai")
-	if _, err := os.Stat(libCandidate); err == nil {
-		return libCandidate
-	}
-
-	// Try lib/ directory relative to executable
-	if exePath, err := os.Executable(); err == nil {
-		exeDir := filepath.Dir(exePath)
-		libCandidate := filepath.Join(exeDir, "lib", name+".ai")
-		if _, err := os.Stat(libCandidate); err == nil {
-			return libCandidate
+		if c.currentFile != "" && c.currentFile != "<unknown>" {
+			candidate := filepath.Join(filepath.Dir(c.currentFile), path)
+			if _, err := os.Stat(candidate); err == nil {
+				return candidate
+			}
 		}
+		if _, err := os.Stat(path); err == nil {
+			return path
+		}
+		return ""
 	}
 
-	// Try without extension
-	if _, err := os.Stat(name); err == nil {
-		return name
+	if c.moduleRegistry == nil {
+		homeDir, _ := os.UserHomeDir()
+		r := substrate.NewModuleRegistry(substrate.DefaultModuleRoots(homeDir))
+		if err := r.Scan(c.grammar); err != nil {
+			return ""
+		}
+		c.moduleRegistry = r
 	}
-
-	return ""
+	path, _, ok := c.moduleRegistry.Resolve(name)
+	if !ok {
+		return ""
+	}
+	return path
 }
 
 // extractExportsFromSource parses source and finds export(:name, ...) symbols.

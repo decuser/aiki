@@ -3,6 +3,8 @@ package smoke
 import (
 	"bytes"
 	"testing"
+
+	"aiki/cmd/internal/testfixture"
 )
 
 func TestEncodeTranscriptCanonicalEscapes(t *testing.T) {
@@ -36,5 +38,18 @@ func TestEncodeTranscriptRoundTrips(t *testing.T) {
 	}
 	if len(data) == 0 {
 		t.Fatal("expected transcript data")
+	}
+}
+
+func TestNegativeObservationRequiresDeclarationBothWays(t *testing.T) {
+	parseErr := []byte("parser: test.ai:1:1:\nexpected expression\n")
+	if err := validateNegativeObservation("declared", testfixture.NegativeParse, parseErr, 1); err != nil {
+		t.Fatalf("declared parse failure rejected: %v", err)
+	}
+	if err := validateNegativeObservation("undeclared", testfixture.NegativeNone, parseErr, 1); err == nil {
+		t.Fatal("undeclared parse failure was accepted")
+	}
+	if err := validateNegativeObservation("passing", testfixture.NegativeParse, nil, 0); err == nil {
+		t.Fatal("declared parse-negative that passes was accepted")
 	}
 }

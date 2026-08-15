@@ -38,6 +38,15 @@
         @help "identifier in snake_case"
 }
 
+@newline {
+    token         NEWLINE
+    after_token   NAME NUMBER STRING RUNE SYMBOL
+    after_lexeme  ) ] true false
+    suppress_in   ( )
+    suppress_in   [ ]
+    @help "A newline ends a statement after names, number/string/rune/symbol literals, ), ], true, or false, except inside ( ) or [ ]. Braces do not suppress newline handling; } itself is not a terminating token."
+}
+
 program = { statement [ ";" ] }
     @error "expected statement"
     @template "statement ..."

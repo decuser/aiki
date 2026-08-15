@@ -10,76 +10,108 @@ import (
 
 // ParseFailure captures the best error context for reporting.
 type ParseFailure struct {
-	Pos      engine.Position // where failure occurred
-	Got      string          // actual token
-	Expected string          // what was expected
-	Stack    []string        // production stack (outermost first)
+	Pos               engine.Position // where failure occurred
+	Got               string          // actual token
+	Expected          string          // what was expected
+	Stack             []string        // production stack (outermost first)
+	NewlineTerminated bool            // a grammar-declared newline boundary caused this leftover continuation
 }
 
 type Parser struct {
-	grammar  *grammar.Grammar
-	tokens   []Token
-	pos      int
-	furthest int // furthest position reached
-	source   string
-	observer engine.Observer
-	stack    []string      // current production stack
-	failure  *ParseFailure // best failure so far
+	grammar              *grammar.Grammar
+	tokens               []Token
+	pos                  int
+	furthest             int // furthest position reached
+	source               string
+	observer             engine.Observer
+	stack                []string      // current production stack
+	failure              *ParseFailure // best failure so far
+	syntheticTerminators map[int]bool  // filtered-token indexes inserted by the newline policy
+	continuationTokens   map[string]bool
+	continuationLexemes  map[string]bool
 }
 
 func NewParser(g *grammar.Grammar, tokens []Token, source string, observer engine.Observer) *Parser {
 	if observer == nil {
 		observer = engine.SilentObserver{}
 	}
-	// Filter tokens: skip @skip tokens and insert semicolons.
-	// Go-style rule: insert ";" after complete token when followed by newline,
-	// but not inside () or [] (function calls, list literals).
-	// {} blocks DO get semicolons - that's where statements live.
+
+	// Compile the grammar-declared newline policy once for this token stream.
+	// The parser applies the policy generically; Aiki's particular completion
+	// tokens, lexemes, and suppression delimiters live only in grammar.ebnfx.
+	rule := g.Newline
+	afterToken := make(map[string]struct{}, len(rule.AfterToken))
+	for _, name := range rule.AfterToken {
+		afterToken[name] = struct{}{}
+	}
+	afterLexeme := make(map[string]struct{}, len(rule.AfterLexeme))
+	for _, lexeme := range rule.AfterLexeme {
+		afterLexeme[lexeme] = struct{}{}
+	}
+	suppressDelta := make(map[string]int, len(rule.SuppressIn)*2)
+	for _, pair := range rule.SuppressIn {
+		suppressDelta[pair[0]]++
+		suppressDelta[pair[1]]--
+	}
+	endsStatement := func(tok Token) bool {
+		if _, ok := afterToken[tok.Type]; ok {
+			return true
+		}
+		_, ok := afterLexeme[tok.Lexeme]
+		return ok
+	}
+
+	// The same grammar analysis used by enginesmoke supplies continuation
+	// membership for the targeted leftover-token diagnostic. Failure to derive
+	// it must never make parsing unavailable; it only disables that refinement.
+	continuationTokens := make(map[string]bool)
+	continuationLexemes := make(map[string]bool)
+	if analysis, err := g.AnalyzeNewlineRule(); err == nil {
+		for _, symbol := range analysis.Continuation {
+			if symbol.Token != "" {
+				continuationTokens[symbol.Token] = true
+			} else {
+				continuationLexemes[symbol.Lexeme] = true
+			}
+		}
+	}
+
+	// Filter @skip tokens and normalize physical newlines into statement
+	// terminators according to the grammar-declared policy.
 	filtered := make([]Token, 0, len(tokens))
-	parenDepth := 0
+	syntheticTerminators := make(map[int]bool)
+	suppressDepth := 0
 	for _, tok := range tokens {
-		// Skip tokens marked @skip (WHITESPACE, COMMENT)
 		if def, ok := g.GetToken(tok.Type); ok && def.Skip {
 			continue
 		}
-		// Track paren/bracket depth (not braces)
-		switch tok.Lexeme {
-		case "(", "[":
-			parenDepth++
-		case ")", "]":
-			parenDepth--
-		}
-		// Check for newline after complete token - insert semicolon only outside parens/brackets
-		if tok.Type == "NEWLINE" {
-			if parenDepth == 0 && len(filtered) > 0 && isComplete(filtered[len(filtered)-1]) {
-				// Insert semicolon with position of the newline
+
+		suppressDepth += suppressDelta[tok.Lexeme]
+
+		if tok.Type == rule.Token {
+			if suppressDepth == 0 && len(filtered) > 0 && endsStatement(filtered[len(filtered)-1]) {
+				syntheticTerminators[len(filtered)] = true
 				filtered = append(filtered, Token{
 					Type:   "DELIMITER",
 					Lexeme: ";",
 					Pos:    tok.Pos,
 				})
 			}
-			// Drop the newline itself
 			continue
 		}
 		filtered = append(filtered, tok)
 	}
-	return &Parser{grammar: g, tokens: filtered, pos: 0, furthest: 0, source: source, observer: observer}
-}
-
-// isComplete returns true if this token can end a statement.
-// Go-style: names, literals, closing brackets (except }), true, false.
-// } is excluded because it already closes blocks naturally.
-func isComplete(tok Token) bool {
-	switch tok.Type {
-	case "NAME", "NUMBER", "STRING", "RUNE", "SYMBOL":
-		return true
+	return &Parser{
+		grammar:              g,
+		tokens:               filtered,
+		pos:                  0,
+		furthest:             0,
+		source:               source,
+		observer:             observer,
+		syntheticTerminators: syntheticTerminators,
+		continuationTokens:   continuationTokens,
+		continuationLexemes:  continuationLexemes,
 	}
-	switch tok.Lexeme {
-	case ")", "]", "true", "false":
-		return true
-	}
-	return false
 }
 
 func (p *Parser) Parse() (*Node, error) {
@@ -88,12 +120,22 @@ func (p *Parser) Parse() (*Node, error) {
 		return nil, p.renderFailure()
 	}
 	if p.pos < len(p.tokens) {
-		// Leftover tokens - record as failure
+		// Leftover tokens - record as failure. If the immediately preceding
+		// terminator was synthesized from a grammar-declared newline and the
+		// leftover token is a grammar-derived continuation, retain that provenance
+		// so the diagnostic can explain the actual surface rule.
 		tok := p.tokens[p.pos]
 		p.recordFailure(tok.Pos, tok.Lexeme, "end of input")
+		if p.failure != nil && p.pos > 0 && p.syntheticTerminators[p.pos-1] && p.isContinuation(tok) {
+			p.failure.NewlineTerminated = true
+		}
 		return nil, p.renderFailure()
 	}
 	return node, nil
+}
+
+func (p *Parser) isContinuation(tok Token) bool {
+	return p.continuationTokens[tok.Type] || p.continuationLexemes[tok.Lexeme]
 }
 
 // renderFailure formats the best failure using grammar metadata.
@@ -131,7 +173,14 @@ func (p *Parser) renderFailure() error {
 	msg.WriteString(line + "\n")
 	msg.WriteString(caret + "\n")
 
-	if prodName != "" && meta.Error != "" && !isClosingDelim {
+	if f.NewlineTerminated && p.grammar.Newline != nil {
+		msg.WriteString("the previous newline ended the statement")
+		if help := p.grammar.Newline.Meta.Help; help != "" {
+			msg.WriteString(fmt.Sprintf("\n\nnewline: %s", help))
+		}
+		msg.WriteString(fmt.Sprintf("\n\n'%s' continues an expression, but the newline terminated the expression before it.", f.Got))
+		msg.WriteString(fmt.Sprintf("\nPlace '%s' before the newline it continues.", f.Got))
+	} else if prodName != "" && meta.Error != "" && !isClosingDelim {
 		msg.WriteString(fmt.Sprintf("%s: %s", prodName, meta.Error))
 		if meta.Template != "" {
 			msg.WriteString(fmt.Sprintf("\n\nSyntax: %s", meta.Template))
