@@ -281,3 +281,63 @@ func TestParserSelect(t *testing.T) {
 		t.Fatal("expected select_default node")
 	}
 }
+
+func TestParserConsumesGrammarNewlineCompletionRule(t *testing.T) {
+	g := loadTestGrammar(t)
+	source := "let x = 1\n\t+ 2\n"
+	lexer := NewLexer(g, "test.ai", source, nil)
+	tokens, err := lexer.Tokenize()
+	if err != nil {
+		t.Fatalf("lexer error: %v", err)
+	}
+
+	// The declared rule terminates after NUMBER, so the leading binary
+	// continuation is rejected under the baseline policy.
+	if _, err := NewParser(g, tokens, source, nil).Parse(); err == nil {
+		t.Fatal("expected baseline newline rule to reject leading '+'")
+	}
+
+	// Remove NUMBER from the grammar declaration only. If the parser consumes
+	// the declaration rather than a private completion list, the newline is now
+	// dropped and the same token stream parses as `let x = 1 + 2`.
+	kept := g.Newline.AfterToken[:0]
+	for _, name := range g.Newline.AfterToken {
+		if name != "NUMBER" {
+			kept = append(kept, name)
+		}
+	}
+	g.Newline.AfterToken = kept
+
+	if _, err := NewParser(g, tokens, source, nil).Parse(); err != nil {
+		t.Fatalf("parser did not consume modified grammar newline rule: %v", err)
+	}
+}
+
+func TestParserNewlineContinuationDiagnosticUsesGrammarHelp(t *testing.T) {
+	g := loadTestGrammar(t)
+	g.Newline.Meta.Help = "TEST NEWLINE POLICY"
+	source := "let x = 1\n\t+ 2\n"
+
+	lexer := NewLexer(g, "test.ai", source, nil)
+	tokens, err := lexer.Tokenize()
+	if err != nil {
+		t.Fatal(err)
+	}
+	parser := NewParser(g, tokens, source, nil)
+	_, err = parser.Parse()
+	if err == nil {
+		t.Fatal("expected parse error")
+	}
+
+	got := err.Error()
+	for _, want := range []string{
+		"the previous newline ended the statement",
+		"newline: TEST NEWLINE POLICY",
+		"'+' continues an expression",
+		"Place '+' before the newline it continues.",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("diagnostic missing %q:\n%s", want, got)
+		}
+	}
+}

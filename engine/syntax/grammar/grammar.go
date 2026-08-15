@@ -7,11 +7,22 @@ import (
 	"aiki/engine"
 )
 
-// Grammar holds token definitions and productions.
+// Grammar holds token definitions, surface policy, and productions.
 type Grammar struct {
 	Tokens      []TokenDef
 	Productions map[string]*Production
 	Start       string
+	Newline     *NewlineRule
+}
+
+// NewlineRule declares how physical newline tokens become statement boundaries.
+type NewlineRule struct {
+	Token       string
+	AfterToken  []string
+	AfterLexeme []string
+	SuppressIn  [][2]string
+	Meta        Meta
+	Pos         engine.Position
 }
 
 // TokenDef defines a lexical token.

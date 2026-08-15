@@ -12,6 +12,21 @@ TOKENS
   SYMBOL	skip=false	pattern="^:[a-zA-Z_][a-zA-Z0-9_]*"	error="expected symbol"	template=":name, :ok, :error"
   WHITESPACE	skip=true	pattern="^[ \\t\\r]+"
 
+NEWLINE
+  token="NEWLINE"
+  after_token="NAME NUMBER STRING RUNE SYMBOL"
+  after_lexeme=") ] true false"
+  suppress_in="(" ")"
+  suppress_in="[" "]"
+  help="A newline ends a statement after names, number/string/rune/symbol literals, ), ], true, or false, except inside ( ) or [ ]. Braces do not suppress newline handling; } itself is not a terminating token."
+  expression_end="NAME NUMBER RUNE STRING SYMBOL ) ] false true }"
+  statement_first="NAME NUMBER RUNE STRING SYMBOL ( - [ false if let match not package return select true while"
+  continuation="( * + - . / < <= > >= [ and or |>"
+  ambiguous="( - ["
+  overblocked="* + . / < <= > >= and or |>"
+  uncovered_end="}"
+  declared_impossible=""
+
 PRODUCTIONS
   BINOP	= "+" | "-" | "*" | "/" | "<" | ">" | "<=" | ">=" | "and" | "or"	error="expected operator"	template="+ - * / < > <= >= and or"
   access	= "." NAME	error="expected '.field'"	template=".field"
@@ -46,7 +61,7 @@ PRODUCTIONS
   unary_expr	= {"not" | "-"} postfix_expr	error="expected expression"	template="not expr, -expr"
   while_stmt	= "while" expr block	error="expected 'while expr { ... }'"	template="while cond { ... }"
 
-GRAMMARHASH 524ea11a2422d068c2f3e3bcdc5e6aa6a743eb569afb9b7f2abad9466f71176f
+GRAMMARHASH 32a45f9e54bc75aeb1cd1fdba11ff6842a25fb459bea43e81c6d8619999cea72
 RULEHASHES
   BINOP bb042b633d47f072d22362db220397ea669212162a671236a2fa96c81415a92a
   access 9e9f531344c4934f5878cc643a74feacb4087e3fdb949d9579e40a80ec83e86f

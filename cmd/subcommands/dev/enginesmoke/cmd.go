@@ -513,6 +513,34 @@ func dumpGrammar(g *grammar.Grammar) []byte {
 		buf.WriteByte('\n')
 	}
 
+	// Newline policy
+	buf.WriteString("\nNEWLINE\n")
+	if g.Newline != nil {
+		fmt.Fprintf(&buf, "  token=%s\n", strconv.Quote(g.Newline.Token))
+		fmt.Fprintf(&buf, "  after_token=%s\n", strconv.Quote(strings.Join(g.Newline.AfterToken, " ")))
+		fmt.Fprintf(&buf, "  after_lexeme=%s\n", strconv.Quote(strings.Join(g.Newline.AfterLexeme, " ")))
+		for _, pair := range g.Newline.SuppressIn {
+			fmt.Fprintf(&buf, "  suppress_in=%s %s\n", strconv.Quote(pair[0]), strconv.Quote(pair[1]))
+		}
+		if g.Newline.Meta.Help != "" {
+			fmt.Fprintf(&buf, "  help=%s\n", strconv.Quote(g.Newline.Meta.Help))
+		}
+	}
+
+	// Derived newline-policy analysis. Keeping this in the structural dump makes
+	// the consequences of grammar changes visible alongside the declaration.
+	if analysis, err := g.AnalyzeNewlineRule(); err != nil {
+		fmt.Fprintf(&buf, "  analysis_error=%s\n", strconv.Quote(err.Error()))
+	} else {
+		fmt.Fprintf(&buf, "  expression_end=%s\n", strconv.Quote(joinSurfaceSymbols(analysis.ExpressionEnd)))
+		fmt.Fprintf(&buf, "  statement_first=%s\n", strconv.Quote(joinSurfaceSymbols(analysis.StatementFirst)))
+		fmt.Fprintf(&buf, "  continuation=%s\n", strconv.Quote(joinSurfaceSymbols(analysis.Continuation)))
+		fmt.Fprintf(&buf, "  ambiguous=%s\n", strconv.Quote(joinSurfaceSymbols(analysis.Ambiguous)))
+		fmt.Fprintf(&buf, "  overblocked=%s\n", strconv.Quote(joinSurfaceSymbols(analysis.Overblocked)))
+		fmt.Fprintf(&buf, "  uncovered_end=%s\n", strconv.Quote(joinSurfaceSymbols(analysis.UncoveredEnd)))
+		fmt.Fprintf(&buf, "  declared_impossible=%s\n", strconv.Quote(joinSurfaceSymbols(analysis.DeclaredImpossible)))
+	}
+
 	// Productions
 	buf.WriteString("\nPRODUCTIONS\n")
 	var names []string
@@ -551,6 +579,14 @@ func dumpGrammar(g *grammar.Grammar) []byte {
 	}
 
 	return buf.Bytes()
+}
+
+func joinSurfaceSymbols(symbols []grammar.SurfaceSymbol) string {
+	parts := make([]string, len(symbols))
+	for i, symbol := range symbols {
+		parts[i] = symbol.String()
+	}
+	return strings.Join(parts, " ")
 }
 
 func exprString(e grammar.Expression) string {

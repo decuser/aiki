@@ -1,0 +1,6 @@
+let f = (n) {
+	return n + 1
+}(41)
+
+
+println(f)

@@ -48,18 +48,14 @@ func init() {
 		"list_literal": (*Evaluator).evalList,
 
 		// Tokens
-		"NUMBER":    (*Evaluator).evalNumber,
-		"STRING":    (*Evaluator).evalString,
-		"RUNE":      (*Evaluator).evalRune,
-		"SYMBOL":    (*Evaluator).evalSymbol,
-		"SHAPE":     (*Evaluator).evalShape,
-		"NAME":      (*Evaluator).evalName,
-		"TERMINAL":  (*Evaluator).evalTerminal,
-		"BINOP":     (*Evaluator).evalTerminal,
-		"KEYWORD":   (*Evaluator).evalTerminal,
-		"OPERATOR":  (*Evaluator).evalTerminal,
-		"DELIMITER": (*Evaluator).evalTerminal,
-		"NEWLINE":   (*Evaluator).evalTerminal,
+		"NUMBER":   (*Evaluator).evalNumber,
+		"STRING":   (*Evaluator).evalString,
+		"RUNE":     (*Evaluator).evalRune,
+		"SYMBOL":   (*Evaluator).evalSymbol,
+		"SHAPE":    (*Evaluator).evalShape,
+		"NAME":     (*Evaluator).evalName,
+		"TERMINAL": (*Evaluator).evalTerminal,
+		"BINOP":    (*Evaluator).evalTerminal,
 
 		// Structural (nil = delegate to single child)
 		"call":           nil,
@@ -78,10 +74,11 @@ func init() {
 
 // Evaluator evaluates AST nodes.
 type Evaluator struct {
-	observer engine.Observer
-	runtime  hal.RuntimeContract
-	grammar  *grammar.Grammar
-	Counters *Counters // nil = probes disabled
+	observer        engine.Observer
+	runtime         hal.RuntimeContract
+	grammar         *grammar.Grammar
+	binaryOperators map[string]struct{}
+	Counters        *Counters // nil = probes disabled
 }
 
 // New creates an evaluator with a runtime.
@@ -98,30 +95,109 @@ func New(runtime hal.RuntimeContract, observer engine.Observer) *Evaluator {
 // SetGrammar sets the grammar and validates handler coverage.
 func (e *Evaluator) SetGrammar(g *grammar.Grammar) {
 	e.grammar = g
+	e.binaryOperators = grammarTerminalAlternatives(g, "BINOP")
 	e.validateHandlers()
+	if err := validateBinaryOperatorCoverage(e.binaryOperators, binaryOperatorSemantics); err != nil {
+		panic(err)
+	}
 }
 
-// validateHandlers panics if any grammar production or token lacks a handler.
+// validateHandlers panics if grammar/evaluator dispatch coverage has drifted.
 func (e *Evaluator) validateHandlers() {
 	if e.grammar == nil {
 		return
 	}
+	if err := validateHandlerCoverage(e.grammar, handlers); err != nil {
+		panic(err)
+	}
+}
 
-	// Check productions
-	for name := range e.grammar.Productions {
-		if _, ok := handlers[name]; !ok {
-			panic(fmt.Sprintf("grammar production has no handler: %s", name))
-		}
+// syntheticHandlerNodes are parser-produced node types that do not correspond
+// to a named grammar production or TokenRef. Keep this list explicit.
+var syntheticHandlerNodes = map[string]struct{}{
+	"TERMINAL": {},
+}
+
+func validateHandlerCoverage(g *grammar.Grammar, hs map[string]handlerFunc) error {
+	want := make(map[string]struct{}, len(g.Productions)+8)
+	for name := range g.Productions {
+		want[name] = struct{}{}
+	}
+	for name := range grammarTokenRefs(g) {
+		want[name] = struct{}{}
+	}
+	for name := range syntheticHandlerNodes {
+		want[name] = struct{}{}
 	}
 
-	// Check non-skip tokens
-	for _, tok := range e.grammar.Tokens {
-		if !tok.Skip {
-			if _, ok := handlers[tok.Name]; !ok {
-				panic(fmt.Sprintf("grammar token has no handler: %s", tok.Name))
+	for name := range want {
+		if _, ok := hs[name]; !ok {
+			return fmt.Errorf("grammar AST node has no evaluator handler: %s", name)
+		}
+	}
+	for name := range hs {
+		if _, ok := want[name]; !ok {
+			return fmt.Errorf("evaluator handler has no grammar AST node: %s", name)
+		}
+	}
+	return nil
+}
+
+func grammarTokenRefs(g *grammar.Grammar) map[string]struct{} {
+	refs := make(map[string]struct{})
+	var walk func(grammar.Expression)
+	walk = func(expr grammar.Expression) {
+		switch e := expr.(type) {
+		case *grammar.TokenRef:
+			refs[e.Name] = struct{}{}
+		case *grammar.Sequence:
+			for _, child := range e.Exprs {
+				walk(child)
 			}
+		case *grammar.Alternative:
+			for _, child := range e.Exprs {
+				walk(child)
+			}
+		case *grammar.Repetition:
+			walk(e.Expr)
+		case *grammar.Option:
+			walk(e.Expr)
+		case *grammar.Group:
+			walk(e.Expr)
 		}
 	}
+	for _, p := range g.Productions {
+		walk(p.Expr)
+	}
+	return refs
+}
+
+func grammarTerminalAlternatives(g *grammar.Grammar, production string) map[string]struct{} {
+	out := make(map[string]struct{})
+	p, ok := g.Productions[production]
+	if !ok {
+		return out
+	}
+	var walk func(grammar.Expression)
+	walk = func(expr grammar.Expression) {
+		switch x := expr.(type) {
+		case *grammar.Terminal:
+			out[x.Value] = struct{}{}
+		case *grammar.Alternative:
+			for _, child := range x.Exprs {
+				walk(child)
+			}
+		case *grammar.Group:
+			walk(x.Expr)
+		}
+	}
+	walk(p.Expr)
+	return out
+}
+
+func (e *Evaluator) isBinaryOperator(s string) bool {
+	_, ok := e.binaryOperators[s]
+	return ok
 }
 
 func (e *Evaluator) activeProbe(env *value.Env) engine.SemanticProbe {

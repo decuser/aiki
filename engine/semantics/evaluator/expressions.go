@@ -170,7 +170,7 @@ func (e *Evaluator) evalInfix(node *syntax.Node, env *value.Env) value.Value {
 			}
 			continue
 		}
-		if child.Type == "TERMINAL" && isOperator(child.Value) {
+		if child.Type == "TERMINAL" && e.isBinaryOperator(child.Value) {
 			op = child.Value
 			continue
 		}

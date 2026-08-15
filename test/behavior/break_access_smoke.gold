@@ -1,0 +1,10 @@
+ERR:parser: test/behavior/break_access_smoke.ai:4:2:\n
+ERR:\t.upper(\"abc\")\n
+ERR: ^\n
+ERR:the previous newline ended the statement\n
+ERR:\n
+ERR:newline: A newline ends a statement after names, number/string/rune/symbol literals, ), ], true, or false, except inside ( ) or [ ]. Braces do not suppress newline handling; } itself is not a terminating token.\n
+ERR:\n
+ERR:'.' continues an expression, but the newline terminated the expression before it.\n
+ERR:Place '.' before the newline it continues.\n
+EXIT:1

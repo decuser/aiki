@@ -3,6 +3,7 @@ package fmt
 import (
 	"testing"
 
+	"aiki/engine"
 	"aiki/engine/syntax"
 	"aiki/engine/syntax/grammar"
 )
@@ -68,5 +69,46 @@ func TestFormatSourceSelect(t *testing.T) {
 	want := "select {\n\tlet x = recv(a) {\n\t\tprintln(x)\n\t}\n\trecv(b) {\n\t\tprintln(:b)\n\t}\n\tdefault {\n\t\tprintln(:idle)\n\t}\n}\n"
 	if out != want {
 		t.Fatalf("unexpected select format\n--- got ---\n%s\n--- want ---\n%s", out, want)
+	}
+}
+
+func TestFormatterProductionCoverageMatchesGrammar(t *testing.T) {
+	g, err := grammar.Load("grammar.ebnfx", syntax.EbnfxSource, "grammar.help", syntax.HelpSource)
+	if err != nil {
+		t.Fatalf("load grammar: %v", err)
+	}
+
+	for name := range g.Productions {
+		if _, ok := productionPrinters[name]; ok {
+			continue
+		}
+		if _, ok := handledByParent[name]; ok {
+			continue
+		}
+		t.Errorf("grammar production %q has no formatter disposition", name)
+	}
+	for name := range productionPrinters {
+		if _, ok := g.Productions[name]; !ok {
+			t.Errorf("formatter dispatch %q is not a grammar production", name)
+		}
+	}
+	for name := range handledByParent {
+		if _, ok := g.Productions[name]; !ok {
+			t.Errorf("parent-handled formatter node %q is not a grammar production", name)
+		}
+		if _, dispatched := productionPrinters[name]; dispatched {
+			t.Errorf("formatter node %q is both dispatched and parent-handled", name)
+		}
+	}
+}
+
+func TestFormatterUnknownLeafCannotDisappear(t *testing.T) {
+	p := &printer{observer: engine.SilentObserver{}}
+	p.printNode(&syntax.Node{Type: "FUTURE_LITERAL", Value: "lost"})
+	if p.err == nil {
+		t.Fatal("expected unknown leaf to produce formatter error")
+	}
+	if got := p.buf.String(); got != "" {
+		t.Fatalf("unknown leaf emitted output %q", got)
 	}
 }

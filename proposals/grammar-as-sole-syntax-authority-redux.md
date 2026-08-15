@@ -2,7 +2,19 @@
 
 ## Status
 
-Proposed. Intended for implementation on a branch (`grammar/newline-rule` or similar). Not yet started.
+Implemented on `grammar/newline-rule` in serial cuts and validated through the full repository gate on 2026-08-14.
+
+## Implementation Outcome
+
+The proposal was implemented without changing Aiki's parsing behavior through Cuts 1–4. Cut 5 intentionally changed only newline-related help and diagnostics. The final authoritative validation passed: all Go tests, 408 Aiki-native tests, 46 behavior smokes, grammar coverage across 32 productions and 10 inputs, engine structural golds, and treecheck.
+
+Execution produced three material findings:
+
+- the ambiguous followers `(`, `[`, and `-` already resolve in favor of a new statement after an inserted terminator; they do not fail;
+- grammar analysis derives the overblocked leading continuations `* + . / < <= > >= and or |>`;
+- `}` can end a complete expression but is not in the newline completion set, so a function literal can continue across a newline. A twelfth behavior smoke added in Cut 3 pins that existing behavior.
+
+No syntax-policy change was made. Those findings are recorded in `docs/decisions.md` D2 for a later, separate language-design decision.
 
 ## Summary
 
@@ -192,7 +204,7 @@ println(length(
 
 ### 6. `break-index.ai`
 
-Leading index. Expected to **fail**, and provisionally expected to remain a failure because the continuation is syntactically ambiguous.
+Leading index. **Observed to pass**: newline insertion terminates `let y = x`, and `[1]` is parsed as a new expression statement. `println(y)` therefore prints the original list. This is the current ambiguity resolution and must remain unchanged through Cuts 1–4.
 
 ```text
 let x = [1, 2, 3]
@@ -204,7 +216,7 @@ println(y)
 
 ### 7. `break-call.ai`
 
-Leading call. Expected to **fail**, and provisionally expected to remain a failure because the continuation is syntactically ambiguous.
+Leading call. **Observed to pass**: newline insertion terminates `foo()`, and `(bar)` is parsed as a new grouped-expression statement. This is the current ambiguity resolution and must remain unchanged through Cuts 1–4.
 
 ```text
 let foo = () { return (n) { return n } }
@@ -216,7 +228,7 @@ foo()
 
 ### 8. `break-unary.ai`
 
-Leading unary `-`. Expected to **fail**, and provisionally expected to remain a failure because the continuation is syntactically ambiguous.
+Leading unary `-`. **Observed to pass**: newline insertion terminates `x`, and `-1` is parsed as a new expression statement. This is the current ambiguity resolution and must remain unchanged through Cuts 1–4.
 
 ```text
 let x = 5
@@ -346,7 +358,7 @@ This distinction matters:
 - `(`, `[`, and `-` can both begin a new statement and continue an existing expression. A newline before them is structurally ambiguous.
 - `|>`, `.`, `+`, `*`, `/`, `<`, `and`, and similar tokens cannot begin a statement. If the grammar permits them as continuations, terminating immediately before them rejects a form with only one grammatical interpretation.
 
-The present normalizer does not inspect the following token. It asks only whether the token *before* the newline looks complete. Consequently it rejects both ambiguous and unambiguous continuations.
+The present normalizer does not inspect the following token. It asks only whether the token *before* the newline looks complete. Consequently it handles the two classes differently. For ambiguous continuations such as `(`, `[`, and `-`, insertion of `;` chooses the new-statement interpretation. For unambiguous continuation tokens such as leading `|>`, `.`, and `+`, the same insertion rejects the only grammatical continuation.
 
 This proposal **does not change that behavior**.
 
@@ -384,6 +396,7 @@ Add one block adjacent to `@tokens`, outside the productions:
 
 ```text
 @newline {
+    token         NEWLINE
     after_token   NAME NUMBER STRING RUNE SYMBOL
     after_lexeme  ) ] true false
     suppress_in   ( )
@@ -396,6 +409,8 @@ Add one block adjacent to `@tokens`, outside the productions:
 ```
 
 The exact directive syntax may be adjusted during implementation if required by the grammar-file parser, but the information represented by it should remain explicit.
+
+The `token` directive names the lexical token that represents a physical newline. This is required if `parser.go` is to contain no Aiki-specific token name: `@newline` must declare not only when a newline terminates a statement, but which token is the newline.
 
 There are intentionally two completion lists.
 
@@ -415,6 +430,7 @@ A likely representation in `engine/syntax/grammar/grammar.go` is:
 ```go
 // NewlineRule declares how physical newlines become statement boundaries.
 type NewlineRule struct {
+	Token       string
 	AfterToken  []string
 	AfterLexeme []string
 	SuppressIn  [][2]string
@@ -801,9 +817,15 @@ This cut may intentionally change **diagnostic text only**. Rebless affected fai
 12. Linter-specific node names are checked against reachable AST structure and generic traversal completeness is tested.
 13. `helpers.go` no longer independently restates `BINOP` membership.
 14. `BINOP` alternatives and binary semantic implementations are checked in both directions.
-15. `aiki help` exposes the newline policy from grammar metadata.
+15. `help("newline")` exposes the newline policy from grammar metadata, and general help points to that topic.
 16. Except for the intentional Cut 5 diagnostic improvement, existing observable behavior remains unchanged.
 17. No expected test, behavior-gold, structural-gold, or treecheck difference remains unexplained.
+
+### Acceptance Reconciliation
+
+All acceptance criteria are satisfied. Criterion 5 refers to the eleven Cut 0 baseline probes; Cut 3 added a twelfth smoke, `newline_function_end_smoke.ai`, after grammar analysis exposed the uncovered `}` expression ending. That additional smoke preserves and documents existing behavior rather than changing the Cut 0 baseline contract.
+
+No hard newline-policy soundness invariant was added under criterion 7 because the derived grammar facts demonstrate that the present rule both overblocks some unambiguous continuations and leaves `}` uncovered. D2 records the explicit decision to preserve those language-policy choices in this authority refactor rather than change syntax to satisfy a validator.
 
 ## Validation Couplings
 

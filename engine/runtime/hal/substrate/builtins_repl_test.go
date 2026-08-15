@@ -3,6 +3,10 @@ package substrate
 import (
 	"bytes"
 	"testing"
+
+	"aiki/engine/runtime/hal"
+	"aiki/engine/syntax"
+	"aiki/engine/syntax/grammar"
 )
 
 func TestStripDocMarkers(t *testing.T) {
@@ -68,5 +72,34 @@ func TestOutputHelpFallsBackToStdout(t *testing.T) {
 	outputHelp("short help\n")
 	if got, want := out.String(), "short help\n"; got != want {
 		t.Fatalf("Stdout = %q, want %q", got, want)
+	}
+}
+
+func TestGrammarNewlineHelpUsesDeclaredMetadata(t *testing.T) {
+	oldStdout := Stdout
+	oldPageOutput := PageOutput
+	defer func() {
+		Stdout = oldStdout
+		PageOutput = oldPageOutput
+	}()
+
+	g, err := grammar.Load("grammar.ebnfx", syntax.EbnfxSource, "grammar.help", syntax.HelpSource)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if g.Newline.Meta.Help == "" {
+		t.Fatal("grammar newline policy has no @help metadata")
+	}
+
+	var out bytes.Buffer
+	Stdout = &out
+	PageOutput = func(string) bool { return false }
+
+	ctx := &hal.EvalContext{Grammar: g}
+	showHelp("newline", ctx)
+
+	want := "newline\n  " + g.Newline.Meta.Help + "\n"
+	if got := out.String(); got != want {
+		t.Fatalf("newline help = %q, want %q", got, want)
 	}
 }
