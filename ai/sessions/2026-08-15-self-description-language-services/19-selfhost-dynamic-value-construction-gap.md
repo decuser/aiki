@@ -1,7 +1,6 @@
 # Milestone 19 — Dynamic value construction gap
 
-Status: BLOCKED — architectural decision required before Phase III / Cut III.1
-can satisfy its stated native-value semantics.
+Status: SUPERSEDED — resolved by Milestone 20 with `to_symbol` and `shaped`.
 
 ## Finding
 

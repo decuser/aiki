@@ -5,7 +5,8 @@ package "selfhost/runtime"
 # This preserves shared lexical environments without introducing store/map as a
 # self-hosting-only dependency.
 let @binding [name, value]
-let @env [get, define, assign, has, has_own, outer]
+let @shape_binding [name, fields]
+let @env [get, define, assign, has, has_own, define_shape, get_shape, set_package, get_package, set_exports, get_exports, set_file, get_file, outer]
 let @closure [params, rest_param, body, env]
 let @return_value [value]
 
@@ -37,6 +38,10 @@ let replace_at = (xs, index, value) {
 
 let env_new = (outer) {
 	let bindings = []
+	let shapes = []
+	let package_name = ""
+	let export_names = []
+	let file_name = ""
 	let has_own = (name) {
 		binding_find(bindings, name) >= 0
 	}
@@ -57,7 +62,7 @@ let env_new = (outer) {
 		if not empty(outer) {
 			return outer.get(name)
 		}
-		return [@error, :name, "undefined variable: " + name]
+		return shaped(:self_fault, [:name, "undefined variable: " + name])
 	}
 	let define = (name, value) {
 		let index = binding_find(bindings, name)
@@ -80,7 +85,48 @@ let env_new = (outer) {
 		}
 		return false
 	}
-	return [@env, get, define, assign, has, has_own, outer]
+	let define_shape = (name, fields) {
+		let index = binding_find(shapes, name)
+		let entry = [@shape_binding, name, fields]
+		if index >= 0 {
+			shapes = replace_at(shapes, index, entry)
+		} else {
+			shapes = append(shapes, entry)
+		}
+		return name
+	}
+	let get_shape = (name) {
+		let index = binding_find(shapes, name)
+		if index >= 0 {
+			return shapes[index].fields
+		}
+		if not empty(outer) {
+			return outer.get_shape(name)
+		}
+		return shaped(:self_fault, [:shape, "unknown shape: " + name])
+	}
+	let set_package = (name) {
+		package_name = name
+		return name
+	}
+	let get_package = () {
+		package_name
+	}
+	let set_exports = (names) {
+		export_names = names
+		return []
+	}
+	let get_exports = () {
+		export_names
+	}
+	let set_file = (name) {
+		file_name = name
+		return name
+	}
+	let get_file = () {
+		file_name
+	}
+	return [@env, get, define, assign, has, has_own, define_shape, get_shape, set_package, get_package, set_exports, get_exports, set_file, get_file, outer]
 }
 
 let env_get = (env, name) {
@@ -103,6 +149,42 @@ let env_has_own = (env, name) {
 	env.has_own(name)
 }
 
+let env_define_shape = (env, name, fields) {
+	env.define_shape(name, fields)
+}
+
+let env_get_shape = (env, name) {
+	env.get_shape(name)
+}
+
+let env_set_package = (env, name) {
+	env.set_package(name)
+}
+
+let env_get_package = (env) {
+	env.get_package()
+}
+
+let env_set_exports = (env, names) {
+	env.set_exports(names)
+}
+
+let env_get_exports = (env) {
+	env.get_exports()
+}
+
+let env_set_file = (env, name) {
+	env.set_file(name)
+}
+
+let env_get_file = (env) {
+	env.get_file()
+}
+
+let env_outer = (env) {
+	env.outer
+}
+
 let env_enclose = (env) {
 	env_new(env)
 }
@@ -115,4 +197,4 @@ let return_new = (value) {
 	[@return_value, value]
 }
 
-export(:env_new, :env_get, :env_define, :env_assign, :env_has, :env_has_own, :env_enclose, :closure_new, :return_new)
+export(:env_new, :env_get, :env_define, :env_assign, :env_has, :env_has_own, :env_define_shape, :env_get_shape, :env_set_package, :env_get_package, :env_set_exports, :env_get_exports, :env_set_file, :env_get_file, :env_outer, :env_enclose, :closure_new, :return_new)

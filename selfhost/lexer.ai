@@ -113,7 +113,7 @@ let position_after = (lexeme, line, col) {
 }
 
 let lex_error = (line, col, message) {
-	[@error, :lex, to_str(line) + ":" + to_str(col) + ": " + message]
+	shaped(:error, [:lex, to_str(line) + ":" + to_str(col) + ": " + message])
 }
 
 let tokenize = (source) {

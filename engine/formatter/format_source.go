@@ -26,6 +26,25 @@ func FormatSourceWithObserver(g *grammar.Grammar, file string, source string, ob
 		observer = engine.SilentObserver{}
 	}
 
+	// Canonical formatting must be a fixed point. The printer preserves some
+	// source-layout information (notably blank-line positions), so one pass can
+	// occasionally change the positions that inform the next pass. Iterate a
+	// small bounded number of times and return only a stable representation.
+	current := source
+	for pass := 0; pass < 4; pass++ {
+		formatted, err := formatSourceOnce(g, file, current, observer)
+		if err != nil {
+			return "", err
+		}
+		if formatted == current {
+			return formatted, nil
+		}
+		current = formatted
+	}
+	return "", fmt.Errorf("formatter did not converge to a canonical fixed point")
+}
+
+func formatSourceOnce(g *grammar.Grammar, file string, source string, observer engine.Observer) (string, error) {
 	// Parse original.
 	origTokens, origAST, err := parseWithTokens(g, file, source)
 	if err != nil {

@@ -1,0 +1,39 @@
+package "selfhost/bootstrap"
+
+# Privileged bootstrap entrypoint for the independent interpreter. This blessed
+# module captures the HAL function values required by standard-library source,
+# but never exports those values. Callers receive only the high-level ability
+# to run source through the self-hosted interpreter.
+let lexer = import("../../selfhost/lexer")
+let normalizer = import("../../selfhost/normalize")
+let parser = import("../../selfhost/parser")
+let evaluator = import("../../selfhost/evaluator")
+let runtime = import("../../selfhost/runtime")
+let host = import("../../selfhost/host_prelude")
+
+let hal_bindings = () {
+	[["_floor", _floor], ["_ceil", _ceil], ["_truncate", _truncate], ["_modulo", _modulo], ["_sqrt_inexact", _sqrt_inexact], ["_cos_inexact", _cos_inexact], ["_sin_inexact", _sin_inexact], ["_seed", _seed], ["_random", _random], ["_upper", _upper], ["_lower", _lower], ["_upper_rune", _upper_rune], ["_lower_rune", _lower_rune], ["_bytes_new", _bytes_new], ["_bytes_length", _bytes_length], ["_bytes_get", _bytes_get], ["_bytes_slice", _bytes_slice], ["_str_to_bytes", _str_to_bytes], ["_bytes_to_str", _bytes_to_str], ["_bytes_to_str_pure", _bytes_to_str_pure], ["_regex_match", _regex_match], ["_regex_find", _regex_find], ["_regex_find_all", _regex_find_all], ["_regex_replace", _regex_replace], ["_regex_replace_first", _regex_replace_first], ["_regex_split", _regex_split], ["_file_open", _file_open], ["_file_read_text", _file_read_text], ["_file_read_bytes", _file_read_bytes], ["_file_read_line", _file_read_line], ["_file_write_text", _file_write_text], ["_file_write_bytes", _file_write_bytes], ["_file_close", _file_close], ["_file_exists", _file_exists], ["_file_delete", _file_delete], ["_file_list", _file_list], ["_file_read_at", _file_read_at], ["_file_write_at", _file_write_at], ["_sleep", _sleep], ["_after", _after], ["_system_args", _system_args], ["_system_env", _system_env], ["_store_new", _store_new], ["_store_get", _store_get], ["_store_set", _store_set], ["_store_length", _store_length], ["_bits_and", _bits_and], ["_bits_or", _bits_or], ["_bits_xor", _bits_xor], ["_bits_not", _bits_not], ["_bits_shl", _bits_shl], ["_bits_shr", _bits_shr], ["_apply", _apply], ["_shape", _shape], ["_make_shaped_list", _make_shaped_list], ["_canvas", _canvas], ["_dot", _dot], ["_line", _line], ["_rect", _rect], ["_fill_rect", _fill_rect], ["_circle", _circle], ["_fill_circle", _fill_circle], ["_arc", _arc], ["_clear", _clear], ["_destroy", _destroy], ["_set_bg", _set_bg], ["_set_fg", _set_fg], ["_pen_size", _pen_size], ["_canvas_width", _canvas_width], ["_canvas_height", _canvas_height], ["_canvas_alive", _canvas_alive], ["_set_turtle", _set_turtle], ["_profile_counts", _profile_counts], ["_profile_measure", _profile_measure], ["_profile_experiment", _profile_experiment], ["_test_equal", _test_equal], ["_test_not_equal", _test_not_equal], ["_test_true", _test_true], ["_test_false", _test_false], ["_test_error", _test_error], ["_test_not_error", _test_not_error], ["_test_run", _test_run], ["_test_faults", _test_faults]]
+}
+
+let run = (source, file_name) {
+	evaluator.configure_hal(hal_bindings())
+	let tokens = lexer.tokenize(source)
+	if is_error(tokens) {
+		return tokens
+	}
+	tokens = normalizer.normalize(tokens)
+	if is_error(tokens) {
+		return tokens
+	}
+	let tree = parser.parse(tokens)
+	if is_error(tree) {
+		return tree
+	}
+	let env = runtime.env_new([])
+	runtime.env_set_file(env, file_name)
+	host.install(env)
+	evaluator.install_module_intrinsics(env)
+	return evaluator.eval_program(tree, env)
+}
+
+export(:run)

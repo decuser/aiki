@@ -1,0 +1,8 @@
+@preamble let bootstrap = import("selfhost/bootstrap")
+run
+Runs Aiki source through the independent self-hosted interpreter while keeping
+blessed HAL capabilities private to the bootstrap.
+
+run(source, file_name)
+
+bootstrap.run("1 + 2 * 3\n", "example.ai")    # 9

@@ -23,6 +23,11 @@ Each test enforces that two parts of the distribution agree:
 15. grammar lexical inventory <-> VS Code TextMate declaration (`vscode_language_test.go`)
 16. VS Code language registration/client launch <-> thin `aiki lsp` adapter contract (`vscode_client_test.go`)
 17. self-host runtime environment semantics <-> focused lexical-scope probe (`selfhost_runtime_test.go`)
+18. reference evaluator <-> independent Aiki expression evaluator (`selfhost_evaluator_expr_test.go`)
+19. reference evaluator <-> independent Aiki statement/function evaluator (`selfhost_evaluator_program_test.go`)
+20. prelude exports <-> explicit self-host host-value bridge (`selfhost_prelude_bridge_test.go`)
+21. reference module behavior <-> self-hosted source-module loader (`selfhost_module_test.go`)
+22. behavior gold corpus <-> independent self-host evaluator (`selfhost_behavior_acceptance_test.go`)
 
 ## handler_validation_test.go
 
@@ -57,4 +62,4 @@ Verify Phase-I self-description/conformance couplings. The independent Aiki
 front end does not reuse the Go lexer or parser. Both implementations are
 checked against reviewed language-owned artifacts: extracted grammar facts,
 lexical/newline conformance fixtures, and the existing engine parse-gold
-corpus. Phase III adds a focused runtime-environment gate proving lexical lookup, shadowing, enclosing assignment, and shared closure capture using ordinary Aiki state.
+corpus. Phase III adds runtime-environment, expression, statement/function, prelude-bridge, module-loading, and behavior-acceptance couplings. These compare the independent evaluator against reference behavior while keeping the bridge vocabulary coupled to the real prelude authority and preserving self-hosted Aiki-source module loading.

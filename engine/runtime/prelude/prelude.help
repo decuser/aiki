@@ -119,6 +119,14 @@
 @template "to_number(str)"
 @help "Parses string as number."
 
+@func to_symbol
+@template "to_symbol(str)"
+@help "Constructs a symbol from its value-level name."
+
+@func shaped
+@template "shaped(symbol, elements)"
+@help "Returns elements as a list carrying the given shape symbol."
+
 @func to_decimal
 @template "to_decimal(n, places)"
 @help "Formats number as decimal string."

@@ -103,3 +103,28 @@ func TestFormatterUnknownLeafCannotDisappear(t *testing.T) {
 		t.Fatalf("unknown leaf emitted output %q", got)
 	}
 }
+
+func TestFormatSourceConvergesForAdjacentTopLevelDeclarations(t *testing.T) {
+	g := testGrammar(t)
+	src := `package "test"
+
+let names = ["a", "b"]
+
+let primitive_names = ["export", "import"]
+
+let env_get = (env, name) { env.get(name) }
+let env_define = (env, name, value) { env.define(name, value) }
+let env_assign = (env, name, value) { env.assign(name, value) }
+`
+	out, err := FormatSource(g, "test.ai", src)
+	if err != nil {
+		t.Fatalf("format: %v", err)
+	}
+	out2, err := FormatSource(g, "test.ai", out)
+	if err != nil {
+		t.Fatalf("format second pass: %v", err)
+	}
+	if out2 != out {
+		t.Fatalf("format not fixed-point stable\n--- out ---\n%s\n--- out2 ---\n%s", out, out2)
+	}
+}

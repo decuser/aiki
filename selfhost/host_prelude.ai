@@ -1,0 +1,51 @@
+package "selfhost/host_prelude"
+
+# Explicit host bridge for the ordinary prelude vocabulary. This module does
+# not implement any language semantics; it only places real prelude function
+# values into an interpreted root environment. Its name inventory is coupled
+# to prelude.ai by an invariant test.
+let rt = import("./selfhost/runtime")
+
+let names = ["apply", "load", "stack_limit", "spawn", "channel", "send", "recv", "print", "println", "read", "input", "first", "rest", "length", "prepend", "append", "empty", "type", "inspect", "equal", "ord", "chr", "shape", "is_error", "to_str", "to_decimal", "to_number", "to_symbol", "shaped", "quit", "reset", "delete", "abs", "truncate", "help", "doc"]
+
+let install = (env) {
+	rt.env_define(env, "apply", apply)
+	rt.env_define(env, "load", load)
+	rt.env_define(env, "stack_limit", stack_limit)
+	rt.env_define(env, "spawn", spawn)
+	rt.env_define(env, "channel", channel)
+	rt.env_define(env, "send", send)
+	rt.env_define(env, "recv", recv)
+	rt.env_define(env, "print", print)
+	rt.env_define(env, "println", println)
+	rt.env_define(env, "read", read)
+	rt.env_define(env, "input", input)
+	rt.env_define(env, "first", first)
+	rt.env_define(env, "rest", rest)
+	rt.env_define(env, "length", length)
+	rt.env_define(env, "prepend", prepend)
+	rt.env_define(env, "append", append)
+	rt.env_define(env, "empty", empty)
+	rt.env_define(env, "type", type)
+	rt.env_define(env, "inspect", inspect)
+	rt.env_define(env, "equal", equal)
+	rt.env_define(env, "ord", ord)
+	rt.env_define(env, "chr", chr)
+	rt.env_define(env, "shape", shape)
+	rt.env_define(env, "is_error", is_error)
+	rt.env_define(env, "to_str", to_str)
+	rt.env_define(env, "to_decimal", to_decimal)
+	rt.env_define(env, "to_number", to_number)
+	rt.env_define(env, "to_symbol", to_symbol)
+	rt.env_define(env, "shaped", shaped)
+	rt.env_define(env, "quit", quit)
+	rt.env_define(env, "reset", reset)
+	rt.env_define(env, "delete", delete)
+	rt.env_define(env, "abs", abs)
+	rt.env_define(env, "truncate", truncate)
+	rt.env_define(env, "help", help)
+	rt.env_define(env, "doc", doc)
+	return env
+}
+
+export(:names, :install)

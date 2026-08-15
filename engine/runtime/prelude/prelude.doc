@@ -241,6 +241,22 @@ to_number(str)
 to_number("42")       # 42
 to_number("3.14")     # 3.14
 ===
+to_symbol
+Constructs a symbol from its value-level name. The colon used in source syntax is not part of the name.
+
+to_symbol(str)
+
+to_symbol("foo")       # :foo
+to_symbol("point")     # :point
+===
+shaped
+Returns the elements as a shaped list carrying the supplied symbol.
+
+shaped(symbol, elements)
+
+shaped(:point, [1, 2])                 # [@point, 1, 2]
+shaped(to_symbol("point"), [1, 2])     # [@point, 1, 2]
+===
 to_decimal
 Formats a number as a decimal string with specified places.
 

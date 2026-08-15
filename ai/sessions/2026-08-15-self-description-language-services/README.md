@@ -1,6 +1,6 @@
 # Self-description and language services
 
-Status: ACTIVE — Phase I GATED; Phase II GATED/COMPLETE; Phase III Cut III.0 ACTIVE; Cut III.1 BLOCKED on dynamic native-value construction.
+Status: ACTIVE — Phase I GATED; Phase II GATED/COMPLETE; Phase III Cuts III.0–III.5 locally gated; Cut III.6 BLOCKED on practical parser self-parse performance.
 
 Proposal: `proposals/aiki-self-description-language-services-proposal.md`
 
@@ -25,17 +25,24 @@ Baseline: `v0.4.0-alpha-14-g9c78646` (`9c78646`).
 15. `15-completion-hover.md` — GATED; authoritative validate passed.
 16. `16-vscode-client.md` — GATED.
 17. `17-phase-ii-handoff.md` — GATED; Phase II complete.
-18. `18-selfhost-runtime-environment.md` — ACTIVE; implementation/disposable execution complete, authoritative gate pending.
-19. `19-selfhost-dynamic-value-construction-gap.md` — BLOCKED; dynamic symbol/shaped-list construction requires an explicit language-level decision.
+18. `18-selfhost-runtime-environment.md` — locally gated; authoritative gate pending.
+19. `19-selfhost-dynamic-value-construction-gap.md` — SUPERSEDED by the adopted surface in Milestone 20.
+20. `20-dynamic-value-surface.md` — locally gated; authoritative gate pending.
+21. `21-selfhost-expression-evaluator.md` — locally gated; authoritative gate pending.
+22. `22-selfhost-statements-functions.md` — locally gated; authoritative gate pending.
+23. `23-module-boundary.md` — SUPERSEDED by the self-hosted module decision.
+24. `24-selfhost-modules.md` — locally GATED; authoritative gate pending.
+25. `25-selfhost-behavior-conformance.md` — locally GATED; authoritative gate pending.
+26. `26-self-interpretation-performance-boundary.md` — BLOCKED on practical nested parser self-parse performance.
 
 ## Current state
 
-Phase I and Phase II are GATED. Xed, nvi, and VS Code have all passed their live client gates over the shared language-service authorities.
+Phase I and Phase II are GATED. Phase III now has an independent runtime environment, evaluator, self-hosted module loader/cache/export path, scoped HAL bootstrap, and a representative behavior-conformance corpus. `to_symbol` and `shaped` close the dynamic value-construction gaps discovered by self-hosting.
 
-Phase III has begun. `selfhost/runtime.ai` implements lexical environments as ordinary Aiki closures over persistent binding lists, preserving shadowing, enclosing assignment, and shared capture without `store` or a map. A focused invariant test is present for the authoritative repository gate.
+Behavior conformance exposed and corrected two real evaluator issues: recoverable `[@error, ...]` values are no longer conflated with internal halts, and qualified module access in pipeline targets now resolves correctly. Internal evaluator halts use the private `:self_fault` control shape.
 
-Cut III.1 exposed a deliberate self-hosting boundary issue: ordinary user-level Aiki cannot dynamically construct an arbitrary native symbol from a source lexeme, and arbitrary shaped-list construction is likewise not exposed at user/prelude level (`_make_shaped_list` exists only below the HAL boundary). Hard-coded symbol tables, wrapper values, or delegating through `load()` would weaken or invalidate the intended proof.
+Cut III.6 has begun. A traced nested-interpreter attempt successfully entered the inner bootstrap and self-host-loaded the lexer and normalizer, but parser-self-parse exceeded practical local time bounds without producing a semantic fault. This is recorded as a performance boundary rather than a failed self-hosting claim.
 
 ## Exact next action
 
-Review the dynamic-value construction finding in Milestone 19 and deliberately choose a general Aiki-level surface for constructing native symbols and shaped lists. Then resume Cut III.1 using only that ordinary public/prelude-level capability. The current III.0 implementation should be included in the next authoritative `make validate` run.
+Run authoritative `make validate` for the Phase-III delta through III.5. If it passes, measure the nested parser-self-parse path before changing semantics or weakening the self-interpretation criterion. The immediate III.6 question is performance, not correctness.

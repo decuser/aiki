@@ -940,13 +940,20 @@ Function, closure, recursion, and prelude-use fixtures agree with the Go interpr
 
 ## Cut III.4 — Modules
 
-Initially prefer delegation of module loading to the host mechanism if that preserves the intended proof without introducing hidden evaluator semantics.
+Self-host Aiki-source module loading end to end. The interpreter resolves the source path, reads the module, runs its own lexer/newline normalizer/parser/evaluator, evaluates in an isolated module environment, records package/export metadata, and caches the interpreted module value.
 
-A later extension may self-host module loading using file read + lex + parse + eval.
+The boundary is:
+
+```text
+Aiki source module -> self-hosted loader/evaluator
+HAL primitive      -> host capability
+```
+
+Blessed standard-library modules legitimately call `_` HAL primitives. A privileged bootstrap may capture those function values and configure interpreted blessed-library environments, but raw HAL values must not be exposed to ordinary callers. The bootstrap surface remains high-level (`run(source, file_name)`), preserving the scope gate.
 
 ### Gate
 
-Programs importing representative Aiki modules execute equivalently under the self-hosted path, with the chosen delegation boundary explicitly documented.
+Programs importing representative ordinary, transitive, relative, and HAL-backed Aiki modules execute equivalently under the self-hosted path. The bootstrap must not make raw HAL vocabulary available to ordinary user code.
 
 ---
 
@@ -971,7 +978,7 @@ Every failure is classified as:
 
 ### Gate
 
-The agreed acceptance corpus produces the same observable result/output/fault under both implementations.
+The agreed acceptance corpus produces the same observable result/output/fault under both implementations. The acceptance corpus may explicitly exclude behaviors already declared non-goals for the self-host proof (for example concurrency/select/spawn, debugger-only break fixtures, interactive input, and graphics), but every exclusion must be named rather than silently skipped.
 
 ---
 

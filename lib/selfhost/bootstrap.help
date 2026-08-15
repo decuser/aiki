@@ -1,0 +1,5 @@
+# selfhost/bootstrap - privileged bootstrap entrypoint for the independent interpreter
+
+@func run
+@template "run(source, file_name)"
+@help "Evaluates source through the independent Aiki interpreter. HAL capabilities remain encapsulated inside the bootstrap."

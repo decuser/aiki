@@ -103,6 +103,18 @@ func halToDecimal(args []value.Value, ctx *hal.EvalContext) value.Value {
 	return &value.String{Val: out}
 }
 
+// halToSymbol constructs a symbol from its value-level name.
+func halToSymbol(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 1 {
+		return value.NewFault("to_symbol: want 1 argument, got %d", len(args))
+	}
+	s, ok := args[0].(*value.String)
+	if !ok {
+		return value.NewFault("to_symbol: expected string")
+	}
+	return &value.Symbol{Val: s.Val}
+}
+
 // halToNumber parses a string into a number.
 func halToNumber(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {

@@ -156,6 +156,21 @@ run("to_number and to_str round-trip for integers", () {
 })
 
 
+run("to_symbol constructs symbols from runtime strings", () {
+	equal(to_symbol("foo"), :foo)
+	equal(to_symbol("point"), :point)
+	equal(to_str(to_symbol("dynamic")), ":dynamic")
+})
+
+
+run("shaped constructs shaped lists from runtime symbols", () {
+	let tag = to_symbol("point")
+	let p = shaped(tag, [1, 2])
+	equal(shape(p), :point)
+	equal(inspect(p), "[@point, 1, 2]")
+})
+
+
 run("to_decimal formats exact decimal places", () {
 	equal(to_decimal(1/3, 5), "0.33333")
 	equal(to_decimal(1, 0), "1")

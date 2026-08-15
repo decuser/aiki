@@ -76,6 +76,7 @@ func (g *GoRuntime) registerHAL() {
 	g.register("_to_str", halToStr)
 	g.register("_to_decimal", halToDecimal)
 	g.register("_to_number", halToNumber)
+	g.register("_to_symbol", halToSymbol)
 
 	// String (Unicode case conversion)
 	g.register("_upper", halUpper)
