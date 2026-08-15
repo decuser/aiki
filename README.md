@@ -75,6 +75,17 @@ sibling paths named `aiki-<version>-<os>-<arch>/` and
 use and identify the release; it is separate from the development source tree
 and does not require Go.
 
+For a portable development/restart snapshot, use:
+
+```bash
+make baseline
+```
+
+`make baseline` writes `aiki-baseline-<version>.tar.gz` beside the source tree.
+It captures the working repository including `.git` so branch, history, refs,
+and AI session state are preserved, while omitting only the built top-level
+`aiki` executable. This is a development baseline, not the user distribution.
+
 ## Try Aiki
 
 Sample programs are in `extra/samples/`. Useful starting points include:

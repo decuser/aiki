@@ -1,4 +1,4 @@
-.PHONY: build clean dist distcheck run test fmt lint treecheck check bless validate smoke smokegold visual aikitest runsamples enginesmoke enginesmokegold enginecoverage rigorous fuzz hooks profilesweep
+.PHONY: build clean dist distcheck baseline run test fmt lint treecheck check bless validate smoke smokegold visual aikitest runsamples enginesmoke enginesmokegold enginecoverage rigorous fuzz hooks profilesweep
 
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 LDFLAGS := -ldflags "-X main.Version=$(VERSION)"
@@ -6,9 +6,13 @@ LDFLAGS := -ldflags "-X main.Version=$(VERSION)"
 DIST_PARENT ?= $(abspath ..)
 DIST_OS ?= $(shell go env GOOS)
 DIST_ARCH ?= $(shell go env GOARCH)
-DIST_NAME := aiki-$(VERSION)-$(DIST_OS)-$(DIST_ARCH)
-DIST_DIR := $(DIST_PARENT)/$(DIST_NAME)
-DIST_ARCHIVE := $(DIST_PARENT)/$(DIST_NAME).tar.gz
+DIST_NAME = aiki-$(VERSION)-$(DIST_OS)-$(DIST_ARCH)
+DIST_DIR = $(DIST_PARENT)/$(DIST_NAME)
+DIST_ARCHIVE = $(DIST_PARENT)/$(DIST_NAME).tar.gz
+
+SOURCE_DIR_NAME := $(notdir $(CURDIR))
+BASELINE_NAME := aiki-baseline-$(VERSION)
+BASELINE_ARCHIVE := $(DIST_PARENT)/$(BASELINE_NAME).tar.gz
 
 build:
 	go build $(LDFLAGS) -o aiki ./cmd/aiki
@@ -17,6 +21,7 @@ clean:
 	rm -f aiki
 	rm -rf "$(DIST_DIR)"
 	rm -f "$(DIST_ARCHIVE)"
+	rm -f "$(BASELINE_ARCHIVE)"
 
 # Build a relocatable user distribution beside the source tree. The executable
 # lives at the distribution root so users can add that one directory to PATH.
@@ -49,6 +54,24 @@ distcheck: dist
 	PATH="$$tmp/$(DIST_NAME):$$PATH" aiki check.ai > output.txt; \
 	grep -qx '6' output.txt; \
 	echo "distcheck ok: relocatable archive loads shipped modules outside source tree"
+
+# Capture a portable development baseline beside the source tree. Unlike dist,
+# this is a repository snapshot: it intentionally includes .git so branch,
+# history, refs, and session state travel with the source. Only the built
+# top-level aiki executable is omitted.
+baseline:
+	@set -eu; \
+	rm -f "$(BASELINE_ARCHIVE)"; \
+	tar -C "$(DIST_PARENT)" \
+		--exclude="$(SOURCE_DIR_NAME)/aiki" \
+		-czf "$(BASELINE_ARCHIVE)" "$(SOURCE_DIR_NAME)"; \
+	tar -tzf "$(BASELINE_ARCHIVE)" | grep -q "^$(SOURCE_DIR_NAME)/\.git/" || { \
+		echo "baseline: archive is missing .git" >&2; exit 1; \
+	}; \
+	if tar -tzf "$(BASELINE_ARCHIVE)" | grep -qx "$(SOURCE_DIR_NAME)/aiki"; then \
+		echo "baseline: archive unexpectedly contains built aiki executable" >&2; exit 1; \
+	fi; \
+	echo "$(BASELINE_ARCHIVE)"
 
 run: build
 	./aiki
