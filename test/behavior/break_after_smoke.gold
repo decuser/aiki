@@ -1,4 +1,4 @@
-ERR:parser: test/behavior/break_after_smoke.ai:7:2:\n
+ERR:parser: test/behavior/break_after_smoke.ai:8:2:\n
 ERR:\t|> map(double)\n
 ERR: ^\n
 ERR:the previous newline ended the statement\n

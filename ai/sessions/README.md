@@ -1,5 +1,5 @@
-# AI sessions
+# Aiki AI sessions
 
-Dated implementation-session records live here. See `../README.md` for the working method.
+Current session: `2026-08-14-negative-fixture-tooling/`
 
-Current session: `2026-08-14-grammar-syntax-authority/`
+Previous session: `2026-08-14-grammar-syntax-authority/`

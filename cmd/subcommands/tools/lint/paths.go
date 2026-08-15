@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"aiki/cmd/internal/testfixture"
 )
 
 func expandLintPaths(args []string) ([]string, error) {
@@ -26,7 +28,13 @@ func expandLintPaths(args []string) ([]string, error) {
 					return nil
 				}
 				if strings.HasSuffix(path, ".ai") && !strings.HasSuffix(path, "_test.ai") {
-					files = append(files, path)
+					skip, err := testfixture.IsParseNegative(path)
+					if err != nil {
+						return err
+					}
+					if !skip {
+						files = append(files, path)
+					}
 				}
 				return nil
 			})
@@ -51,7 +59,13 @@ func expandLintPaths(args []string) ([]string, error) {
 					return nil
 				}
 				if strings.HasSuffix(path, ".ai") && !strings.HasSuffix(path, "_test.ai") {
-					files = append(files, path)
+					skip, err := testfixture.IsParseNegative(path)
+					if err != nil {
+						return err
+					}
+					if !skip {
+						files = append(files, path)
+					}
 				}
 				return nil
 			})
@@ -61,7 +75,13 @@ func expandLintPaths(args []string) ([]string, error) {
 			continue
 		}
 		if strings.HasSuffix(a, ".ai") && !strings.HasSuffix(a, "_test.ai") {
-			files = append(files, a)
+			skip, err := testfixture.IsParseNegative(a)
+			if err != nil {
+				return nil, err
+			}
+			if !skip {
+				files = append(files, a)
+			}
 		}
 	}
 	return files, nil

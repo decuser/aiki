@@ -1,11 +1,13 @@
 package lint
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"aiki/cmd/internal/testfixture"
 	aikifmt "aiki/cmd/subcommands/tools/fmt"
 	"aiki/engine/syntax"
 	"aiki/engine/syntax/grammar"
@@ -36,6 +38,13 @@ func CheckFormatting(args []string, includePrelude bool) ([]string, error) {
 		if !includePrelude && strings.HasSuffix(a, "engine/runtime/prelude/prelude.ai") {
 			continue
 		}
+		skip, err := testfixture.IsParseNegative(a)
+		if err != nil {
+			return nil, err
+		}
+		if skip {
+			continue
+		}
 		ok, err := checkFile(g, a)
 		if err != nil {
 			return nil, err
@@ -49,7 +58,8 @@ func CheckFormatting(args []string, includePrelude bool) ([]string, error) {
 
 func checkDir(g *grammar.Grammar, dir string, includePrelude bool) ([]string, error) {
 	var bad []string
-	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+	var checkErrs []error
+	walkErr := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -65,16 +75,27 @@ func checkDir(g *grammar.Grammar, dir string, includePrelude bool) ([]string, er
 		if !includePrelude && strings.HasSuffix(path, "engine/runtime/prelude/prelude.ai") {
 			return nil
 		}
+		skip, err := testfixture.IsParseNegative(path)
+		if err != nil {
+			return err
+		}
+		if skip {
+			return nil
+		}
 		ok, err := checkFile(g, path)
 		if err != nil {
-			return fmt.Errorf("%s: %w", path, err)
+			checkErrs = append(checkErrs, fmt.Errorf("%s: %w", path, err))
+			return nil
 		}
 		if !ok {
 			bad = append(bad, path)
 		}
 		return nil
 	})
-	return bad, err
+	if walkErr != nil {
+		return bad, walkErr
+	}
+	return bad, errors.Join(checkErrs...)
 }
 
 func checkFile(g *grammar.Grammar, path string) (bool, error) {

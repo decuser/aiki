@@ -52,6 +52,49 @@ func lintSource(t *testing.T, src string) []Diagnostic {
 	return diags
 }
 
+func TestLintUseResolvesRegistryPackage(t *testing.T) {
+	dir := t.TempDir()
+	moduleDir := filepath.Join(dir, "packages", "list")
+	if err := os.MkdirAll(moduleDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	moduleSource := `package "list"
+let map = (xs, f) { return xs }
+export(:map)
+`
+	if err := os.WriteFile(filepath.Join(moduleDir, "list.ai"), []byte(moduleSource), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	oldwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(oldwd) })
+
+	g, err := grammar.Load("grammar.ebnfx", syntax.EbnfxSource, "grammar.help", syntax.HelpSource)
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := `use("list")
+let xs = [1, 2, 3]
+let ys = map(xs, (x) { return x })
+println(ys)
+`
+	diags, err := LintSource(g, filepath.Join(dir, "program.ai"), source, value.ScopeUser)
+	if err != nil {
+		t.Fatalf("LintSource error: %v", err)
+	}
+	for _, d := range diags {
+		if d.Level == "error" && strings.Contains(d.Message, "undefined name: 'map'") {
+			t.Fatalf("use(\"list\") did not bind registry export map: %v", diags)
+		}
+	}
+}
+
 func TestLintCleanCode(t *testing.T) {
 	diags := lintSource(t, "let x = 5\nlet y = x + 1\n")
 	if len(diags) != 0 {
@@ -373,4 +416,64 @@ func lintASTTypeLiterals(filename string) (map[string]struct{}, error) {
 		return true
 	})
 	return out, nil
+}
+
+func TestRunFailsOnUndeclaredMalformedFile(t *testing.T) {
+	dir := t.TempDir()
+	bad := filepath.Join(dir, "bad.ai")
+	good := filepath.Join(dir, "good.ai")
+	if err := os.WriteFile(bad, []byte("let x =\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(good, []byte("let y = 2\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if code := Run([]string{dir + "/..."}); code != 1 {
+		t.Fatalf("Run exit = %d, want 1", code)
+	}
+}
+
+func TestCheckFormattingSkipsDeclaredParseNegative(t *testing.T) {
+	dir := t.TempDir()
+	negative := filepath.Join(dir, "negative.ai")
+	good := filepath.Join(dir, "good.ai")
+	if err := os.WriteFile(negative, []byte("# @negative parse\nlet x =\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(good, []byte("let y = 2\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	bad, err := CheckFormatting([]string{dir + "/..."}, false)
+	if err != nil {
+		t.Fatalf("declared parse-negative was not skipped: %v", err)
+	}
+	if len(bad) != 0 {
+		t.Fatalf("unexpected formatting failures: %v", bad)
+	}
+	files, err := expandLintPaths([]string{dir + "/..."})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(files) != 1 || files[0] != good {
+		t.Fatalf("lint files = %v, want only %s", files, good)
+	}
+}
+
+func TestCheckFormattingReportsAllUndeclaredMalformedFiles(t *testing.T) {
+	dir := t.TempDir()
+	for _, name := range []string{"a.ai", "b.ai"} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte("let x =\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	_, err := CheckFormatting([]string{dir + "/..."}, false)
+	if err == nil {
+		t.Fatal("expected malformed files to fail formatting preflight")
+	}
+	msg := err.Error()
+	for _, name := range []string{"a.ai", "b.ai"} {
+		if !strings.Contains(msg, name) {
+			t.Fatalf("error %q does not mention %s", msg, name)
+		}
+	}
 }
