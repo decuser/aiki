@@ -25,3 +25,34 @@ This run supersedes all earlier nominal completion claims. The baseline reconstr
 ## Phase IV — operator environment
 
 Review of the original charter after the Phase I–III reconstruction showed that the planned SIMH-like monitor had not been delivered. Phase IV therefore treats the completed machine/compiler reconstruction as a stable substrate and adds a human-facing operator layer. The monitor uses octal presentation, disassembly, machine-service-mediated state access, host-aware stepping, Thompson-specific `CODE`/`CLIST`/`NLIST` views, and replayable command files. Physical IBM console behavior remains out of scope. The final cut will add interruptible execution and logging after the first local monitor gate.
+
+
+## HAL redesign framing and Phase-I finding
+
+The HAL redesign is driven by the user-facing systems-programmer affordance surface, not by architectural neatness. Every irreducible host crossing is to be understood at three naming levels: Aiki name (meaning), HAL name (contract), substrate name (realization/provenance). Canvas is a pressuring requirement rather than the design driver.
+
+Phase I source inspection of `v0.4.0-alpha-27` found 117 registrations in the current native registry. The registry conflates true host effects/resources, evaluator intrinsics, value primitives, accelerators, observation/tooling services, and runtime/session machinery. The replacement architecture must separate those classes rather than merely rename the registry.
+
+The systems-programmer target surface is already partly present (files, args/env reads, timers, bytes/bits, Store, concurrency/select, standard I/O) but has concrete gaps in filesystem metadata/directory operations, path support, process execution, working-directory operations, and current-time access. Pure semantics should remain in Aiki libraries wherever possible.
+
+A notable pressure-test result is that `time.after` already creates a host-produced receive-only Aiki channel and existing `select` handles it without domain-specific logic. This gives Phase II an existing architectural precedent when considering asynchronous Canvas events.
+
+
+## HAL redesign Phase II
+
+Source tracing showed that the current environment object combines lexical bindings, shape vocabulary, source provenance, dynamic stack state, observation, module state, and raw-native authority. The redesign separates these concepts. Authority follows the definition of trusted Aiki code rather than the dynamic caller; user callbacks do not acquire a trusted caller's grants. Spawn creates fresh dynamic state without inventing authority.
+
+The baseline also exposed an authority defect: isolated spawn currently builds directly under the prelude environment and therefore inherits `ScopePrelude`, while builtin lookup is scope-based. This reinforces the need to separate prelude vocabulary/isolation from host authority.
+
+Runtime ownership is defined conceptually around host capabilities, I/O, args/environment view, module cache/source provider, RNG, async faults, observation correlation, and resource cleanup. Sessions own evaluator interaction and environments. Concrete host resources must stop leaking substrate types into core values (`*os.File` and Canvas Go state are current examples).
+
+`time.after` provides existing evidence that host-produced receive-only channels work with ordinary Aiki `select`; this is the architectural precedent for considering asynchronous Canvas events without creating a second concurrency model.
+
+
+## HAL redesign Phase III and migration shape
+
+The replacement design gives canonical `HAL.<domain>.<operation>` identities only to irreducible host crossings. Evaluator intrinsics, native/value primitives, native/FFI providers, and runtime/tooling services are separated conceptually rather than being renamed as HAL operations. Host contracts carry authority, context needs, effect/blocking/lifetime class, error rules, observation identity, optionality, and substrate provenance.
+
+A Runtime owns the host world; an Evaluation Session owns evaluator interaction. Intrinsics receive evaluator context; ordinary HAL calls receive a deliberately small host-call context. Concrete host resources become runtime-owned opaque references rather than Go objects embedded in core semantic values.
+
+Seven serial implementation migrations are planned, beginning with metadata-only three-name coverage and ending with compatibility removal and full executable hardening. The user-facing systems-programmer surface remains the criterion throughout.

@@ -1,4 +1,4 @@
-# Thompson 7094 regex reconstruction — completed baseline and monitor
+# Aiki — Thompson completion and HAL redesign
 
 Status: ACTIVE
 
@@ -65,3 +65,61 @@ Milestone 11 is ACTIVE. Repository-wide `./aiki test ./...` showed that relative
 ## Follow-up — restored machine reset primitive
 
 Milestone 12 is **ACTIVE**. After Milestone 11 allowed repository-root tests to reach the spawned monitor service, three Phase-IV tests exposed that `service.ai` still called `machine.reset_state` while the machine module no longer defined/exported it. The narrow reset primitive has been restored. This cut is Aiki-source only and does **not** require `make`. Next action: run `./aiki test ./...` and the experiment `./run.sh`; gate Milestone 12 if both are clean.
+
+
+## HAL redesign — active design phase
+
+Cut 0 and Phase I are now **GATED** against exact baseline `v0.4.0-alpha-27`.
+
+- Cut 0: systems-programmer affordance target, three-name model, three-phase/four-cut structure.
+- Phase I Cut I.1: all 117 registered primitives inventoried.
+- Phase I Cut I.2: registry responsibilities classified.
+- Phase I Cut I.3: systems-programmer affordance coverage/gaps mapped.
+- Phase I Cut I.4: module/spawn/profiling/file/Canvas/time-select/Thompson pressure synthesis gated.
+
+Key finding: `time.after` already demonstrates a host-produced receive-only Aiki channel participating normally in `select`; this is evidence for Phase-II Canvas discussion, not a universal transport decision.
+
+Current HAL artifacts:
+
+- `proposals/hal-redesign-cut0.md`
+- `proposals/hal-redesign-phase-i-inventory.md`
+- `proposals/hal-redesign-phase-i.md`
+
+**Next action:** Phase II Cut II.1 — decompose execution context (`Env` / `EvalContext`) by semantic meaning and trace call/spawn/module/HAL propagation.
+
+
+## HAL redesign — Phase II gated
+
+Phase II Cuts II.1-II.4 are **GATED** by source inspection/design consistency.
+
+Key decisions/findings:
+
+- context is decomposed into lexical, source, dynamic, observation, authority, and module facets;
+- authority is lexical/definition-bound and explicitly separate from environment role;
+- current spawn construction appears to grant `ScopePrelude` to user-spawned functions, a baseline authority leak to eliminate in migration;
+- runtime/session ownership replaces package-global host relationships conceptually;
+- `value.File` and `value.Canvas` currently leak concrete Go substrate types into the semantic value layer;
+- trusted libraries receive explicit HAL grants rather than blanket path-derived privilege;
+- `time.after` proves host-backed receive-only channels already participate normally in `select`;
+- Canvas remains a pressure requirement, not the generic model.
+
+Artifact: `proposals/hal-redesign-phase-ii.md`.
+
+**Next action:** Phase III Cut III.1 — canonical HAL contract/metadata and registry separation.
+
+
+## HAL redesign — Phase III/design gate
+
+Phase III Cuts III.1-III.4 are **GATED**. Cut 0 plus all three design phases are complete.
+
+Artifacts:
+
+- `proposals/hal-redesign-cut0.md`
+- `proposals/hal-redesign-phase-i-inventory.md`
+- `proposals/hal-redesign-phase-i.md`
+- `proposals/hal-redesign-phase-ii.md`
+- `proposals/hal-redesign-phase-iii.md`
+
+Implementation has **not** started. The serial implementation sequence is M1-M7.
+
+**Exact next action if the design is accepted:** M1 — add canonical host-operation metadata and executable Aiki-name / HAL-name / substrate-provenance coverage beside current behavior, with no semantic change.
