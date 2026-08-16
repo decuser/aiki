@@ -1,0 +1,26 @@
+Experiment 002 — Thompson 7094 Regex Reconstruction
+Phases I–III — 7094 machine, Thompson runtime, and compiler reconstruction
+
+Aiki executable: /home/wsenn/forge/dev/aiki/aiki
+Aiki version:    aiki v0.4.0-alpha-26
+
+--- Phase I machine corpus ---
+PASS machine_test.ai
+
+96 tests, 96 passed, 0 failed
+
+--- Phase II Thompson corpus ---
+PASS phase2_test.ai
+
+59 tests, 59 passed, 0 failed
+
+--- Phase III compiler corpus ---
+FAIL phase3_test.ai
+  FAIL stage 1 inserts explicit juxtaposition (phase3_test.ai:9): expected "a.(b|c)*.d", got ".a.(b|c)*.d"
+  FAIL stage 1 inserts explicit juxtaposition (phase3_test.ai:10): expected "a.b", got ".a.b"
+  FAIL stage 2 produces Thompson's reverse Polish example (phase3_test.ai:13): fault: cannot subtract boolean and number
+  FAIL stage 3 reproduces the 23-word compiler-derived object program (phase3_test.ai:25): fault: cannot subtract boolean and number
+  FAIL compiler independently resolves printed CODE+13 discrepancy (phase3_test.ai:40): fault: cannot subtract boolean and number
+  FAIL generated code executes end to end on the Aiki 7094 emulator (phase3_test.ai:50): fault: cannot subtract boolean and number
+
+10 tests, 4 passed, 6 failed

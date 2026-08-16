@@ -1,0 +1,140 @@
+package "thompson_7094_service"
+
+# The spawned worker deliberately imports the emulator from inside its isolated
+# environment. It receives machine state and channels explicitly and therefore
+# cannot reach around the machine boundary through captured outer bindings.
+let worker = (machine, commands, replies, machine_module) {
+	let emu = import(machine_module)
+	let runtime = import("./runtime")
+	let active = true
+	while active {
+		let command = recv(commands)
+		match command {
+			[@step] {
+				send(replies, emu.step(machine))
+			}
+			[@run, limit, stop_pc] {
+				send(replies, emu.run(machine, limit, stop_pc))
+			}
+			[@trace, limit, stop_pc] {
+				send(replies, emu.run_trace(machine, limit, stop_pc))
+			}
+			[@load, origin, words] {
+				let index = 0
+				while index < length(words) {
+					emu.store_word(machine, origin + index, words[index])
+					index = index + 1
+				}
+				send(replies, length(words))
+			}
+			[@examine, location] {
+				send(replies, emu.load_word(machine, location))
+			}
+			[@deposit, location, value] {
+				emu.store_word(machine, location, value)
+				send(replies, true)
+			}
+			[@pc] {
+				send(replies, emu.pc(machine))
+			}
+			[@set_pc, value] {
+				emu.set_pc(machine, value)
+				send(replies, true)
+			}
+			[@ac] {
+				send(replies, emu.ac(machine))
+			}
+			[@set_ac, value] {
+				emu.set_ac(machine, value)
+				send(replies, true)
+			}
+			[@xr, tag] {
+				send(replies, emu.xr(machine, tag))
+			}
+			[@set_xr, tag, value] {
+				emu.set_xr(machine, tag, value)
+				send(replies, true)
+			}
+			[@registers] {
+				send(replies, [@registers, emu.pc(machine), emu.ac(machine), emu.xr(machine, 1), emu.xr(machine, 2), emu.xr(machine, 4), emu.xr(machine, 6), emu.xr(machine, 7)])
+			}
+			[@reset] {
+				emu.reset_state(machine)
+				send(replies, true)
+			}
+			[@prepare_thompson] {
+				emu.reset_state(machine)
+				runtime.install(machine)
+				runtime.clear_lists(machine)
+				runtime.install_published_code(machine)
+				emu.set_pc(machine, runtime.INIT)
+				send(replies, true)
+			}
+			[@stop] {
+				send(replies, true)
+				active = false
+			}
+			_ {
+				send(replies, [@error, :monitor, "unknown machine command"])
+			}
+		}
+	}
+}
+
+let start = (machine) {
+	let commands = channel()
+	let replies = channel()
+	spawn(worker, machine, commands, replies, "./machine")
+	return [commands, replies]
+}
+
+let request = (monitor, command) {
+	send(monitor[0], command)
+	return recv(monitor[1])
+}
+
+let step = (monitor) {
+	request(monitor, [@step])
+}
+
+let run = (monitor, limit, stop_pc) {
+	request(monitor, [@run, limit, stop_pc])
+}
+
+let trace = (monitor, limit, stop_pc) {
+	request(monitor, [@trace, limit, stop_pc])
+}
+
+let load_program = (monitor, origin, words) {
+	request(monitor, [@load, origin, words])
+}
+
+let examine = (monitor, location) {
+	request(monitor, [@examine, location])
+}
+
+let deposit = (monitor, location, value) {
+	request(monitor, [@deposit, location, value])
+}
+
+let pc = (monitor) {
+	request(monitor, [@pc])
+}
+
+let set_pc = (monitor, value) {
+	request(monitor, [@set_pc, value])
+}
+
+let ac = (monitor) { request(monitor, [@ac]) }
+let set_ac = (monitor, value) { request(monitor, [@set_ac, value]) }
+let xr = (monitor, tag) { request(monitor, [@xr, tag]) }
+let set_xr = (monitor, tag, value) { request(monitor, [@set_xr, tag, value]) }
+let registers = (monitor) { request(monitor, [@registers]) }
+let reset_machine = (monitor) { request(monitor, [@reset]) }
+let prepare_thompson = (monitor) { request(monitor, [@prepare_thompson]) }
+
+let stop = (monitor) {
+	request(monitor, [@stop])
+}
+
+export(:start, :step, :run, :trace, :load_program, :examine, :deposit, :pc, :set_pc, :ac, :set_ac, :xr, :set_xr, :registers, :reset_machine, :prepare_thompson, :stop)

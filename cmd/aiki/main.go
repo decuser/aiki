@@ -142,7 +142,7 @@ func startREPL(opts Options) {
 }
 
 func runFile(filename string, opts Options) {
-	err := runner.Run(filename)
+	err := runner.Run(filename, flag.Args()[1:]...)
 	substrate.CloseAllCanvases()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

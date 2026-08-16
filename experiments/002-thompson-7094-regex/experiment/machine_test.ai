@@ -1,0 +1,271 @@
+use("test")
+let machine = import("./machine")
+let instruction = import("./instruction")
+let service = import("./service")
+
+let complement15 = (value) {
+	machine.address(0 - value)
+}
+
+let put = (m, location, op, y, tag, decrement) {
+	let encoded = instruction.encode(op, y, tag, decrement)
+	machine.store_word(m, location, encoded)
+	return encoded
+}
+
+run("word and address widths are explicit", () {
+	equal(machine.WORD_BITS, 36)
+	equal(machine.ADDR_BITS, 15)
+	equal(machine.MEMORY_WORDS, 32768)
+	equal(machine.word(68719476735), 68719476735)
+	equal(machine.word(68719476736), 0)
+	equal(machine.word(-1), 68719476735)
+	equal(machine.address(32767), 32767)
+	equal(machine.address(32768), 0)
+	equal(machine.address(-1), 32767)
+})
+
+run("machine state is zero initialized", () {
+	let m = machine.new()
+	equal(machine.memory_size(m), 32768)
+	equal(machine.load_word(m, 0), 0)
+	equal(machine.load_word(m, 32767), 0)
+	equal(machine.pc(m), 0)
+	equal(machine.ac(m), 0)
+	equal(machine.xr(m, 1), 0)
+	equal(machine.xr(m, 2), 0)
+	equal(machine.xr(m, 4), 0)
+	equal(machine.xr(m, 6), 0)
+	equal(machine.xr(m, 7), 0)
+})
+
+run("memory and registers preserve machine widths", () {
+	let m = machine.new()
+	machine.store_word(m, -1, -1)
+	equal(machine.load_word(m, 32767), 68719476735)
+	machine.set_pc(m, 32770)
+	equal(machine.pc(m), 2)
+	machine.set_ac(m, 68719476738)
+	equal(machine.ac(m), 2)
+	machine.set_xr(m, 1, -1)
+	equal(machine.xr(m, 1), 32767)
+})
+
+run("unsupported index tags do not alias machine registers", () {
+	let m = machine.new()
+	faults(() { machine.xr(m, 3) })
+	faults(() { machine.set_xr(m, 5, 1) })
+})
+
+run("instruction encoding matches IBM 7094 field geometry and octal codes", () {
+	# Expected decimal values correspond to these 12-digit octal words:
+	#   TRA 1          002000000001
+	#   TSX 100,4      007400400144
+	#   TXI 9,7,-1     177777700011
+	#   TXH 100,1,-97  377637100144
+	#   TXL 100,1,-98  777636100144
+	equal(instruction.encode(:TRA, 1, 0, 0), 268435457)
+	equal(instruction.encode(:TSX, 100, 4, 0), 1006764132)
+	equal(instruction.encode(:TXI, 9, 7, -1), 17179836425)
+	equal(instruction.encode(:TXH, 100, 1, -97), 34334343268)
+	equal(instruction.encode(:TXL, 100, 1, -98), 68693819492)
+
+	let type_a = instruction.encode(:TXI, 1234, 7, -1)
+	equal(instruction.opcode(type_a), :TXI)
+	equal(instruction.address_field(type_a), 1234)
+	equal(instruction.tag_field(type_a), 7)
+	equal(instruction.decrement_field(type_a), 32767)
+
+	let ordinary = instruction.encode(:TRA, 222, 4, 0)
+	equal(instruction.opcode(ordinary), :TRA)
+	equal(instruction.address_field(ordinary), 222)
+	equal(instruction.tag_field(ordinary), 4)
+
+	let changed = instruction.replace_address(ordinary, 999)
+	equal(instruction.address_field(changed), 999)
+	equal(instruction.opcode(changed), :TRA)
+	equal(instruction.tag_field(changed), 4)
+})
+
+run("all fourteen opcodes round trip", () {
+	let ops = [:TRA, :TSX, :TXL, :TXH, :TXI, :AXC, :LAC, :SCA, :PCA, :PAC, :CLA, :CAL, :ACL, :SLW]
+	let index = 0
+	while index < length(ops) {
+		let encoded = instruction.encode(ops[index], 17, 1, 3)
+		equal(instruction.opcode(encoded), ops[index])
+		index = index + 1
+	}
+})
+
+run("ordinary instructions use the published IBM operation fields", () {
+	equal(instruction.encode(:AXC, 7, 6, 0), 42882760711)    # 477400600007
+	equal(instruction.encode(:LAC, 50, 7, 0), 5855477810)    # 053500700062
+	equal(instruction.encode(:SCA, 50, 6, 0), 6945964082)    # 063600600062
+	equal(instruction.encode(:PCA, 0, 4, 0), 8288075776)     # 075600400000
+	equal(instruction.encode(:PAC, 0, 2, 0), 8036352000)     # 073700200000
+	equal(instruction.encode(:CLA, 100, 0, 0), 5368709220)   # 050000000144
+	equal(instruction.encode(:CAL, 101, 0, 0), 39728447589)  # 450000000145
+	equal(instruction.encode(:ACL, 102, 0, 0), 4043309158)   # 036100000146
+	equal(instruction.encode(:SLW, 103, 0, 0), 6476005479)   # 060200000147
+})
+
+run("effective addressing subtracts the selected index register", () {
+	let m = machine.new()
+	machine.set_xr(m, 4, 5)
+	equal(machine.effective_address(m, 20, 4), 15)
+	equal(machine.effective_address(m, 2, 4), 32765)
+	equal(machine.effective_address(m, 20, 0), 20)
+})
+
+run("TRA and TSX implement transfer conventions", () {
+	let m = machine.new()
+	machine.set_xr(m, 2, complement15(40))
+	put(m, 10, :TRA, 1, 2, 0)
+	machine.set_pc(m, 10)
+	equal(machine.step(m), [@step, 10, :TRA, 41])
+	equal(machine.pc(m), 41)
+
+	put(m, 20, :TSX, 100, 4, 0)
+	machine.set_pc(m, 20)
+	machine.step(m)
+	equal(machine.xr(m, 4), complement15(20))
+	equal(machine.pc(m), 100)
+})
+
+run("TXL and TXH perform Thompson character bounds test", () {
+	let m = machine.new()
+	machine.set_xr(m, 1, complement15(97))
+	put(m, 0, :TXL, 100, 1, -98)
+	put(m, 1, :TXH, 100, 1, -97)
+	machine.set_pc(m, 0)
+	machine.step(m)
+	equal(machine.pc(m), 1)
+	machine.step(m)
+	equal(machine.pc(m), 2)
+
+	machine.set_xr(m, 1, complement15(98))
+	machine.set_pc(m, 0)
+	machine.step(m)
+	equal(machine.pc(m), 100)
+})
+
+run("TXI updates an index modulo 15 bits and transfers", () {
+	let m = machine.new()
+	machine.set_xr(m, 7, 0)
+	put(m, 5, :TXI, 9, 7, -1)
+	machine.set_pc(m, 5)
+	machine.step(m)
+	equal(machine.xr(m, 7), 32767)
+	equal(machine.pc(m), 9)
+})
+
+run("AXC LAC and SCA move complemented address state", () {
+	let m = machine.new()
+	put(m, 0, :AXC, 7, 6, 0)
+	machine.set_pc(m, 0)
+	machine.step(m)
+	equal(machine.xr(m, 6), complement15(7))
+
+	let template = instruction.encode(:TRA, 123, 0, 0)
+	machine.store_word(m, 50, template)
+	put(m, 1, :LAC, 50, 7, 0)
+	machine.set_pc(m, 1)
+	machine.step(m)
+	equal(machine.xr(m, 7), complement15(123))
+
+	machine.set_xr(m, 6, complement15(77))
+	put(m, 2, :SCA, 50, 6, 0)
+	machine.set_pc(m, 2)
+	machine.step(m)
+	equal(instruction.address_field(machine.load_word(m, 50)), 77)
+	equal(instruction.opcode(machine.load_word(m, 50)), :TRA)
+
+	put(m, 3, :SCA, 50, 0, 0)
+	machine.set_pc(m, 3)
+	machine.step(m)
+	equal(instruction.address_field(machine.load_word(m, 50)), 0)
+})
+
+run("PCA and PAC round trip a complemented address through AC", () {
+	let m = machine.new()
+	machine.set_xr(m, 4, complement15(321))
+	put(m, 0, :PCA, 0, 4, 0)
+	machine.set_pc(m, 0)
+	machine.step(m)
+	equal(instruction.address_field(machine.ac(m)), 321)
+
+	put(m, 1, :PAC, 0, 2, 0)
+	machine.set_pc(m, 1)
+	machine.step(m)
+	equal(machine.xr(m, 2), complement15(321))
+})
+
+run("CLA CAL ACL and SLW preserve Thompson's logical AC behavior", () {
+	let m = machine.new()
+	# CLA clears logical P; memory S is not copied into P.
+	machine.store_word(m, 100, 68719476735)
+	put(m, 0, :CLA, 100, 0, 0)
+	machine.set_pc(m, 0)
+	machine.step(m)
+	equal(machine.ac(m), 34359738367)
+
+	# CAL maps memory S,1-35 directly to logical AC P,1-35.
+	machine.store_word(m, 101, 68719476735)
+	put(m, 1, :CAL, 101, 0, 0)
+	machine.set_pc(m, 1)
+	machine.step(m)
+	equal(machine.ac(m), 68719476735)
+
+	machine.set_ac(m, 68719476735)
+	machine.store_word(m, 102, 1)
+	put(m, 2, :ACL, 102, 0, 0)
+	machine.set_pc(m, 2)
+	machine.step(m)
+	equal(machine.ac(m), 1)
+
+	put(m, 3, :SLW, 103, 0, 0)
+	machine.set_pc(m, 3)
+	machine.step(m)
+	equal(machine.load_word(m, 103), 1)
+})
+
+run("small hand-authored program runs to a host stop address", () {
+	let m = machine.new()
+	put(m, 0, :AXC, 5, 1, 0)
+	put(m, 1, :TXI, 2, 1, 1)
+	put(m, 2, :TRA, 4, 0, 0)
+	machine.set_pc(m, 0)
+	equal(machine.run(m, 10, 4), [@stopped, 3, 4])
+	equal(machine.xr(m, 1), complement15(4))
+})
+
+run("trace is observational and records executed state transitions", () {
+	let m = machine.new()
+	put(m, 0, :TRA, 2, 0, 0)
+	machine.set_pc(m, 0)
+	let result = machine.run_trace(m, 5, 2)
+	equal(result, [@stopped, 1, 2, [[@step, 0, :TRA, 2]]])
+})
+
+run("unsupported words report a machine error", () {
+	let m = machine.new()
+	machine.store_word(m, 0, 0)
+	machine.set_pc(m, 0)
+	error(machine.step(m))
+})
+
+run("channel monitor owns machine access through commands", () {
+	let m = machine.new()
+	let monitor = service.start(m)
+	let program = [
+		instruction.encode(:AXC, 5, 1, 0),
+		instruction.encode(:TXI, 2, 1, 1),
+		instruction.encode(:TRA, 4, 0, 0)
+	]
+	equal(service.load_program(monitor, 0, program), 3)
+	equal(service.examine(monitor, 0), program[0])
+	equal(service.set_pc(monitor, 0), true)
+	equal(service.run(monitor, 10, 4), [@stopped, 3, 4])
+	equal(service.pc(monitor), 4)
+	equal(service.stop(monitor), true)
+})

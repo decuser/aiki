@@ -1,0 +1,166 @@
+package "thompson_7094_runtime"
+
+let instruction = import("./instruction")
+let machine = import("./machine")
+
+# Fixed experiment layout. These locations are reconstruction choices; the
+# instruction streams stored at them are Thompson's published runtime and
+# object code expressed with actual IBM 7094 instruction words.
+let CODE = 1000
+let CNODE = 1100
+let TSXCMD = CNODE + 9
+let NNODE = 1120
+let FAIL = 1130
+let XCHG = 1140
+let X1 = XCHG + 2
+let X2 = XCHG + 7
+let TRACMD = XCHG + 15
+let INIT = 1160
+let GETCHA = 1170
+let FOUND = 1171
+let CLIST = 2000
+let NLIST = 2100
+
+let put = (m, location, op, y, tag, decrement) {
+	let word = instruction.encode(op, y, tag, decrement)
+	machine.store_word(m, location, word)
+	return word
+}
+
+let install = (m) {
+	# CNODE -- Thompson 1968, p. 421.
+	# The address field of CNODE is a self-modifying CLIST count.
+	put(m, CNODE + 0, :AXC, 0, 7, 0)
+	put(m, CNODE + 1, :CAL, CLIST, 7, 0)
+	put(m, CNODE + 2, :SLW, CLIST + 1, 7, 0)
+	put(m, CNODE + 3, :PCA, 0, 4, 0)
+	put(m, CNODE + 4, :ACL, TSXCMD, 0, 0)
+	put(m, CNODE + 5, :SLW, CLIST, 7, 0)
+	put(m, CNODE + 6, :TXI, CNODE + 7, 7, -1)
+	put(m, CNODE + 7, :SCA, CNODE, 7, 0)
+	put(m, CNODE + 8, :TRA, 2, 4, 0)
+	machine.store_word(m, TSXCMD, instruction.encode(:TSX, 1, 2, 0))
+
+	# NNODE -- Thompson 1968, p. 421.
+	# Its address field is the self-modifying NLIST count.
+	put(m, NNODE + 0, :AXC, 0, 7, 0)
+	put(m, NNODE + 1, :PCA, 0, 4, 0)
+	put(m, NNODE + 2, :ACL, TSXCMD, 0, 0)
+	put(m, NNODE + 3, :SLW, NLIST, 7, 0)
+	put(m, NNODE + 4, :TXI, NNODE + 5, 7, -1)
+	put(m, NNODE + 5, :SCA, NNODE, 7, 0)
+	put(m, NNODE + 6, :TRA, 1, 2, 0)
+
+	# FAIL -- advance to the next entry in CLIST.
+	put(m, FAIL, :TRA, 1, 2, 0)
+
+	# XCHG -- exchange NLIST into CLIST, obtain next character, start a new
+	# search at CODE, then execute the current-list paths.
+	put(m, XCHG + 0, :LAC, NNODE, 7, 0)
+	put(m, XCHG + 1, :AXC, 0, 6, 0)
+	put(m, X1, :TXL, X2, 7, 0)
+	put(m, XCHG + 3, :TXI, XCHG + 4, 7, 1)
+	put(m, XCHG + 4, :CAL, NLIST, 7, 0)
+	put(m, XCHG + 5, :SLW, CLIST, 6, 0)
+	put(m, XCHG + 6, :TXI, X1, 6, -1)
+	put(m, X2, :CLA, TRACMD, 0, 0)
+	put(m, XCHG + 8, :SLW, CLIST, 6, 0)
+	put(m, XCHG + 9, :SCA, CNODE, 6, 0)
+	put(m, XCHG + 10, :SCA, NNODE, 0, 0)
+	put(m, XCHG + 11, :TSX, GETCHA, 4, 0)
+	put(m, XCHG + 12, :PAC, 0, 1, 0)
+	put(m, XCHG + 13, :TSX, CODE, 2, 0)
+	put(m, XCHG + 14, :TRA, CLIST, 0, 0)
+	machine.store_word(m, TRACMD, instruction.encode(:TRA, XCHG, 0, 0))
+
+	# INIT -- clear NLIST count and enter XCHG.
+	put(m, INIT + 0, :SCA, NNODE, 0, 0)
+	put(m, INIT + 1, :TRA, XCHG, 0, 0)
+
+	return true
+}
+
+let published_words = (closure_entry) {
+	return [
+		instruction.encode(:TRA, CODE + 1, 0, 0),
+		instruction.encode(:TXL, FAIL, 1, -98),
+		instruction.encode(:TXH, FAIL, 1, -97),
+		instruction.encode(:TSX, NNODE, 4, 0),
+		instruction.encode(:TRA, closure_entry, 0, 0),
+		instruction.encode(:TXL, FAIL, 1, -99),
+		instruction.encode(:TXH, FAIL, 1, -98),
+		instruction.encode(:TSX, NNODE, 4, 0),
+		instruction.encode(:TRA, CODE + 16, 0, 0),
+		instruction.encode(:TXL, FAIL, 1, -100),
+		instruction.encode(:TXH, FAIL, 1, -99),
+		instruction.encode(:TSX, NNODE, 4, 0),
+		instruction.encode(:TRA, CODE + 16, 0, 0),
+		instruction.encode(:TSX, CNODE, 4, 0),
+		instruction.encode(:TRA, CODE + 9, 0, 0),
+		instruction.encode(:TRA, CODE + 5, 0, 0),
+		instruction.encode(:TSX, CNODE, 4, 0),
+		instruction.encode(:TRA, CODE + 13, 0, 0),
+		instruction.encode(:TRA, CODE + 19, 0, 0),
+		instruction.encode(:TXL, FAIL, 1, -101),
+		instruction.encode(:TXH, FAIL, 1, -100),
+		instruction.encode(:TSX, NNODE, 4, 0),
+		instruction.encode(:TRA, FOUND, 0, 0)
+	]
+}
+
+let load_words = (m, words) {
+	let index = 0
+	while index < length(words) {
+		machine.store_word(m, CODE + index, words[index])
+		index = index + 1
+	}
+	return words
+}
+
+let install_published_code = (m) {
+	# Thompson p. 421 publishes location 4 as TRA CODE+16.
+	return load_words(m, published_words(CODE + 16))
+}
+
+let clear_lists = (m) {
+	# The runtime list regions are experiment workspace, not architectural
+	# devices. Clearing a bounded display/work area makes monitor reset
+	# deterministic and prevents stale list entries from confusing inspection.
+	let i = 0
+	while i < 64 {
+		machine.store_word(m, CLIST + i, 0)
+		machine.store_word(m, NLIST + i, 0)
+		i = i + 1
+	}
+	return true
+}
+
+let prepare_published = () {
+	let m = machine.new()
+	install(m)
+	clear_lists(m)
+	install_published_code(m)
+	machine.set_pc(m, INIT)
+	return m
+}
+
+export(
+	:CODE,
+	:CNODE,
+	:TSXCMD,
+	:NNODE,
+	:FAIL,
+	:XCHG,
+	:X1,
+	:X2,
+	:TRACMD,
+	:INIT,
+	:GETCHA,
+	:FOUND,
+	:CLIST,
+	:NLIST,
+	:install,
+	:clear_lists,
+	:install_published_code,
+	:prepare_published
+)

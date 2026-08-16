@@ -1,0 +1,172 @@
+package "thompson_7094_instruction"
+
+let bits = import("bits")
+
+let WORD_BITS = 36
+let ADDRESS_BITS = 15
+let TAG_BITS = 3
+let DECREMENT_BITS = 15
+
+# IBM numbers word positions from the left as S,1,...,35. In the numeric
+# representation used here, IBM position 35 is the least-significant bit.
+let ADDRESS_SHIFT = 0
+let TAG_SHIFT = 15
+let DECREMENT_SHIFT = 18
+let OPERATION_SHIFT = 24
+let TYPE_A_OPERATION_SHIFT = 33
+
+# Actual IBM 7094 operation encodings from Principles of Operation.
+# Decimal constants are used because Aiki has no octal literal syntax.
+# Comments retain the IBM octal notation.
+let OP_TRA = 16      # +0020
+let OP_TSX = 60      # +0074
+let OP_AXC = 2556    # -0774 => sign bit set: 4774 in the 12-bit field
+let OP_LAC = 349     # +0535
+let OP_SCA = 414     # +0636
+let OP_PCA = 494     # +0756
+let OP_PAC = 479     # +0737
+let OP_CLA = 320     # +0500
+let OP_CAL = 2368    # -0500 => sign bit set: 4500 in the 12-bit field
+let OP_ACL = 241     # +0361
+let OP_SLW = 386     # +0602
+
+# Type-A transfer instructions use positions S,1,2 for the operation and
+# positions 3-17 for the decrement.
+let TYPE_A_TXI = 1   # +1 / table code +1000
+let TYPE_A_TXH = 3   # +3 / table code +3000
+let TYPE_A_TXL = 7   # -3 / table code -3000
+
+let address = (value) {
+	bits.low(value, ADDRESS_BITS)
+}
+
+let tag = (value) {
+	bits.low(value, TAG_BITS)
+}
+
+let decrement = (value) {
+	let modulus = bits.shl(1, DECREMENT_BITS)
+	let integral = truncate(value)
+	if not equal(value, integral) {
+		return bits.low(value, DECREMENT_BITS)
+	}
+	if integral >= 0 {
+		return bits.low(integral, DECREMENT_BITS)
+	}
+	let quotient = truncate(integral / modulus)
+	let remainder = integral - (quotient * modulus)
+	if remainder < 0 {
+		return remainder + modulus
+	}
+	return remainder
+}
+
+let b_opcode = (op) {
+	match op {
+		:TRA { return OP_TRA }
+		:TSX { return OP_TSX }
+		:AXC { return OP_AXC }
+		:LAC { return OP_LAC }
+		:SCA { return OP_SCA }
+		:PCA { return OP_PCA }
+		:PAC { return OP_PAC }
+		:CLA { return OP_CLA }
+		:CAL { return OP_CAL }
+		:ACL { return OP_ACL }
+		:SLW { return OP_SLW }
+	}
+	return [@error, :instruction, "unsupported opcode"]
+}
+
+let encode = (op, y, t, d) {
+	let low = address(y) + bits.shl(tag(t), TAG_SHIFT)
+	match op {
+		:TXI {
+			return low + bits.shl(decrement(d), DECREMENT_SHIFT) + bits.shl(TYPE_A_TXI, TYPE_A_OPERATION_SHIFT)
+		}
+		:TXH {
+			return low + bits.shl(decrement(d), DECREMENT_SHIFT) + bits.shl(TYPE_A_TXH, TYPE_A_OPERATION_SHIFT)
+		}
+		:TXL {
+			return low + bits.shl(decrement(d), DECREMENT_SHIFT) + bits.shl(TYPE_A_TXL, TYPE_A_OPERATION_SHIFT)
+		}
+		_ {
+			let code = b_opcode(op)
+			if is_error(code) {
+				return code
+			}
+			return low + bits.shl(code, OPERATION_SHIFT)
+		}
+	}
+}
+
+let address_field = (word) {
+	bits.extract(word, ADDRESS_SHIFT, ADDRESS_BITS)
+}
+
+let tag_field = (word) {
+	bits.extract(word, TAG_SHIFT, TAG_BITS)
+}
+
+let decrement_field = (word) {
+	bits.extract(word, DECREMENT_SHIFT, DECREMENT_BITS)
+}
+
+let operation_field = (word) {
+	bits.extract(word, OPERATION_SHIFT, 12)
+}
+
+let type_a_operation = (word) {
+	bits.extract(word, TYPE_A_OPERATION_SHIFT, 3)
+}
+
+let opcode = (word) {
+	let type_a = type_a_operation(word)
+	if equal(type_a, TYPE_A_TXI) {
+		return :TXI
+	}
+	if equal(type_a, TYPE_A_TXH) {
+		return :TXH
+	}
+	if equal(type_a, TYPE_A_TXL) {
+		return :TXL
+	}
+
+	let code = operation_field(word)
+	match code {
+		16 { return :TRA }
+		60 { return :TSX }
+		2556 { return :AXC }
+		349 { return :LAC }
+		414 { return :SCA }
+		494 { return :PCA }
+		479 { return :PAC }
+		320 { return :CLA }
+		2368 { return :CAL }
+		241 { return :ACL }
+		386 { return :SLW }
+	}
+	return [@error, :instruction, "unsupported opcode"]
+}
+
+let replace_address = (word, value) {
+	bits.replace(word, ADDRESS_SHIFT, ADDRESS_BITS, address(value))
+}
+
+export(
+	:WORD_BITS,
+	:ADDRESS_BITS,
+	:TAG_BITS,
+	:DECREMENT_BITS,
+	:ADDRESS_SHIFT,
+	:TAG_SHIFT,
+	:DECREMENT_SHIFT,
+	:OPERATION_SHIFT,
+	:encode,
+	:opcode,
+	:address_field,
+	:tag_field,
+	:decrement_field,
+	:operation_field,
+	:replace_address
+)

@@ -1,0 +1,76 @@
+use("test")
+let monitor = import("./monitor")
+let instruction = import("./instruction")
+let runtime = import("./runtime")
+
+run("monitor uses IBM-style octal presentation", () {
+	equal(monitor.address_text(1000), "01750")
+	equal(monitor.word_text(instruction.encode(:TRA, 1001, 0, 0)), "002000001751")
+	equal(monitor.parse_octal("01750"), 1000)
+	equal(monitor.parse_octal("0o1750"), 1000)
+	error(monitor.parse_octal("018"))
+})
+
+run("monitor disassembles supported machine words", () {
+	equal(monitor.disassemble(instruction.encode(:TRA, 1001, 0, 0)), "TRA 01751")
+	equal(monitor.disassemble(instruction.encode(:TSX, runtime.NNODE, 4, 0)), "TSX 02140,4")
+})
+
+run("monitor owns state through service commands", () {
+	let s = monitor.new()
+	let r = monitor.registers(s)
+	equal(r[0], runtime.INIT)
+	monitor.deposit(s, 77, instruction.encode(:TRA, 88, 0, 0))
+	equal(monitor.examine(s, 77), instruction.encode(:TRA, 88, 0, 0))
+	monitor.reset_session(s)
+	equal(monitor.registers(s)[0], runtime.INIT)
+	monitor.close(s)
+})
+
+run("host-aware stepping services GETCHA and FOUND", () {
+	let s = monitor.new()
+	monitor.set_input(s, "ad")
+	let result = monitor.run(s, 10000, -1)
+	equal(shape(result), :eof)
+	equal(monitor.matches(s), [2])
+	monitor.close(s)
+})
+
+run("trace remains observationally useful across host boundaries", () {
+	let s = monitor.new()
+	monitor.set_input(s, "ad")
+	let records = monitor.trace(s, 8)
+	is_true(length(records) > 0)
+	is_true(length(monitor.format_trace(s, records)) > 0)
+	monitor.close(s)
+})
+
+run("monitor can write registers and bulk-load memory through the service", () {
+	let s = monitor.new()
+	monitor.set_pc(s, 123)
+	monitor.set_ac(s, 456)
+	monitor.set_xr(s, 1, 7)
+	equal(monitor.registers(s)[0], 123)
+	equal(monitor.registers(s)[1], 456)
+	equal(monitor.registers(s)[2], 7)
+	monitor.load_words(s, 200, [1, 2, 3])
+	equal(monitor.examine(s, 200), 1)
+	equal(monitor.examine(s, 202), 3)
+	monitor.close(s)
+})
+
+run("operator controller can run asynchronously and stop at an instruction boundary", () {
+	let operator = import("./operator")
+	let s = monitor.new()
+	monitor.deposit(s, 0, instruction.encode(:TRA, 0, 0, 0))
+	monitor.set_pc(s, 0)
+	let ctl = operator.new(s)
+	is_true(operator.run(ctl, 1000000))
+	is_true(operator.active(ctl))
+	is_true(operator.interrupt(ctl))
+	let result = operator.wait(ctl)
+	equal(shape(result), :stopped)
+	equal(result[1], 0)
+	operator.close(ctl)
+	monitor.close(s)
+})

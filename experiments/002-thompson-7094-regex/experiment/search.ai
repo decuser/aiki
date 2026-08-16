@@ -1,0 +1,65 @@
+package "thompson_7094_search"
+
+let machine = import("./machine")
+let runtime = import("./runtime")
+
+# Execute Thompson's machine program with two explicit host hooks.
+# GETCHA is specified by Thompson only by contract: it supplies the next
+# character right-adjusted in AC and terminates at end of text. FOUND is
+# application-defined in the paper. Here FOUND records a signal and resumes at
+# the next CLIST entry (the same continuation convention as FAIL), allowing all
+# matches to be observed.
+let execute = (m, text, limit) {
+	let cursor = 0
+	let eof_sent = false
+	let found_ends = []
+	let steps = 0
+	let done = false
+
+	while (not done) and (steps < limit) {
+		let pc = machine.pc(m)
+		if equal(pc, runtime.GETCHA) {
+			if cursor < length(text) {
+				machine.set_ac(m, ord(text[cursor]))
+				cursor = cursor + 1
+				machine.set_pc(m, machine.effective_address(m, 1, 4))
+			} else {
+				if not eof_sent {
+					# Thompson requires one extra end-of-file character to pass
+					# through the search to flush the one-character-delayed FOUND.
+					# Zero is an experiment-level nonmatching sentinel.
+					machine.set_ac(m, 0)
+					cursor = cursor + 1
+					eof_sent = true
+					machine.set_pc(m, machine.effective_address(m, 1, 4))
+				} else {
+					done = true
+				}
+			}
+		} else {
+			if equal(pc, runtime.FOUND) {
+				# FOUND occurs one character after the match. cursor-1 is
+				# therefore the exclusive end offset of the matching substring.
+				found_ends = append(found_ends, cursor - 1)
+				machine.set_pc(m, machine.effective_address(m, 1, 2))
+			} else {
+				let result = machine.step(m)
+				if is_error(result) {
+					return result
+				}
+				steps = steps + 1
+			}
+		}
+	}
+
+	if not done {
+		return [@error, :search, "instruction limit reached"]
+	}
+	return [@search, found_ends, steps]
+}
+
+let run = (text, limit) {
+	execute(runtime.prepare_published(), text, limit)
+}
+
+export(:execute, :run)

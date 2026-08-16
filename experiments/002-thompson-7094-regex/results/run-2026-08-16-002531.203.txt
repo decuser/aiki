@@ -1,0 +1,29 @@
+Experiment 002 — Thompson 7094 Regex Reconstruction
+Phases I–IV — machine, Thompson reconstruction, compiler, and operator monitor
+
+Aiki executable: /home/wsenn/forge/dev/aiki/aiki
+Aiki version:    aiki v0.4.0-alpha-26
+
+--- Phase I machine corpus ---
+warning: shadowing prelude function 'reset'
+PASS machine_test.ai
+
+96 tests, 96 passed, 0 failed
+
+--- Phase II Thompson corpus ---
+PASS phase2_test.ai
+
+59 tests, 59 passed, 0 failed
+
+--- Phase III compiler corpus ---
+PASS phase3_test.ai
+
+39 tests, 39 passed, 0 failed
+
+--- Phase IV monitor corpus ---
+warning: shadowing prelude function 'reset'
+warning: shadowing prelude function 'reset'
+FAIL monitor_test.ai
+  FAIL monitor uses IBM-style octal presentation (monitor_test.ai:10): expected 1000, got [@error, :monitor, "invalid octal number"]
+
+14 tests, 13 passed, 1 failed

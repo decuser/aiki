@@ -1,0 +1,249 @@
+let monitor = import("./monitor")
+let operator = import("./operator")
+let file = import("file")
+let str = import("string")
+let system = import("system")
+
+let session = monitor.new()
+let controller = operator.new(session)
+let alive = true
+let logging = false
+let log_handle = []
+
+let emit = (text) {
+	println(text)
+	if logging { file.write_text(log_handle, text + "\n") }
+}
+
+let is_comment = (text) {
+	if equal(text, "") { return false }
+	return equal(ord(text[0]), 35)
+}
+
+let show_help = () {
+	emit("commands:")
+	emit("  help                       show this help")
+	emit("  input TEXT                 reset and set Thompson search input")
+	emit("  step [N]                   execute N machine/host steps (default 1)")
+	emit("  run [LIMIT]                start running asynchronously (default 100000)")
+	emit("  stop                       operator stop at an instruction boundary")
+	emit("  status                     show running/halted result")
+	emit("  wait                       wait for the current run to stop")
+	emit("  trace [N]                  execute and display N traced steps (default 10)")
+	emit("  show registers             display IC, AC, and Thompson index registers")
+	emit("  show code [N]              disassemble generated CODE (default 23)")
+	emit("  show clist [N]             display CLIST words (default 12)")
+	emit("  show nlist [N]             display NLIST words (default 12)")
+	emit("  show matches               display FOUND end offsets")
+	emit("  examine OCTAL [N]          examine memory (default 1)")
+	emit("  deposit OCTAL OCTAL        deposit a 36-bit word")
+	emit("  set ic OCTAL               set instruction counter")
+	emit("  set ac OCTAL               set logical accumulator")
+	emit("  set xr1|xr2|xr4|xr6|xr7 N set an index register")
+	emit("  load OCTAL FILE            load one octal word per line")
+	emit("  reset                      restore Thompson runtime/object program")
+	emit("  log FILE | log off         write monitor output to a file")
+	emit("  do FILE                    execute commands from FILE")
+	emit("  quit                       leave the monitor")
+}
+
+let number_arg = (parts, index, fallback) {
+	if index >= length(parts) { return fallback }
+	let n = parts[index] |> monitor.parse_octal()
+	if is_error(n) { emit(inspect(n)); return fallback }
+	return n
+}
+
+let require_halted = () {
+	if operator.active(controller) {
+		emit("machine is running; use stop or wait first")
+		return false
+	}
+	return true
+}
+
+let set_register = (parts) {
+	if length(parts) < 3 { emit("set requires a register and octal value"); return true }
+	let value = parts[2] |> monitor.parse_octal()
+	if is_error(value) { emit(inspect(value)); return true }
+	match parts[1] {
+		"ic" { monitor.set_pc(session, value) }
+		"ac" { monitor.set_ac(session, value) }
+		"xr1" { monitor.set_xr(session, 1, value) }
+		"xr2" { monitor.set_xr(session, 2, value) }
+		"xr4" { monitor.set_xr(session, 4, value) }
+		"xr6" { monitor.set_xr(session, 6, value) }
+		"xr7" { monitor.set_xr(session, 7, value) }
+		_ { emit("unknown register"); return true }
+	}
+	emit(monitor.format_registers(session))
+	return true
+}
+
+let load_file = (origin, path) {
+	let f = file.open(path, :read)
+	if is_error(f) { emit(inspect(f)); return true }
+	let words = []
+	let reading = true
+	let failed = false
+	while reading {
+		let line = file.read_line(f)
+		match line {
+			[@end] { reading = false }
+			[@error, _, _] { emit(inspect(line)); failed = true; reading = false }
+			_ {
+				let clean = line |> str.trim()
+				if not equal(clean, "") {
+					if not is_comment(clean) {
+						let word = clean |> monitor.parse_octal()
+						if is_error(word) { emit("invalid octal word: " + clean); failed = true; reading = false } else { words = append(words, word) }
+					}
+				}
+			}
+		}
+	}
+	file.close(f)
+	if failed { return true }
+	monitor.load_words(session, origin, words)
+	emit("loaded " + to_str(length(words)) + " words at " + monitor.address_text(origin))
+	return true
+}
+
+let execute = (line) {
+	let clean = line |> str.trim()
+	if equal(clean, "") { return true }
+	if is_comment(clean) { return true }
+	let parts = clean |> str.split(" ")
+	let cmd = parts[0]
+
+	match cmd {
+		"help" { show_help() }
+		"status" { emit(inspect(operator.status(controller))) }
+		"stop" {
+			if operator.interrupt(controller) { emit("operator stop accepted") } else { emit("machine is halted") }
+		}
+		"wait" { emit(inspect(operator.wait(controller))) }
+		"run" {
+			if not operator.active(controller) {
+				let limit = number_arg(parts, 1, 100000)
+				let result = operator.run(controller, limit)
+				if is_error(result) { emit(inspect(result)) } else { emit("running") }
+			} else { emit("machine is already running") }
+		}
+		_ {
+			if not require_halted() { return true }
+			match cmd {
+				"input" {
+					let text = ""
+					if length(clean) > 6 { text = str.substring(clean, 6, length(clean)) }
+					monitor.set_input(session, text)
+					emit("input set; machine reset to INIT")
+				}
+				"step" {
+					let count = number_arg(parts, 1, 1)
+					let i = 0
+					while i < count {
+						let before = monitor.registers(session)[0]
+						let result = monitor.step(session)
+						emit(monitor.address_text(before) + "  " + inspect(result))
+						if equal(shape(result), :eof) { return true }
+						i = i + 1
+					}
+				}
+				"trace" {
+					let count = number_arg(parts, 1, 8)
+					let records = monitor.trace(session, count)
+					if is_error(records) { emit(inspect(records)) } else { emit(monitor.format_trace(session, records)) }
+				}
+				"show" {
+					if length(parts) < 2 { emit("show requires registers, code, clist, nlist, or matches"); return true }
+					match parts[1] {
+						"registers" { emit(monitor.format_registers(session)) }
+						"code" { emit(monitor.code(session, number_arg(parts, 2, 23))) }
+						"clist" { emit(monitor.clist(session, number_arg(parts, 2, 12))) }
+						"nlist" { emit(monitor.nlist(session, number_arg(parts, 2, 12))) }
+						"matches" { emit(inspect(monitor.matches(session))) }
+						_ { emit("unknown show target") }
+					}
+				}
+				"examine" {
+					if length(parts) < 2 { emit("examine requires an octal address"); return true }
+					let origin = parts[1] |> monitor.parse_octal()
+					if is_error(origin) { emit(inspect(origin)); return true }
+					emit(monitor.format_memory(session, origin, number_arg(parts, 2, 1)))
+				}
+				"deposit" {
+					if length(parts) < 3 { emit("deposit requires octal address and word"); return true }
+					let location = parts[1] |> monitor.parse_octal()
+					let value = parts[2] |> monitor.parse_octal()
+					if is_error(location) { emit(inspect(location)); return true }
+					if is_error(value) { emit(inspect(value)); return true }
+					monitor.deposit(session, location, value)
+					emit(monitor.format_memory(session, location, 1))
+				}
+				"set" { set_register(parts) }
+				"load" {
+					if length(parts) < 3 { emit("load requires octal origin and file"); return true }
+					let origin = parts[1] |> monitor.parse_octal()
+					if is_error(origin) { emit(inspect(origin)); return true }
+					load_file(origin, parts[2])
+				}
+				"reset" { monitor.reset_session(session); emit("machine reset to Thompson INIT") }
+				"log" {
+					if length(parts) < 2 { emit("log requires FILE or off"); return true }
+					match parts[1] {
+						"off" {
+							if logging { file.close(log_handle); logging = false; log_handle = [] }
+							println("logging off")
+						}
+						_ {
+							if logging { file.close(log_handle) }
+							let opened = file.open(parts[1], :write)
+							if is_error(opened) { println(inspect(opened)); logging = false; log_handle = [] } else {
+								log_handle = opened
+								logging = true
+								emit("logging to " + parts[1])
+							}
+						}
+					}
+				}
+				"do" {
+					if length(parts) < 2 { emit("do requires a command file"); return true }
+					let f = file.open(parts[1], :read)
+					if is_error(f) { emit(inspect(f)); return true }
+					let reading = true
+					while reading {
+						let line2 = file.read_line(f)
+						match line2 {
+							[@end] { reading = false }
+							_ { emit("7094> " + line2); execute(line2) }
+						}
+					}
+					file.close(f)
+				}
+				"quit" { alive = false }
+				_ { emit("unknown command; type help") }
+			}
+		}
+	}
+	return true
+}
+
+emit("Aiki Thompson 7094 monitor")
+emit("octal input; type help for commands")
+
+let args = system.args()
+if not empty(args) {
+	execute("do " + args[0])
+	alive = false
+}
+
+while alive {
+	print("7094> ")
+	let line = read()
+	execute(line)
+}
+
+operator.close(controller)
+monitor.close(session)
+if logging { file.close(log_handle) }

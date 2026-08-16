@@ -1,0 +1,110 @@
+package "thompson_7094_operator"
+
+let store = import("store")
+let time = import("time")
+
+let STATE_ACTIVE = 0
+let STATE_RESULT = 1
+let STATE_WORDS = 2
+
+# The operator controller is deliberately separate from the machine service.
+# It owns only monitor run-control state. Architectural state remains behind
+# monitor -> service commands, and an operator stop is observed between steps.
+let worker = (session, requests, interrupts, state) {
+	let monitor = import("./monitor")
+	let store = import("store")
+	let state_active = 0
+	let state_result = 1
+	let alive = true
+	while alive {
+		select {
+			let request = recv(requests) {
+				match request {
+					[@run, limit] {
+						let count = 0
+						let running = true
+						while running {
+							select {
+								recv(interrupts) {
+									store.set(state, state_result, [@stopped, count, monitor.registers(session)[0], monitor.matches(session)])
+									running = false
+								}
+								default {
+									if count >= limit {
+										store.set(state, state_result, [@limit, count, monitor.registers(session)[0], monitor.matches(session)])
+										running = false
+									} else {
+										let result = monitor.step(session)
+										if is_error(result) {
+											store.set(state, state_result, result)
+											running = false
+										} else {
+											match shape(result) {
+												:eof {
+													store.set(state, state_result, [@eof, count, monitor.matches(session)])
+													running = false
+												}
+												_ { count = count + 1 }
+											}
+										}
+									}
+								}
+							}
+						}
+						store.set(state, state_active, false)
+					}
+					[@shutdown] { alive = false }
+				}
+			}
+			recv(interrupts) {
+				# An interrupt while halted is harmless and is consumed here.
+			}
+		}
+	}
+}
+
+let new = (session) {
+	let requests = channel()
+	let interrupts = channel()
+	let state = store.new(STATE_WORDS)
+	store.set(state, STATE_ACTIVE, false)
+	store.set(state, STATE_RESULT, [@idle])
+	spawn(worker, session, requests, interrupts, state)
+	return [requests, interrupts, state]
+}
+
+let active = (controller) { store.get(controller[2], STATE_ACTIVE) }
+let status = (controller) {
+	if active(controller) { return [@running] }
+	return store.get(controller[2], STATE_RESULT)
+}
+
+let run = (controller, limit) {
+	if active(controller) { return [@error, :monitor, "machine is already running"] }
+	store.set(controller[2], STATE_ACTIVE, true)
+	store.set(controller[2], STATE_RESULT, [@running])
+	send(controller[0], [@run, limit])
+	return true
+}
+
+let interrupt = (controller) {
+	if not active(controller) { return false }
+	send(controller[1], true)
+	return true
+}
+
+let wait = (controller) {
+	while active(controller) { time.sleep(1) }
+	return status(controller)
+}
+
+let close = (controller) {
+	if active(controller) {
+		interrupt(controller)
+		wait(controller)
+	}
+	send(controller[0], [@shutdown])
+	return true
+}
+
+export(:new, :active, :status, :run, :interrupt, :wait, :close)

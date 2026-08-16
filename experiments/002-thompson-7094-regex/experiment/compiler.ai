@@ -1,0 +1,279 @@
+package "thompson_7094_compiler"
+
+let store = import("store")
+let instruction = import("./instruction")
+let runtime = import("./runtime")
+
+# Thompson describes the compiler as three concurrent stages. Only stage 3 is
+# published in executable detail. Stages 1 and 2 below are deliberately small,
+# conventional reconstructions of the contracts he states: syntax validation
+# plus explicit juxtaposition, then conversion to reverse Polish notation.
+
+let token_kind = (c) {
+	match c {
+		"|" { :or }
+		"." { :juxta }
+		"*" { :closure }
+		"(" { :open }
+		")" { :close }
+		""  { :none }
+		_   { :alpha }
+	}
+}
+
+let can_end_operand = (c) {
+	match token_kind(c) {
+		:alpha { true }
+		:close { true }
+		:closure { true }
+		_ { false }
+	}
+}
+
+# Stage 1: syntax sieve and explicit juxtaposition insertion.
+# This accepts the regular-expression core exercised by Thompson's example:
+# literal characters, grouping, alternation, and closure. '.' is reserved as
+# the explicit concatenation token emitted by this stage.
+let sieve = (source) {
+	if equal(length(source), 0) {
+		return [@error, :compiler, "empty regular expression"]
+	}
+
+	let output = ""
+	let depth = 0
+	let previous = ""
+	let i = 0
+	while i < length(source) {
+		let c = to_str(source[i])
+		match token_kind(c) {
+			:juxta {
+				return [@error, :compiler, "'.' is reserved for inserted juxtaposition"]
+			}
+			:open {
+				if can_end_operand(previous) { output = output + "." }
+				depth = depth + 1
+				output = output + c
+			}
+			:close {
+				if depth <= 0 { return [@error, :compiler, "invalid closing parenthesis"] }
+				if not can_end_operand(previous) { return [@error, :compiler, "invalid closing parenthesis"] }
+				depth = depth - 1
+				output = output + c
+			}
+			:or {
+				if not can_end_operand(previous) { return [@error, :compiler, "invalid alternation"] }
+				output = output + c
+			}
+			:closure {
+				if not can_end_operand(previous) { return [@error, :compiler, "invalid closure"] }
+				output = output + c
+			}
+			:alpha {
+				if can_end_operand(previous) { output = output + "." }
+				output = output + c
+			}
+		}
+		previous = c
+		i = i + 1
+	}
+
+	if not equal(depth, 0) {
+		return [@error, :compiler, "unclosed parenthesis"]
+	}
+	match token_kind(previous) {
+		:or { return [@error, :compiler, "incomplete regular expression"] }
+		:open { return [@error, :compiler, "incomplete regular expression"] }
+		_ { return output }
+	}
+}
+
+let without_last = (xs) {
+	let result = []
+	let i = 0
+	while i < (length(xs) - 1) {
+		result = append(result, xs[i])
+		i = i + 1
+	}
+	return result
+}
+
+let precedence = (op) {
+	match op {
+		"|" { 1 }
+		"." { 2 }
+		_ { 0 }
+	}
+}
+
+# Pop operators into output until an opening parenthesis is exposed.
+let drain_to_open = (output, operators) {
+	let scanning = true
+	while scanning {
+		if empty(operators) {
+			scanning = false
+		} else {
+			let top = operators[length(operators) - 1]
+			if equal(top, "(") {
+				scanning = false
+			} else {
+				output = output + top
+				operators = without_last(operators)
+			}
+		}
+	}
+	return [@drain, output, operators]
+}
+
+# Pop operators whose precedence is at least that of the incoming operator.
+let drain_precedence = (output, operators, incoming) {
+	let scanning = true
+	while scanning {
+		if empty(operators) {
+			scanning = false
+		} else {
+			let top = operators[length(operators) - 1]
+			if equal(top, "(") {
+				scanning = false
+			} else {
+				if precedence(top) >= precedence(incoming) {
+					output = output + top
+					operators = without_last(operators)
+				} else {
+					scanning = false
+				}
+			}
+		}
+	}
+	return [@drain, output, operators]
+}
+
+# Stage 2: conventional infix -> reverse-Polish conversion satisfying the
+# interface Thompson states but does not publish. Closure is postfix already.
+#
+# Aiki boolean operators do not provide control-flow short circuiting. Stack
+# emptiness is therefore tested structurally before any top-of-stack access.
+let reverse_polish = (explicit) {
+	let output = ""
+	let operators = []
+	let i = 0
+	while i < length(explicit) {
+		let c = to_str(explicit[i])
+		match token_kind(c) {
+			:alpha { output = output + c }
+			:closure { output = output + c }
+			:open { operators = append(operators, c) }
+			:close {
+				let drained = drain_to_open(output, operators)
+				output = drained[0]
+				operators = drained[1]
+				if empty(operators) {
+					return [@error, :compiler, "unmatched parenthesis"]
+				}
+				operators = without_last(operators)
+			}
+			_ {
+				let drained = drain_precedence(output, operators, c)
+				output = drained[0]
+				operators = append(drained[1], c)
+			}
+		}
+		i = i + 1
+	}
+
+	while not empty(operators) {
+		let op = operators[length(operators) - 1]
+		if equal(op, "(") {
+			return [@error, :compiler, "unmatched parenthesis"]
+		}
+		output = output + op
+		operators = without_last(operators)
+	}
+	return output
+}
+
+let emit_alpha = (code, stack, pc, lc, c) {
+	let char = ord(c)
+	store.set(code, pc, instruction.encode(:TRA, runtime.CODE + pc + 1, 0, 0))
+	store.set(code, pc + 1, instruction.encode(:TXL, runtime.FAIL, 1, 0 - char - 1))
+	store.set(code, pc + 2, instruction.encode(:TXH, runtime.FAIL, 1, 0 - char))
+	store.set(code, pc + 3, instruction.encode(:TSX, runtime.NNODE, 4, 0))
+	store.set(stack, lc, pc)
+	return [@state, pc + 4, lc + 1]
+}
+
+let emit_closure = (code, stack, pc, lc) {
+	if lc < 1 { return [@error, :compiler, "closure stack underflow"] }
+	let start = store.get(stack, lc - 1)
+	store.set(code, pc, instruction.encode(:TSX, runtime.CNODE, 4, 0))
+	store.set(code, pc + 1, store.get(code, start))
+	store.set(code, start, instruction.encode(:TRA, runtime.CODE + pc, 0, 0))
+	return [@state, pc + 2, lc]
+}
+
+let emit_or = (code, stack, pc, lc) {
+	if lc < 2 { return [@error, :compiler, "alternation stack underflow"] }
+	let right = store.get(stack, lc - 1)
+	let left = store.get(stack, lc - 2)
+	store.set(code, pc, instruction.encode(:TRA, runtime.CODE + pc + 4, 0, 0))
+	store.set(code, pc + 1, instruction.encode(:TSX, runtime.CNODE, 4, 0))
+	store.set(code, pc + 2, store.get(code, right))
+	store.set(code, pc + 3, store.get(code, left))
+	store.set(code, left, instruction.encode(:TRA, runtime.CODE + pc + 1, 0, 0))
+	store.set(code, right, instruction.encode(:TRA, runtime.CODE + pc + 4, 0, 0))
+	return [@state, pc + 4, lc - 1]
+}
+
+# Stage 3: direct reconstruction of Thompson's published ALGOL-60 object-code
+# producer. CODE-relative locations are assembled directly as real 7094 words.
+let produce = (rpn) {
+	let code = store.new(301)
+	let stack = store.new(32)
+	let lc = 0
+	let pc = 0
+	let i = 0
+
+	while i < length(rpn) {
+		let c = to_str(rpn[i])
+		let next = []
+		match token_kind(c) {
+			:juxta {
+				if lc < 2 { return [@error, :compiler, "juxtaposition stack underflow"] }
+				next = [@state, pc, lc - 1]
+			}
+			:closure { next = emit_closure(code, stack, pc, lc) }
+			:or { next = emit_or(code, stack, pc, lc) }
+			:alpha { next = emit_alpha(code, stack, pc, lc, c) }
+			_ { return [@error, :compiler, "unexpected reverse-Polish token"] }
+		}
+		if is_error(next) { return next }
+		pc = next[0]
+		lc = next[1]
+		i = i + 1
+	}
+
+	if not equal(lc, 1) {
+		return [@error, :compiler, "final compiler stack depth is not one"]
+	}
+	store.set(code, pc, instruction.encode(:TRA, runtime.FOUND, 0, 0))
+	pc = pc + 1
+
+	let words = []
+	let at = 0
+	while at < pc {
+		words = append(words, store.get(code, at))
+		at = at + 1
+	}
+	return [@object, words, store.get(stack, 0)]
+}
+
+let compile = (source) {
+	let explicit = source |> sieve()
+	if is_error(explicit) { return explicit }
+	let rpn = explicit |> reverse_polish()
+	if is_error(rpn) { return rpn }
+	let object = rpn |> produce()
+	if is_error(object) { return object }
+	return [@compiled, explicit, rpn, object[0], object[1]]
+}
+
+export(:sieve, :reverse_polish, :produce, :compile)
