@@ -119,6 +119,7 @@ docs/testing.md
 docs/profiling.md
 docs/hal.md
 docs/style.md
+docs/session-history.md
 ```
 
 ## Forthcoming
