@@ -11,21 +11,24 @@ run("monitor uses IBM-style octal presentation", () {
 	error(monitor.parse_octal("018"))
 })
 
+
 run("monitor disassembles supported machine words", () {
 	equal(monitor.disassemble(instruction.encode(:TRA, 1001, 0, 0)), "TRA 01751")
-	equal(monitor.disassemble(instruction.encode(:TSX, runtime.NNODE, 4, 0)), "TSX 02140,4")
+	equal(monitor.disassemble(instruction.encode(:TSX, runtime.nnode, 4, 0)), "TSX 02140,4")
 })
+
 
 run("monitor owns state through service commands", () {
 	let s = monitor.new()
 	let r = monitor.registers(s)
-	equal(r[0], runtime.INIT)
+	equal(r[0], runtime.init)
 	monitor.deposit(s, 77, instruction.encode(:TRA, 88, 0, 0))
 	equal(monitor.examine(s, 77), instruction.encode(:TRA, 88, 0, 0))
 	monitor.reset_session(s)
-	equal(monitor.registers(s)[0], runtime.INIT)
+	equal(monitor.registers(s)[0], runtime.init)
 	monitor.close(s)
 })
+
 
 run("host-aware stepping services GETCHA and FOUND", () {
 	let s = monitor.new()
@@ -36,6 +39,7 @@ run("host-aware stepping services GETCHA and FOUND", () {
 	monitor.close(s)
 })
 
+
 run("trace remains observationally useful across host boundaries", () {
 	let s = monitor.new()
 	monitor.set_input(s, "ad")
@@ -44,6 +48,7 @@ run("trace remains observationally useful across host boundaries", () {
 	is_true(length(monitor.format_trace(s, records)) > 0)
 	monitor.close(s)
 })
+
 
 run("monitor can write registers and bulk-load memory through the service", () {
 	let s = monitor.new()
@@ -58,6 +63,7 @@ run("monitor can write registers and bulk-load memory through the service", () {
 	equal(monitor.examine(s, 202), 3)
 	monitor.close(s)
 })
+
 
 run("operator controller can run asynchronously and stop at an instruction boundary", () {
 	let operator = import("./operator")
@@ -74,3 +80,4 @@ run("operator controller can run asynchronously and stop at an instruction bound
 	operator.close(ctl)
 	monitor.close(s)
 })
+

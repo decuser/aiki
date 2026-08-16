@@ -15,10 +15,9 @@ let execute = (m, text, limit) {
 	let found_ends = []
 	let steps = 0
 	let done = false
-
 	while (not done) and (steps < limit) {
 		let pc = machine.pc(m)
-		if equal(pc, runtime.GETCHA) {
+		if equal(pc, runtime.getcha) {
 			if cursor < length(text) {
 				machine.set_ac(m, ord(text[cursor]))
 				cursor = cursor + 1
@@ -37,7 +36,7 @@ let execute = (m, text, limit) {
 				}
 			}
 		} else {
-			if equal(pc, runtime.FOUND) {
+			if equal(pc, runtime.found) {
 				# FOUND occurs one character after the match. cursor-1 is
 				# therefore the exclusive end offset of the matching substring.
 				found_ends = append(found_ends, cursor - 1)
@@ -51,7 +50,6 @@ let execute = (m, text, limit) {
 			}
 		}
 	}
-
 	if not done {
 		return [@error, :search, "instruction limit reached"]
 	}

@@ -3,10 +3,10 @@ let result = 9
 let i = 0
 
 while i < 2 {
-    result = bootstrap.run("1 + 2 * 3\n", "probe.ai")
-    i = i + 1
+	result = bootstrap.run("1 + 2 * 3\n", "probe.ai")
+	i = i + 1
 }
 
 if not equal(result, 9) {
-    println("FAIL: expected 9, got " + inspect(result))
+	println("FAIL: expected 9, got " + inspect(result))
 }

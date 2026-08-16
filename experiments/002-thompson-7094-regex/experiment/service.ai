@@ -67,7 +67,7 @@ let worker = (machine, commands, replies, machine_module) {
 				runtime.install(machine)
 				runtime.clear_lists(machine)
 				runtime.install_published_code(machine)
-				emu.set_pc(machine, runtime.INIT)
+				emu.set_pc(machine, runtime.init)
 				send(replies, true)
 			}
 			[@stop] {
@@ -125,13 +125,33 @@ let set_pc = (monitor, value) {
 	request(monitor, [@set_pc, value])
 }
 
-let ac = (monitor) { request(monitor, [@ac]) }
-let set_ac = (monitor, value) { request(monitor, [@set_ac, value]) }
-let xr = (monitor, tag) { request(monitor, [@xr, tag]) }
-let set_xr = (monitor, tag, value) { request(monitor, [@set_xr, tag, value]) }
-let registers = (monitor) { request(monitor, [@registers]) }
-let reset_machine = (monitor) { request(monitor, [@reset]) }
-let prepare_thompson = (monitor) { request(monitor, [@prepare_thompson]) }
+let ac = (monitor) {
+	request(monitor, [@ac])
+}
+
+let set_ac = (monitor, value) {
+	request(monitor, [@set_ac, value])
+}
+
+let xr = (monitor, tag) {
+	request(monitor, [@xr, tag])
+}
+
+let set_xr = (monitor, tag, value) {
+	request(monitor, [@set_xr, tag, value])
+}
+
+let registers = (monitor) {
+	request(monitor, [@registers])
+}
+
+let reset_machine = (monitor) {
+	request(monitor, [@reset])
+}
+
+let prepare_thompson = (monitor) {
+	request(monitor, [@prepare_thompson])
+}
 
 let stop = (monitor) {
 	request(monitor, [@stop])

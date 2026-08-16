@@ -40,7 +40,6 @@ let install = (m) {
 	put(m, CNODE + 7, :SCA, CNODE, 7, 0)
 	put(m, CNODE + 8, :TRA, 2, 4, 0)
 	machine.store_word(m, TSXCMD, instruction.encode(:TSX, 1, 2, 0))
-
 	# NNODE -- Thompson 1968, p. 421.
 	# Its address field is the self-modifying NLIST count.
 	put(m, NNODE + 0, :AXC, 0, 7, 0)
@@ -50,10 +49,8 @@ let install = (m) {
 	put(m, NNODE + 4, :TXI, NNODE + 5, 7, -1)
 	put(m, NNODE + 5, :SCA, NNODE, 7, 0)
 	put(m, NNODE + 6, :TRA, 1, 2, 0)
-
 	# FAIL -- advance to the next entry in CLIST.
 	put(m, FAIL, :TRA, 1, 2, 0)
-
 	# XCHG -- exchange NLIST into CLIST, obtain next character, start a new
 	# search at CODE, then execute the current-list paths.
 	put(m, XCHG + 0, :LAC, NNODE, 7, 0)
@@ -72,40 +69,14 @@ let install = (m) {
 	put(m, XCHG + 13, :TSX, CODE, 2, 0)
 	put(m, XCHG + 14, :TRA, CLIST, 0, 0)
 	machine.store_word(m, TRACMD, instruction.encode(:TRA, XCHG, 0, 0))
-
 	# INIT -- clear NLIST count and enter XCHG.
 	put(m, INIT + 0, :SCA, NNODE, 0, 0)
 	put(m, INIT + 1, :TRA, XCHG, 0, 0)
-
 	return true
 }
 
 let published_words = (closure_entry) {
-	return [
-		instruction.encode(:TRA, CODE + 1, 0, 0),
-		instruction.encode(:TXL, FAIL, 1, -98),
-		instruction.encode(:TXH, FAIL, 1, -97),
-		instruction.encode(:TSX, NNODE, 4, 0),
-		instruction.encode(:TRA, closure_entry, 0, 0),
-		instruction.encode(:TXL, FAIL, 1, -99),
-		instruction.encode(:TXH, FAIL, 1, -98),
-		instruction.encode(:TSX, NNODE, 4, 0),
-		instruction.encode(:TRA, CODE + 16, 0, 0),
-		instruction.encode(:TXL, FAIL, 1, -100),
-		instruction.encode(:TXH, FAIL, 1, -99),
-		instruction.encode(:TSX, NNODE, 4, 0),
-		instruction.encode(:TRA, CODE + 16, 0, 0),
-		instruction.encode(:TSX, CNODE, 4, 0),
-		instruction.encode(:TRA, CODE + 9, 0, 0),
-		instruction.encode(:TRA, CODE + 5, 0, 0),
-		instruction.encode(:TSX, CNODE, 4, 0),
-		instruction.encode(:TRA, CODE + 13, 0, 0),
-		instruction.encode(:TRA, CODE + 19, 0, 0),
-		instruction.encode(:TXL, FAIL, 1, -101),
-		instruction.encode(:TXH, FAIL, 1, -100),
-		instruction.encode(:TSX, NNODE, 4, 0),
-		instruction.encode(:TRA, FOUND, 0, 0)
-	]
+	return [instruction.encode(:TRA, CODE + 1, 0, 0), instruction.encode(:TXL, FAIL, 1, -98), instruction.encode(:TXH, FAIL, 1, -97), instruction.encode(:TSX, NNODE, 4, 0), instruction.encode(:TRA, closure_entry, 0, 0), instruction.encode(:TXL, FAIL, 1, -99), instruction.encode(:TXH, FAIL, 1, -98), instruction.encode(:TSX, NNODE, 4, 0), instruction.encode(:TRA, CODE + 16, 0, 0), instruction.encode(:TXL, FAIL, 1, -100), instruction.encode(:TXH, FAIL, 1, -99), instruction.encode(:TSX, NNODE, 4, 0), instruction.encode(:TRA, CODE + 16, 0, 0), instruction.encode(:TSX, CNODE, 4, 0), instruction.encode(:TRA, CODE + 9, 0, 0), instruction.encode(:TRA, CODE + 5, 0, 0), instruction.encode(:TSX, CNODE, 4, 0), instruction.encode(:TRA, CODE + 13, 0, 0), instruction.encode(:TRA, CODE + 19, 0, 0), instruction.encode(:TXL, FAIL, 1, -101), instruction.encode(:TXH, FAIL, 1, -100), instruction.encode(:TSX, NNODE, 4, 0), instruction.encode(:TRA, FOUND, 0, 0)]
 }
 
 let load_words = (m, words) {
@@ -144,23 +115,19 @@ let prepare_published = () {
 	return m
 }
 
-export(
-	:CODE,
-	:CNODE,
-	:TSXCMD,
-	:NNODE,
-	:FAIL,
-	:XCHG,
-	:X1,
-	:X2,
-	:TRACMD,
-	:INIT,
-	:GETCHA,
-	:FOUND,
-	:CLIST,
-	:NLIST,
-	:install,
-	:clear_lists,
-	:install_published_code,
-	:prepare_published
-)
+# Module-facing names follow Aiki naming style; the uppercase locals above
+# preserve Thompson/IBM labels inside the reconstruction itself.
+let code = CODE
+let cnode = CNODE
+let tsxcmd = TSXCMD
+let nnode = NNODE
+let fail = FAIL
+let xchg = XCHG
+let tracmd = TRACMD
+let init = INIT
+let getcha = GETCHA
+let found = FOUND
+let clist = CLIST
+let nlist = NLIST
+
+export(:code, :cnode, :tsxcmd, :nnode, :fail, :xchg, :X1, :X2, :tracmd, :init, :getcha, :found, :clist, :nlist, :install, :clear_lists, :install_published_code, :prepare_published)

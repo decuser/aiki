@@ -18,23 +18,23 @@ let TYPE_A_OPERATION_SHIFT = 33
 # Actual IBM 7094 operation encodings from Principles of Operation.
 # Decimal constants are used because Aiki has no octal literal syntax.
 # Comments retain the IBM octal notation.
-let OP_TRA = 16      # +0020
-let OP_TSX = 60      # +0074
-let OP_AXC = 2556    # -0774 => sign bit set: 4774 in the 12-bit field
-let OP_LAC = 349     # +0535
-let OP_SCA = 414     # +0636
-let OP_PCA = 494     # +0756
-let OP_PAC = 479     # +0737
-let OP_CLA = 320     # +0500
-let OP_CAL = 2368    # -0500 => sign bit set: 4500 in the 12-bit field
-let OP_ACL = 241     # +0361
-let OP_SLW = 386     # +0602
+let OP_TRA = 16  # +0020
+let OP_TSX = 60  # +0074
+let OP_AXC = 2556  # -0774 => sign bit set: 4774 in the 12-bit field
+let OP_LAC = 349  # +0535
+let OP_SCA = 414  # +0636
+let OP_PCA = 494  # +0756
+let OP_PAC = 479  # +0737
+let OP_CLA = 320  # +0500
+let OP_CAL = 2368  # -0500 => sign bit set: 4500 in the 12-bit field
+let OP_ACL = 241  # +0361
+let OP_SLW = 386  # +0602
 
 # Type-A transfer instructions use positions S,1,2 for the operation and
 # positions 3-17 for the decrement.
-let TYPE_A_TXI = 1   # +1 / table code +1000
-let TYPE_A_TXH = 3   # +3 / table code +3000
-let TYPE_A_TXL = 7   # -3 / table code -3000
+let TYPE_A_TXI = 1  # +1 / table code +1000
+let TYPE_A_TXH = 3  # +3 / table code +3000
+let TYPE_A_TXL = 7  # -3 / table code -3000
 
 let address = (value) {
 	bits.low(value, ADDRESS_BITS)
@@ -63,17 +63,39 @@ let decrement = (value) {
 
 let b_opcode = (op) {
 	match op {
-		:TRA { return OP_TRA }
-		:TSX { return OP_TSX }
-		:AXC { return OP_AXC }
-		:LAC { return OP_LAC }
-		:SCA { return OP_SCA }
-		:PCA { return OP_PCA }
-		:PAC { return OP_PAC }
-		:CLA { return OP_CLA }
-		:CAL { return OP_CAL }
-		:ACL { return OP_ACL }
-		:SLW { return OP_SLW }
+		:TRA {
+			return OP_TRA
+		}
+		:TSX {
+			return OP_TSX
+		}
+		:AXC {
+			return OP_AXC
+		}
+		:LAC {
+			return OP_LAC
+		}
+		:SCA {
+			return OP_SCA
+		}
+		:PCA {
+			return OP_PCA
+		}
+		:PAC {
+			return OP_PAC
+		}
+		:CLA {
+			return OP_CLA
+		}
+		:CAL {
+			return OP_CAL
+		}
+		:ACL {
+			return OP_ACL
+		}
+		:SLW {
+			return OP_SLW
+		}
 	}
 	return [@error, :instruction, "unsupported opcode"]
 }
@@ -131,20 +153,41 @@ let opcode = (word) {
 	if equal(type_a, TYPE_A_TXL) {
 		return :TXL
 	}
-
 	let code = operation_field(word)
 	match code {
-		16 { return :TRA }
-		60 { return :TSX }
-		2556 { return :AXC }
-		349 { return :LAC }
-		414 { return :SCA }
-		494 { return :PCA }
-		479 { return :PAC }
-		320 { return :CLA }
-		2368 { return :CAL }
-		241 { return :ACL }
-		386 { return :SLW }
+		16 {
+			return :TRA
+		}
+		60 {
+			return :TSX
+		}
+		2556 {
+			return :AXC
+		}
+		349 {
+			return :LAC
+		}
+		414 {
+			return :SCA
+		}
+		494 {
+			return :PCA
+		}
+		479 {
+			return :PAC
+		}
+		320 {
+			return :CLA
+		}
+		2368 {
+			return :CAL
+		}
+		241 {
+			return :ACL
+		}
+		386 {
+			return :SLW
+		}
 	}
 	return [@error, :instruction, "unsupported opcode"]
 }
@@ -153,20 +196,7 @@ let replace_address = (word, value) {
 	bits.replace(word, ADDRESS_SHIFT, ADDRESS_BITS, address(value))
 }
 
-export(
-	:WORD_BITS,
-	:ADDRESS_BITS,
-	:TAG_BITS,
-	:DECREMENT_BITS,
-	:ADDRESS_SHIFT,
-	:TAG_SHIFT,
-	:DECREMENT_SHIFT,
-	:OPERATION_SHIFT,
-	:encode,
-	:opcode,
-	:address_field,
-	:tag_field,
-	:decrement_field,
-	:operation_field,
-	:replace_address
-)
+# Module-facing name follows Aiki naming style; the uppercase local is retained
+# because it names the IBM instruction-word field internally.
+let address_shift = ADDRESS_SHIFT
+export(:WORD_BITS, :ADDRESS_BITS, :TAG_BITS, :DECREMENT_BITS, :address_shift, :TAG_SHIFT, :DECREMENT_SHIFT, :OPERATION_SHIFT, :encode, :opcode, :address_field, :tag_field, :decrement_field, :operation_field, :replace_address)

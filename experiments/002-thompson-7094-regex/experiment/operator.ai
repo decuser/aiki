@@ -44,7 +44,9 @@ let worker = (session, requests, interrupts, state) {
 													store.set(state, state_result, [@eof, count, monitor.matches(session)])
 													running = false
 												}
-												_ { count = count + 1 }
+												_ {
+													count = count + 1
+												}
 											}
 										}
 									}
@@ -53,16 +55,18 @@ let worker = (session, requests, interrupts, state) {
 						}
 						store.set(state, state_active, false)
 					}
-					[@shutdown] { alive = false }
+					[@shutdown] {
+						alive = false
+					}
 				}
 			}
 			recv(interrupts) {
-				# An interrupt while halted is harmless and is consumed here.
 			}
 		}
 	}
 }
 
+# An interrupt while halted is harmless and is consumed here.
 let new = (session) {
 	let requests = channel()
 	let interrupts = channel()
@@ -73,14 +77,21 @@ let new = (session) {
 	return [requests, interrupts, state]
 }
 
-let active = (controller) { store.get(controller[2], STATE_ACTIVE) }
+let active = (controller) {
+	store.get(controller[2], STATE_ACTIVE)
+}
+
 let status = (controller) {
-	if active(controller) { return [@running] }
+	if active(controller) {
+		return [@running]
+	}
 	return store.get(controller[2], STATE_RESULT)
 }
 
 let run = (controller, limit) {
-	if active(controller) { return [@error, :monitor, "machine is already running"] }
+	if active(controller) {
+		return [@error, :monitor, "machine is already running"]
+	}
 	store.set(controller[2], STATE_ACTIVE, true)
 	store.set(controller[2], STATE_RESULT, [@running])
 	send(controller[0], [@run, limit])
@@ -88,13 +99,17 @@ let run = (controller, limit) {
 }
 
 let interrupt = (controller) {
-	if not active(controller) { return false }
+	if not active(controller) {
+		return false
+	}
 	send(controller[1], true)
 	return true
 }
 
 let wait = (controller) {
-	while active(controller) { time.sleep(1) }
+	while active(controller) {
+		time.sleep(1)
+	}
 	return status(controller)
 }
 

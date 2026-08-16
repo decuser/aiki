@@ -7,6 +7,7 @@ import (
 )
 
 func TestRunExposesProgramArguments(t *testing.T) {
+	withRepoRoot(t)
 	dir := t.TempDir()
 	script := filepath.Join(dir, "args.ai")
 	out := filepath.Join(dir, "out.txt")

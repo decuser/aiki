@@ -35,7 +35,7 @@ as superseded provenance.
 - Phase IV monitor: **GATED** (24/24 plus scripted walkthrough).
 - Historical reconstruction and monitor functionality: **COMPLETE**.
 
-## Active post-gate polish
+## Post-gate polish
 
 Milestone 09 is an Aiki-style refactor of the compiler plus removal of the
 now-unnecessary published/generated word-4 comparison from the visible demo.
@@ -44,8 +44,24 @@ Aiki executable**.
 
 See [`09-compiler-aiki-style-pass.md`](09-compiler-aiki-style-pass.md).
 
+## Active validation cleanup
+
+Post-merge validation exposed a runner regression-test context defect and Aiki
+module-field naming warnings in the Thompson experiment. Milestone 10 corrects
+both without changing machine or compiler semantics.
+
+See [`10-runner-args-and-lint-cleanup.md`](10-runner-args-and-lint-cleanup.md).
+
 ## Next action
 
-Merge the style-pass drop and run `./run.sh` with the existing rebuilt binary.
-If all four corpora and both demonstrations remain clean, mark Milestone 09
-GATED and this session COMPLETE.
+Run `go test ./...` and `./aiki lint ./...`. Because this cut includes Go test
+code, rebuild with `make` before rerunning the experiment `./run.sh`. If all
+checks are clean, mark Milestone 10 GATED and the session COMPLETE.
+
+## Follow-up — spawned relative imports
+
+Milestone 11 is ACTIVE. Repository-wide `./aiki test ./...` showed that relative imports inside spawned functions lost their defining-file anchor and fell back to process CWD. Engine correction and regression test are prepared. Next action: run the Milestone 11 local gate, rebuilding Aiki before Aiki-level tests.
+
+## Follow-up — restored machine reset primitive
+
+Milestone 12 is **ACTIVE**. After Milestone 11 allowed repository-root tests to reach the spawned monitor service, three Phase-IV tests exposed that `service.ai` still called `machine.reset_state` while the machine module no longer defined/exported it. The narrow reset primitive has been restored. This cut is Aiki-source only and does **not** require `make`. Next action: run `./aiki test ./...` and the experiment `./run.sh`; gate Milestone 12 if both are clean.

@@ -5,5 +5,5 @@ let inner = "let bootstrap = import(\"selfhost/bootstrap\")\nlet result = 9\nlet
 let result = bootstrap.run(inner, "inner.ai")
 
 if not equal(result, 9) {
-    println("FAIL: expected 9, got " + inspect(result))
+	println("FAIL: expected 9, got " + inspect(result))
 }

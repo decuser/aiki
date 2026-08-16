@@ -19,10 +19,10 @@ let run_generated = (text, limit) {
 	runtime.install(m)
 	let i = 0
 	while i < length(compiled[2]) {
-		machine.store_word(m, runtime.CODE + i, compiled[2][i])
+		machine.store_word(m, runtime.code + i, compiled[2][i])
 		i = i + 1
 	}
-	machine.set_pc(m, runtime.INIT)
+	machine.set_pc(m, runtime.init)
 	return search.execute(m, text, limit)
 }
 
@@ -39,6 +39,7 @@ while i < length(cases) {
 	}
 	i = i + 1
 }
+
 println("")
 println("RESULT: regex -> compiler -> IBM 7094 object code -> Aiki 7094 emulator -> Thompson runtime -> FOUND")
 println("PASS")

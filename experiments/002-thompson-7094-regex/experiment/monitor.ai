@@ -14,38 +14,59 @@ let HOST_WORDS = 4
 
 let octal = (value, width) {
 	let n = truncate(value)
-	if n < 0 { n = 0 - n }
+	if n < 0 {
+		n = 0 - n
+	}
 	let text = ""
-	if equal(n, 0) { text = "0" }
+	if equal(n, 0) {
+		text = "0"
+	}
 	while n > 0 {
 		let q = truncate(n / 8)
 		let digit = n - (q * 8)
 		text = to_str(chr(48 + digit)) + text
 		n = q
 	}
-	while length(text) < width { text = "0" + text }
+	while length(text) < width {
+		text = "0" + text
+	}
 	return text
 }
 
-let address_text = (value) { octal(value, 5) }
-let word_text = (value) { octal(value, 12) }
+let address_text = (value) {
+	octal(value, 5)
+}
+
+let word_text = (value) {
+	octal(value, 12)
+}
 
 let parse_octal = (text) {
 	let s = text |> str.trim()
-	if equal(s, "") { return [@error, :monitor, "expected octal number"] }
+	if equal(s, "") {
+		return [@error, :monitor, "expected octal number"]
+	}
 	let start = 0
 	if length(s) >= 2 {
 		match [ord(s[0]), ord(s[1])] {
-			[48, 111] { start = 2 }
-			[48, 79] { start = 2 }
+			[48, 111] {
+				start = 2
+			}
+			[48, 79] {
+				start = 2
+			}
 		}
 	}
-	if start >= length(s) { return [@error, :monitor, "expected octal digits"] }
+	if start >= length(s) {
+		return [@error, :monitor, "expected octal digits"]
+	}
 	let value = 0
 	let i = start
 	while i < length(s) {
 		let d = ord(s[i]) - 48
-		if (d < 0) or (d > 7) { return [@error, :monitor, "invalid octal number"] }
+		if (d < 0) or (d > 7) {
+			return [@error, :monitor, "invalid octal number"]
+		}
 		value = (value * 8) + d
 		i = i + 1
 	}
@@ -54,27 +75,74 @@ let parse_octal = (text) {
 
 let op_name = (op) {
 	match op {
-		:TRA { return "TRA" } :TSX { return "TSX" }
-		:TXL { return "TXL" } :TXH { return "TXH" } :TXI { return "TXI" }
-		:AXC { return "AXC" } :LAC { return "LAC" } :SCA { return "SCA" }
-		:PCA { return "PCA" } :PAC { return "PAC" }
-		:CLA { return "CLA" } :CAL { return "CAL" } :ACL { return "ACL" } :SLW { return "SLW" }
+		:TRA {
+			return "TRA"
+		}
+		:TSX {
+			return "TSX"
+		}
+		:TXL {
+			return "TXL"
+		}
+		:TXH {
+			return "TXH"
+		}
+		:TXI {
+			return "TXI"
+		}
+		:AXC {
+			return "AXC"
+		}
+		:LAC {
+			return "LAC"
+		}
+		:SCA {
+			return "SCA"
+		}
+		:PCA {
+			return "PCA"
+		}
+		:PAC {
+			return "PAC"
+		}
+		:CLA {
+			return "CLA"
+		}
+		:CAL {
+			return "CAL"
+		}
+		:ACL {
+			return "ACL"
+		}
+		:SLW {
+			return "SLW"
+		}
 	}
 	return "???"
 }
 
 let disassemble = (word) {
 	let op = instruction.opcode(word)
-	if is_error(op) { return "??? " + word_text(word) }
+	if is_error(op) {
+		return "??? " + word_text(word)
+	}
 	let y = instruction.address_field(word)
 	let tag = instruction.tag_field(word)
 	let name = op_name(op)
 	match op {
-		:TXI { return name + " " + address_text(y) + "," + to_str(tag) + "," + address_text(instruction.decrement_field(word)) }
-		:TXH { return name + " " + address_text(y) + "," + to_str(tag) + "," + address_text(instruction.decrement_field(word)) }
-		:TXL { return name + " " + address_text(y) + "," + to_str(tag) + "," + address_text(instruction.decrement_field(word)) }
+		:TXI {
+			return name + " " + address_text(y) + "," + to_str(tag) + "," + address_text(instruction.decrement_field(word))
+		}
+		:TXH {
+			return name + " " + address_text(y) + "," + to_str(tag) + "," + address_text(instruction.decrement_field(word))
+		}
+		:TXL {
+			return name + " " + address_text(y) + "," + to_str(tag) + "," + address_text(instruction.decrement_field(word))
+		}
 	}
-	if equal(tag, 0) { return name + " " + address_text(y) }
+	if equal(tag, 0) {
+		return name + " " + address_text(y)
+	}
 	return name + " " + address_text(y) + "," + to_str(tag)
 }
 
@@ -89,8 +157,13 @@ let new = () {
 	return [control, host]
 }
 
-let control = (session) { session[0] }
-let host = (session) { session[1] }
+let control = (session) {
+	session[0]
+}
+
+let host = (session) {
+	session[1]
+}
 
 let reset_host = (session) {
 	store.set(host(session), HOST_CURSOR, 0)
@@ -104,7 +177,9 @@ let reset_session = (session) {
 	return true
 }
 
-let close = (session) { service.stop(control(session)) }
+let close = (session) {
+	service.stop(control(session))
+}
 
 let set_input = (session, text) {
 	store.set(host(session), HOST_TEXT, text)
@@ -112,23 +187,42 @@ let set_input = (session, text) {
 	return text
 }
 
-let matches = (session) { store.get(host(session), HOST_FOUND) }
+let matches = (session) {
+	store.get(host(session), HOST_FOUND)
+}
 
-let registers = (session) { service.registers(control(session)) }
-let set_pc = (session, value) { service.set_pc(control(session), value) }
-let set_ac = (session, value) { service.set_ac(control(session), value) }
-let set_xr = (session, tag, value) { service.set_xr(control(session), tag, value) }
-let load_words = (session, origin, words) { service.load_program(control(session), origin, words) }
+let registers = (session) {
+	service.registers(control(session))
+}
+
+let set_pc = (session, value) {
+	service.set_pc(control(session), value)
+}
+
+let set_ac = (session, value) {
+	service.set_ac(control(session), value)
+}
+
+let set_xr = (session, tag, value) {
+	service.set_xr(control(session), tag, value)
+}
+
+let load_words = (session, origin, words) {
+	service.load_program(control(session), origin, words)
+}
 
 let format_registers = (session) {
 	let r = registers(session)
-	return "IC  " + address_text(r[0]) + "  AC  " + word_text(r[1]) + "\n" +
-		"XR1 " + address_text(r[2]) + "  XR2 " + address_text(r[3]) + "  XR4 " + address_text(r[4]) + "\n" +
-		"XR6 " + address_text(r[5]) + "  XR7 " + address_text(r[6])
+	return "IC  " + address_text(r[0]) + "  AC  " + word_text(r[1]) + "\n" + "XR1 " + address_text(r[2]) + "  XR2 " + address_text(r[3]) + "  XR4 " + address_text(r[4]) + "\n" + "XR6 " + address_text(r[5]) + "  XR7 " + address_text(r[6])
 }
 
-let examine = (session, location) { service.examine(control(session), location) }
-let deposit = (session, location, value) { service.deposit(control(session), location, value) }
+let examine = (session, location) {
+	service.examine(control(session), location)
+}
+
+let deposit = (session, location, value) {
+	service.deposit(control(session), location, value)
+}
 
 let format_memory = (session, origin, count) {
 	let text = ""
@@ -136,7 +230,9 @@ let format_memory = (session, origin, count) {
 	while i < count {
 		let location = origin + i
 		let word = examine(session, location)
-		if i > 0 { text = text + "\n" }
+		if i > 0 {
+			text = text + "\n"
+		}
 		text = text + address_text(location) + "  " + word_text(word) + "  " + disassemble(word)
 		i = i + 1
 	}
@@ -147,7 +243,7 @@ let host_step = (session) {
 	let ctl = control(session)
 	let h = host(session)
 	let pc = service.pc(ctl)
-	if equal(pc, runtime.GETCHA) {
+	if equal(pc, runtime.getcha) {
 		let text = store.get(h, HOST_TEXT)
 		let cursor = store.get(h, HOST_CURSOR)
 		if cursor < length(text) {
@@ -168,7 +264,7 @@ let host_step = (session) {
 		}
 		return [@eof, pc]
 	}
-	if equal(pc, runtime.FOUND) {
+	if equal(pc, runtime.found) {
 		let cursor = store.get(h, HOST_CURSOR)
 		let found = append(store.get(h, HOST_FOUND), cursor - 1)
 		store.set(h, HOST_FOUND, found)
@@ -179,7 +275,9 @@ let host_step = (session) {
 	return service.step(ctl)
 }
 
-let step = (session) { host_step(session) }
+let step = (session) {
+	host_step(session)
+}
 
 let run = (session, limit, stop_pc) {
 	let count = 0
@@ -190,8 +288,12 @@ let run = (session, limit, stop_pc) {
 			}
 		}
 		let result = host_step(session)
-		if is_error(result) { return result }
-		if equal(shape(result), :eof) { return [@eof, count, matches(session)] }
+		if is_error(result) {
+			return result
+		}
+		if equal(shape(result), :eof) {
+			return [@eof, count, matches(session)]
+		}
 		count = count + 1
 	}
 	return [@limit, count, service.pc(control(session)), matches(session)]
@@ -203,9 +305,13 @@ let trace = (session, count) {
 	while i < count {
 		let before = service.pc(control(session))
 		let result = host_step(session)
-		if is_error(result) { return result }
+		if is_error(result) {
+			return result
+		}
 		records = append(records, [before, result])
-		if equal(shape(result), :eof) { return records }
+		if equal(shape(result), :eof) {
+			return records
+		}
 		i = i + 1
 	}
 	return records
@@ -217,7 +323,9 @@ let format_trace = (session, records) {
 	while i < length(records) {
 		let location = records[i][0]
 		let result = records[i][1]
-		if i > 0 { text = text + "\n" }
+		if i > 0 {
+			text = text + "\n"
+		}
 		if equal(shape(result), :step) {
 			let word = examine(session, location)
 			text = text + address_text(location) + "  " + word_text(word) + "  " + disassemble(word) + "  -> " + address_text(result[2])
@@ -229,13 +337,16 @@ let format_trace = (session, records) {
 	return text
 }
 
-let code = (session, count) { format_memory(session, runtime.CODE, count) }
-let clist = (session, count) { format_memory(session, runtime.CLIST, count) }
-let nlist = (session, count) { format_memory(session, runtime.NLIST, count) }
+let code = (session, count) {
+	format_memory(session, runtime.code, count)
+}
 
-export(
-	:octal, :address_text, :word_text, :parse_octal, :disassemble,
-	:new, :close, :reset_session, :set_input, :matches, :registers, :format_registers,
-	:set_pc, :set_ac, :set_xr, :load_words, :examine, :deposit, :format_memory, :step, :run, :trace, :format_trace,
-	:code, :clist, :nlist
-)
+let clist = (session, count) {
+	format_memory(session, runtime.clist, count)
+}
+
+let nlist = (session, count) {
+	format_memory(session, runtime.nlist, count)
+}
+
+export(:octal, :address_text, :word_text, :parse_octal, :disassemble, :new, :close, :reset_session, :set_input, :matches, :registers, :format_registers, :set_pc, :set_ac, :set_xr, :load_words, :examine, :deposit, :format_memory, :step, :run, :trace, :format_trace, :code, :clist, :nlist)

@@ -10,10 +10,12 @@ run("stage 1 inserts explicit juxtaposition", () {
 	equal(compiler.sieve("ab"), "a.b")
 })
 
+
 run("stage 2 produces Thompson's reverse Polish example", () {
 	let explicit = compiler.sieve("a(b|c)*d")
 	equal(compiler.reverse_polish(explicit), "abc|*.d.")
 })
+
 
 run("syntax sieve rejects malformed core expressions", () {
 	error(compiler.sieve(""))
@@ -22,29 +24,31 @@ run("syntax sieve rejects malformed core expressions", () {
 	error(compiler.sieve("|a"))
 })
 
+
 run("stage 3 reproduces Thompson's published 23-word object program", () {
 	let compiled = compiler.compile("a(b|c)*d")
 	equal(shape(compiled), :compiled)
 	equal(compiled[0], "a.(b|c)*.d")
 	equal(compiled[1], "abc|*.d.")
 	equal(length(compiled[2]), 23)
-
 	let expected_machine = runtime.prepare_published()
 	let i = 0
 	while i < length(compiled[2]) {
-		equal(compiled[2][i], machine.load_word(expected_machine, runtime.CODE + i))
+		equal(compiled[2][i], machine.load_word(expected_machine, runtime.code + i))
 		i = i + 1
 	}
 })
+
 
 run("compiler agrees with published CODE+16 closure target", () {
 	let compiled = compiler.compile("a(b|c)*d")
 	let generated = compiled[2]
 	let published = runtime.prepare_published()
 	equal(instruction.opcode(generated[4]), :TRA)
-	equal(instruction.address_field(generated[4]), runtime.CODE + 16)
-	equal(generated[4], machine.load_word(published, runtime.CODE + 4))
+	equal(instruction.address_field(generated[4]), runtime.code + 16)
+	equal(generated[4], machine.load_word(published, runtime.code + 4))
 })
+
 
 run("generated code executes end to end on the Aiki 7094 emulator", () {
 	let compiled = compiler.compile("a(b|c)*d")
@@ -52,12 +56,12 @@ run("generated code executes end to end on the Aiki 7094 emulator", () {
 	runtime.install(m)
 	let i = 0
 	while i < length(compiled[2]) {
-		machine.store_word(m, runtime.CODE + i, compiled[2][i])
+		machine.store_word(m, runtime.code + i, compiled[2][i])
 		i = i + 1
 	}
-	machine.set_pc(m, runtime.INIT)
-
+	machine.set_pc(m, runtime.init)
 	let result = search.execute(m, "xxabcbcdyyad", 120000)
 	equal(shape(result), :search)
 	equal(result[0], [8, 12])
 })
+

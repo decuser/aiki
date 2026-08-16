@@ -467,6 +467,12 @@ func applyUserFunctionIsolated(fn *value.Function, args []value.Value, ctx *hal.
 	// already crosses the boundary on the value itself. Without this, a shaped
 	// argument arrives intact but field access on it faults "unknown shape".
 	if fnEnv, ok := fn.Env.(*value.Env); ok && fnEnv != nil {
+		// Source-file provenance is lexical metadata, not captured program state.
+		// Preserve it across spawn so relative imports performed by the spawned
+		// function resolve relative to the file that defined that function rather
+		// than falling back to the process working directory.
+		callEnv.SetFile(fnEnv.GetFile())
+
 		for _, def := range fnEnv.CollectShapes() {
 			callEnv.DefineShape(def)
 		}

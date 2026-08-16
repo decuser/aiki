@@ -1,0 +1,28 @@
+Experiment 002 — Thompson 7094 Regex Reconstruction
+Phases I–IV — machine, Thompson reconstruction, compiler, and operator monitor
+
+Aiki executable: /home/wsenn/forge/dev/aiki/aiki
+Aiki version:    aiki v0.4.0-alpha-26-3-g9fc248f-dirty
+
+--- Phase I machine corpus ---
+PASS machine_test.ai
+
+96 tests, 96 passed, 0 failed
+
+--- Phase II Thompson corpus ---
+PASS phase2_test.ai
+
+57 tests, 57 passed, 0 failed
+
+--- Phase III compiler corpus ---
+PASS phase3_test.ai
+
+39 tests, 39 passed, 0 failed
+
+--- Phase IV monitor corpus ---
+FAIL monitor_test.ai
+  FAIL monitor owns state through service commands (monitor_test.ai:21): fault: 'reset_state' not exported by module 'thompson_7094_machine'
+  FAIL host-aware stepping services GETCHA and FOUND (monitor_test.ai:33): fault: 'reset_state' not exported by module 'thompson_7094_machine'
+  FAIL trace remains observationally useful across host boundaries (monitor_test.ai:43): fault: 'reset_state' not exported by module 'thompson_7094_machine'
+
+22 tests, 19 passed, 3 failed

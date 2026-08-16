@@ -30,12 +30,10 @@ let wrap = (value, width) {
 		# Delegate the fault vocabulary for non-integral bit patterns to bits.
 		return bits.low(value, width)
 	}
-
 	let modulus = bits.shl(1, width)
 	if integral >= 0 {
 		return bits.low(integral, width)
 	}
-
 	let quotient = truncate(integral / modulus)
 	let remainder = integral - (quotient * modulus)
 	if remainder < 0 {
@@ -94,11 +92,21 @@ let set_ac = (machine, value) {
 
 let xr_index = (tag) {
 	match tag {
-		1 { return STATE_XR1 }
-		2 { return STATE_XR2 }
-		4 { return STATE_XR4 }
-		6 { return STATE_XR6 }
-		7 { return STATE_XR7 }
+		1 {
+			return STATE_XR1
+		}
+		2 {
+			return STATE_XR2
+		}
+		4 {
+			return STATE_XR4
+		}
+		6 {
+			return STATE_XR6
+		}
+		7 {
+			return STATE_XR7
+		}
 	}
 	# Unsupported tags are outside the Phase-I machine contract. Force a
 	# deterministic store-index fault rather than silently selecting a register.
@@ -111,6 +119,20 @@ let xr = (machine, tag) {
 
 let set_xr = (machine, tag, value) {
 	store.set(state(machine), xr_index(tag), address(value))
+}
+
+# Clear modeled processor state while preserving core memory. The monitor uses
+# this for operator reset and then, when requested, reinstalls Thompson runtime
+# state into the same machine image.
+let reset_state = (machine) {
+	set_pc(machine, 0)
+	set_ac(machine, 0)
+	set_xr(machine, 1, 0)
+	set_xr(machine, 2, 0)
+	set_xr(machine, 4, 0)
+	set_xr(machine, 6, 0)
+	set_xr(machine, 7, 0)
+	return true
 }
 
 let effective_address = (machine, y, tag) {
@@ -142,7 +164,6 @@ let execute = (machine, location, encoded) {
 	let y = instruction.address_field(encoded)
 	let tag = instruction.tag_field(encoded)
 	let d = instruction.decrement_field(encoded)
-
 	match op {
 		:TRA {
 			set_pc(machine, effective_address(machine, y, tag))
@@ -211,7 +232,7 @@ let execute = (machine, location, encoded) {
 			if not equal(tag, 0) {
 				replacement = complement15(xr(machine, tag))
 			}
-			set_ac(machine, bits.shl(replacement, instruction.ADDRESS_SHIFT))
+			set_ac(machine, bits.shl(replacement, instruction.address_shift))
 			return true
 		}
 		:PAC {
@@ -254,7 +275,6 @@ let step = (machine) {
 	if is_error(op) {
 		return [@error, :machine, "unsupported instruction"]
 	}
-
 	# Sequential PC progression is established before semantic execution;
 	# transfers replace it.
 	set_pc(machine, location + 1)
@@ -263,17 +283,6 @@ let step = (machine) {
 		return result
 	}
 	return [@step, location, op, pc(machine)]
-}
-
-let reset_state = (machine) {
-	set_pc(machine, 0)
-	set_ac(machine, 0)
-	set_xr(machine, 1, 0)
-	set_xr(machine, 2, 0)
-	set_xr(machine, 4, 0)
-	set_xr(machine, 6, 0)
-	set_xr(machine, 7, 0)
-	return true
 }
 
 let run_trace = (machine, limit, stop_pc) {
@@ -308,27 +317,4 @@ let run = (machine, limit, stop_pc) {
 	return [@limit, count, pc(machine)]
 }
 
-export(
-	:WORD_BITS,
-	:ADDR_BITS,
-	:MEMORY_WORDS,
-	:word,
-	:address,
-	:new,
-	:memory_size,
-	:load_word,
-	:store_word,
-	:pc,
-	:set_pc,
-	:ac,
-	:set_ac,
-	:xr,
-	:set_xr,
-	:effective_address,
-	:logical_add,
-	:execute,
-	:reset_state,
-	:step,
-	:run_trace,
-	:run
-)
+export(:WORD_BITS, :ADDR_BITS, :MEMORY_WORDS, :word, :address, :new, :memory_size, :load_word, :store_word, :pc, :set_pc, :ac, :set_ac, :xr, :set_xr, :reset_state, :effective_address, :logical_add, :execute, :step, :run_trace, :run)
