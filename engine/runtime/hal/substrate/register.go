@@ -1,157 +1,108 @@
 package substrate
 
-// registerHAL registers all HAL primitives (_prefixed, prelude-only).
+// registerHAL installs the runtime binding surface separated by architectural
+// responsibility. Only entries registered through registerHost have canonical
+// HAL identities; the remaining registries implement non-HAL runtime roles.
 func (g *GoRuntime) registerHAL() {
-	// IO
-	g.register("_print", halPrint)
-	g.register("_read", halRead)
+	// True host-facing operations. Canonical contracts currently exist for I/O,
+	// time, program context, file operations, and the narrowed Canvas resource/command
+	// boundary. Randomness remains a host-role compatibility operation.
+	g.registerHost(hostOperationDescriptors["_print"], g.halPrint)
+	g.registerHost(hostOperationDescriptors["_read"], g.halRead)
+	g.registerHost(hostOperationDescriptors["_sleep"], halSleep)
+	g.registerHost(hostOperationDescriptors["_after"], halAfter)
+	g.registerHost(hostOperationDescriptors["_system_args"], g.halSystemArgs)
+	g.registerHost(hostOperationDescriptors["_system_env"], g.halSystemEnv)
+	g.registerHost(hostOperationDescriptors["_file_open"], g.halFileOpenPath)
+	g.registerHost(hostOperationDescriptors["_file_read_text"], halFileReadText)
+	g.registerHost(hostOperationDescriptors["_file_read_bytes"], halFileReadBytes)
+	g.registerHost(hostOperationDescriptors["_file_read_line"], g.halFileReadLine)
+	g.registerHost(hostOperationDescriptors["_file_write_text"], halFileWriteText)
+	g.registerHost(hostOperationDescriptors["_file_write_bytes"], halFileWriteBytes)
+	g.registerHost(hostOperationDescriptors["_file_close"], g.halFileClose)
+	g.registerHost(hostOperationDescriptors["_file_exists"], g.halFileExistsPath)
+	g.registerHost(hostOperationDescriptors["_file_delete"], g.halFileDeletePath)
+	g.registerHost(hostOperationDescriptors["_file_list"], g.halFileListPath)
+	g.registerHost(hostOperationDescriptors["_file_read_at"], halFileReadAt)
+	g.registerHost(hostOperationDescriptors["_file_write_at"], halFileWriteAt)
+	g.registerHost(hostOperationDescriptors["_file_stat"], g.halFileStatPath)
+	g.registerHost(hostOperationDescriptors["_file_rename"], g.halFileRenamePath)
+	g.registerHost(hostOperationDescriptors["_file_mkdir"], g.halFileMkdirPath)
+	g.registerHost(hostOperationDescriptors["_file_mkdir_all"], g.halFileMkdirAllPath)
+	g.registerHost(hostOperationDescriptors["_file_remove_all"], g.halFileRemoveAllPath)
+	g.registerHost(hostOperationDescriptors["_file_temp"], halFileTemp)
+	g.registerHost(hostOperationDescriptors["_file_temp_dir"], halFileTempDir)
+	g.registerHost(hostOperationDescriptors["_file_copy"], g.halFileCopyPath)
+	g.registerHost(hostOperationDescriptors["_file_size"], g.halFileSizePath)
+	g.registerHost(hostOperationDescriptors["_time_now"], halTimeNow)
+	g.registerHost(hostOperationDescriptors["_system_cwd"], g.halSystemCwd)
+	g.registerHost(hostOperationDescriptors["_system_chdir"], g.halSystemChdir)
+	g.registerHost(hostOperationDescriptors["_system_exec"], g.halSystemExec)
+	g.registerHost(hostOperationDescriptors["_path_separator"], halPathSeparator)
+	g.registerRole(roleHost, "_seed", g.halSeed)
+	g.registerRole(roleHost, "_random", g.halRandom)
+	g.registerHost(hostOperationDescriptors["_canvas"], g.halCanvas)
+	g.registerHost(hostOperationDescriptors["_canvas_command"], g.halCanvasCommand)
+	g.registerHost(hostOperationDescriptors["_destroy"], g.halDestroy)
+	g.registerHost(hostOperationDescriptors["_canvas_width"], g.halCanvasWidth)
+	g.registerHost(hostOperationDescriptors["_canvas_height"], g.halCanvasHeight)
+	g.registerHost(hostOperationDescriptors["_canvas_alive"], g.halCanvasAlive)
 
-	// List
-	g.register("_first", halFirst)
-	g.register("_rest", halRest)
-	g.register("_length", halLength)
-	g.register("_prepend", halPrepend)
-	g.register("_append", halAppend)
-	g.register("_empty", halEmpty)
-	g.register("_range", halRange)
+	// Evaluator/language intrinsics.
+	g.registerRole(roleIntrinsic, "_apply", halApply)
+	g.registerRole(roleIntrinsic, "_import", g.halImport)
+	g.registerRole(roleIntrinsic, "_use", g.halUse)
+	g.registerRole(roleIntrinsic, "_export", halExport)
+	g.registerRole(roleIntrinsic, "_load", halLoad)
+	g.registerRole(roleIntrinsic, "_spawn", halSpawn)
+	g.registerRole(roleIntrinsic, "_channel", halChannel)
+	g.registerRole(roleIntrinsic, "_send", halSend)
+	g.registerRole(roleIntrinsic, "_recv", halRecv)
 
-	// Type
-	g.register("_type", halType)
-	g.register("_stack_limit", halStackLimit)
-	g.register("_inspect", halInspect)
-	g.register("_equal", halEqual)
-	g.register("_ord", halOrd)
-	g.register("_chr", halChr)
+	// Language/value primitives implemented natively.
+	for name, fn := range map[string]BuiltinFunc{
+		"_first": halFirst, "_rest": halRest, "_length": halLength,
+		"_prepend": halPrepend, "_append": halAppend, "_empty": halEmpty, "_range": halRange,
+		"_type": halType, "_stack_limit": halStackLimit, "_inspect": halInspect,
+		"_equal": halEqual, "_ord": halOrd, "_chr": halChr,
+		"_floor": halFloor, "_ceil": halCeil, "_truncate": halTruncate, "_modulo": halModulo,
+		"_bytes_new": halBytesNew, "_bytes_length": halBytesLength, "_bytes_get": halBytesGet,
+		"_bytes_slice": halBytesSlice, "_str_to_bytes": halStrToBytes,
+		"_bytes_to_str": halBytesToStr, "_bytes_to_str_pure": halBytesToStrPure,
+		"_shape": halShape, "_make_shaped_list": halMakeShapedList, "_to_str": halToStr,
+		"_to_decimal": halToDecimal, "_to_number": halToNumber, "_to_symbol": halToSymbol,
+		"_store_new": halStoreNew, "_store_get": halStoreGet, "_store_set": halStoreSet,
+		"_store_length": halStoreLength,
+		"_bits_and":     halBitsAnd, "_bits_or": halBitsOr, "_bits_xor": halBitsXor,
+		"_bits_not": halBitsNot, "_bits_shl": halBitsShl, "_bits_shr": halBitsShr,
+	} {
+		g.registerRole(roleNative, name, fn)
+	}
 
-	// Math
-	g.register("_floor", halFloor)
-	g.register("_ceil", halCeil)
-	g.register("_truncate", halTruncate)
-	g.register("_modulo", halModulo)
-	g.register("_sqrt_inexact", halSqrt)
-	g.register("_cos_inexact", halCos)
-	g.register("_sin_inexact", halSin)
-	g.register("_seed", halSeed)
-	g.register("_random", halRandom)
+	// Native/FFI library providers. Native realization does not imply host
+	// authority; these are alternate implementations of library behavior.
+	for name, fn := range map[string]BuiltinFunc{
+		"_sqrt_inexact": halSqrt, "_cos_inexact": halCos, "_sin_inexact": halSin,
+		"_upper": halUpper, "_lower": halLower, "_chars": halChars,
+		"_upper_rune": halUpperRune, "_lower_rune": halLowerRune,
+		"_regex_match": halRegexMatch, "_regex_find": halRegexFind,
+		"_regex_find_all": halRegexFindAll, "_regex_replace": halRegexReplace,
+		"_regex_replace_first": halRegexReplaceFirst, "_regex_split": halRegexSplit,
+	} {
+		g.registerRole(roleProvider, name, fn)
+	}
 
-	// Bytes
-	g.register("_bytes_new", halBytesNew)
-	g.register("_bytes_length", halBytesLength)
-	g.register("_bytes_get", halBytesGet)
-	g.register("_bytes_slice", halBytesSlice)
-	g.register("_str_to_bytes", halStrToBytes)
-	g.register("_bytes_to_str", halBytesToStr)
-	g.register("_bytes_to_str_pure", halBytesToStrPure)
-
-	// Time
-	g.register("_sleep", halSleep)
-	g.register("_after", halAfter)
-
-	// Host program environment
-	g.register("_system_args", halSystemArgs)
-	g.register("_system_env", halSystemEnv)
-	g.register("_module_roots", halModuleRoots)
-
-	// Canvas
-	g.register("_canvas", halCanvas)
-	g.register("_dot", halDot)
-	g.register("_line", halLine)
-	g.register("_rect", halRect)
-	g.register("_fill_rect", halFillRect)
-	g.register("_circle", halCircle)
-	g.register("_fill_circle", halFillCircle)
-	g.register("_arc", halArc)
-	g.register("_clear", halClear)
-	g.register("_destroy", halDestroy)
-	g.register("_set_bg", halSetBG)
-	g.register("_set_fg", halSetFG)
-	g.register("_pen_size", halPenSize)
-	g.register("_canvas_width", halCanvasWidth)
-	g.register("_canvas_height", halCanvasHeight)
-	g.register("_canvas_alive", halCanvasAlive)
-	g.register("_set_turtle", halSetTurtle)
-
-	// Convert
-	g.register("_shape", halShape)
-	g.register("_make_shaped_list", halMakeShapedList)
-	g.register("_to_str", halToStr)
-	g.register("_to_decimal", halToDecimal)
-	g.register("_to_number", halToNumber)
-	g.register("_to_symbol", halToSymbol)
-
-	// String (Unicode case conversion)
-	g.register("_upper", halUpper)
-	g.register("_lower", halLower)
-	g.register("_chars", halChars)
-	g.register("_upper_rune", halUpperRune)
-	g.register("_lower_rune", halLowerRune)
-
-	// Regex
-	g.register("_regex_match", halRegexMatch)
-	g.register("_regex_find", halRegexFind)
-	g.register("_regex_find_all", halRegexFindAll)
-	g.register("_regex_replace", halRegexReplace)
-	g.register("_regex_replace_first", halRegexReplaceFirst)
-	g.register("_regex_split", halRegexSplit)
-
-	// File I/O
-	g.register("_file_open", halFileOpen)
-	g.register("_file_read_text", halFileReadText)
-	g.register("_file_read_bytes", halFileReadBytes)
-	g.register("_file_read_line", halFileReadLine)
-	g.register("_file_write_text", halFileWriteText)
-	g.register("_file_write_bytes", halFileWriteBytes)
-	g.register("_file_close", halFileClose)
-	g.register("_file_exists", halFileExists)
-	g.register("_file_delete", halFileDelete)
-	g.register("_file_list", halFileList)
-	g.register("_file_read_at", halFileReadAt)
-	g.register("_file_write_at", halFileWriteAt)
-
-	// Intrinsics - these use evaluation context
-	g.register("_apply", halApply)
-	g.register("_import", halImport)
-	g.register("_use", halUse)
-	g.register("_export", halExport)
-	g.register("_load", halLoad)
-	g.register("_spawn", halSpawn)
-	g.register("_channel", halChannel)
-	g.register("_send", halSend)
-	g.register("_recv", halRecv)
-
-	// Semantic work profiling
-	g.register("_profile_counts", halProfileCounts)
-	g.register("_profile_measure", halProfileMeasure)
-	g.register("_profile_experiment", halProfileExperiment)
-
-	// Explicit mutable indexed storage
-	g.register("_store_new", halStoreNew)
-	g.register("_store_get", halStoreGet)
-	g.register("_store_set", halStoreSet)
-	g.register("_store_length", halStoreLength)
-
-	// Bit operations over non-negative integral Aiki numbers
-	g.register("_bits_and", halBitsAnd)
-	g.register("_bits_or", halBitsOr)
-	g.register("_bits_xor", halBitsXor)
-	g.register("_bits_not", halBitsNot)
-	g.register("_bits_shl", halBitsShl)
-	g.register("_bits_shr", halBitsShr)
-
-	// REPL
-	g.register("_quit", halQuit)
-	g.register("_reset", halReset)
-	g.register("_delete", halDelete)
-	g.register("_help", halHelp)
-	g.register("_doc", halDoc)
-
-	// Test framework
-	g.register("_test_equal", halTestEqual)
-	g.register("_test_not_equal", halTestNotEqual)
-	g.register("_test_true", halTestTrue)
-	g.register("_test_false", halTestFalse)
-	g.register("_test_error", halTestError)
-	g.register("_test_not_error", halTestNotError)
-	g.register("_test_run", halTestRun)
-	g.register("_test_faults", halTestFaults)
+	// Runtime/tooling/session services.
+	for name, fn := range map[string]BuiltinFunc{
+		"_module_roots":   g.halModuleRoots,
+		"_profile_counts": halProfileCounts, "_profile_measure": halProfileMeasure,
+		"_profile_experiment": halProfileExperiment,
+		"_quit":               g.halQuit, "_reset": g.halReset, "_delete": g.halDelete, "_help": g.halHelp, "_doc": g.halDoc,
+		"_test_equal": g.halTestEqual, "_test_not_equal": g.halTestNotEqual,
+		"_test_true": g.halTestTrue, "_test_false": g.halTestFalse,
+		"_test_error": g.halTestError, "_test_not_error": g.halTestNotError,
+		"_test_run": g.halTestRun, "_test_faults": g.halTestFaults,
+	} {
+		g.registerRole(roleService, name, fn)
+	}
 }

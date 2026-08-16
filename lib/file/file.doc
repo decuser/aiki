@@ -131,4 +131,68 @@ mode for random-access writes; :read_write does not truncate an existing file.
 Returns true on a complete write or [@error, :io, msg] on failure.
 
 write_at(file, offset, bytes)
+===
+stat
+@unchecked
+Returns filesystem metadata as [@stat, size, modified_ms, is_dir]. size is in
+bytes, modified_ms is milliseconds since the Unix epoch, and is_dir is a
+boolean. Returns [@error, :io, msg] when metadata cannot be read.
 
+stat(path)
+===
+rename
+@unchecked
+Renames or moves a filesystem object within the capabilities of the host
+filesystem. Returns true on success or [@error, :io, msg].
+
+rename(old_path, new_path)
+===
+mkdir
+@unchecked
+Creates one directory. Its parent must already exist. Returns true on success
+or [@error, :io, msg].
+
+mkdir(path)
+===
+mkdir_all
+@unchecked
+Creates a directory and any missing parent directories. Returns true on
+success or [@error, :io, msg].
+
+mkdir_all(path)
+===
+remove_all
+@unchecked
+Recursively removes path and anything beneath it. Returns true on success or
+[@error, :io, msg]. Use deliberately: this operation can remove a directory
+tree.
+
+remove_all(path)
+===
+temp
+@unchecked
+Creates a new empty temporary file using the host temporary-file facility,
+closes it, and returns its path as a string. Returns [@error, :io, msg] on
+failure.
+
+temp()
+===
+temp_dir
+@unchecked
+Creates a new temporary directory using the host temporary-directory facility
+and returns its path as a string. Returns [@error, :io, msg] on failure.
+
+temp_dir()
+===
+copy
+@unchecked
+Copies the bytes of src to dst, creating or replacing dst. Returns true on
+success or [@error, :io, msg].
+
+copy(src, dst)
+===
+size
+@unchecked
+Returns the filesystem-reported size of path in bytes, or [@error, :io, msg].
+
+size(path)

@@ -23,13 +23,14 @@ func NewSession() (*Session, error) {
 		return nil, err
 	}
 
-	if err := initModuleRegistry(g); err != nil {
+	rt := substrate.NewGoRuntime()
+	if err := initModuleRegistry(g, rt); err != nil {
 		return nil, err
 	}
-	rt := substrate.NewGoRuntime()
 
 	// Create prelude environment with ScopePrelude
 	preludeEnv := value.NewEnvWithScope(value.ScopePrelude)
+	preludeEnv.SetAuthority(rt.AuthorityForSource("engine/runtime/prelude/prelude.ai"))
 
 	// Load prelude
 	if err := loadPrelude(g, rt, preludeEnv); err != nil {
@@ -38,7 +39,8 @@ func NewSession() (*Session, error) {
 
 	// Create user environment enclosed by prelude
 	userEnv := value.NewEnclosedEnvWithScope(preludeEnv, value.ScopeUser)
-	substrate.UserEnv = userEnv
+	userEnv.SetAuthority(value.NoAuthority())
+	rt.SetUserEnv(userEnv)
 
 	ev := evaluator.New(rt, nil)
 	ev.SetGrammar(g)
@@ -72,16 +74,17 @@ func (s *Session) Eval(source string) value.Value {
 
 // Reset creates a fresh environment with prelude reloaded.
 func (s *Session) Reset() error {
-	substrate.ResetModuleRegistry()
-	if err := initModuleRegistry(s.Grammar); err != nil {
+	if err := initModuleRegistry(s.Grammar, s.Runtime); err != nil {
 		return err
 	}
 
 	preludeEnv := value.NewEnvWithScope(value.ScopePrelude)
+	preludeEnv.SetAuthority(s.Runtime.AuthorityForSource("engine/runtime/prelude/prelude.ai"))
 	if err := loadPrelude(s.Grammar, s.Runtime, preludeEnv); err != nil {
 		return err
 	}
 	s.Env = value.NewEnclosedEnvWithScope(preludeEnv, value.ScopeUser)
-	substrate.UserEnv = s.Env
+	s.Env.SetAuthority(value.NoAuthority())
+	s.Runtime.SetUserEnv(s.Env)
 	return nil
 }

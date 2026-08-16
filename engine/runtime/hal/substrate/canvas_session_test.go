@@ -58,13 +58,13 @@ func TestStartCanvasSessionAndDestroy(t *testing.T) {
 	restore := withFakeCanvasExec(t)
 	defer restore()
 
-	cvs := &value.Canvas{
+	cvs := &CanvasResource{
 		Width:    100,
 		Height:   100,
 		BG:       DefaultBG,
 		FG:       DefaultFG,
 		PenSize:  2,
-		Commands: make(chan value.CanvasCmd, 10),
+		Commands: make(chan CanvasCmd, 10),
 		Done:     make(chan struct{}),
 		Ready:    make(chan struct{}),
 	}
@@ -74,9 +74,9 @@ func TestStartCanvasSessionAndDestroy(t *testing.T) {
 	}
 
 	// Ensure session exists
-	sessionsMu.Lock()
-	sess := sessions[cvs]
-	sessionsMu.Unlock()
+	cvs.sessionMu.Lock()
+	sess := cvs.session
+	cvs.sessionMu.Unlock()
 	if sess == nil || sess.cmd == nil || sess.stdin == nil {
 		t.Fatalf("expected session to be registered")
 	}
@@ -93,10 +93,10 @@ func TestStartCanvasSessionAndDestroy(t *testing.T) {
 	// Wait for session removal
 	deadline := time.Now().Add(2 * time.Second)
 	for time.Now().Before(deadline) {
-		sessionsMu.Lock()
-		_, ok := sessions[cvs]
-		sessionsMu.Unlock()
-		if !ok {
+		cvs.sessionMu.Lock()
+		alive := cvs.session != nil
+		cvs.sessionMu.Unlock()
+		if !alive {
 			return
 		}
 		time.Sleep(10 * time.Millisecond)
@@ -114,13 +114,13 @@ func TestChildExitEarlyDoesNotPanicOnSend(t *testing.T) {
 	}
 	defer func() { canvasExecCommand = prev }()
 
-	cvs := &value.Canvas{
+	cvs := &CanvasResource{
 		Width:    100,
 		Height:   100,
 		BG:       DefaultBG,
 		FG:       DefaultFG,
 		PenSize:  2,
-		Commands: make(chan value.CanvasCmd, 10),
+		Commands: make(chan CanvasCmd, 10),
 		Done:     make(chan struct{}),
 		Ready:    make(chan struct{}),
 	}
@@ -153,34 +153,39 @@ func TestChildExitEarlyDoesNotPanicOnSend(t *testing.T) {
 	}
 }
 
-// Basic sanity that CloseAllCanvases closes and reaps multiple sessions.
+// Basic sanity that runtime-owned CloseAllCanvases closes and reaps multiple sessions.
 func TestCloseAllCanvasesReapsAll(t *testing.T) {
 	restore := withFakeCanvasExec(t)
 	defer restore()
 
-	c1 := &value.Canvas{Width: 10, Height: 10, BG: DefaultBG, FG: DefaultFG, PenSize: 1, Commands: make(chan value.CanvasCmd, 10), Done: make(chan struct{}), Ready: make(chan struct{})}
-	c2 := &value.Canvas{Width: 10, Height: 10, BG: DefaultBG, FG: DefaultFG, PenSize: 1, Commands: make(chan value.CanvasCmd, 10), Done: make(chan struct{}), Ready: make(chan struct{})}
+	r1 := &CanvasResource{Width: 10, Height: 10, BG: DefaultBG, FG: DefaultFG, PenSize: 1, Commands: make(chan CanvasCmd, 10), Done: make(chan struct{}), Ready: make(chan struct{})}
+	r2 := &CanvasResource{Width: 10, Height: 10, BG: DefaultBG, FG: DefaultFG, PenSize: 1, Commands: make(chan CanvasCmd, 10), Done: make(chan struct{}), Ready: make(chan struct{})}
 
-	if err := startCanvasSession(c1); err != nil {
+	if err := startCanvasSession(r1); err != nil {
 		t.Fatalf("startCanvasSession c1: %v", err)
 	}
-	if err := startCanvasSession(c2); err != nil {
+	if err := startCanvasSession(r2); err != nil {
 		t.Fatalf("startCanvasSession c2: %v", err)
 	}
 
-	// CloseAllCanvases only closes tracked canvases.
-	trackCanvas(c1)
-	trackCanvas(c2)
+	// CloseAllCanvases only closes canvases tracked by this runtime.
+	rt := NewGoRuntime()
+	c1 := &value.Canvas{ID: 1}
+	c2 := &value.Canvas{ID: 2}
+	rt.trackCanvas(c1, r1)
+	rt.trackCanvas(c2, r2)
 
-	CloseAllCanvases()
+	rt.CloseAllCanvases()
 
 	// Confirm sessions map is empty (or at least these entries are gone).
 	deadline := time.Now().Add(2 * time.Second)
 	for time.Now().Before(deadline) {
-		sessionsMu.Lock()
-		_, ok1 := sessions[c1]
-		_, ok2 := sessions[c2]
-		sessionsMu.Unlock()
+		r1.sessionMu.Lock()
+		ok1 := r1.session != nil
+		r1.sessionMu.Unlock()
+		r2.sessionMu.Lock()
+		ok2 := r2.session != nil
+		r2.sessionMu.Unlock()
 		if !ok1 && !ok2 {
 			return
 		}

@@ -24,7 +24,9 @@ func eval(t *testing.T, source string) value.Value {
 	rt := substrate.NewGoRuntime()
 	ev := evaluator.New(rt, nil)
 	// Use prelude scope to access HAL primitives directly
-	return ev.Eval(ast, value.NewEnvWithScope(value.ScopePrelude))
+	env := value.NewEnvWithScope(value.ScopePrelude)
+	env.SetAuthority(rt.AuthorityForSource("engine/runtime/prelude/prelude.ai"))
+	return ev.Eval(ast, env)
 }
 
 // TestStackLimitNonTailRecursion verifies stack overflow is caught for non-tail recursion.

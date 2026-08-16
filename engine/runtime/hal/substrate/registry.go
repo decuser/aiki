@@ -31,9 +31,6 @@ type ModuleRegistry struct {
 	seen      map[string]bool          // absolute paths already scanned
 }
 
-// GlobalRegistry is the module registry used by import.
-var GlobalRegistry *ModuleRegistry
-
 // DistributionModuleRoots returns the directories, relative to a distribution
 // root, that hold shipped modules. Everything under them is subject to the
 // documentation invariants, including vendored modules: a module that ships

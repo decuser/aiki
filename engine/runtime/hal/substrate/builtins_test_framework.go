@@ -3,22 +3,20 @@ package substrate
 import (
 	"fmt"
 	"strings"
-	"sync"
 
 	"aiki/engine/runtime/hal"
 	"aiki/engine/semantics/value"
 	"aiki/engine/syntax"
 )
 
-// testState accumulates test results across assertions and run blocks.
-var (
-	testMu       sync.Mutex
-	testFailures []testFailure
-	testPassed   int
-	testFailed   int
-	testCurrent  string // name of the current test.run block, if any
-	testFile     string // file of the current test, set by the test runner
-)
+// runtimeTestState accumulates Aiki test results for one runtime.
+type runtimeTestState struct {
+	failures []testFailure
+	passed   int
+	failed   int
+	current  string // name of the current test.run block, if any
+	file     string // file of the current test, set by the test runner
+}
 
 type testFailure struct {
 	test    string // test.run name, or "" for top-level
@@ -27,32 +25,26 @@ type testFailure struct {
 	message string
 }
 
-// ResetTestState clears accumulated test results. Called by the test runner
-// before each test file.
-func ResetTestState() {
-	testMu.Lock()
-	defer testMu.Unlock()
-	testFailures = nil
-	testPassed = 0
-	testFailed = 0
-	testCurrent = ""
-	testFile = ""
+// ResetTestState clears accumulated test results for this runtime.
+func (g *GoRuntime) ResetTestState() {
+	g.mu.Lock()
+	g.testState = runtimeTestState{}
+	g.mu.Unlock()
 }
 
-// SetTestFile sets the file path for the current test. Called by the test
-// runner before executing each test file.
-func SetTestFile(path string) {
-	testMu.Lock()
-	testFile = path
-	testMu.Unlock()
+// SetTestFile sets the file path for the current runtime test.
+func (g *GoRuntime) SetTestFile(path string) {
+	g.mu.Lock()
+	g.testState.file = path
+	g.mu.Unlock()
 }
 
-// TestResults returns the accumulated results.
-func TestResults() (passed, failed int, failures []string) {
-	testMu.Lock()
-	defer testMu.Unlock()
+// TestResults returns the accumulated results for this runtime.
+func (g *GoRuntime) TestResults() (passed, failed int, failures []string) {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
 	var msgs []string
-	for _, f := range testFailures {
+	for _, f := range g.testState.failures {
 		loc := fmt.Sprintf("%s:%d", f.file, f.line)
 		if f.test != "" {
 			msgs = append(msgs, fmt.Sprintf("  FAIL %s (%s): %s", f.test, loc, f.message))
@@ -60,25 +52,25 @@ func TestResults() (passed, failed int, failures []string) {
 			msgs = append(msgs, fmt.Sprintf("  FAIL (%s): %s", loc, f.message))
 		}
 	}
-	return testPassed, testFailed, msgs
+	return g.testState.passed, g.testState.failed, msgs
 }
 
-func recordPass() {
-	testMu.Lock()
-	testPassed++
-	testMu.Unlock()
+func (g *GoRuntime) recordTestPass() {
+	g.mu.Lock()
+	g.testState.passed++
+	g.mu.Unlock()
 }
 
-func recordFailure(ctx *hal.EvalContext, msg string) {
-	testMu.Lock()
-	defer testMu.Unlock()
-	testFailed++
-	file := testFile
+func (g *GoRuntime) recordTestFailure(ctx *hal.EvalContext, msg string) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.testState.failed++
+	file := g.testState.file
 	line := 0
 	// The stack frames carry the call site line but the callee's file.
 	// For assertions inside a run() block, the "run" frame has the
 	// correct line (from the user's test file) but the wrong file
-	// (test.ai, because run's body is there). We use testFile for
+	// (test.ai, because run's body is there). We use the runtime test file for
 	// the file and take the line from the deepest non-<main> frame.
 	if ctx != nil && ctx.Env != nil {
 		stack := ctx.Env.CopyStack()
@@ -89,7 +81,6 @@ func recordFailure(ctx *hal.EvalContext, msg string) {
 				break
 			}
 		}
-		// Fallback to <main> line if nothing else
 		if line == 0 && len(stack) > 0 && stack[0].Line > 0 {
 			line = stack[0].Line
 		}
@@ -100,8 +91,8 @@ func recordFailure(ctx *hal.EvalContext, msg string) {
 	if line == 0 && ctx != nil && ctx.Node != nil {
 		line = ctx.Node.Pos.Line
 	}
-	testFailures = append(testFailures, testFailure{
-		test:    testCurrent,
+	g.testState.failures = append(g.testState.failures, testFailure{
+		test:    g.testState.current,
 		file:    file,
 		line:    line,
 		message: msg,
@@ -109,89 +100,89 @@ func recordFailure(ctx *hal.EvalContext, msg string) {
 }
 
 // halTestEqual asserts that actual and expected are deeply equal.
-func halTestEqual(args []value.Value, ctx *hal.EvalContext) value.Value {
+func (g *GoRuntime) halTestEqual(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 2 {
 		return value.NewFault("test.equal: want 2 arguments, got %d", len(args))
 	}
 	actual := args[0]
 	expected := args[1]
 	if value.DeepEqual(actual, expected) {
-		recordPass()
+		g.recordTestPass()
 		return value.TRUE
 	}
-	recordFailure(ctx, fmt.Sprintf("expected %s, got %s", expected.Inspect(), actual.Inspect()))
+	g.recordTestFailure(ctx, fmt.Sprintf("expected %s, got %s", expected.Inspect(), actual.Inspect()))
 	return value.FALSE
 }
 
 // halTestNotEqual asserts that actual and expected are not equal.
-func halTestNotEqual(args []value.Value, ctx *hal.EvalContext) value.Value {
+func (g *GoRuntime) halTestNotEqual(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 2 {
 		return value.NewFault("test.not_equal: want 2 arguments, got %d", len(args))
 	}
 	actual := args[0]
 	expected := args[1]
 	if !value.DeepEqual(actual, expected) {
-		recordPass()
+		g.recordTestPass()
 		return value.TRUE
 	}
-	recordFailure(ctx, fmt.Sprintf("expected value different from %s", expected.Inspect()))
+	g.recordTestFailure(ctx, fmt.Sprintf("expected value different from %s", expected.Inspect()))
 	return value.FALSE
 }
 
 // halTestTrue asserts that value is truthy.
-func halTestTrue(args []value.Value, ctx *hal.EvalContext) value.Value {
+func (g *GoRuntime) halTestTrue(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
 		return value.NewFault("test.true: want 1 argument, got %d", len(args))
 	}
 	if value.IsTruthy(args[0]) {
-		recordPass()
+		g.recordTestPass()
 		return value.TRUE
 	}
-	recordFailure(ctx, fmt.Sprintf("expected truthy, got %s", args[0].Inspect()))
+	g.recordTestFailure(ctx, fmt.Sprintf("expected truthy, got %s", args[0].Inspect()))
 	return value.FALSE
 }
 
 // halTestFalse asserts that value is falsy.
-func halTestFalse(args []value.Value, ctx *hal.EvalContext) value.Value {
+func (g *GoRuntime) halTestFalse(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
 		return value.NewFault("test.false: want 1 argument, got %d", len(args))
 	}
 	if !value.IsTruthy(args[0]) {
-		recordPass()
+		g.recordTestPass()
 		return value.TRUE
 	}
-	recordFailure(ctx, fmt.Sprintf("expected falsy, got %s", args[0].Inspect()))
+	g.recordTestFailure(ctx, fmt.Sprintf("expected falsy, got %s", args[0].Inspect()))
 	return value.FALSE
 }
 
 // halTestError asserts that value is a shaped error.
-func halTestError(args []value.Value, ctx *hal.EvalContext) value.Value {
+func (g *GoRuntime) halTestError(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
 		return value.NewFault("test.error: want 1 argument, got %d", len(args))
 	}
 	if value.IsShapedError(args[0]) {
-		recordPass()
+		g.recordTestPass()
 		return value.TRUE
 	}
-	recordFailure(ctx, fmt.Sprintf("expected error, got %s", args[0].Inspect()))
+	g.recordTestFailure(ctx, fmt.Sprintf("expected error, got %s", args[0].Inspect()))
 	return value.FALSE
 }
 
 // halTestNotError asserts that value is not a shaped error.
-func halTestNotError(args []value.Value, ctx *hal.EvalContext) value.Value {
+func (g *GoRuntime) halTestNotError(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
 		return value.NewFault("test.not_error: want 1 argument, got %d", len(args))
 	}
 	if !value.IsShapedError(args[0]) {
-		recordPass()
+		g.recordTestPass()
 		return value.TRUE
 	}
-	recordFailure(ctx, fmt.Sprintf("expected non-error, got %s", args[0].Inspect()))
+	g.recordTestFailure(ctx, fmt.Sprintf("expected non-error, got %s", args[0].Inspect()))
 	return value.FALSE
 }
 
 // halTestRun runs a named test function, isolating faults.
-func halTestRun(args []value.Value, ctx *hal.EvalContext) value.Value {
+func (g *GoRuntime) halTestRun(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) < 2 {
 		return value.NewFault("test.run: want (name, fn), got %d arguments", len(args))
 	}
@@ -201,19 +192,19 @@ func halTestRun(args []value.Value, ctx *hal.EvalContext) value.Value {
 	}
 	name := nameVal.Val
 
-	testMu.Lock()
-	prev := testCurrent
-	testCurrent = name
-	testMu.Unlock()
+	g.mu.Lock()
+	prev := g.testState.current
+	g.testState.current = name
+	g.mu.Unlock()
 
 	// The callback was defined in the user's test file. Its closure
 	// env carries that file path, which we use for failure locations.
 	fn := args[1]
 	if fnVal, ok := fn.(*value.Function); ok {
 		if fnEnv, ok := fnVal.Env.(*value.Env); ok {
-			testMu.Lock()
-			testFile = fnEnv.GetFile()
-			testMu.Unlock()
+			g.mu.Lock()
+			g.testState.file = fnEnv.GetFile()
+			g.mu.Unlock()
 		}
 	}
 
@@ -239,18 +230,18 @@ func halTestRun(args []value.Value, ctx *hal.EvalContext) value.Value {
 		var msg strings.Builder
 		msg.WriteString("fault: ")
 		msg.WriteString(fault.Message)
-		recordFailure(ctx, msg.String())
+		g.recordTestFailure(ctx, msg.String())
 	}
 
-	testMu.Lock()
-	testCurrent = prev
-	testMu.Unlock()
+	g.mu.Lock()
+	g.testState.current = prev
+	g.mu.Unlock()
 
 	return value.EMPTY
 }
 
 // halTestFaults asserts that fn faults when called.
-func halTestFaults(args []value.Value, ctx *hal.EvalContext) value.Value {
+func (g *GoRuntime) halTestFaults(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
 		return value.NewFault("test.faults: want 1 argument (fn), got %d", len(args))
 	}
@@ -271,9 +262,9 @@ func halTestFaults(args []value.Value, ctx *hal.EvalContext) value.Value {
 	}
 
 	if _, ok := result.(*value.Fault); ok {
-		recordPass()
+		g.recordTestPass()
 		return value.TRUE
 	}
-	recordFailure(ctx, "expected a fault, but none occurred")
+	g.recordTestFailure(ctx, "expected a fault, but none occurred")
 	return value.FALSE
 }

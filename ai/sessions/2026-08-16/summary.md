@@ -56,3 +56,17 @@ The replacement design gives canonical `HAL.<domain>.<operation>` identities onl
 A Runtime owns the host world; an Evaluation Session owns evaluator interaction. Intrinsics receive evaluator context; ordinary HAL calls receive a deliberately small host-call context. Concrete host resources become runtime-owned opaque references rather than Go objects embedded in core semantic values.
 
 Seven serial implementation migrations are planned, beginning with metadata-only three-name coverage and ending with compatibility removal and full executable hardening. The user-facing systems-programmer surface remains the criterion throughout.
+
+
+## M6 Canvas pressure migration
+
+M6 is GATED. Canvas/turtle domain commands are expressed in Aiki and cross through `_canvas_command` / `HAL.canvas.command`; six narrow Canvas contracts are canonical. `value.Canvas` is now an opaque handle and concrete Canvas process/session/drawing state is runtime-owned in the substrate. The user reported `go test ./...` passed after M6.c.
+
+
+## M7 compatibility removal and hardening
+
+M7 removes the obsolete per-command Canvas raw aliases from registration, selfhost capture, and trusted-source dependency policy. Host authority is now executable at the canonical contract layer: a trusted source that uses `_file_open` receives `HAL.file.open`, and raw `_file_open` authority alone does not authorize the crossing. Non-HAL primitives retain their implementation-name grants.
+
+The final ownership sweep found and corrected one M3 miss: Aiki test-framework result state was still package-global. It is now owned by `GoRuntime`, and the test command executes each file on a caller-owned runtime so results can be read from the same host world. A runtime-isolation test protects this property.
+
+`docs/hal.md` records the completed architecture outside the AI ledger. Final validation exposed only two contained cleanup defects: stale tests still encoded the superseded scope-based authority rule, and `path.normalize` had imported conventional precedence/short-circuit assumptions inconsistent with Aiki's eager left-to-right evaluation. Both were corrected without weakening the architecture. The user then reported the final `make validate` passed. M7 and the HAL redesign implementation are COMPLETE.

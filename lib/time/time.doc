@@ -1,4 +1,12 @@
 @preamble use("time")
+now
+Returns the current host time as an integer number of milliseconds since the
+Unix epoch.
+
+now()
+
+type(now())    # :number
+===
 sleep
 @unchecked
 Pauses execution for the specified number of milliseconds.

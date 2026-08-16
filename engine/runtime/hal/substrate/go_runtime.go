@@ -2,26 +2,23 @@
 package substrate
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"io"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"runtime/pprof"
 	"sort"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"aiki/engine"
 	"aiki/engine/runtime/hal"
+	"aiki/engine/runtime/help"
 	"aiki/engine/semantics/value"
-)
-
-// Stdout and Stdin for I/O redirection.
-var (
-	Stdout  io.Writer  = os.Stdout
-	Stdin   io.Reader  = os.Stdin
-	UserEnv *value.Env // Set by REPL session for delete() to access
 )
 
 // BuiltinFunc is a HAL-level function that may use evaluation context.
@@ -51,29 +48,126 @@ func (b *Builtin) CallWithContext(args []value.Value, ctx *hal.EvalContext) valu
 var _ value.Callable = (*Builtin)(nil)
 var _ hal.ContextCallable = (*Builtin)(nil)
 
-// GoRuntime implements hal.RuntimeContract using Go primitives.
-// It maintains a single registry of _prefixed HAL primitives.
-// User-visible names are defined in prelude.ai, not here.
+// GoRuntime implements hal.RuntimeContract using Go substrate bindings. Native
+// machinery is separated by architectural role, and only canonical host
+// operations populate hostBindings. User-visible names are defined in Aiki.
 type GoRuntime struct {
-	registry      map[string]*Builtin // _print, _read, etc - prelude only
-	mu            sync.RWMutex
-	profileLabels atomic.Bool
-	labelContexts sync.Map // map[engine.ProfileLabels]context.Context
-	asyncFaults   chan *value.Fault
+	intrinsics      map[string]*Builtin
+	natives         map[string]*Builtin
+	providers       map[string]*Builtin
+	hostRegistry    map[string]*Builtin
+	services        map[string]*Builtin
+	hostBindings    map[string]hal.HostOperation
+	stdin           io.Reader
+	stdout          io.Writer
+	pageOutput      func(string) bool
+	userEnv         *value.Env
+	moduleRegistry  *ModuleRegistry
+	helpRegistry    *help.Registry
+	openCanvases    []*value.Canvas
+	canvasResources map[*value.Canvas]*CanvasResource
+	nextCanvasID    uint64
+	programArgs     []string
+	workingDir      string
+	envLookup       func(string) (string, bool)
+	rng             *rand.Rand
+	fileReaders     map[*value.File]*bufio.Reader
+	testState       runtimeTestState
+	mu              sync.RWMutex
+	profileLabels   atomic.Bool
+	labelContexts   sync.Map // map[engine.ProfileLabels]context.Context
+	asyncFaults     chan *value.Fault
 }
 
 // Verify GoRuntime implements RuntimeContract
 var _ hal.RuntimeContract = (*GoRuntime)(nil)
+var _ hal.HostOperationProvider = (*GoRuntime)(nil)
 var _ hal.ProfileLabeler = (*GoRuntime)(nil)
 
 // NewGoRuntime creates a new Go runtime substrate.
 func NewGoRuntime() *GoRuntime {
+	workingDir, err := os.Getwd()
+	if err != nil {
+		workingDir = "."
+	}
 	rt := &GoRuntime{
-		registry:    make(map[string]*Builtin),
-		asyncFaults: make(chan *value.Fault, 1),
+		intrinsics:      make(map[string]*Builtin),
+		natives:         make(map[string]*Builtin),
+		providers:       make(map[string]*Builtin),
+		hostRegistry:    make(map[string]*Builtin),
+		services:        make(map[string]*Builtin),
+		hostBindings:    make(map[string]hal.HostOperation),
+		canvasResources: make(map[*value.Canvas]*CanvasResource),
+		stdin:           os.Stdin,
+		stdout:          os.Stdout,
+		workingDir:      workingDir,
+		envLookup:       os.LookupEnv,
+		rng:             rand.New(rand.NewSource(time.Now().UnixNano())),
+		fileReaders:     make(map[*value.File]*bufio.Reader),
+		asyncFaults:     make(chan *value.Fault, 1),
 	}
 	rt.registerHAL()
 	return rt
+}
+
+// SetIO replaces the runtime-owned standard input/output endpoints. Nil values
+// restore the corresponding process defaults.
+func (g *GoRuntime) SetIO(in io.Reader, out io.Writer) {
+	g.mu.Lock()
+	if in == nil {
+		in = os.Stdin
+	}
+	if out == nil {
+		out = os.Stdout
+	}
+	g.stdin = in
+	g.stdout = out
+	g.mu.Unlock()
+}
+
+// SetPageOutput installs the optional runtime-owned pageable-text presenter.
+func (g *GoRuntime) SetPageOutput(fn func(string) bool) {
+	g.mu.Lock()
+	g.pageOutput = fn
+	g.mu.Unlock()
+}
+
+// SetUserEnv sets the session user environment used by REPL-only services such as delete.
+func (g *GoRuntime) SetUserEnv(env *value.Env) {
+	g.mu.Lock()
+	g.userEnv = env
+	g.mu.Unlock()
+}
+
+// SetModuleRegistry installs the runtime-owned module registry/cache.
+func (g *GoRuntime) SetModuleRegistry(registry *ModuleRegistry) {
+	g.mu.Lock()
+	g.moduleRegistry = registry
+	g.mu.Unlock()
+}
+
+// SetHelpRegistry installs the runtime-owned prelude help/documentation registry.
+func (g *GoRuntime) SetHelpRegistry(registry *help.Registry) {
+	g.mu.Lock()
+	g.helpRegistry = registry
+	g.mu.Unlock()
+}
+
+// SetProgramArgs replaces the runtime-owned argument snapshot visible to system.args.
+func (g *GoRuntime) SetProgramArgs(args []string) {
+	g.mu.Lock()
+	g.programArgs = append(g.programArgs[:0], args...)
+	g.mu.Unlock()
+}
+
+// SetEnvLookup replaces the runtime environment view. A nil lookup restores the host view.
+func (g *GoRuntime) SetEnvLookup(lookup func(string) (string, bool)) {
+	g.mu.Lock()
+	if lookup == nil {
+		lookup = os.LookupEnv
+	}
+	g.envLookup = lookup
+	g.mu.Unlock()
 }
 
 // Execute calls a registered primitive function.
@@ -95,7 +189,7 @@ func (g *GoRuntime) ReportAsyncFault(fault *value.Fault) {
 
 func (g *GoRuntime) Execute(name string, args []value.Value, ctx *hal.EvalContext) (value.Value, error) {
 	g.mu.RLock()
-	b, ok := g.registry[name]
+	b, ok := g.lookupBuiltin(name)
 	g.mu.RUnlock()
 
 	if !ok {
@@ -109,48 +203,53 @@ func (g *GoRuntime) Execute(name string, args []value.Value, ctx *hal.EvalContex
 	return result, nil
 }
 
-// HasBuiltin checks if a name is visible at the given scope.
-func (g *GoRuntime) HasBuiltin(name string, scope value.Scope) bool {
-	// export, import, and use are available in all scopes (they're language primitives)
+// authorityKey returns the architectural grant checked for a runtime binding.
+// Canonical host operations are authorized by HAL identity; non-HAL language,
+// provider, and service primitives retain their implementation primitive name.
+func (g *GoRuntime) authorityKey(name string) string {
+	g.mu.RLock()
+	op, ok := g.hostBindings[name]
+	g.mu.RUnlock()
+	if ok {
+		return op.Authority
+	}
+	return name
+}
+
+// HasBuiltin checks whether a runtime binding is executable under the supplied
+// lexical authority. Language intrinsics import/use/export remain constitutive
+// and do not consume a grant. Scope is intentionally not consulted.
+func (g *GoRuntime) HasBuiltin(name string, authority value.Authority) bool {
 	if name == "export" || name == "import" || name == "use" {
 		g.mu.RLock()
-		_, ok := g.registry["_"+name]
+		_, ok := g.intrinsics["_"+name]
 		g.mu.RUnlock()
 		return ok
 	}
-
-	// User scope cannot access any other builtins directly.
-	// All user-visible functions come from prelude.ai bindings in Env.
-	if scope == value.ScopeUser {
+	if !authority.Allows(g.authorityKey(name)) {
 		return false
 	}
-
-	// Prelude scope can access _prefixed HAL primitives.
 	g.mu.RLock()
-	_, ok := g.registry[name]
+	_, ok := g.lookupBuiltin(name)
 	g.mu.RUnlock()
 	return ok
 }
 
-// GetBuiltin returns a callable for the named builtin at the given scope.
-func (g *GoRuntime) GetBuiltin(name string, scope value.Scope) (value.Callable, bool) {
-	// export, import, and use are available in all scopes (they're language primitives)
+// GetBuiltin resolves a runtime binding only when lexical authority grants its
+// architectural key. Host operations use canonical HAL identities; other
+// primitives use their implementation primitive names.
+func (g *GoRuntime) GetBuiltin(name string, authority value.Authority) (value.Callable, bool) {
 	if name == "export" || name == "import" || name == "use" {
 		g.mu.RLock()
-		b, ok := g.registry["_"+name]
+		b, ok := g.intrinsics["_"+name]
 		g.mu.RUnlock()
 		return b, ok
 	}
-
-	// User scope cannot access any other builtins directly.
-	// All user-visible functions come from prelude.ai bindings in Env.
-	if scope == value.ScopeUser {
+	if !authority.Allows(g.authorityKey(name)) {
 		return nil, false
 	}
-
-	// Prelude scope can access _prefixed HAL primitives.
 	g.mu.RLock()
-	b, ok := g.registry[name]
+	b, ok := g.lookupBuiltin(name)
 	g.mu.RUnlock()
 	return b, ok
 }
@@ -177,8 +276,10 @@ func (g *GoRuntime) BuiltinNames(scope value.Scope) []string {
 
 	// Prelude scope can access _prefixed HAL primitives.
 	g.mu.RLock()
-	for name := range g.registry {
-		set[name] = true
+	for _, registry := range g.registries() {
+		for name := range registry {
+			set[name] = true
+		}
 	}
 	g.mu.RUnlock()
 
@@ -190,13 +291,19 @@ func (g *GoRuntime) BuiltinNames(scope value.Scope) []string {
 	return out
 }
 
-// register adds a builtin to the registry.
-// Panics if fn is nil - catches stub registrations at startup.
-func (g *GoRuntime) register(name string, fn BuiltinFunc) {
-	if fn == nil {
-		panic(fmt.Sprintf("HAL registration has nil function: %s", name))
+// registerHost registers an existing host-role compatibility primitive and
+// attaches the canonical host-operation contract that it realizes. Not every
+// host-role primitive has canonical metadata yet; canonical descriptors are a
+// stricter subset of this compatibility registry.
+func (g *GoRuntime) registerHost(op hal.HostOperation, fn BuiltinFunc) {
+	if op.Identity == "" || op.Primitive == "" || op.SubstrateProvenance == "" {
+		panic("host operation registration requires identity, primitive, and substrate provenance")
 	}
-	g.registry[name] = &Builtin{name: name, fn: fn, runtime: g}
+	if _, exists := g.hostBindings[op.Primitive]; exists {
+		panic(fmt.Sprintf("duplicate host operation registration: %s", op.Primitive))
+	}
+	g.registerRole(roleHost, op.Primitive, fn)
+	g.hostBindings[op.Primitive] = op
 }
 
 // resolveModulePath finds the .ai file for a module name.

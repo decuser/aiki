@@ -1,0 +1,33 @@
+# path - portable path manipulation
+
+@func separator
+@template "separator()"
+@help "Returns the host path separator as a string."
+
+@func cwd
+@template "cwd()"
+@help "Returns the runtime working directory."
+
+@func join
+@template "join(left, right)"
+@help "Joins two path components using the host separator."
+
+@func dir
+@template "dir(p)"
+@help "Returns everything before the final host separator, or an empty string if none is present."
+
+@func base
+@template "base(p)"
+@help "Returns everything after the final host separator."
+
+@func ext
+@template "ext(p)"
+@help "Returns the final basename extension including '.', or an empty string."
+
+@func normalize
+@template "normalize(p)"
+@help "Pure Aiki normalization of repeated separators, '.', and '..' components."
+
+@func is_absolute
+@template "is_absolute(p)"
+@help "Returns true when path begins with the host separator."

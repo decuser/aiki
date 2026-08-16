@@ -40,3 +40,11 @@ func halAfter(args []value.Value, ctx *hal.EvalContext) value.Value {
 	})
 	return ch
 }
+
+// halTimeNow returns Unix time in integer milliseconds.
+func halTimeNow(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 0 {
+		return value.NewFault("_time_now: want 0 arguments, got %d", len(args))
+	}
+	return value.NewNumber(time.Now().UnixMilli(), 1)
+}

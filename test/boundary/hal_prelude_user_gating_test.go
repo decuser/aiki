@@ -24,7 +24,7 @@ func TestUserCannotSeeHAL(t *testing.T) {
 
 	// Should be a fault about undefined _print
 	if !value.IsFault(result) {
-		t.Errorf("expected fault for _print in user scope, got: %s", result.Inspect())
+		t.Errorf("expected fault for _print without authority, got: %s", result.Inspect())
 	}
 	faultVal := result.(*value.Fault)
 	if faultVal.Message != "undefined: _print" {
@@ -43,7 +43,7 @@ func TestUserCanSeePrintAfterPrelude(t *testing.T) {
 
 	// Should resolve to function from prelude, not fault
 	if value.IsFault(result) {
-		t.Errorf("expected print to resolve in user scope after prelude, got fault: %s", result.Inspect())
+		t.Errorf("expected print to resolve without authority after prelude, got fault: %s", result.Inspect())
 	}
 }
 
@@ -73,7 +73,7 @@ func TestPreludeCanSeeHAL(t *testing.T) {
 
 	// Should resolve to builtin, not fault
 	if value.IsFault(result) {
-		t.Errorf("expected _print to resolve in prelude scope, got fault: %s", result.Inspect())
+		t.Errorf("expected _print to resolve with canonical host authority, got fault: %s", result.Inspect())
 	}
 }
 
@@ -88,27 +88,27 @@ func TestPreludeCannotSeeNonPrefixed(t *testing.T) {
 
 	// Without prelude loading, print is not defined
 	if !value.IsFault(result) {
-		t.Errorf("expected print to be undefined in prelude scope without prelude, got: %s", result.Inspect())
+		t.Errorf("expected print to be undefined with canonical host authority without prelude, got: %s", result.Inspect())
 	}
 }
 
-// TestHALRegistryOnlyHasUnderscored verifies all HAL registry entries are _prefixed.
-func TestHALRegistryOnlyHasUnderscored(t *testing.T) {
+// TestRuntimeRegistryOnlyHasUnderscored verifies runtime binding names remain _prefixed.
+func TestRuntimeRegistryOnlyHasUnderscored(t *testing.T) {
 	rt := substrate.NewGoRuntime()
 
-	// Try to get non-prefixed from prelude scope - should fail
-	if _, ok := rt.GetBuiltin("print", value.ScopePrelude); ok {
+	// Canonical host authority does not change the runtime binding namespace.
+	if _, ok := rt.GetBuiltin("print", value.NewAuthority("HAL.io.print", "_length")); ok {
 		t.Error("HAL registry should not contain non-prefixed 'print'")
 	}
-	if _, ok := rt.GetBuiltin("length", value.ScopePrelude); ok {
+	if _, ok := rt.GetBuiltin("length", value.NewAuthority("HAL.io.print", "_length")); ok {
 		t.Error("HAL registry should not contain non-prefixed 'length'")
 	}
 
-	// _prefixed should work
-	if _, ok := rt.GetBuiltin("_print", value.ScopePrelude); !ok {
+	// Raw binding lookup succeeds only when the corresponding authority is present.
+	if _, ok := rt.GetBuiltin("_print", value.NewAuthority("HAL.io.print", "_length")); !ok {
 		t.Error("HAL registry should contain '_print'")
 	}
-	if _, ok := rt.GetBuiltin("_length", value.ScopePrelude); !ok {
+	if _, ok := rt.GetBuiltin("_length", value.NewAuthority("HAL.io.print", "_length")); !ok {
 		t.Error("HAL registry should contain '_length'")
 	}
 }
@@ -118,10 +118,10 @@ func TestUserScopeGetsNothingFromRuntime(t *testing.T) {
 	rt := substrate.NewGoRuntime()
 
 	// User scope should get nothing, even for _prefixed
-	if rt.HasBuiltin("_print", value.ScopeUser) {
+	if rt.HasBuiltin("_print", value.NoAuthority()) {
 		t.Error("user scope should not see _print")
 	}
-	if rt.HasBuiltin("print", value.ScopeUser) {
+	if rt.HasBuiltin("print", value.NoAuthority()) {
 		t.Error("user scope should not see print from runtime")
 	}
 }
@@ -136,7 +136,7 @@ func TestUserCannotSeeHALChr(t *testing.T) {
 	}
 
 	if !value.IsFault(result) {
-		t.Errorf("expected fault for _chr in user scope, got: %s", result.Inspect())
+		t.Errorf("expected fault for _chr without authority, got: %s", result.Inspect())
 	}
 }
 
@@ -150,7 +150,7 @@ func TestUserCanSeeChrAfterPrelude(t *testing.T) {
 	}
 
 	if value.IsFault(result) {
-		t.Errorf("expected chr to work in user scope after prelude, got fault: %s", result.Inspect())
+		t.Errorf("expected chr to work without authority after prelude, got fault: %s", result.Inspect())
 	}
 	r, ok := result.(*value.Rune)
 	if !ok || r.Val != 'A' {
@@ -168,7 +168,7 @@ func TestUserCanSeeAppendAfterPrelude(t *testing.T) {
 	}
 
 	if value.IsFault(result) {
-		t.Errorf("expected append to work in user scope after prelude, got fault: %s", result.Inspect())
+		t.Errorf("expected append to work without authority after prelude, got fault: %s", result.Inspect())
 	}
 	list, ok := result.(*value.List)
 	if !ok || len(list.Elements) != 3 {
@@ -207,7 +207,7 @@ func TestUserCannotSeeHALUpper(t *testing.T) {
 	}
 
 	if !value.IsFault(result) {
-		t.Errorf("expected fault for _upper in user scope, got: %s", result.Inspect())
+		t.Errorf("expected fault for _upper without authority, got: %s", result.Inspect())
 	}
 }
 
@@ -222,15 +222,20 @@ func evalWithScope(code string, scope value.Scope, loadPrel bool) (value.Value, 
 
 	// Create env with specified scope
 	env := value.NewEnvWithScope(scope)
+	if scope == value.ScopePrelude {
+		env.SetAuthority(rt.AuthorityForSource("engine/runtime/prelude/prelude.ai"))
+	}
 
 	// Optionally load prelude first (into a prelude-scope env, then enclose)
 	if loadPrel {
 		preludeEnv := value.NewEnvWithScope(value.ScopePrelude)
+		preludeEnv.SetAuthority(rt.AuthorityForSource("engine/runtime/prelude/prelude.ai"))
 		if err := loadPreludeInto(g, rt, preludeEnv); err != nil {
 			return nil, err
 		}
 		// Create user env enclosed by prelude
 		env = value.NewEnclosedEnv(preludeEnv)
+		env.SetAuthority(value.NoAuthority())
 	}
 
 	lexer := syntax.NewLexer(g, "<test>", code, nil)

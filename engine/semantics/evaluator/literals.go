@@ -69,7 +69,7 @@ func (e *Evaluator) evalName(node *syntax.Node, env *value.Env) value.Value {
 
 	// Then check builtins via runtime (using env's scope)
 	if e.runtime != nil {
-		if builtin, ok := e.runtime.GetBuiltin(name, env.GetScope()); ok {
+		if builtin, ok := e.runtime.GetBuiltin(name, env.GetAuthority()); ok {
 			return builtin
 		}
 	}

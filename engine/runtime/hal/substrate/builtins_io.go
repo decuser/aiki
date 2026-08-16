@@ -9,19 +9,19 @@ import (
 	"aiki/engine/semantics/value"
 )
 
-func halPrint(args []value.Value, ctx *hal.EvalContext) value.Value {
+func (g *GoRuntime) halPrint(args []value.Value, ctx *hal.EvalContext) value.Value {
 	for _, arg := range args {
 		if s, ok := arg.(*value.String); ok {
-			fmt.Fprint(Stdout, s.Val)
+			fmt.Fprint(g.stdout, s.Val)
 		} else {
-			fmt.Fprint(Stdout, arg.Inspect())
+			fmt.Fprint(g.stdout, arg.Inspect())
 		}
 	}
 	return value.EMPTY
 }
 
-func halRead(args []value.Value, ctx *hal.EvalContext) value.Value {
-	reader := bufio.NewReader(Stdin)
+func (g *GoRuntime) halRead(args []value.Value, ctx *hal.EvalContext) value.Value {
+	reader := bufio.NewReader(g.stdin)
 	line, err := reader.ReadString('\n')
 	if err != nil {
 		if err == io.EOF {

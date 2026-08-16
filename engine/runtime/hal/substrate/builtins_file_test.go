@@ -9,6 +9,7 @@ import (
 )
 
 func TestFileOpenReadClose(t *testing.T) {
+	rt := NewGoRuntime()
 	// Create temp file
 	dir := t.TempDir()
 	path := filepath.Join(dir, "test.txt")
@@ -41,19 +42,20 @@ func TestFileOpenReadClose(t *testing.T) {
 	}
 
 	// Close
-	closeResult := halFileClose([]value.Value{file}, nil)
+	closeResult := rt.halFileClose([]value.Value{file}, nil)
 	if closeResult != value.TRUE {
 		t.Errorf("expected TRUE, got %v", closeResult)
 	}
 
 	// Double close should error
-	closeResult2 := halFileClose([]value.Value{file}, nil)
+	closeResult2 := rt.halFileClose([]value.Value{file}, nil)
 	if _, ok := closeResult2.(*value.List); !ok {
 		t.Errorf("expected shaped error on double close, got %T", closeResult2)
 	}
 }
 
 func TestFileWriteText(t *testing.T) {
+	rt := NewGoRuntime()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "out.txt")
 
@@ -78,7 +80,7 @@ func TestFileWriteText(t *testing.T) {
 	}
 
 	// Close
-	halFileClose([]value.Value{file}, nil)
+	rt.halFileClose([]value.Value{file}, nil)
 
 	// Verify
 	data, err := os.ReadFile(path)
@@ -91,6 +93,7 @@ func TestFileWriteText(t *testing.T) {
 }
 
 func TestFileAppend(t *testing.T) {
+	rt := NewGoRuntime()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "append.txt")
 
@@ -112,7 +115,7 @@ func TestFileAppend(t *testing.T) {
 
 	// Append
 	halFileWriteText([]value.Value{file, &value.String{Val: "line2\n"}}, nil)
-	halFileClose([]value.Value{file}, nil)
+	rt.halFileClose([]value.Value{file}, nil)
 
 	// Verify
 	data, err := os.ReadFile(path)
@@ -125,6 +128,7 @@ func TestFileAppend(t *testing.T) {
 }
 
 func TestFileReadLine(t *testing.T) {
+	rt := NewGoRuntime()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "lines.txt")
 	if err := os.WriteFile(path, []byte("one\ntwo\nthree"), 0644); err != nil {
@@ -139,33 +143,34 @@ func TestFileReadLine(t *testing.T) {
 	file := result.(*value.File)
 
 	// Read line 1
-	line1 := halFileReadLine([]value.Value{file}, nil)
+	line1 := rt.halFileReadLine([]value.Value{file}, nil)
 	if s, ok := line1.(*value.String); !ok || s.Val != "one" {
 		t.Errorf("line1: expected 'one', got %v", line1)
 	}
 
 	// Read line 2
-	line2 := halFileReadLine([]value.Value{file}, nil)
+	line2 := rt.halFileReadLine([]value.Value{file}, nil)
 	if s, ok := line2.(*value.String); !ok || s.Val != "two" {
 		t.Errorf("line2: expected 'two', got %v", line2)
 	}
 
 	// Read line 3 (no trailing newline)
-	line3 := halFileReadLine([]value.Value{file}, nil)
+	line3 := rt.halFileReadLine([]value.Value{file}, nil)
 	if s, ok := line3.(*value.String); !ok || s.Val != "three" {
 		t.Errorf("line3: expected 'three', got %v", line3)
 	}
 
 	// Read EOF
-	eof := halFileReadLine([]value.Value{file}, nil)
+	eof := rt.halFileReadLine([]value.Value{file}, nil)
 	if list, ok := eof.(*value.List); !ok || list.Shape != "end" {
 		t.Errorf("expected [@end], got %v", eof)
 	}
 
-	halFileClose([]value.Value{file}, nil)
+	rt.halFileClose([]value.Value{file}, nil)
 }
 
 func TestFileReadBytes(t *testing.T) {
+	rt := NewGoRuntime()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "binary.dat")
 	data := []byte{0x00, 0x01, 0x02, 0xFF}
@@ -189,7 +194,7 @@ func TestFileReadBytes(t *testing.T) {
 		t.Errorf("unexpected bytes: %v", b.Val)
 	}
 
-	halFileClose([]value.Value{file}, nil)
+	rt.halFileClose([]value.Value{file}, nil)
 }
 
 func TestFileExists(t *testing.T) {

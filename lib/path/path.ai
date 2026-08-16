@@ -1,0 +1,119 @@
+package "path"
+
+# path - portable path manipulation. Only separator crosses the HAL; the
+# remaining path operations are ordinary Aiki computation.
+let _string = import("string")
+let _system = import("system")
+
+let separator = () {
+	_path_separator()
+}
+
+let cwd = () {
+	_system.cwd()
+}
+
+let join = (left, right) {
+	let sep = separator()
+	if equal(left, "") {
+		return right
+	}
+	if equal(right, "") {
+		return left
+	}
+	let left_sep = _string.ends_with(left, sep)
+	let right_sep = _string.starts_with(right, sep)
+	if left_sep and right_sep {
+		return left + _string.substring(right, 1, length(right))
+	}
+	if left_sep or right_sep {
+		return left + right
+	}
+	return left + sep + right
+}
+
+let dir = (p) {
+	let sep = separator()
+	let i = _string.last_index_of(p, sep)
+	if is_error(i) {
+		return ""
+	}
+	if equal(i, 0) {
+		return sep
+	}
+	return _string.substring(p, 0, i)
+}
+
+let base = (p) {
+	let sep = separator()
+	let i = _string.last_index_of(p, sep)
+	if is_error(i) {
+		return p
+	}
+	return _string.substring(p, i + 1, length(p))
+}
+
+let ext = (p) {
+	let b = base(p)
+	let i = _string.last_index_of(b, ".")
+	if is_error(i) {
+		return ""
+	}
+	return _string.substring(b, i, length(b))
+}
+
+let is_absolute = (p) {
+	_string.starts_with(p, separator())
+}
+
+let _drop_last = (xs) {
+	let out = []
+	let i = 0
+	while i < (length(xs) - 1) {
+		out = append(out, xs[i])
+		i = i + 1
+	}
+	return out
+}
+
+let normalize = (p) {
+	let sep = separator()
+	let absolute = is_absolute(p)
+	let raw = _string.split(p, sep)
+	let parts = []
+	let i = 0
+	while i < length(raw) {
+		let part = raw[i]
+		if (not equal(part, "")) and (not equal(part, ".")) {
+			if equal(part, "..") {
+				if not empty(parts) {
+					let last = length(parts) - 1
+					if not equal(parts[last], "..") {
+						parts = _drop_last(parts)
+					} else {
+						if not absolute {
+							parts = append(parts, part)
+						}
+					}
+				} else {
+					if not absolute {
+						parts = append(parts, part)
+					}
+				}
+			} else {
+				parts = append(parts, part)
+			}
+		}
+		i = i + 1
+	}
+	let result = _string.join(parts, sep)
+	if absolute {
+		return sep + result
+	}
+	if equal(result, "") {
+		return "."
+	}
+	return result
+}
+
+export(:separator, :cwd, :join, :dir, :base, :ext, :normalize, :is_absolute)

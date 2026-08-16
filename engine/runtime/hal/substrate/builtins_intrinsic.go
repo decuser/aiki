@@ -132,7 +132,7 @@ func halExport(args []value.Value, ctx *hal.EvalContext) value.Value {
 
 // halImport implements import("module", :name1, :name2, ...).
 // Parses and evaluates the module, then copies exported names into the current environment.
-func halImport(args []value.Value, ctx *hal.EvalContext) value.Value {
+func (g *GoRuntime) halImport(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) < 1 {
 		return value.NewFault("import: want at least module name")
 	}
@@ -159,7 +159,7 @@ func halImport(args []value.Value, ctx *hal.EvalContext) value.Value {
 	}
 
 	// Load the module
-	mod, errVal := loadModule(moduleName, ctx)
+	mod, errVal := g.loadModule(moduleName, ctx)
 	if errVal != nil {
 		return errVal
 	}
@@ -182,7 +182,7 @@ func halImport(args []value.Value, ctx *hal.EvalContext) value.Value {
 }
 
 // loadModule loads a module by name or path, using cache if available.
-func loadModule(name string, ctx *hal.EvalContext) (*value.Module, value.Value) {
+func (g *GoRuntime) loadModule(name string, ctx *hal.EvalContext) (*value.Module, value.Value) {
 	var modulePath string
 	var pkgName string
 	var requestedName string
@@ -197,7 +197,7 @@ func loadModule(name string, ctx *hal.EvalContext) (*value.Module, value.Value) 
 		pkgName = ""
 	} else {
 		// Registry-based import
-		if GlobalRegistry == nil {
+		if g.moduleRegistry == nil {
 			return nil, value.NewFault("import: module registry not initialized")
 		}
 
@@ -206,13 +206,13 @@ func loadModule(name string, ctx *hal.EvalContext) (*value.Module, value.Value) 
 		// Resolve public name to its physical module and declared package name.
 		// Bare defaults such as "math" may resolve to "math/native".
 		var ok bool
-		modulePath, pkgName, ok = GlobalRegistry.Resolve(name)
+		modulePath, pkgName, ok = g.moduleRegistry.Resolve(name)
 		if !ok {
 			return nil, value.NewShapedError("import", "import: unknown package '%s'", name)
 		}
 
 		// Check cache after resolution so aliases share the canonical module.
-		if mod, ok := GlobalRegistry.GetCached(name); ok {
+		if mod, ok := g.moduleRegistry.GetCached(name); ok {
 			if requestedName != pkgName {
 				return value.NewModule(requestedName, mod.Exports), nil
 			}
@@ -246,13 +246,14 @@ func loadModule(name string, ctx *hal.EvalContext) (*value.Module, value.Value) 
 	}
 
 	// Determine scope based on module path
-	// Modules in /lib/ or /contrib/lib/ get ScopePrelude (HAL access)
-	// All other modules get ScopeUser (no direct HAL access)
+	// Modules in /lib/ or /contrib/lib/ retain ScopePrelude as a lexical/tooling role.
+	// Raw runtime authority is assigned independently by AuthorityForSource.
 	modScope := value.ScopeUser
 	if libpath.IsBlessedLibPath(modulePath) {
 		modScope = value.ScopePrelude
 	}
 	modEnv := value.NewEnclosedEnvWithScope(preludeEnv, modScope)
+	modEnv.SetAuthority(g.AuthorityForSource(modulePath))
 	modEnv.SetFile(modulePath)
 	modEnv.SetSource(string(data))
 
@@ -297,8 +298,8 @@ func loadModule(name string, ctx *hal.EvalContext) (*value.Module, value.Value) 
 	// Cache the canonical module for registry-based imports. Aliases resolve to
 	// this cache entry but receive a module value bearing the public name used
 	// by the caller.
-	if GlobalRegistry != nil && !IsPathImport(name) {
-		GlobalRegistry.Cache(pkgName, mod)
+	if g.moduleRegistry != nil && !IsPathImport(name) {
+		g.moduleRegistry.Cache(pkgName, mod)
 		if requestedName != "" && requestedName != pkgName {
 			return value.NewModule(requestedName, exports), nil
 		}
@@ -335,7 +336,7 @@ func resolveRelativePath(name string, env *value.Env) string {
 
 // halUse implements use("module").
 // Loads module and binds all exports into current scope.
-func halUse(args []value.Value, ctx *hal.EvalContext) value.Value {
+func (g *GoRuntime) halUse(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
 		return value.NewFault("use: want 1 argument, got %d", len(args))
 	}
@@ -349,7 +350,7 @@ func halUse(args []value.Value, ctx *hal.EvalContext) value.Value {
 		return value.NewFault("use: expected string module name, got %s", args[0].Type())
 	}
 
-	mod, errVal := loadModule(moduleStr.Val, ctx)
+	mod, errVal := g.loadModule(moduleStr.Val, ctx)
 	if errVal != nil {
 		return errVal
 	}
@@ -458,7 +459,11 @@ func applyUserFunctionIsolated(fn *value.Function, args []value.Value, ctx *hal.
 	}
 
 	// Fresh env enclosed by prelude - sees prelude bindings but not outer user scope
-	callEnv := value.NewIsolatedEnclosedEnv(preludeEnv)
+	authority := value.NoAuthority()
+	if fnEnv, ok := fn.Env.(*value.Env); ok && fnEnv != nil {
+		authority = fnEnv.GetAuthority()
+	}
+	callEnv := value.NewIsolatedEnclosedEnvWithAuthority(preludeEnv, authority)
 	callEnv.SetSemanticProbe(ctx.Probe)
 
 	// Copy the shape vocabulary visible where the function was created.

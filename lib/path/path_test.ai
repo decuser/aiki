@@ -1,0 +1,40 @@
+let test = import("test")
+let path = import("path")
+
+let run = test.run
+let equal = test.equal
+let is_true = test.is_true
+let is_false = test.is_false
+
+run("path base and extension are pure Aiki operations", () {
+	equal(path.base(path.join("one", "file.ai")), "file.ai")
+	equal(path.ext(path.join("one", "file.ai")), ".ai")
+})
+
+
+run("path join does not duplicate separator", () {
+	let sep = path.separator()
+	equal(path.join("one" + sep, sep + "two"), "one" + sep + "two")
+})
+
+
+run("path normalization resolves dot and parent components", () {
+	let sep = path.separator()
+	let source = "one" + sep + "." + sep + "two" + sep + ".." + sep + "three"
+	equal(path.normalize(source), "one" + sep + "three")
+	equal(path.normalize("a" + sep + ".."), ".")
+})
+
+
+run("path normalization preserves leading relative parents", () {
+	let sep = path.separator()
+	equal(path.normalize(".." + sep + "one"), ".." + sep + "one")
+})
+
+
+run("path absolute contract begins with host separator", () {
+	let sep = path.separator()
+	is_true(path.is_absolute(sep + "tmp"))
+	is_false(path.is_absolute("tmp"))
+})
+

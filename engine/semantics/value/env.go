@@ -2,12 +2,12 @@ package value
 
 import "aiki/engine/observe"
 
-// Scope represents the visibility level for builtins.
+// Scope represents lexical/tooling role. It does not confer raw runtime authority.
 type Scope int
 
 const (
-	ScopeUser    Scope = iota // User code - cannot access HAL primitives
-	ScopePrelude              // Prelude - can access HAL primitives (_prefixed)
+	ScopeUser    Scope = iota // ordinary user lexical role
+	ScopePrelude              // prelude/trusted-library lexical role
 )
 
 // StackFrame represents a call site in the stack trace.
@@ -29,6 +29,7 @@ type Env struct {
 	stack         *[]StackFrame // shared across enclosed envs
 	stackLimit    *int          // shared recursion limit (non tail frames)
 	scope         Scope
+	authority     Authority
 	exports       []string              // exported names for modules
 	packageName   string                // package name declared by this module
 	semanticProbe observe.SemanticProbe // dynamic profiling context
@@ -42,6 +43,7 @@ func NewEnv() *Env {
 		store:      make(map[string]Value),
 		shapes:     make(map[string]*ShapeDef),
 		scope:      ScopeUser,
+		authority:  NoAuthority(),
 		stack:      &stack,
 		stackLimit: &limit,
 	}
@@ -61,6 +63,7 @@ func NewEnclosedEnv(outer *Env) *Env {
 		shapes:        make(map[string]*ShapeDef),
 		outer:         outer,
 		scope:         outer.scope,
+		authority:     outer.authority,
 		stack:         outer.stack,
 		stackLimit:    outer.stackLimit,
 		semanticProbe: outer.semanticProbe,
@@ -75,6 +78,7 @@ func NewEnclosedEnvWithScope(outer *Env, scope Scope) *Env {
 		shapes:        make(map[string]*ShapeDef),
 		outer:         outer,
 		scope:         scope,
+		authority:     outer.authority,
 		stack:         outer.stack,
 		stackLimit:    outer.stackLimit,
 		semanticProbe: outer.semanticProbe,
@@ -86,6 +90,14 @@ func NewEnclosedEnvWithScope(outer *Env, scope Scope) *Env {
 // share the prelude vocabulary but must not share mutable execution metadata
 // with the parent goroutine. The current stack-limit value is copied.
 func NewIsolatedEnclosedEnv(outer *Env) *Env {
+	return NewIsolatedEnclosedEnvWithAuthority(outer, outer.authority)
+}
+
+// NewIsolatedEnclosedEnvWithAuthority creates an isolated dynamic environment
+// that can read lexical vocabulary through outer while carrying an explicit
+// definition-bound authority set. Spawn uses this to see prelude names without
+// inheriting prelude privilege.
+func NewIsolatedEnclosedEnvWithAuthority(outer *Env, authority Authority) *Env {
 	stack := make([]StackFrame, 0)
 	limit := outer.GetStackLimit()
 	return &Env{
@@ -93,6 +105,7 @@ func NewIsolatedEnclosedEnv(outer *Env) *Env {
 		shapes:        make(map[string]*ShapeDef),
 		outer:         outer,
 		scope:         outer.scope,
+		authority:     authority,
 		stack:         &stack,
 		stackLimit:    &limit,
 		semanticProbe: outer.semanticProbe,
@@ -110,6 +123,7 @@ func NewCallEnv(lexicalOuter, caller *Env) *Env {
 		shapes:        make(map[string]*ShapeDef),
 		outer:         lexicalOuter,
 		scope:         lexicalOuter.scope,
+		authority:     lexicalOuter.authority,
 		stack:         caller.stack,
 		stackLimit:    caller.stackLimit,
 		semanticProbe: caller.semanticProbe,
@@ -130,6 +144,17 @@ func (e *Env) GetSemanticProbe() observe.SemanticProbe {
 // GetScope returns the scope.
 func (e *Env) GetScope() Scope {
 	return e.scope
+}
+
+// SetAuthority assigns the immutable raw-primitive authority for definitions
+// created in this environment.
+func (e *Env) SetAuthority(authority Authority) {
+	e.authority = authority
+}
+
+// GetAuthority returns the definition-bound raw-primitive authority.
+func (e *Env) GetAuthority() Authority {
+	return e.authority
 }
 
 // Outer returns the enclosing environment, or nil if none.

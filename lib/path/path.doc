@@ -1,0 +1,79 @@
+@preamble let path = import("path")
+separator
+Returns the path separator used by the current host as a one-character string.
+This is the only operation in path that directly crosses the HAL.
+
+separator()
+
+type(path.separator())    # :string
+===
+cwd
+Returns the working directory owned by the current Aiki runtime. This composes
+system.cwd(); it does not query a second host facility.
+
+cwd()
+
+type(path.cwd())    # :string
+===
+join
+@unchecked
+Joins two path components with the host separator. If one component already
+provides the separator at the join point, it is not duplicated. This is an
+ordinary Aiki string operation.
+
+join(left, right)
+
+path.join("one", "two")
+===
+dir
+@unchecked
+Returns everything before the final host separator. A path with no separator
+has an empty directory part. The root directory is returned as the separator.
+
+This is an ordinary Aiki string operation.
+
+dir(path)
+
+path.dir("one/file.ai")
+===
+base
+Returns everything after the final host separator. If there is no separator,
+returns the path unchanged.
+
+This is an ordinary Aiki string operation.
+
+base(path)
+
+path.base("one/file.ai")    # "file.ai"
+===
+ext
+Returns the final basename extension, including the leading dot, or "" when
+there is no dot in the basename.
+
+This is an ordinary Aiki string operation.
+
+ext(path)
+
+path.ext("one/file.ai")    # ".ai"
+===
+normalize
+@unchecked
+Normalizes a path using the host separator. Repeated separators and "."
+components are removed. A ".." component removes the preceding ordinary
+component when one exists. Leading ".." components are retained for relative
+paths and cannot move an absolute path above its root.
+
+An empty normalized relative path is returned as ".". This is an ordinary
+Aiki computation; no host path-cleaning routine defines these semantics.
+
+normalize(path)
+
+path.normalize("one/./two/../three")
+===
+is_absolute
+Returns true when path begins with the current host separator. This is the
+portable Aiki contract for absolute paths in the initial path library.
+
+is_absolute(path)
+
+path.is_absolute(path.separator() + "tmp")    # true

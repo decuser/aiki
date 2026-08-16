@@ -6,14 +6,13 @@ import (
 	"time"
 
 	"aiki/engine/runtime/hal/substrate"
-	"aiki/engine/semantics/value"
 )
 
 func TestCanvasStdinLoopClose(t *testing.T) {
-	cvs := &value.Canvas{
+	cvs := &substrate.CanvasResource{
 		Width:    10,
 		Height:   10,
-		Commands: make(chan value.CanvasCmd, 10),
+		Commands: make(chan substrate.CanvasCmd, 10),
 		Done:     make(chan struct{}),
 		Ready:    make(chan struct{}),
 	}
@@ -31,10 +30,10 @@ func TestCanvasStdinLoopClose(t *testing.T) {
 }
 
 func TestCanvasStdinLoopSetBGEnqueuesClear(t *testing.T) {
-	cvs := &value.Canvas{
+	cvs := &substrate.CanvasResource{
 		Width:    10,
 		Height:   10,
-		Commands: make(chan value.CanvasCmd, 10),
+		Commands: make(chan substrate.CanvasCmd, 10),
 		Done:     make(chan struct{}),
 		Ready:    make(chan struct{}),
 	}
@@ -55,10 +54,10 @@ func TestCanvasStdinLoopSetBGEnqueuesClear(t *testing.T) {
 }
 
 func TestCanvasStdinLoopEOFClosesDone(t *testing.T) {
-	cvs := &value.Canvas{
+	cvs := &substrate.CanvasResource{
 		Width:    10,
 		Height:   10,
-		Commands: make(chan value.CanvasCmd, 10),
+		Commands: make(chan substrate.CanvasCmd, 10),
 		Done:     make(chan struct{}),
 		Ready:    make(chan struct{}),
 	}

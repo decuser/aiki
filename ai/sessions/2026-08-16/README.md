@@ -123,3 +123,57 @@ Artifacts:
 Implementation has **not** started. The serial implementation sequence is M1-M7.
 
 **Exact next action if the design is accepted:** M1 — add canonical host-operation metadata and executable Aiki-name / HAL-name / substrate-provenance coverage beside current behavior, with no semantic change.
+
+
+## HAL redesign — M1 implementation
+
+Milestone 26 is **GATED** on branch `hal-redesign`. The first implementation
+slice adds canonical metadata for the 18 settled host crossings (I/O, time,
+args/environment, files) beside the existing compatibility registry and adds
+executable three-name/wrapper coupling. Canvas is deliberately not canonized
+by this slice.
+
+**Gate:** the user merged the M1 drop and reported `make validate` passed on the authoritative tree.
+
+## HAL redesign — M2 implementation
+
+Milestone 27 is **GATED**. The old 117-entry compatibility registry is split into
+five disjoint architectural roles while preserving lookup and visibility behavior.
+The user reported the requested `go test ./...` checkpoint clean after the M3.a
+stale-test correction.
+
+
+## HAL redesign — M3 implementation
+
+Milestone 28 is **GATED**. M3.a-d place process context, RNG, file-reader
+auxiliary state, Aiki I/O, REPL presentation/user environment, module/cache/help
+services, and open-Canvas lifecycle tracking under explicit `GoRuntime` ownership.
+Canvas bridge/protocol representation remains reserved for M6.
+
+**Gate:** the user reported `go test ./...` clean after the contained M3.b-d build corrections.
+
+## HAL redesign — M4 implementation
+
+Milestone 29 is **GATED**. The user reported the requested Go test checkpoint clean.
+
+Scope and authority are now separate: raw runtime lookup is grant-based, trusted Aiki sources have exact declared grant sets, and isolated spawn can see prelude vocabulary without inheriting prelude raw authority.
+
+## HAL redesign — M5 implementation
+
+Milestone 30 is **GATED**. The agreed first-order file/system/time/path systems-programmer surface is implemented through 32 canonical host contracts and a 131-entry runtime binding registry. Runtime working directory is explicit, process execution is synchronous/captured, and path manipulation is predominantly pure Aiki.
+
+**Gate:** the user reported `go test ./...` passed after the contained M5 documentation/test correction.
+
+
+## Milestone 31 — HAL redesign M6
+
+Milestone 31 is **GATED**. Canvas/turtle domain commands are defined in Aiki and cross one canonical `HAL.canvas.command` boundary; Canvas semantic values are opaque handles whose concrete resources and child/session lifecycle are owned by the runtime.
+
+**Gate:** the user reported `go test ./...` passed after M6.c.
+
+
+## Milestone 32 — HAL redesign M7
+
+Milestone 32 is **GATED**. Obsolete per-command Canvas runtime aliases are removed; canonical host authority is keyed by `HAL.<domain>.<operation>` identities rather than raw substrate binding names; the remaining Aiki test-framework package globals are moved into `GoRuntime`; architecture documentation and executable couplings are strengthened.
+
+**Gate:** after contained corrections to stale authority contract tests and pure-Aiki `path.normalize`, the user reported the final `make validate` passed on the authoritative tree. The HAL redesign implementation is COMPLETE.

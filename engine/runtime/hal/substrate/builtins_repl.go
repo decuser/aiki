@@ -6,29 +6,25 @@ import (
 	"strings"
 
 	"aiki/engine/runtime/hal"
-	"aiki/engine/runtime/help"
 	"aiki/engine/semantics/value"
 )
 
-// HelpRegistry holds function documentation, set during initialization.
-var HelpRegistry *help.Registry
-
-func halQuit(args []value.Value, ctx *hal.EvalContext) value.Value {
-	CloseAllCanvases()
+func (g *GoRuntime) halQuit(args []value.Value, ctx *hal.EvalContext) value.Value {
+	g.CloseAllCanvases()
 	return value.EXIT
 }
 
-func halReset(args []value.Value, ctx *hal.EvalContext) value.Value {
+func (g *GoRuntime) halReset(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 0 {
 		return value.NewFault("reset: want 0 arguments, got %d", len(args))
 	}
-	CloseAllCanvases()
+	g.CloseAllCanvases()
 	return value.RESET
 }
 
-func halHelp(args []value.Value, ctx *hal.EvalContext) value.Value {
+func (g *GoRuntime) halHelp(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) == 0 {
-		return showHelpIndex(ctx)
+		return g.showHelpIndex(ctx)
 	}
 
 	s, ok := args[0].(*value.String)
@@ -37,13 +33,13 @@ func halHelp(args []value.Value, ctx *hal.EvalContext) value.Value {
 	}
 
 	if s.Val == "" {
-		return showHelpIndex(ctx)
+		return g.showHelpIndex(ctx)
 	}
 
-	return showHelp(s.Val, ctx)
+	return g.showHelp(s.Val, ctx)
 }
 
-func halDoc(args []value.Value, ctx *hal.EvalContext) value.Value {
+func (g *GoRuntime) halDoc(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
 		return value.NewFault("doc: want 1 argument, got %d", len(args))
 	}
@@ -53,17 +49,17 @@ func halDoc(args []value.Value, ctx *hal.EvalContext) value.Value {
 		return value.NewFault("doc: expected string, got %s", args[0].Type())
 	}
 
-	return showDoc(s.Val, ctx)
+	return g.showDoc(s.Val, ctx)
 }
 
-func outputHelp(text string) {
-	if PageOutput != nil && PageOutput(text) {
+func (g *GoRuntime) outputHelp(text string) {
+	if g.pageOutput != nil && g.pageOutput(text) {
 		return
 	}
-	fmt.Fprint(Stdout, text)
+	fmt.Fprint(g.stdout, text)
 }
 
-func showHelpIndex(ctx *hal.EvalContext) value.Value {
+func (g *GoRuntime) showHelpIndex(ctx *hal.EvalContext) value.Value {
 	var sb strings.Builder
 	sb.WriteString("Aiki Help\n\n")
 
@@ -74,8 +70,8 @@ func showHelpIndex(ctx *hal.EvalContext) value.Value {
 	sb.WriteString("  Values: number, string, rune, symbol, list, function\n\n")
 
 	// Functions from registry
-	if HelpRegistry != nil {
-		names := HelpRegistry.ListFuncs()
+	if g.helpRegistry != nil {
+		names := g.helpRegistry.ListFuncs()
 		sort.Strings(names)
 
 		// Group by category
@@ -113,9 +109,9 @@ func showHelpIndex(ctx *hal.EvalContext) value.Value {
 		}
 	}
 
-	// Modules from GlobalRegistry
-	if GlobalRegistry != nil {
-		pkgs := GlobalRegistry.ListPackages()
+	// Modules from g.moduleRegistry
+	if g.moduleRegistry != nil {
+		pkgs := g.moduleRegistry.ListPackages()
 		if len(pkgs) > 0 {
 			sb.WriteString("\nModules:\n")
 			sb.WriteString(fmt.Sprintf("  %s\n", strings.Join(pkgs, ", ")))
@@ -127,29 +123,29 @@ func showHelpIndex(ctx *hal.EvalContext) value.Value {
 	sb.WriteString("Use help(\"newline\") for the grammar-declared newline policy.\n")
 	sb.WriteString("Use doc(\"name\") for full documentation.\n")
 
-	outputHelp(sb.String())
+	g.outputHelp(sb.String())
 	return value.EMPTY
 }
 
-func showHelp(name string, ctx *hal.EvalContext) value.Value {
+func (g *GoRuntime) showHelp(name string, ctx *hal.EvalContext) value.Value {
 	// Check for qualified name (module.func)
 	if strings.Contains(name, ".") {
-		return showModuleFuncHelp(name)
+		return g.showModuleFuncHelp(name)
 	}
 
 	// Check if it's a module name
-	if GlobalRegistry != nil && GlobalRegistry.HasPackage(name) {
-		return showModuleHelp(name)
+	if g.moduleRegistry != nil && g.moduleRegistry.HasPackage(name) {
+		return g.showModuleHelp(name)
 	}
 
 	// Check prelude function registry
-	if HelpRegistry != nil {
-		if entry := HelpRegistry.GetHelp(name); entry != nil {
+	if g.helpRegistry != nil {
+		if entry := g.helpRegistry.GetHelp(name); entry != nil {
 			var sb strings.Builder
 			sb.WriteString(fmt.Sprintf("%s\n", entry.Name))
 			sb.WriteString(fmt.Sprintf("  %s\n\n", entry.Help))
 			sb.WriteString(fmt.Sprintf("Syntax: %s\n", entry.Template))
-			outputHelp(sb.String())
+			g.outputHelp(sb.String())
 			return value.EMPTY
 		}
 	}
@@ -162,7 +158,7 @@ func showHelp(name string, ctx *hal.EvalContext) value.Value {
 			if ctx.Grammar.Newline.Meta.Help != "" {
 				sb.WriteString(fmt.Sprintf("  %s\n", ctx.Grammar.Newline.Meta.Help))
 			}
-			outputHelp(sb.String())
+			g.outputHelp(sb.String())
 			return value.EMPTY
 		}
 
@@ -176,7 +172,7 @@ func showHelp(name string, ctx *hal.EvalContext) value.Value {
 			if prod.Meta.Template != "" {
 				sb.WriteString(fmt.Sprintf("Syntax: %s\n", prod.Meta.Template))
 			}
-			outputHelp(sb.String())
+			g.outputHelp(sb.String())
 			return value.EMPTY
 		}
 
@@ -190,20 +186,20 @@ func showHelp(name string, ctx *hal.EvalContext) value.Value {
 			if prod.Meta.Template != "" {
 				sb.WriteString(fmt.Sprintf("Syntax: %s\n", prod.Meta.Template))
 			}
-			outputHelp(sb.String())
+			g.outputHelp(sb.String())
 			return value.EMPTY
 		}
 	}
 
-	fmt.Fprintf(Stdout, "No help for '%s'\n", name)
+	fmt.Fprintf(g.stdout, "No help for '%s'\n", name)
 	return value.EMPTY
 }
 
-func showModuleHelp(pkgName string) value.Value {
+func (g *GoRuntime) showModuleHelp(pkgName string) value.Value {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("Module: %s\n\n", pkgName))
 
-	mh := GlobalRegistry.GetModuleHelp(pkgName)
+	mh := g.moduleRegistry.GetModuleHelp(pkgName)
 	if mh == nil || len(mh.Funcs) == 0 {
 		sb.WriteString("  No help available.\n")
 		sb.WriteString(fmt.Sprintf("  Use import(\"%s\") to load this module.\n", pkgName))
@@ -223,14 +219,14 @@ func showModuleHelp(pkgName string) value.Value {
 		sb.WriteString(fmt.Sprintf("\nUse help(\"%s.func\") for details on a specific function.\n", pkgName))
 	}
 
-	outputHelp(sb.String())
+	g.outputHelp(sb.String())
 	return value.EMPTY
 }
 
-func showModuleFuncHelp(qualName string) value.Value {
+func (g *GoRuntime) showModuleFuncHelp(qualName string) value.Value {
 	parts := strings.SplitN(qualName, ".", 2)
 	if len(parts) != 2 {
-		fmt.Fprintf(Stdout, "Invalid qualified name '%s'\n", qualName)
+		fmt.Fprintf(g.stdout, "Invalid qualified name '%s'\n", qualName)
 		return value.EMPTY
 	}
 
@@ -240,23 +236,23 @@ func showModuleFuncHelp(qualName string) value.Value {
 	// Handle nested package names like "hash/ffi.new"
 	// The package name might be "hash/ffi" not "hash"
 	// Try progressively longer package names
-	if GlobalRegistry != nil {
+	if g.moduleRegistry != nil {
 		// First try exact split
-		if !GlobalRegistry.HasPackage(pkgName) {
+		if !g.moduleRegistry.HasPackage(pkgName) {
 			// Maybe the dot is in the middle of a path-like name
 			// For "hash/ffi.new", we want pkg="hash/ffi", func="new"
 			// This is already handled by SplitN with limit 2
 		}
 	}
 
-	if GlobalRegistry == nil || !GlobalRegistry.HasPackage(pkgName) {
-		fmt.Fprintf(Stdout, "Unknown module '%s'\n", pkgName)
+	if g.moduleRegistry == nil || !g.moduleRegistry.HasPackage(pkgName) {
+		fmt.Fprintf(g.stdout, "Unknown module '%s'\n", pkgName)
 		return value.EMPTY
 	}
 
-	mh := GlobalRegistry.GetModuleHelp(pkgName)
+	mh := g.moduleRegistry.GetModuleHelp(pkgName)
 	if mh == nil {
-		fmt.Fprintf(Stdout, "No help available for module '%s'\n", pkgName)
+		fmt.Fprintf(g.stdout, "No help available for module '%s'\n", pkgName)
 		return value.EMPTY
 	}
 
@@ -265,33 +261,33 @@ func showModuleFuncHelp(qualName string) value.Value {
 		sb.WriteString(fmt.Sprintf("%s.%s\n", pkgName, entry.Name))
 		sb.WriteString(fmt.Sprintf("  %s\n\n", entry.Help))
 		sb.WriteString(fmt.Sprintf("Syntax: %s\n", entry.Template))
-		outputHelp(sb.String())
+		g.outputHelp(sb.String())
 		return value.EMPTY
 	}
 
-	fmt.Fprintf(Stdout, "No help for '%s' in module '%s'\n", funcName, pkgName)
+	fmt.Fprintf(g.stdout, "No help for '%s' in module '%s'\n", funcName, pkgName)
 	return value.EMPTY
 }
 
-func showDoc(name string, ctx *hal.EvalContext) value.Value {
+func (g *GoRuntime) showDoc(name string, ctx *hal.EvalContext) value.Value {
 	// Check for qualified name (module.func)
 	if strings.Contains(name, ".") {
-		return showModuleFuncDoc(name)
+		return g.showModuleFuncDoc(name)
 	}
 
 	// Check if it's a module name
-	if GlobalRegistry != nil && GlobalRegistry.HasPackage(name) {
-		return showModuleDoc(name)
+	if g.moduleRegistry != nil && g.moduleRegistry.HasPackage(name) {
+		return g.showModuleDoc(name)
 	}
 
 	// Check prelude function registry
-	if HelpRegistry != nil {
-		if entry := HelpRegistry.GetDoc(name); entry != nil {
+	if g.helpRegistry != nil {
+		if entry := g.helpRegistry.GetDoc(name); entry != nil {
 			var sb strings.Builder
 			sb.WriteString(fmt.Sprintf("%s\n\n", entry.Name))
 			sb.WriteString(entry.Doc)
 			sb.WriteString("\n")
-			outputHelp(sb.String())
+			g.outputHelp(sb.String())
 			return value.EMPTY
 		}
 	}
@@ -305,7 +301,7 @@ func showDoc(name string, ctx *hal.EvalContext) value.Value {
 				sb.WriteString(fmt.Sprintf("%s\n\n", name))
 				sb.WriteString(prod.Meta.Doc)
 				sb.WriteString("\n")
-				outputHelp(sb.String())
+				g.outputHelp(sb.String())
 				return value.EMPTY
 			}
 		}
@@ -317,13 +313,13 @@ func showDoc(name string, ctx *hal.EvalContext) value.Value {
 				sb.WriteString(fmt.Sprintf("%s\n", name))
 				sb.WriteString(prod.Meta.Doc)
 				sb.WriteString("\n")
-				outputHelp(sb.String())
+				g.outputHelp(sb.String())
 				return value.EMPTY
 			}
 		}
 	}
 
-	fmt.Fprintf(Stdout, "No documentation for '%s'\n", name)
+	fmt.Fprintf(g.stdout, "No documentation for '%s'\n", name)
 	return value.EMPTY
 }
 
@@ -339,11 +335,11 @@ func stripDocMarkers(doc string) string {
 	return strings.Join(kept, "\n")
 }
 
-func showModuleDoc(pkgName string) value.Value {
+func (g *GoRuntime) showModuleDoc(pkgName string) value.Value {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("Module: %s\n\n", pkgName))
 
-	mh := GlobalRegistry.GetModuleHelp(pkgName)
+	mh := g.moduleRegistry.GetModuleHelp(pkgName)
 	if mh == nil || len(mh.Docs) == 0 {
 		sb.WriteString("No documentation available.\n")
 	} else {
@@ -368,28 +364,28 @@ func showModuleDoc(pkgName string) value.Value {
 		}
 	}
 
-	outputHelp(sb.String())
+	g.outputHelp(sb.String())
 	return value.EMPTY
 }
 
-func showModuleFuncDoc(qualName string) value.Value {
+func (g *GoRuntime) showModuleFuncDoc(qualName string) value.Value {
 	parts := strings.SplitN(qualName, ".", 2)
 	if len(parts) != 2 {
-		fmt.Fprintf(Stdout, "Invalid qualified name '%s'\n", qualName)
+		fmt.Fprintf(g.stdout, "Invalid qualified name '%s'\n", qualName)
 		return value.EMPTY
 	}
 
 	pkgName := parts[0]
 	funcName := parts[1]
 
-	if GlobalRegistry == nil || !GlobalRegistry.HasPackage(pkgName) {
-		fmt.Fprintf(Stdout, "Unknown module '%s'\n", pkgName)
+	if g.moduleRegistry == nil || !g.moduleRegistry.HasPackage(pkgName) {
+		fmt.Fprintf(g.stdout, "Unknown module '%s'\n", pkgName)
 		return value.EMPTY
 	}
 
-	mh := GlobalRegistry.GetModuleHelp(pkgName)
+	mh := g.moduleRegistry.GetModuleHelp(pkgName)
 	if mh == nil {
-		fmt.Fprintf(Stdout, "No documentation available for module '%s'\n", pkgName)
+		fmt.Fprintf(g.stdout, "No documentation available for module '%s'\n", pkgName)
 		return value.EMPTY
 	}
 
@@ -402,15 +398,15 @@ func showModuleFuncDoc(qualName string) value.Value {
 		}
 		sb.WriteString(stripDocMarkers(entry.Doc))
 		sb.WriteString("\n")
-		outputHelp(sb.String())
+		g.outputHelp(sb.String())
 		return value.EMPTY
 	}
 
-	fmt.Fprintf(Stdout, "No documentation for '%s' in module '%s'\n", funcName, pkgName)
+	fmt.Fprintf(g.stdout, "No documentation for '%s' in module '%s'\n", funcName, pkgName)
 	return value.EMPTY
 }
 
-func halDelete(args []value.Value, ctx *hal.EvalContext) value.Value {
+func (g *GoRuntime) halDelete(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
 		return value.NewFault("delete: want 1 argument, got %d", len(args))
 	}
@@ -419,10 +415,10 @@ func halDelete(args []value.Value, ctx *hal.EvalContext) value.Value {
 		return value.NewFault("delete: expected string, got %s", args[0].Type())
 	}
 	name := s.Val
-	if UserEnv == nil {
+	if g.userEnv == nil {
 		return value.NewFault("delete: no user environment (only available in REPL)")
 	}
-	if UserEnv.Delete(name) {
+	if g.userEnv.Delete(name) {
 		return value.TRUE
 	}
 	return value.FALSE

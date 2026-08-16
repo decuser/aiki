@@ -1,6 +1,10 @@
 package "time"
 
 # time - time-related functions
+let now = () {
+	_time_now()
+}
+
 let sleep = (ms) {
 	_sleep(ms)
 }
@@ -9,4 +13,4 @@ let after = (ms) {
 	_after(ms)
 }
 
-export(:sleep, :after)
+export(:now, :sleep, :after)

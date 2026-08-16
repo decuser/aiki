@@ -55,12 +55,14 @@ func RunProfileDetailed(filename string, opts ProfileOptions) (ProfileRun, error
 	if err != nil {
 		return out, fmt.Errorf("loading grammar: %w", err)
 	}
-	if err := initModuleRegistry(g); err != nil {
+	rt := substrate.NewGoRuntime()
+	defer rt.CloseAllCanvases()
+	if err := initModuleRegistry(g, rt); err != nil {
 		return out, fmt.Errorf("initializing registry: %w", err)
 	}
 
-	rt := substrate.NewGoRuntime()
 	preludeEnv := value.NewEnvWithScope(value.ScopePrelude)
+	preludeEnv.SetAuthority(rt.AuthorityForSource("engine/runtime/prelude/prelude.ai"))
 	if err := loadPrelude(g, rt, preludeEnv); err != nil {
 		return out, fmt.Errorf("loading prelude: %w", err)
 	}
@@ -69,6 +71,7 @@ func RunProfileDetailed(filename string, opts ProfileOptions) (ProfileRun, error
 		userScope = value.ScopePrelude
 	}
 	userEnv := value.NewEnclosedEnvWithScope(preludeEnv, userScope)
+	userEnv.SetAuthority(rt.AuthorityForSource(filename))
 	userEnv.SetFile(filename)
 	userEnv.SetSource(string(source))
 

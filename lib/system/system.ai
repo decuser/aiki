@@ -9,4 +9,16 @@ let env = (name) {
 	_system_env(name)
 }
 
-export(:args, :env)
+let cwd = () {
+	_system_cwd()
+}
+
+let chdir = (path) {
+	_system_chdir(path)
+}
+
+let exec = (command, args) {
+	_system_exec(command, args)
+}
+
+export(:args, :env, :cwd, :chdir, :exec)

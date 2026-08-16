@@ -100,12 +100,9 @@ func halFileReadBytes(args []value.Value, ctx *hal.EvalContext) value.Value {
 	return &value.Bytes{Val: data}
 }
 
-// fileReaders caches buffered readers for line-by-line reading.
-var fileReaders = make(map[*value.File]*bufio.Reader)
-
 // halFileReadLine reads the next line from file.
 // read_line(file) -> string | [@end] | [@error, :io, "message"]
-func halFileReadLine(args []value.Value, ctx *hal.EvalContext) value.Value {
+func (g *GoRuntime) halFileReadLine(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
 		return value.NewFault("_file_read_line: want 1 argument, got %d", len(args))
 	}
@@ -118,11 +115,13 @@ func halFileReadLine(args []value.Value, ctx *hal.EvalContext) value.Value {
 	}
 
 	// Get or create buffered reader for this file
-	reader, exists := fileReaders[file]
+	g.mu.Lock()
+	reader, exists := g.fileReaders[file]
 	if !exists {
 		reader = bufio.NewReader(file.F)
-		fileReaders[file] = reader
+		g.fileReaders[file] = reader
 	}
+	g.mu.Unlock()
 
 	line, err := reader.ReadString('\n')
 	if err != nil {
@@ -202,7 +201,7 @@ func halFileWriteBytes(args []value.Value, ctx *hal.EvalContext) value.Value {
 
 // halFileClose closes a file.
 // close(file) -> true | [@error, :io, "message"]
-func halFileClose(args []value.Value, ctx *hal.EvalContext) value.Value {
+func (g *GoRuntime) halFileClose(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
 		return value.NewFault("_file_close: want 1 argument, got %d", len(args))
 	}
@@ -215,7 +214,9 @@ func halFileClose(args []value.Value, ctx *hal.EvalContext) value.Value {
 	}
 
 	// Clean up buffered reader if exists
-	delete(fileReaders, file)
+	g.mu.Lock()
+	delete(g.fileReaders, file)
+	g.mu.Unlock()
 
 	err := file.F.Close()
 	file.F = nil // Mark as closed
@@ -359,4 +360,163 @@ func fileNonNegativeInt64(v value.Value) (int64, bool) {
 	}
 	i := n.Val.Num().Int64()
 	return i, i >= 0
+}
+
+// halFileStat returns basic portable metadata for path.
+// stat(path) -> [@stat, size, modified_ms, is_dir] | [@error, :io, "message"]
+func halFileStat(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 1 {
+		return value.NewFault("_file_stat: want 1 argument, got %d", len(args))
+	}
+	path, ok := args[0].(*value.String)
+	if !ok {
+		return value.NewFault("_file_stat: expected string path, got %s", args[0].Type())
+	}
+	info, err := os.Stat(path.Val)
+	if err != nil {
+		return value.NewShapedError("io", "%s", err.Error())
+	}
+	isDir := value.FALSE
+	if info.IsDir() {
+		isDir = value.TRUE
+	}
+	return &value.List{Shape: "stat", Elements: []value.Value{
+		value.NewNumber(info.Size(), 1),
+		value.NewNumber(info.ModTime().UnixMilli(), 1),
+		isDir,
+	}}
+}
+
+func halFileRename(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 2 {
+		return value.NewFault("_file_rename: want 2 arguments, got %d", len(args))
+	}
+	oldPath, ok := args[0].(*value.String)
+	if !ok {
+		return value.NewFault("_file_rename: expected string old path, got %s", args[0].Type())
+	}
+	newPath, ok := args[1].(*value.String)
+	if !ok {
+		return value.NewFault("_file_rename: expected string new path, got %s", args[1].Type())
+	}
+	if err := os.Rename(oldPath.Val, newPath.Val); err != nil {
+		return value.NewShapedError("io", "%s", err.Error())
+	}
+	return value.TRUE
+}
+
+func halFileMkdir(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 1 {
+		return value.NewFault("_file_mkdir: want 1 argument, got %d", len(args))
+	}
+	path, ok := args[0].(*value.String)
+	if !ok {
+		return value.NewFault("_file_mkdir: expected string path, got %s", args[0].Type())
+	}
+	if err := os.Mkdir(path.Val, 0755); err != nil {
+		return value.NewShapedError("io", "%s", err.Error())
+	}
+	return value.TRUE
+}
+
+func halFileMkdirAll(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 1 {
+		return value.NewFault("_file_mkdir_all: want 1 argument, got %d", len(args))
+	}
+	path, ok := args[0].(*value.String)
+	if !ok {
+		return value.NewFault("_file_mkdir_all: expected string path, got %s", args[0].Type())
+	}
+	if err := os.MkdirAll(path.Val, 0755); err != nil {
+		return value.NewShapedError("io", "%s", err.Error())
+	}
+	return value.TRUE
+}
+
+func halFileRemoveAll(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 1 {
+		return value.NewFault("_file_remove_all: want 1 argument, got %d", len(args))
+	}
+	path, ok := args[0].(*value.String)
+	if !ok {
+		return value.NewFault("_file_remove_all: expected string path, got %s", args[0].Type())
+	}
+	if err := os.RemoveAll(path.Val); err != nil {
+		return value.NewShapedError("io", "%s", err.Error())
+	}
+	return value.TRUE
+}
+
+func halFileTemp(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 0 {
+		return value.NewFault("_file_temp: want 0 arguments, got %d", len(args))
+	}
+	f, err := os.CreateTemp("", "aiki-")
+	if err != nil {
+		return value.NewShapedError("io", "%s", err.Error())
+	}
+	name := f.Name()
+	if err := f.Close(); err != nil {
+		os.Remove(name)
+		return value.NewShapedError("io", "%s", err.Error())
+	}
+	return &value.String{Val: name}
+}
+
+func halFileTempDir(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 0 {
+		return value.NewFault("_file_temp_dir: want 0 arguments, got %d", len(args))
+	}
+	name, err := os.MkdirTemp("", "aiki-")
+	if err != nil {
+		return value.NewShapedError("io", "%s", err.Error())
+	}
+	return &value.String{Val: name}
+}
+
+func halFileCopy(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 2 {
+		return value.NewFault("_file_copy: want 2 arguments, got %d", len(args))
+	}
+	src, ok := args[0].(*value.String)
+	if !ok {
+		return value.NewFault("_file_copy: expected string source, got %s", args[0].Type())
+	}
+	dst, ok := args[1].(*value.String)
+	if !ok {
+		return value.NewFault("_file_copy: expected string destination, got %s", args[1].Type())
+	}
+	in, err := os.Open(src.Val)
+	if err != nil {
+		return value.NewShapedError("io", "%s", err.Error())
+	}
+	defer in.Close()
+	out, err := os.Create(dst.Val)
+	if err != nil {
+		return value.NewShapedError("io", "%s", err.Error())
+	}
+	_, copyErr := io.Copy(out, in)
+	closeErr := out.Close()
+	if copyErr != nil {
+		return value.NewShapedError("io", "%s", copyErr.Error())
+	}
+	if closeErr != nil {
+		return value.NewShapedError("io", "%s", closeErr.Error())
+	}
+	return value.TRUE
+}
+
+func halFileSize(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 1 {
+		return value.NewFault("_file_size: want 1 argument, got %d", len(args))
+	}
+	path, ok := args[0].(*value.String)
+	if !ok {
+		return value.NewFault("_file_size: expected string path, got %s", args[0].Type())
+	}
+	info, err := os.Stat(path.Val)
+	if err != nil {
+		return value.NewShapedError("io", "%s", err.Error())
+	}
+	return value.NewNumber(info.Size(), 1)
 }

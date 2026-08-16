@@ -82,7 +82,7 @@ let forward = (t, distance) {
 	let tx1 = tx0 + dx
 	let ty1 = ty0 + dy
 	if _pen(t) {
-		_line(_cvs(t), _screen_x(t, tx0), _screen_y(t, ty0), _screen_x(t, tx1), _screen_y(t, ty1), _color(t))
+		_canvas_command(_cvs(t), :line, [_screen_x(t, tx0), _screen_y(t, ty0), _screen_x(t, tx1), _screen_y(t, ty1), _color(t)])
 	} else {
 		true
 	}
@@ -115,7 +115,7 @@ let set_color = (t, color) {
 
 let home = (t) {
 	if _pen(t) {
-		_line(_cvs(t), _screen_x(t, _tx(t)), _screen_y(t, _ty(t)), _cx(t), _cy(t), _color(t))
+		_canvas_command(_cvs(t), :line, [_screen_x(t, _tx(t)), _screen_y(t, _ty(t)), _cx(t), _cy(t), _color(t)])
 	} else {
 		true
 	}
@@ -123,7 +123,7 @@ let home = (t) {
 }
 
 let clear = (t) {
-	_clear(_cvs(t))
+	_canvas_command(_cvs(t), :clear, [])
 	t
 }
 

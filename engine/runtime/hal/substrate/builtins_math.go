@@ -3,14 +3,10 @@ package substrate
 import (
 	"math"
 	"math/big"
-	"math/rand"
-	"time"
 
 	"aiki/engine/runtime/hal"
 	"aiki/engine/semantics/value"
 )
-
-var rng = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 func halFloor(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
@@ -109,7 +105,7 @@ func halSqrt(args []value.Value, ctx *hal.EvalContext) value.Value {
 	return &value.Number{Val: r}
 }
 
-func halSeed(args []value.Value, ctx *hal.EvalContext) value.Value {
+func (g *GoRuntime) halSeed(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
 		return value.NewFault("seed: want 1 argument, got %d", len(args))
 	}
@@ -121,11 +117,13 @@ func halSeed(args []value.Value, ctx *hal.EvalContext) value.Value {
 		return value.NewFault("seed: expected integer")
 	}
 	seed := n.Val.Num().Int64()
-	rng = rand.New(rand.NewSource(seed))
+	g.mu.Lock()
+	g.rng.Seed(seed)
+	g.mu.Unlock()
 	return value.EMPTY
 }
 
-func halRandom(args []value.Value, ctx *hal.EvalContext) value.Value {
+func (g *GoRuntime) halRandom(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
 		return value.NewFault("random: want 1 argument, got %d", len(args))
 	}
@@ -140,6 +138,8 @@ func halRandom(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if max <= 0 {
 		return value.NewFault("random: max must be positive")
 	}
-	result := rng.Int63n(max)
+	g.mu.Lock()
+	result := g.rng.Int63n(max)
+	g.mu.Unlock()
 	return &value.Number{Val: big.NewRat(result, 1)}
 }

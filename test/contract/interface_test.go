@@ -14,19 +14,19 @@ func TestGoRuntimeImplementsRuntimeContract(t *testing.T) {
 
 	rt := substrate.NewGoRuntime()
 
-	// HasBuiltin returns sensible values
-	if !rt.HasBuiltin("_print", value.ScopePrelude) {
-		t.Error("HasBuiltin should return true for _print in prelude scope")
+	// Host bindings require canonical HAL authority; non-host primitives retain primitive authority.
+	if !rt.HasBuiltin("_print", value.NewAuthority("HAL.io.print", "_length")) {
+		t.Error("HasBuiltin should return true for _print with canonical host authority")
 	}
-	if rt.HasBuiltin("_print", value.ScopeUser) {
-		t.Error("HasBuiltin should return false for _print in user scope")
+	if rt.HasBuiltin("_print", value.NoAuthority()) {
+		t.Error("HasBuiltin should return false for _print without authority")
 	}
-	if rt.HasBuiltin("nonexistent", value.ScopePrelude) {
+	if rt.HasBuiltin("nonexistent", value.NewAuthority("HAL.io.print", "_length")) {
 		t.Error("HasBuiltin should return false for nonexistent builtin")
 	}
 
 	// GetBuiltin returns callable
-	callable, ok := rt.GetBuiltin("_print", value.ScopePrelude)
+	callable, ok := rt.GetBuiltin("_print", value.NewAuthority("HAL.io.print", "_length"))
 	if !ok {
 		t.Error("GetBuiltin should return ok=true for _print")
 	}
@@ -34,10 +34,10 @@ func TestGoRuntimeImplementsRuntimeContract(t *testing.T) {
 		t.Error("GetBuiltin should return non-nil callable")
 	}
 
-	// GetBuiltin respects scope
-	_, ok = rt.GetBuiltin("_print", value.ScopeUser)
+	// GetBuiltin respects authority
+	_, ok = rt.GetBuiltin("_print", value.NoAuthority())
 	if ok {
-		t.Error("GetBuiltin should return ok=false for user scope")
+		t.Error("GetBuiltin should return ok=false without authority")
 	}
 }
 
@@ -82,7 +82,7 @@ func TestCallableInterface(t *testing.T) {
 	rt := substrate.NewGoRuntime()
 
 	// Get a builtin callable
-	callable, ok := rt.GetBuiltin("_length", value.ScopePrelude)
+	callable, ok := rt.GetBuiltin("_length", value.NewAuthority("HAL.io.print", "_length"))
 	if !ok {
 		t.Fatal("could not get _length builtin")
 	}

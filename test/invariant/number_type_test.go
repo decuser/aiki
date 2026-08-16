@@ -23,7 +23,9 @@ func eval(t *testing.T, source string) value.Value {
 	}
 	rt := substrate.NewGoRuntime()
 	ev := evaluator.New(rt, nil)
-	return ev.Eval(ast, value.NewEnvWithScope(value.ScopePrelude))
+	env := value.NewEnvWithScope(value.ScopePrelude)
+	env.SetAuthority(value.NewAuthority("_sqrt_inexact", "_cos_inexact"))
+	return ev.Eval(ast, env)
 }
 
 // TestNumbersAreBigRat verifies all number operations return *big.Rat, not float64.

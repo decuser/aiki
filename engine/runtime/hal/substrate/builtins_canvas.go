@@ -3,16 +3,12 @@ package substrate
 import (
 	"image/color"
 	"math"
-	"sync"
 
 	"aiki/engine/runtime/hal"
 	"aiki/engine/semantics/value"
 )
 
 var (
-	openCanvases   []*value.Canvas
-	openCanvasesMu sync.Mutex
-
 	// Default colors
 	DefaultBG = color.RGBA{0, 0, 0, 255}       // black
 	DefaultFG = color.RGBA{255, 255, 255, 255} // white
@@ -38,44 +34,73 @@ func colorFromName(name string) (color.RGBA, bool) {
 	return c, ok
 }
 
-func trackCanvas(c *value.Canvas) {
-	openCanvasesMu.Lock()
-	openCanvases = append(openCanvases, c)
-	openCanvasesMu.Unlock()
+func (g *GoRuntime) trackCanvas(c *value.Canvas, resource *CanvasResource) {
+	g.mu.Lock()
+	g.openCanvases = append(g.openCanvases, c)
+	g.canvasResources[c] = resource
+	g.mu.Unlock()
 }
 
-func untrackCanvas(c *value.Canvas) {
-	openCanvasesMu.Lock()
-	for i, cvs := range openCanvases {
+func (g *GoRuntime) canvasResource(c *value.Canvas) (*CanvasResource, bool) {
+	g.mu.RLock()
+	resource, ok := g.canvasResources[c]
+	g.mu.RUnlock()
+	return resource, ok
+}
+
+func (g *GoRuntime) canvasResourceMust(c *value.Canvas) *CanvasResource {
+	resource, _ := g.canvasResource(c)
+	return resource
+}
+
+func (g *GoRuntime) untrackCanvas(c *value.Canvas) {
+	g.mu.Lock()
+	delete(g.canvasResources, c)
+	for i, cvs := range g.openCanvases {
 		if cvs == c {
-			openCanvases = append(openCanvases[:i], openCanvases[i+1:]...)
+			g.openCanvases = append(g.openCanvases[:i], g.openCanvases[i+1:]...)
 			break
 		}
 	}
-	openCanvasesMu.Unlock()
+	g.mu.Unlock()
 }
 
-// CloseAllCanvases closes all open canvases.
-func CloseAllCanvases() {
-	openCanvasesMu.Lock()
-	cs := make([]*value.Canvas, len(openCanvases))
-	copy(cs, openCanvases)
-	openCanvases = nil
-	openCanvasesMu.Unlock()
+func (g *GoRuntime) canvasFG(c *value.Canvas) color.RGBA         { return g.canvasResourceMust(c).FG }
+func (g *GoRuntime) canvasPenSize(c *value.Canvas) float32       { return g.canvasResourceMust(c).PenSize }
+func (g *GoRuntime) setCanvasBG(c *value.Canvas, clr color.RGBA) { g.canvasResourceMust(c).BG = clr }
+func (g *GoRuntime) setCanvasFG(c *value.Canvas, clr color.RGBA) { g.canvasResourceMust(c).FG = clr }
+func (g *GoRuntime) setCanvasPenSize(c *value.Canvas, size float32) {
+	g.canvasResourceMust(c).PenSize = size
+}
+func (g *GoRuntime) enqueueCanvas(c *value.Canvas, cmd CanvasCmd) {
+	g.canvasResourceMust(c).Commands <- cmd
+}
 
+// CloseAllCanvases closes all canvases owned by this runtime.
+func (g *GoRuntime) CloseAllCanvases() {
+	g.mu.Lock()
+	cs := append([]*value.Canvas(nil), g.openCanvases...)
+	g.openCanvases = nil
+	resources := make([]*CanvasResource, 0, len(cs))
 	for _, c := range cs {
-		select {
-		case <-c.Done:
-		default:
-			close(c.Done)
+		if resource := g.canvasResources[c]; resource != nil {
+			resources = append(resources, resource)
 		}
-		// Let the bridge drain queued commands and send the close frame
-		// rather than bypassing it with a direct sendCanvasClose.
-		bridgeWait(c)
+		delete(g.canvasResources, c)
+	}
+	g.mu.Unlock()
+
+	for _, resource := range resources {
+		select {
+		case <-resource.Done:
+		default:
+			close(resource.Done)
+		}
+		bridgeWait(resource)
 	}
 }
 
-func halCanvas(args []value.Value, ctx *hal.EvalContext) value.Value {
+func (g *GoRuntime) halCanvas(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 2 {
 		return value.NewFault("canvas: want 2 arguments, got %d", len(args))
 	}
@@ -85,28 +110,77 @@ func halCanvas(args []value.Value, ctx *hal.EvalContext) value.Value {
 		return value.NewFault("canvas: width and height must be numbers")
 	}
 
-	cvs := &value.Canvas{
-		Width:    width,
-		Height:   height,
-		BG:       DefaultBG,
-		FG:       DefaultFG,
-		PenSize:  2,
-		Commands: make(chan value.CanvasCmd, 100),
-		Done:     make(chan struct{}),
-		Ready:    make(chan struct{}),
+	g.mu.Lock()
+	g.nextCanvasID++
+	id := g.nextCanvasID
+	g.mu.Unlock()
+	cvs := &value.Canvas{ID: id}
+	resource := &CanvasResource{
+		Width: width, Height: height, BG: DefaultBG, FG: DefaultFG, PenSize: 2,
+		Commands: make(chan CanvasCmd, 100), Done: make(chan struct{}), Ready: make(chan struct{}),
 	}
 
-	trackCanvas(cvs)
-	if err := startCanvasSession(cvs); err != nil {
-		untrackCanvas(cvs)
+	g.trackCanvas(cvs, resource)
+	if err := startCanvasSession(resource); err != nil {
+		g.untrackCanvas(cvs)
 		return value.NewShapedError("canvas", "canvas: %v", err)
 	}
-	<-cvs.Ready
+	<-resource.Ready
 
 	return cvs
 }
 
-func halDot(args []value.Value, ctx *hal.EvalContext) value.Value {
+// halCanvasCommand realizes the Aiki-defined Canvas protocol through one host
+// crossing. The operation symbol and argument list are constructed in Aiki;
+// this adapter maps that protocol onto the existing substrate implementation.
+func (g *GoRuntime) halCanvasCommand(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 3 {
+		return value.NewFault("canvas_command: want 3 arguments, got %d", len(args))
+	}
+	cvs, ok := args[0].(*value.Canvas)
+	if !ok {
+		return value.NewFault("canvas_command: expected canvas")
+	}
+	op, ok := args[1].(*value.Symbol)
+	if !ok {
+		return value.NewFault("canvas_command: operation must be symbol")
+	}
+	params, ok := args[2].(*value.List)
+	if !ok {
+		return value.NewFault("canvas_command: arguments must be list")
+	}
+	call := append([]value.Value{cvs}, params.Elements...)
+	switch op.Val {
+	case "dot":
+		return g.halDot(call, ctx)
+	case "line":
+		return g.halLine(call, ctx)
+	case "rect":
+		return g.halRect(call, ctx)
+	case "fill_rect":
+		return g.halFillRect(call, ctx)
+	case "circle":
+		return g.halCircle(call, ctx)
+	case "fill_circle":
+		return g.halFillCircle(call, ctx)
+	case "arc":
+		return g.halArc(call, ctx)
+	case "clear":
+		return g.halClear(call, ctx)
+	case "set_bg":
+		return g.halSetBG(call, ctx)
+	case "set_fg":
+		return g.halSetFG(call, ctx)
+	case "pen_size":
+		return g.halPenSize(call, ctx)
+	case "turtle":
+		return g.halSetTurtle(call, ctx)
+	default:
+		return value.NewFault("canvas_command: unknown operation: %s", op.Val)
+	}
+}
+
+func (g *GoRuntime) halDot(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) < 3 || len(args) > 4 {
 		return value.NewFault("dot: want 3 or 4 arguments, got %d", len(args))
 	}
@@ -114,7 +188,7 @@ func halDot(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if !ok {
 		return value.NewFault("dot: expected canvas")
 	}
-	if errv := requireCanvasActive("dot", cvs); errv != nil {
+	if errv := g.requireCanvasActive("dot", cvs); errv != nil {
 		return errv
 	}
 	x, ok1 := toInt(args[1])
@@ -122,18 +196,18 @@ func halDot(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if !ok1 || !ok2 {
 		return value.NewFault("dot: coordinates must be numbers")
 	}
-	clr := cvs.FG
+	clr := g.canvasFG(cvs)
 	if len(args) == 4 {
 		clr, ok = parseColor(args[3])
 		if !ok {
 			return value.NewFault("dot: invalid color")
 		}
 	}
-	cvs.Commands <- value.CanvasCmd{Op: "dot", Args: []int{x, y}, Color: clr}
+	g.enqueueCanvas(cvs, CanvasCmd{Op: "dot", Args: []int{x, y}, Color: clr})
 	return value.TRUE
 }
 
-func halLine(args []value.Value, ctx *hal.EvalContext) value.Value {
+func (g *GoRuntime) halLine(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) < 5 || len(args) > 6 {
 		return value.NewFault("line: want 5 or 6 arguments, got %d", len(args))
 	}
@@ -141,7 +215,7 @@ func halLine(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if !ok {
 		return value.NewFault("line: expected canvas")
 	}
-	if errv := requireCanvasActive("line", cvs); errv != nil {
+	if errv := g.requireCanvasActive("line", cvs); errv != nil {
 		return errv
 	}
 	x1, ok1 := toInt(args[1])
@@ -151,26 +225,26 @@ func halLine(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if !ok1 || !ok2 || !ok3 || !ok4 {
 		return value.NewFault("line: coordinates must be numbers")
 	}
-	clr := cvs.FG
+	clr := g.canvasFG(cvs)
 	if len(args) == 6 {
 		clr, ok = parseColor(args[5])
 		if !ok {
 			return value.NewFault("line: invalid color")
 		}
 	}
-	cvs.Commands <- value.CanvasCmd{Op: "line", Args: []int{x1, y1, x2, y2}, Color: clr, PenSize: cvs.PenSize}
+	g.enqueueCanvas(cvs, CanvasCmd{Op: "line", Args: []int{x1, y1, x2, y2}, Color: clr, PenSize: g.canvasPenSize(cvs)})
 	return value.TRUE
 }
 
-func halRect(args []value.Value, ctx *hal.EvalContext) value.Value {
-	return rectHelper("rect", args)
+func (g *GoRuntime) halRect(args []value.Value, ctx *hal.EvalContext) value.Value {
+	return g.rectHelper("rect", args)
 }
 
-func halFillRect(args []value.Value, ctx *hal.EvalContext) value.Value {
-	return rectHelper("fill_rect", args)
+func (g *GoRuntime) halFillRect(args []value.Value, ctx *hal.EvalContext) value.Value {
+	return g.rectHelper("fill_rect", args)
 }
 
-func rectHelper(op string, args []value.Value) value.Value {
+func (g *GoRuntime) rectHelper(op string, args []value.Value) value.Value {
 	if len(args) < 5 || len(args) > 6 {
 		return value.NewFault("%s: want 5 or 6 arguments, got %d", op, len(args))
 	}
@@ -178,7 +252,7 @@ func rectHelper(op string, args []value.Value) value.Value {
 	if !ok {
 		return value.NewFault("%s: expected canvas", op)
 	}
-	if errv := requireCanvasActive(op, cvs); errv != nil {
+	if errv := g.requireCanvasActive(op, cvs); errv != nil {
 		return errv
 	}
 	x, ok1 := toInt(args[1])
@@ -188,26 +262,26 @@ func rectHelper(op string, args []value.Value) value.Value {
 	if !ok1 || !ok2 || !ok3 || !ok4 {
 		return value.NewFault("%s: dimensions must be numbers", op)
 	}
-	clr := cvs.FG
+	clr := g.canvasFG(cvs)
 	if len(args) == 6 {
 		clr, ok = parseColor(args[5])
 		if !ok {
 			return value.NewFault("%s: invalid color", op)
 		}
 	}
-	cvs.Commands <- value.CanvasCmd{Op: op, Args: []int{x, y, w, h}, Color: clr, PenSize: cvs.PenSize}
+	g.enqueueCanvas(cvs, CanvasCmd{Op: op, Args: []int{x, y, w, h}, Color: clr, PenSize: g.canvasPenSize(cvs)})
 	return value.TRUE
 }
 
-func halCircle(args []value.Value, ctx *hal.EvalContext) value.Value {
-	return circleHelper("circle", args)
+func (g *GoRuntime) halCircle(args []value.Value, ctx *hal.EvalContext) value.Value {
+	return g.circleHelper("circle", args)
 }
 
-func halFillCircle(args []value.Value, ctx *hal.EvalContext) value.Value {
-	return circleHelper("fill_circle", args)
+func (g *GoRuntime) halFillCircle(args []value.Value, ctx *hal.EvalContext) value.Value {
+	return g.circleHelper("fill_circle", args)
 }
 
-func halArc(args []value.Value, ctx *hal.EvalContext) value.Value {
+func (g *GoRuntime) halArc(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) < 6 || len(args) > 7 {
 		return value.NewFault("arc: want 6 or 7 arguments, got %d", len(args))
 	}
@@ -215,7 +289,7 @@ func halArc(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if !ok {
 		return value.NewFault("arc: expected canvas")
 	}
-	if errv := requireCanvasActive("arc", cvs); errv != nil {
+	if errv := g.requireCanvasActive("arc", cvs); errv != nil {
 		return errv
 	}
 	x, ok1 := toInt(args[1])
@@ -226,18 +300,18 @@ func halArc(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if !ok1 || !ok2 || !ok3 || !ok4 || !ok5 {
 		return value.NewFault("arc: arguments must be numbers")
 	}
-	clr := cvs.FG
+	clr := g.canvasFG(cvs)
 	if len(args) == 7 {
 		clr, ok = parseColor(args[6])
 		if !ok {
 			return value.NewFault("arc: invalid color")
 		}
 	}
-	cvs.Commands <- value.CanvasCmd{Op: "arc", Args: []int{x, y, r, start, end}, Color: clr, PenSize: cvs.PenSize}
+	g.enqueueCanvas(cvs, CanvasCmd{Op: "arc", Args: []int{x, y, r, start, end}, Color: clr, PenSize: g.canvasPenSize(cvs)})
 	return value.TRUE
 }
 
-func circleHelper(op string, args []value.Value) value.Value {
+func (g *GoRuntime) circleHelper(op string, args []value.Value) value.Value {
 	if len(args) < 4 || len(args) > 5 {
 		return value.NewFault("%s: want 4 or 5 arguments, got %d", op, len(args))
 	}
@@ -245,7 +319,7 @@ func circleHelper(op string, args []value.Value) value.Value {
 	if !ok {
 		return value.NewFault("%s: expected canvas", op)
 	}
-	if errv := requireCanvasActive(op, cvs); errv != nil {
+	if errv := g.requireCanvasActive(op, cvs); errv != nil {
 		return errv
 	}
 	x, ok1 := toInt(args[1])
@@ -254,18 +328,18 @@ func circleHelper(op string, args []value.Value) value.Value {
 	if !ok1 || !ok2 || !ok3 {
 		return value.NewFault("%s: dimensions must be numbers", op)
 	}
-	clr := cvs.FG
+	clr := g.canvasFG(cvs)
 	if len(args) == 5 {
 		clr, ok = parseColor(args[4])
 		if !ok {
 			return value.NewFault("%s: invalid color", op)
 		}
 	}
-	cvs.Commands <- value.CanvasCmd{Op: op, Args: []int{x, y, r}, Color: clr, PenSize: cvs.PenSize}
+	g.enqueueCanvas(cvs, CanvasCmd{Op: op, Args: []int{x, y, r}, Color: clr, PenSize: g.canvasPenSize(cvs)})
 	return value.TRUE
 }
 
-func halClear(args []value.Value, ctx *hal.EvalContext) value.Value {
+func (g *GoRuntime) halClear(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
 		return value.NewFault("clear: want 1 argument, got %d", len(args))
 	}
@@ -273,14 +347,14 @@ func halClear(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if !ok {
 		return value.NewFault("clear: expected canvas")
 	}
-	if errv := requireCanvasActive("clear", cvs); errv != nil {
+	if errv := g.requireCanvasActive("clear", cvs); errv != nil {
 		return errv
 	}
-	cvs.Commands <- value.CanvasCmd{Op: "clear"}
+	g.enqueueCanvas(cvs, CanvasCmd{Op: "clear"})
 	return value.TRUE
 }
 
-func halDestroy(args []value.Value, ctx *hal.EvalContext) value.Value {
+func (g *GoRuntime) halDestroy(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
 		return value.NewFault("destroy: want 1 argument, got %d", len(args))
 	}
@@ -288,21 +362,24 @@ func halDestroy(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if !ok {
 		return value.NewFault("destroy: expected canvas")
 	}
+	resource, ok := g.canvasResource(cvs)
+	if !ok {
+		return value.TRUE
+	}
 	select {
-	case <-cvs.Done:
-		// Already closed.
+	case <-resource.Done:
 	default:
-		close(cvs.Done)
+		close(resource.Done)
 	}
 	// The bridge goroutine sees Done and drains any queued commands from
 	// cvs.Commands into sendCh before sending the close frame itself. We
 	// wait for the bridge to finish, then reap the child.
-	bridgeWait(cvs)
-	untrackCanvas(cvs)
+	bridgeWait(resource)
+	g.untrackCanvas(cvs)
 	return value.TRUE
 }
 
-func halSetBG(args []value.Value, ctx *hal.EvalContext) value.Value {
+func (g *GoRuntime) halSetBG(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 2 {
 		return value.NewFault("set_bg: want 2 arguments, got %d", len(args))
 	}
@@ -310,19 +387,19 @@ func halSetBG(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if !ok {
 		return value.NewFault("set_bg: expected canvas")
 	}
-	if errv := requireCanvasActive("set_bg", cvs); errv != nil {
+	if errv := g.requireCanvasActive("set_bg", cvs); errv != nil {
 		return errv
 	}
 	clr, ok := parseColor(args[1])
 	if !ok {
 		return value.NewFault("set_bg: invalid color")
 	}
-	cvs.BG = clr
-	sendCanvasSetBG(cvs, clr)
+	g.setCanvasBG(cvs, clr)
+	sendCanvasSetBG(g.canvasResourceMust(cvs), clr)
 	return value.TRUE
 }
 
-func halSetFG(args []value.Value, ctx *hal.EvalContext) value.Value {
+func (g *GoRuntime) halSetFG(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 2 {
 		return value.NewFault("set_fg: want 2 arguments, got %d", len(args))
 	}
@@ -330,19 +407,19 @@ func halSetFG(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if !ok {
 		return value.NewFault("set_fg: expected canvas")
 	}
-	if errv := requireCanvasActive("set_fg", cvs); errv != nil {
+	if errv := g.requireCanvasActive("set_fg", cvs); errv != nil {
 		return errv
 	}
 	clr, ok := parseColor(args[1])
 	if !ok {
 		return value.NewFault("set_fg: invalid color")
 	}
-	cvs.FG = clr
-	sendCanvasSetFG(cvs, clr)
+	g.setCanvasFG(cvs, clr)
+	sendCanvasSetFG(g.canvasResourceMust(cvs), clr)
 	return value.TRUE
 }
 
-func halPenSize(args []value.Value, ctx *hal.EvalContext) value.Value {
+func (g *GoRuntime) halPenSize(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 2 {
 		return value.NewFault("pen_size: want 2 arguments, got %d", len(args))
 	}
@@ -350,21 +427,22 @@ func halPenSize(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if !ok {
 		return value.NewFault("pen_size: expected canvas")
 	}
-	if errv := requireCanvasActive("pen_size", cvs); errv != nil {
+	if errv := g.requireCanvasActive("pen_size", cvs); errv != nil {
 		return errv
 	}
 	size, ok := toInt(args[1])
 	if !ok || size < 1 {
 		return value.NewFault("pen_size: size must be a positive number")
 	}
-	cvs.PenSize = float32(size)
+	g.setCanvasPenSize(cvs, float32(size))
 	return value.TRUE
 }
 
 // Helper functions
 
-func requireCanvasActive(op string, cvs *value.Canvas) value.Value {
-	if !canvasSessionAlive(cvs) {
+func (g *GoRuntime) requireCanvasActive(op string, cvs *value.Canvas) value.Value {
+	resource, ok := g.canvasResource(cvs)
+	if !ok || !canvasSessionAlive(resource) {
 		return value.NewShapedError("canvas", "%s: canvas closed", op)
 	}
 	return nil
@@ -414,8 +492,9 @@ func parseColor(v value.Value) (color.RGBA, bool) {
 
 // canvasAliveOrError returns an error value if the canvas session is closed.
 // This is used by builtins to fail fast when the user closes the window manually.
-func canvasAliveOrError(cvs *value.Canvas, name string) value.Value {
-	if !canvasSessionAlive(cvs) {
+func (g *GoRuntime) canvasAliveOrError(cvs *value.Canvas, name string) value.Value {
+	resource, ok := g.canvasResource(cvs)
+	if !ok || !canvasSessionAlive(resource) {
 		return value.NewShapedError("canvas", "%s: canvas closed", name)
 	}
 	return nil

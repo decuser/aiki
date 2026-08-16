@@ -33,22 +33,16 @@ func TestModuleHelpCarriesPreamble(t *testing.T) {
 }
 
 func TestOutputHelpUsesPagerHook(t *testing.T) {
-	oldStdout := Stdout
-	oldPageOutput := PageOutput
-	defer func() {
-		Stdout = oldStdout
-		PageOutput = oldPageOutput
-	}()
-
 	var out bytes.Buffer
-	Stdout = &out
+	rt := NewGoRuntime()
+	rt.SetIO(nil, &out)
 	var got string
-	PageOutput = func(text string) bool {
+	rt.SetPageOutput(func(text string) bool {
 		got = text
 		return true
-	}
+	})
 
-	outputHelp("long help\n")
+	rt.outputHelp("long help\n")
 	if got != "long help\n" {
 		t.Fatalf("pager got %q", got)
 	}
@@ -58,31 +52,18 @@ func TestOutputHelpUsesPagerHook(t *testing.T) {
 }
 
 func TestOutputHelpFallsBackToStdout(t *testing.T) {
-	oldStdout := Stdout
-	oldPageOutput := PageOutput
-	defer func() {
-		Stdout = oldStdout
-		PageOutput = oldPageOutput
-	}()
-
 	var out bytes.Buffer
-	Stdout = &out
-	PageOutput = func(string) bool { return false }
+	rt := NewGoRuntime()
+	rt.SetIO(nil, &out)
+	rt.SetPageOutput(func(string) bool { return false })
 
-	outputHelp("short help\n")
+	rt.outputHelp("short help\n")
 	if got, want := out.String(), "short help\n"; got != want {
 		t.Fatalf("Stdout = %q, want %q", got, want)
 	}
 }
 
 func TestGrammarNewlineHelpUsesDeclaredMetadata(t *testing.T) {
-	oldStdout := Stdout
-	oldPageOutput := PageOutput
-	defer func() {
-		Stdout = oldStdout
-		PageOutput = oldPageOutput
-	}()
-
 	g, err := grammar.Load("grammar.ebnfx", syntax.EbnfxSource, "grammar.help", syntax.HelpSource)
 	if err != nil {
 		t.Fatal(err)
@@ -92,11 +73,12 @@ func TestGrammarNewlineHelpUsesDeclaredMetadata(t *testing.T) {
 	}
 
 	var out bytes.Buffer
-	Stdout = &out
-	PageOutput = func(string) bool { return false }
+	rt := NewGoRuntime()
+	rt.SetIO(nil, &out)
+	rt.SetPageOutput(func(string) bool { return false })
 
 	ctx := &hal.EvalContext{Grammar: g}
-	showHelp("newline", ctx)
+	rt.showHelp("newline", ctx)
 
 	want := "newline\n  " + g.Newline.Meta.Help + "\n"
 	if got := out.String(); got != want {

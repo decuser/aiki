@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"aiki/engine/runtime/hal/substrate"
-	"aiki/engine/semantics/value"
 )
 
 func runCanvasChild(opts Options) {
@@ -22,13 +21,13 @@ func runCanvasChild(opts Options) {
 		os.Exit(2)
 	}
 
-	cvs := &value.Canvas{
+	cvs := &substrate.CanvasResource{
 		Width:    opts.CanvasW,
 		Height:   opts.CanvasH,
 		BG:       substrate.DefaultBG,
 		FG:       substrate.DefaultFG,
 		PenSize:  2,
-		Commands: make(chan value.CanvasCmd, 256),
+		Commands: make(chan substrate.CanvasCmd, 256),
 		Done:     make(chan struct{}),
 		Ready:    make(chan struct{}),
 	}
@@ -42,7 +41,7 @@ func runCanvasChild(opts Options) {
 	substrate.RunEbiten(cvs)
 }
 
-func canvasStdinLoop(r io.Reader, cvs *value.Canvas) {
+func canvasStdinLoop(r io.Reader, cvs *substrate.CanvasResource) {
 	dec := substrate.NewCanvasDecoder(r)
 	for {
 		cmd, err := dec.Read()
@@ -58,7 +57,7 @@ func canvasStdinLoop(r io.Reader, cvs *value.Canvas) {
 	}
 }
 
-func handleCanvasWire(cmd any, cvs *value.Canvas) {
+func handleCanvasWire(cmd any, cvs *substrate.CanvasResource) {
 	switch m := cmd.(type) {
 	case substrate.CanvasWireBatch:
 		for _, one := range m.Cmds {
@@ -74,7 +73,7 @@ func handleCanvasWire(cmd any, cvs *value.Canvas) {
 		return
 	case substrate.CanvasWireSetBG:
 		cvs.BG = m.RGBA
-		cvs.Commands <- value.CanvasCmd{Op: "clear"}
+		cvs.Commands <- substrate.CanvasCmd{Op: "clear"}
 		return
 	case substrate.CanvasWireSetFG:
 		cvs.FG = m.RGBA
@@ -95,7 +94,7 @@ func handleCanvasWire(cmd any, cvs *value.Canvas) {
 		for i, a := range m.Args {
 			args[i] = int(a)
 		}
-		cvs.Commands <- value.CanvasCmd{Op: m.Op, Args: args, Color: clr, PenSize: pen}
+		cvs.Commands <- substrate.CanvasCmd{Op: m.Op, Args: args, Color: clr, PenSize: pen}
 		return
 	default:
 		return

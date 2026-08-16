@@ -1,5 +1,5 @@
 # Prelude - minimal core
-# This file runs with ScopePrelude, so it can access _prefixed HAL primitives.
+# This file has explicit runtime authority for only the _prefixed primitives it uses.
 # Only evaluator-privileged and irreducible primitives belong here.
 # Everything else lives in lib/.
 # Evaluator-privileged intrinsics

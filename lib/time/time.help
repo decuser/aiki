@@ -1,5 +1,9 @@
 # time - time-related functions
 
+@func now
+@template "now()"
+@help "Returns the current time as integer milliseconds since the Unix epoch."
+
 @func sleep
 @template "sleep(ms)"
 @help "Pauses execution for given milliseconds."

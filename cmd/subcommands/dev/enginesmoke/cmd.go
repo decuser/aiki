@@ -78,12 +78,6 @@ func Run(args []string) int {
 		return 1
 	}
 
-	// Preload help registry (required for evaluator and some loaders).
-	if err := initHelpRegistry(); err != nil {
-		fmt.Fprintln(os.Stderr, "enginesmoke:", err)
-		return 1
-	}
-
 	// Structural coverage is checked before any gold is written. Golds preserve
 	// a known-good structure; they do not establish that the specimen set is complete.
 	requireCoverage := coverage || ((gold || check) && (st == stageAll || st == stageParse))
@@ -311,7 +305,7 @@ func loadGrammar(overridePath string) (*grammar.Grammar, error) {
 	return grammar.Load(overridePath, string(data), "grammar.help", syntax.HelpSource)
 }
 
-func initHelpRegistry() error {
+func initHelpRegistry(rt *substrate.GoRuntime) error {
 	registry := help.NewRegistry()
 
 	funcs, err := help.ParseHelpFile("prelude.help", prelude.HelpSource)
@@ -325,7 +319,7 @@ func initHelpRegistry() error {
 	}
 
 	registry.Merge(funcs, docs)
-	substrate.HelpRegistry = registry
+	rt.SetHelpRegistry(registry)
 	return nil
 }
 
@@ -373,13 +367,15 @@ func dumpParse(g *grammar.Grammar, file, source string) ([]byte, error) {
 func dumpEval(g *grammar.Grammar, file, source string) ([]byte, error) {
 	// Redirect runtime stdout for deterministic capture.
 	var out bytes.Buffer
-	oldStdout := substrate.Stdout
-	substrate.Stdout = &out
-	defer func() { substrate.Stdout = oldStdout }()
 
 	// Load prelude into a fresh environment.
 	rt := substrate.NewGoRuntime()
+	rt.SetIO(nil, &out)
+	if err := initHelpRegistry(rt); err != nil {
+		return nil, err
+	}
 	preludeEnv := value.NewEnvWithScope(value.ScopePrelude)
+	preludeEnv.SetAuthority(rt.AuthorityForSource("engine/runtime/prelude/prelude.ai"))
 	if err := loadPrelude(g, rt, preludeEnv); err != nil {
 		return nil, err
 	}

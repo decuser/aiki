@@ -49,4 +49,40 @@ let write_at = (file, offset, bytes) {
 	_file_write_at(file, offset, bytes)
 }
 
-export(:open, :read_text, :read_bytes, :read_line, :write_text, :write_bytes, :close, :exists, :delete, :list, :read_at, :write_at)
+let stat = (path) {
+	_file_stat(path)
+}
+
+let rename = (old_path, new_path) {
+	_file_rename(old_path, new_path)
+}
+
+let mkdir = (path) {
+	_file_mkdir(path)
+}
+
+let mkdir_all = (path) {
+	_file_mkdir_all(path)
+}
+
+let remove_all = (path) {
+	_file_remove_all(path)
+}
+
+let temp = () {
+	_file_temp()
+}
+
+let temp_dir = () {
+	_file_temp_dir()
+}
+
+let copy = (src, dst) {
+	_file_copy(src, dst)
+}
+
+let size = (path) {
+	_file_size(path)
+}
+
+export(:open, :read_text, :read_bytes, :read_line, :write_text, :write_bytes, :close, :exists, :delete, :list, :read_at, :write_at, :stat, :rename, :mkdir, :mkdir_all, :remove_all, :temp, :temp_dir, :copy, :size)

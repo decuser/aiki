@@ -11,8 +11,6 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
-
-	"aiki/engine/semantics/value"
 )
 
 // canvasExecCommand allows tests to inject a fake child process.
@@ -46,36 +44,35 @@ func (s *canvasSession) wait() error {
 	return s.waitErr
 }
 
-var (
-	sessionsMu sync.Mutex
-	sessions   = map[*value.Canvas]*canvasSession{}
-	bridgeDone = map[*value.Canvas]chan struct{}{}
-)
-
-func canvasSessionAlive(cvs *value.Canvas) bool {
-	sessionsMu.Lock()
-	_, ok := sessions[cvs]
-	sessionsMu.Unlock()
+func canvasSessionAlive(cvs *CanvasResource) bool {
+	if cvs == nil {
+		return false
+	}
+	cvs.sessionMu.Lock()
+	ok := cvs.session != nil
+	cvs.sessionMu.Unlock()
 	return ok
 }
 
-func waitCanvasSession(cvs *value.Canvas) {
-	sessionsMu.Lock()
-	sess := sessions[cvs]
-	sessionsMu.Unlock()
-	if sess == nil {
+func waitCanvasSession(cvs *CanvasResource) {
+	if cvs == nil {
 		return
 	}
-	_ = sess.wait()
+	cvs.sessionMu.Lock()
+	sess := cvs.session
+	cvs.sessionMu.Unlock()
+	if sess != nil {
+		_ = sess.wait()
+	}
 }
 
-func startCanvasSession(cvs *value.Canvas) error {
-	sessionsMu.Lock()
-	if _, ok := sessions[cvs]; ok {
-		sessionsMu.Unlock()
+func startCanvasSession(cvs *CanvasResource) error {
+	cvs.sessionMu.Lock()
+	if cvs.session != nil {
+		cvs.sessionMu.Unlock()
 		return nil
 	}
-	sessionsMu.Unlock()
+	cvs.sessionMu.Unlock()
 
 	exe, err := os.Executable()
 	if err != nil {
@@ -110,41 +107,36 @@ func startCanvasSession(cvs *value.Canvas) error {
 		return err
 	}
 
-	// Drain any remaining stdout so the pipe does not fill.
 	go io.Copy(io.Discard, stdout)
 
 	sess := &canvasSession{
-		cmd:    cmd,
-		stdin:  stdin,
-		bw:     bufio.NewWriterSize(stdin, 64*1024),
-		waitCh: make(chan struct{}),
-		sendCh: make(chan any, 4096),
-		doneCh: make(chan struct{}),
+		cmd: cmd, stdin: stdin, bw: bufio.NewWriterSize(stdin, 64*1024),
+		waitCh: make(chan struct{}), sendCh: make(chan any, 4096), doneCh: make(chan struct{}),
 	}
 	go sess.writerLoop()
-	sessionsMu.Lock()
-	sessions[cvs] = sess
-	sessionsMu.Unlock()
+	cvs.sessionMu.Lock()
+	cvs.session = sess
+	cvs.sessionMu.Unlock()
 
 	close(cvs.Ready)
-
-	// The bridge drains queued commands and sends the close frame. Its done
-	// channel lets destroy wait for the drain to finish.
 	bch := make(chan struct{})
-	bridgeDone[cvs] = bch
+	cvs.sessionMu.Lock()
+	cvs.bridgeDone = bch
+	cvs.sessionMu.Unlock()
 	go func() {
 		bridgeCanvasCommands(cvs)
 		close(bch)
 	}()
 
-	// Child exited on its own (window closed). Mark canvas as done.
 	go func() {
 		_ = sess.wait()
-		sessionsMu.Lock()
-		_, ok := sessions[cvs]
-		delete(sessions, cvs)
-		sessionsMu.Unlock()
-		if ok {
+		cvs.sessionMu.Lock()
+		owned := cvs.session == sess
+		if owned {
+			cvs.session = nil
+		}
+		cvs.sessionMu.Unlock()
+		if owned {
 			select {
 			case <-cvs.Done:
 			default:
@@ -156,12 +148,13 @@ func startCanvasSession(cvs *value.Canvas) error {
 	return nil
 }
 
-// bridgeWait blocks until the bridge goroutine for cvs has finished draining
-// and sent the close frame.
-func bridgeWait(cvs *value.Canvas) {
-	sessionsMu.Lock()
-	ch := bridgeDone[cvs]
-	sessionsMu.Unlock()
+func bridgeWait(cvs *CanvasResource) {
+	if cvs == nil {
+		return
+	}
+	cvs.sessionMu.Lock()
+	ch := cvs.bridgeDone
+	cvs.sessionMu.Unlock()
 	if ch != nil {
 		<-ch
 	}
@@ -181,7 +174,7 @@ func waitForCanvasReady(r io.Reader) error {
 	return errors.New("canvas: child exited before READY")
 }
 
-func bridgeCanvasCommands(cvs *value.Canvas) {
+func bridgeCanvasCommands(cvs *CanvasResource) {
 	for {
 		select {
 		case <-cvs.Done:
@@ -204,7 +197,7 @@ func bridgeCanvasCommands(cvs *value.Canvas) {
 	}
 }
 
-func sendCanvasCmd(cvs *value.Canvas, cmd value.CanvasCmd) {
+func sendCanvasCmd(cvs *CanvasResource, cmd CanvasCmd) {
 	args := make([]int32, len(cmd.Args))
 	for i, a := range cmd.Args {
 		args[i] = int32(a)
@@ -216,10 +209,10 @@ func sendCanvasCmd(cvs *value.Canvas, cmd value.CanvasCmd) {
 	sendCanvasWire(cvs, w)
 }
 
-func sendCanvasWire(cvs *value.Canvas, msg any) {
-	sessionsMu.Lock()
-	sess := sessions[cvs]
-	sessionsMu.Unlock()
+func sendCanvasWire(cvs *CanvasResource, msg any) {
+	cvs.sessionMu.Lock()
+	sess := cvs.session
+	cvs.sessionMu.Unlock()
 	if sess == nil {
 		return
 	}
@@ -229,10 +222,10 @@ func sendCanvasWire(cvs *value.Canvas, msg any) {
 	}
 }
 
-func sendCanvasSetBG(cvs *value.Canvas, rgba color.RGBA) {
-	sessionsMu.Lock()
-	sess := sessions[cvs]
-	sessionsMu.Unlock()
+func sendCanvasSetBG(cvs *CanvasResource, rgba color.RGBA) {
+	cvs.sessionMu.Lock()
+	sess := cvs.session
+	cvs.sessionMu.Unlock()
 	if sess == nil {
 		return
 	}
@@ -247,10 +240,10 @@ func sendCanvasSetBG(cvs *value.Canvas, rgba color.RGBA) {
 	sendCanvasWire(cvs, CanvasWireSetBG{RGBA: rgba})
 }
 
-func sendCanvasSetFG(cvs *value.Canvas, rgba color.RGBA) {
-	sessionsMu.Lock()
-	sess := sessions[cvs]
-	sessionsMu.Unlock()
+func sendCanvasSetFG(cvs *CanvasResource, rgba color.RGBA) {
+	cvs.sessionMu.Lock()
+	sess := cvs.session
+	cvs.sessionMu.Unlock()
 	if sess == nil {
 		return
 	}
@@ -265,7 +258,7 @@ func sendCanvasSetFG(cvs *value.Canvas, rgba color.RGBA) {
 	sendCanvasWire(cvs, CanvasWireSetFG{RGBA: rgba})
 }
 
-func SendCanvasTurtle(cvs *value.Canvas, x, y, heading float64, visible bool, rgba color.RGBA) {
+func SendCanvasTurtle(cvs *CanvasResource, x, y, heading float64, visible bool, rgba color.RGBA) {
 	sendCanvasWire(cvs, CanvasWireTurtle{
 		X:       float32(x),
 		Y:       float32(y),
@@ -275,11 +268,11 @@ func SendCanvasTurtle(cvs *value.Canvas, x, y, heading float64, visible bool, rg
 	})
 }
 
-func sendCanvasClose(cvs *value.Canvas) {
-	sessionsMu.Lock()
-	sess := sessions[cvs]
-	delete(sessions, cvs)
-	sessionsMu.Unlock()
+func sendCanvasClose(cvs *CanvasResource) {
+	cvs.sessionMu.Lock()
+	sess := cvs.session
+	cvs.session = nil
+	cvs.sessionMu.Unlock()
 	if sess == nil {
 		return
 	}

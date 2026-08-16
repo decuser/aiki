@@ -7,7 +7,7 @@ import (
 	"aiki/engine/semantics/value"
 )
 
-func halCanvasWidth(args []value.Value, ctx *hal.EvalContext) value.Value {
+func (g *GoRuntime) halCanvasWidth(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
 		return value.NewFault("canvas_width: want 1 argument, got %d", len(args))
 	}
@@ -15,10 +15,14 @@ func halCanvasWidth(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if !ok {
 		return value.NewFault("canvas_width: expected canvas")
 	}
-	return value.NewNumber(int64(cvs.Width), 1)
+	resource, ok := g.canvasResource(cvs)
+	if !ok {
+		return value.NewShapedError("canvas", "canvas_width: canvas closed")
+	}
+	return value.NewNumber(int64(resource.Width), 1)
 }
 
-func halCanvasHeight(args []value.Value, ctx *hal.EvalContext) value.Value {
+func (g *GoRuntime) halCanvasHeight(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
 		return value.NewFault("canvas_height: want 1 argument, got %d", len(args))
 	}
@@ -26,35 +30,45 @@ func halCanvasHeight(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if !ok {
 		return value.NewFault("canvas_height: expected canvas")
 	}
-	return value.NewNumber(int64(cvs.Height), 1)
+	resource, ok := g.canvasResource(cvs)
+	if !ok {
+		return value.NewShapedError("canvas", "canvas_height: canvas closed")
+	}
+	return value.NewNumber(int64(resource.Height), 1)
 }
 
-func halCanvasAlive(args []value.Value, ctx *hal.EvalContext) value.Value {
+func (g *GoRuntime) halCanvasAlive(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 1 {
 		return value.NewFault("canvas_alive: want 1 argument, got %d", len(args))
 	}
 	cvs, ok := args[0].(*value.Canvas)
 	if !ok {
-		// Not a canvas, so not an alive canvas
 		return value.FALSE
 	}
-	// Check if Done channel is closed
+	resource, ok := g.canvasResource(cvs)
+	if !ok {
+		return value.FALSE
+	}
 	select {
-	case <-cvs.Done:
+	case <-resource.Done:
 		return value.FALSE
 	default:
 		return value.TRUE
 	}
 }
 
-// halSetTurtle sets the turtle overlay state: _set_turtle(cvs, x, y, heading, visible, color)
-func halSetTurtle(args []value.Value, ctx *hal.EvalContext) value.Value {
+// halSetTurtle sets the turtle overlay state through the owning Canvas resource.
+func (g *GoRuntime) halSetTurtle(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 6 {
 		return value.NewFault("set_turtle: want 6 arguments, got %d", len(args))
 	}
 	cvs, ok := args[0].(*value.Canvas)
 	if !ok {
 		return value.NewFault("set_turtle: expected canvas")
+	}
+	resource, ok := g.canvasResource(cvs)
+	if !ok || !canvasSessionAlive(resource) {
+		return value.NewShapedError("canvas", "set_turtle: canvas closed")
 	}
 	x, ok := args[1].(*value.Number)
 	if !ok {
@@ -68,12 +82,10 @@ func halSetTurtle(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if !ok {
 		return value.NewFault("set_turtle: heading must be number")
 	}
-	// visible must be boolean
 	if args[4] != value.TRUE && args[4] != value.FALSE {
 		return value.NewFault("set_turtle: visible must be boolean")
 	}
 	visible := args[4] == value.TRUE
-	// color must be symbol
 	sym, ok := args[5].(*value.Symbol)
 	if !ok {
 		return value.NewFault("set_turtle: color must be symbol")
@@ -84,7 +96,7 @@ func halSetTurtle(args []value.Value, ctx *hal.EvalContext) value.Value {
 	yf, _ := y.Val.Float64()
 	hf, _ := heading.Val.Float64()
 
-	SendCanvasTurtle(cvs, xf, yf, hf, visible, clr)
+	SendCanvasTurtle(resource, xf, yf, hf, visible, clr)
 	return value.TRUE
 }
 

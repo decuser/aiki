@@ -56,13 +56,14 @@ func Run(args []string) int {
 	var mergedCoverage map[string]int64
 
 	for _, f := range files {
-		substrate.ResetTestState()
-		substrate.SetTestFile(f)
+		rt := substrate.NewGoRuntime()
+		rt.ResetTestState()
+		rt.SetTestFile(f)
 
 		var runErr error
 		if *cover {
 			counters := evaluator.NewCoverageCounters()
-			counters, runErr = runner.RunWithCounters(f, counters)
+			counters, runErr = runner.RunWithCountersRuntime(f, counters, rt)
 			cov := counters.Coverage()
 			if mergedCoverage == nil {
 				mergedCoverage = cov
@@ -72,17 +73,19 @@ func Run(args []string) int {
 				}
 			}
 		} else {
-			runErr = runner.Run(f)
+			runErr = runner.RunWithRuntime(f, rt)
 		}
 
 		if runErr != nil {
+			rt.CloseAllCanvases()
 			fmt.Fprintf(os.Stderr, "FAIL %s\n    %v\n", f, runErr)
 			anyFailed = true
 			totalFailed++
 			continue
 		}
 
-		passed, failed, failures := substrate.TestResults()
+		passed, failed, failures := rt.TestResults()
+		rt.CloseAllCanvases()
 		totalPassed += passed
 		totalFailed += failed
 

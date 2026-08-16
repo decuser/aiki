@@ -48,3 +48,39 @@
 @template "write_at(file, offset, bytes)"
 @help "Writes bytes at offset without changing the sequential file position."
 
+
+@func stat
+@template "stat(path)"
+@help "Returns [@stat, size, modified_ms, is_dir], or [@error, :io, msg]."
+
+@func rename
+@template "rename(old_path, new_path)"
+@help "Renames a filesystem object. Returns true or [@error, :io, msg]."
+
+@func mkdir
+@template "mkdir(path)"
+@help "Creates one directory. Returns true or [@error, :io, msg]."
+
+@func mkdir_all
+@template "mkdir_all(path)"
+@help "Creates a directory and missing parents. Returns true or [@error, :io, msg]."
+
+@func remove_all
+@template "remove_all(path)"
+@help "Recursively removes path. Returns true or [@error, :io, msg]."
+
+@func temp
+@template "temp()"
+@help "Creates an empty temporary file and returns its path, or [@error, :io, msg]."
+
+@func temp_dir
+@template "temp_dir()"
+@help "Creates a temporary directory and returns its path, or [@error, :io, msg]."
+
+@func copy
+@template "copy(src, dst)"
+@help "Copies file contents from src to dst. Returns true or [@error, :io, msg]."
+
+@func size
+@template "size(path)"
+@help "Returns file size in bytes, or [@error, :io, msg]."

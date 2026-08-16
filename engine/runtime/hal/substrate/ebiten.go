@@ -10,22 +10,20 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
-
-	"aiki/engine/semantics/value"
 )
 
 // Game implements ebiten.Game for canvas rendering.
 type Game struct {
-	canvas  *value.Canvas
+	canvas  *CanvasResource
 	buffer  *ebiten.Image
 	overlay *ebiten.Image
-	ops     []value.CanvasCmd
-	redoOps []value.CanvasCmd
+	ops     []CanvasCmd
+	redoOps []CanvasCmd
 	maxOps  int
 }
 
 // NewGame creates a new game for the given canvas.
-func NewGame(canvas *value.Canvas) *Game {
+func NewGame(canvas *CanvasResource) *Game {
 	return &Game{
 		canvas:  canvas,
 		buffer:  ebiten.NewImage(canvas.Width, canvas.Height),
@@ -48,7 +46,7 @@ func (g *Game) Update() error {
 	}
 }
 
-func (g *Game) handleCmd(cmd value.CanvasCmd) {
+func (g *Game) handleCmd(cmd CanvasCmd) {
 	switch cmd.Op {
 	case "clear":
 		g.buffer.Fill(g.canvas.BG)
@@ -86,7 +84,7 @@ func (g *Game) handleCmd(cmd value.CanvasCmd) {
 	}
 }
 
-func (g *Game) drawOp(cmd value.CanvasCmd) {
+func (g *Game) drawOp(cmd CanvasCmd) {
 	clr := cmd.Color
 	args := cmd.Args
 	pen := cmd.PenSize
@@ -264,7 +262,7 @@ func drawOval(img *ebiten.Image, cx, cy, rx, ry int, clr color.RGBA, fill bool, 
 }
 
 // RunEbiten starts the ebiten game loop for a canvas.
-func RunEbiten(canvas *value.Canvas) {
+func RunEbiten(canvas *CanvasResource) {
 	ebiten.SetWindowSize(canvas.Width, canvas.Height)
 	ebiten.SetWindowTitle("Aiki")
 	game := NewGame(canvas)

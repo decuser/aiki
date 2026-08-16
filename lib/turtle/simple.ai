@@ -51,7 +51,7 @@ let _clamp = (v, lo, hi) {
 
 # update turtle overlay
 let _update_turtle = () {
-	_set_turtle(_cvs, _screen_x(_t[2]), _screen_y(_t[3]), _t[4], _visible, _t[6])
+	_canvas_command(_cvs, :turtle, [_screen_x(_t[2]), _screen_y(_t[3]), _t[4], _visible, _t[6]])
 	let _ = 0
 }
 
@@ -84,7 +84,7 @@ let new = (...args) {
 		_cvs = _canvas(_dim, _dim)
 	} else {
 		# canvas alive at correct size, just clear it
-		_clear(_cvs)
+		_canvas_command(_cvs, :clear, [])
 	}
 	# fresh turtle state: [cx, cy, tx, ty, heading, pen, color]
 	# tx, ty are logical coords (0,0 = center)
@@ -110,7 +110,7 @@ let forward = (distance) {
 	let tx1 = _clamp(tx0 + dx, 0 - _bound, _bound)
 	let ty1 = _clamp(ty0 + dy, 0 - _bound, _bound)
 	if _t[5] {
-		_line(_cvs, _screen_x(tx0), _screen_y(ty0), _screen_x(tx1), _screen_y(ty1), _t[6])
+		_canvas_command(_cvs, :line, [_screen_x(tx0), _screen_y(ty0), _screen_x(tx1), _screen_y(ty1), _t[6]])
 	} else {
 		let _ = 0
 	}
@@ -146,9 +146,9 @@ let pen_down = () {
 let pen_size = (n) {
 	let pixels = n * _scale
 	if pixels < 1 {
-		_pen_size(_cvs, 1)
+		_canvas_command(_cvs, :pen_size, [1])
 	} else {
-		_pen_size(_cvs, pixels)
+		_canvas_command(_cvs, :pen_size, [pixels])
 	}
 	let _ = 0
 }
@@ -159,7 +159,7 @@ let pencolor = (color) {
 }
 
 let background = (color) {
-	_set_bg(_cvs, color)
+	_canvas_command(_cvs, :set_bg, [color])
 	let _ = 0
 }
 
@@ -182,7 +182,7 @@ let home = () {
 }
 
 let clear = () {
-	_clear(_cvs)
+	_canvas_command(_cvs, :clear, [])
 	let _ = 0
 }
 

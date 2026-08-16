@@ -1,6 +1,10 @@
 package "canvas"
 
 # canvas - graphics primitives
+#
+# Domain commands are expressed here as an Aiki protocol and cross the HAL
+# through the single _canvas_command operation. The substrate realizes the
+# protocol; it does not define the programmer-facing operation names.
 let canvas = (width, height) {
 	_canvas(width, height)
 }
@@ -13,32 +17,36 @@ let height = (c) {
 	_canvas_height(c)
 }
 
+let alive = (c) {
+	_canvas_alive(c)
+}
+
 let dot = (c, x, y, ...rest) {
-	_apply(_dot, prepend(prepend(prepend(rest, y), x), c))
+	_canvas_command(c, :dot, prepend(prepend(rest, y), x))
 }
 
 let line = (c, x1, y1, x2, y2, ...rest) {
-	_apply(_line, prepend(prepend(prepend(prepend(prepend(rest, y2), x2), y1), x1), c))
+	_canvas_command(c, :line, prepend(prepend(prepend(prepend(rest, y2), x2), y1), x1))
 }
 
 let rect = (c, x, y, w, h, ...rest) {
-	_apply(_rect, prepend(prepend(prepend(prepend(prepend(rest, h), w), y), x), c))
+	_canvas_command(c, :rect, prepend(prepend(prepend(prepend(rest, h), w), y), x))
 }
 
 let fill_rect = (c, x, y, w, h, ...rest) {
-	_apply(_fill_rect, prepend(prepend(prepend(prepend(prepend(rest, h), w), y), x), c))
+	_canvas_command(c, :fill_rect, prepend(prepend(prepend(prepend(rest, h), w), y), x))
 }
 
 let circle = (c, x, y, r, ...rest) {
-	_apply(_circle, prepend(prepend(prepend(prepend(rest, r), y), x), c))
+	_canvas_command(c, :circle, prepend(prepend(prepend(rest, r), y), x))
 }
 
 let fill_circle = (c, x, y, r, ...rest) {
-	_apply(_fill_circle, prepend(prepend(prepend(prepend(rest, r), y), x), c))
+	_canvas_command(c, :fill_circle, prepend(prepend(prepend(rest, r), y), x))
 }
 
 let clear = (c) {
-	_clear(c)
+	_canvas_command(c, :clear, [])
 }
 
 let destroy = (c) {
@@ -46,27 +54,33 @@ let destroy = (c) {
 }
 
 let set_bg = (c, color) {
-	_set_bg(c, color)
+	_canvas_command(c, :set_bg, [color])
 }
 
 let set_fg = (c, color) {
-	_set_fg(c, color)
+	_canvas_command(c, :set_fg, [color])
 }
 
 let set_bg_rgb = (c, r, g, b) {
-	_set_bg(c, [r, g, b])
+	set_bg(c, [r, g, b])
 }
 
 let set_fg_rgb = (c, r, g, b) {
-	_set_fg(c, [r, g, b])
+	set_fg(c, [r, g, b])
 }
 
 let pen_size = (c, size) {
-	_pen_size(c, size)
+	_canvas_command(c, :pen_size, [size])
 }
 
 let arc = (c, x, y, r, start, end, ...rest) {
-	_apply(_arc, prepend(prepend(prepend(prepend(prepend(prepend(rest, end), start), r), y), x), c))
+	_canvas_command(c, :arc, prepend(prepend(prepend(prepend(prepend(rest, end), start), r), y), x))
+}
+
+# Internal protocol operation used by turtle libraries. Kept unexported so the
+# public Canvas API remains domain-oriented rather than transport-oriented.
+let _turtle = (c, x, y, heading, visible, color) {
+	_canvas_command(c, :turtle, [x, y, heading, visible, color])
 }
 
 export(:canvas, :width, :height, :dot, :line, :rect, :fill_rect, :circle, :fill_circle, :arc, :clear, :destroy, :set_bg, :set_fg, :set_bg_rgb, :set_fg_rgb, :pen_size)

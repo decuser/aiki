@@ -2,8 +2,6 @@ package runner
 
 import (
 	"testing"
-
-	"aiki/engine/runtime/hal/substrate"
 )
 
 func TestSessionResetSignalAndRegistry(t *testing.T) {
@@ -20,26 +18,17 @@ func TestSessionResetSignalAndRegistry(t *testing.T) {
 		t.Fatalf("expected reset value, got %s", v.Type())
 	}
 
-	// Seed registry pointer so we can detect rebuild.
-	old := substrate.GlobalRegistry
-	if old == nil {
-		// Ensure non nil for comparison by initializing once.
-		if err := s.Reset(); err != nil {
-			t.Fatalf("Reset: %v", err)
-		}
-		old = substrate.GlobalRegistry
-		if old == nil {
-			t.Fatalf("expected registry after Reset")
-		}
+	// Clearing this runtime's registry must be repaired by Reset without
+	// relying on package-global module state.
+	s.Runtime.SetModuleRegistry(nil)
+	if _, err := s.Runtime.Execute("_module_roots", nil, nil); err == nil {
+		t.Fatal("expected module_roots to fail with cleared runtime registry")
 	}
 
 	if err := s.Reset(); err != nil {
 		t.Fatalf("Reset: %v", err)
 	}
-	if substrate.GlobalRegistry == nil {
-		t.Fatalf("expected GlobalRegistry non nil after Reset")
-	}
-	if substrate.GlobalRegistry == old {
-		t.Fatalf("expected registry to be rebuilt on Reset")
+	if _, err := s.Runtime.Execute("_module_roots", nil, nil); err != nil {
+		t.Fatalf("module registry not restored by Reset: %v", err)
 	}
 }

@@ -50,11 +50,11 @@ type RuntimeContract interface {
 	// Context provides evaluation state for intrinsics that need it.
 	Execute(name string, args []value.Value, ctx *EvalContext) (value.Value, error)
 
-	// HasBuiltin checks if a name is visible at the given scope.
-	HasBuiltin(name string, scope value.Scope) bool
+	// HasBuiltin checks whether a name is executable under the supplied authority.
+	HasBuiltin(name string, authority value.Authority) bool
 
-	// GetBuiltin returns a callable for the named builtin at the given scope.
-	GetBuiltin(name string, scope value.Scope) (value.Callable, bool)
+	// GetBuiltin returns a callable for the named builtin under the supplied authority.
+	GetBuiltin(name string, authority value.Authority) (value.Callable, bool)
 }
 
 // ProfileLabeler is an optional runtime capability used to correlate host CPU

@@ -50,3 +50,37 @@ func TestCallEnvUsesLexicalBindingsAndDynamicStack(t *testing.T) {
 		t.Fatalf("call did not inherit dynamic caller frame: %#v", frame)
 	}
 }
+
+func TestScopeDoesNotConferAuthority(t *testing.T) {
+	env := NewEnvWithScope(ScopePrelude)
+	if env.GetAuthority().Allows("_print") {
+		t.Fatal("ScopePrelude must not confer raw primitive authority")
+	}
+
+	env.SetAuthority(NewAuthority("_print"))
+	if !env.GetAuthority().Allows("_print") {
+		t.Fatal("explicit authority grant was not retained")
+	}
+	if env.GetAuthority().Allows("_file_open") {
+		t.Fatal("authority must grant only declared primitives")
+	}
+}
+
+func TestIsolatedEnvSeparatesPreludeVocabularyFromAuthority(t *testing.T) {
+	prelude := NewEnvWithScope(ScopePrelude)
+	prelude.SetAuthority(NewAuthority("_print", "_file_open"))
+	prelude.Set("println", &String{Val: "visible-vocabulary"})
+
+	spawnedAuthority := NewAuthority("_print")
+	isolated := NewIsolatedEnclosedEnvWithAuthority(prelude, spawnedAuthority)
+
+	if _, ok := isolated.Get("println"); !ok {
+		t.Fatal("isolated env must retain access to prelude lexical vocabulary")
+	}
+	if !isolated.GetAuthority().Allows("_print") {
+		t.Fatal("isolated env must retain definition-bound authority")
+	}
+	if isolated.GetAuthority().Allows("_file_open") {
+		t.Fatal("isolated env must not inherit outer prelude authority")
+	}
+}

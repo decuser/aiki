@@ -15,3 +15,31 @@ variable is not set, returns [@error, :environment, msg].
 env(name)
 
 is_error(system.env("AIKI_VARIABLE_THAT_IS_NOT_SET"))    # true
+===
+cwd
+Returns the working directory owned by the current Aiki runtime. The runtime
+working directory controls relative filesystem operations and process
+execution without mutating the embedding Go process's working directory.
+
+cwd()
+
+type(system.cwd())    # :string
+===
+chdir
+@unchecked
+Changes the working directory of the current Aiki runtime. path must identify
+an existing directory. Returns true on success or [@error, :io, msg]. This does
+not change the embedding host process's working directory.
+
+chdir(path)
+===
+exec
+@unchecked
+Runs command synchronously with the supplied list of string arguments. The
+child process uses the current Aiki runtime working directory.
+
+A process that starts successfully returns [@ok, stdout, stderr, exit_code],
+even when exit_code is nonzero. Failure to start the process returns
+[@error, :process, msg].
+
+exec(command, args)

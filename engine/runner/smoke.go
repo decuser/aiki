@@ -155,16 +155,8 @@ func runEngineFile(path string, stdin []byte) (stdout []byte, stderr []byte, exi
 		return nil, []byte(err.Error()), 1
 	}
 
-	// Capture stdout/stderr, redirect stdin
+	// Capture stdout/stderr, redirect stdin.
 	var outBuf, errBuf bytes.Buffer
-	oldStdout := substrate.Stdout
-	oldStdin := substrate.Stdin
-	substrate.Stdout = &outBuf
-	substrate.Stdin = bytes.NewReader(stdin) // stdin may be empty, that's fine - returns EOF
-	defer func() {
-		substrate.Stdout = oldStdout
-		substrate.Stdin = oldStdin
-	}()
 
 	// Load grammar
 	g, err := grammar.Load("grammar.ebnfx", syntax.EbnfxSource, "grammar.help", syntax.HelpSource)
@@ -172,11 +164,13 @@ func runEngineFile(path string, stdin []byte) (stdout []byte, stderr []byte, exi
 		return nil, []byte(err.Error()), 1
 	}
 
-	// Create runtime
+	// Create runtime with explicit session I/O.
 	rt := substrate.NewGoRuntime()
+	rt.SetIO(bytes.NewReader(stdin), &outBuf)
 
 	// Create prelude environment with ScopePrelude
 	preludeEnv := value.NewEnvWithScope(value.ScopePrelude)
+	preludeEnv.SetAuthority(rt.AuthorityForSource("engine/runtime/prelude/prelude.ai"))
 
 	// Load prelude
 	if err := loadPrelude(g, rt, preludeEnv); err != nil {
