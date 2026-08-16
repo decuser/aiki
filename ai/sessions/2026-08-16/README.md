@@ -177,3 +177,11 @@ Milestone 31 is **GATED**. Canvas/turtle domain commands are defined in Aiki and
 Milestone 32 is **GATED**. Obsolete per-command Canvas runtime aliases are removed; canonical host authority is keyed by `HAL.<domain>.<operation>` identities rather than raw substrate binding names; the remaining Aiki test-framework package globals are moved into `GoRuntime`; architecture documentation and executable couplings are strengthened.
 
 **Gate:** after contained corrections to stale authority contract tests and pure-Aiki `path.normalize`, the user reported the final `make validate` passed on the authoritative tree. The HAL redesign implementation is COMPLETE.
+
+## Milestone 33 — distribution formatting and formatter-stable project style
+
+Milestone 33 is **ACTIVE — awaiting authoritative validation**. Added `aiki distfmt` as the project/distribution presentation pass, taught `aiki fmt` to preserve explicitly expanded lists/calls/parameter lists without selecting expansion itself, wired `distfmt` after canonical formatting in the central Make `fmt` target, and added `docs/style.md`.
+
+The implementation is structurally guarded and reaches a demonstrated whole-tree fixed point in the compatible local probe. Two probe-discovered hazards were corrected before handoff: multiline descendant bodies no longer falsely expand compact calls, and Go restyling is AST-position-driven so strings/comments cannot be mistaken for source structure.
+
+**Gate pending:** authoritative `make validate` on the user's tree.

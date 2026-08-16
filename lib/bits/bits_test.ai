@@ -110,4 +110,3 @@ run("shift and width counts reject negatives", () {
 		bits.mask(-1)
 	})
 })
-

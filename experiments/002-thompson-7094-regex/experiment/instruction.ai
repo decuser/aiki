@@ -199,4 +199,20 @@ let replace_address = (word, value) {
 # Module-facing name follows Aiki naming style; the uppercase local is retained
 # because it names the IBM instruction-word field internally.
 let address_shift = ADDRESS_SHIFT
-export(:WORD_BITS, :ADDRESS_BITS, :TAG_BITS, :DECREMENT_BITS, :address_shift, :TAG_SHIFT, :DECREMENT_SHIFT, :OPERATION_SHIFT, :encode, :opcode, :address_field, :tag_field, :decrement_field, :operation_field, :replace_address)
+export(
+	:WORD_BITS,
+	:ADDRESS_BITS,
+	:TAG_BITS,
+	:DECREMENT_BITS,
+	:address_shift,
+	:TAG_SHIFT,
+	:DECREMENT_SHIFT,
+	:OPERATION_SHIFT,
+	:encode,
+	:opcode,
+	:address_field,
+	:tag_field,
+	:decrement_field,
+	:operation_field,
+	:replace_address
+)

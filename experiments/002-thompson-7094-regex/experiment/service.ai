@@ -56,7 +56,16 @@ let worker = (machine, commands, replies, machine_module) {
 				send(replies, true)
 			}
 			[@registers] {
-				send(replies, [@registers, emu.pc(machine), emu.ac(machine), emu.xr(machine, 1), emu.xr(machine, 2), emu.xr(machine, 4), emu.xr(machine, 6), emu.xr(machine, 7)])
+				send(replies, [
+					@registers,
+					emu.pc(machine),
+					emu.ac(machine),
+					emu.xr(machine, 1),
+					emu.xr(machine, 2),
+					emu.xr(machine, 4),
+					emu.xr(machine, 6),
+					emu.xr(machine, 7)
+				])
 			}
 			[@reset] {
 				emu.reset_state(machine)
@@ -157,4 +166,22 @@ let stop = (monitor) {
 	request(monitor, [@stop])
 }
 
-export(:start, :step, :run, :trace, :load_program, :examine, :deposit, :pc, :set_pc, :ac, :set_ac, :xr, :set_xr, :registers, :reset_machine, :prepare_thompson, :stop)
+export(
+	:start,
+	:step,
+	:run,
+	:trace,
+	:load_program,
+	:examine,
+	:deposit,
+	:pc,
+	:set_pc,
+	:ac,
+	:set_ac,
+	:xr,
+	:set_xr,
+	:registers,
+	:reset_machine,
+	:prepare_thompson,
+	:stop
+)

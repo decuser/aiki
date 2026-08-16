@@ -37,4 +37,3 @@ run("path absolute contract begins with host separator", () {
 	is_true(path.is_absolute(sep + "tmp"))
 	is_false(path.is_absolute("tmp"))
 })
-

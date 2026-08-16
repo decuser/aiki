@@ -80,4 +80,3 @@ run("operator controller can run asynchronously and stop at an instruction bound
 	operator.close(ctl)
 	monitor.close(s)
 })
-

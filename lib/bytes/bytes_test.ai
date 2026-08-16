@@ -87,4 +87,3 @@ run("bytes_length matches string byte count", () {
 	equal(bytes_length(str_to_bytes("hello")), 5)
 	equal(bytes_length(str_to_bytes("")), 0)
 })
-

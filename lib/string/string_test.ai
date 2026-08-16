@@ -304,4 +304,3 @@ run("is_whitespace detects whitespace", () {
 	is_true(is_whitespace("\t"))
 	is_false(is_whitespace("a"))
 })
-

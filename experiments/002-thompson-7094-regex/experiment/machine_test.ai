@@ -266,7 +266,11 @@ run("unsupported words report a machine error", () {
 run("channel monitor owns machine access through commands", () {
 	let m = machine.new()
 	let monitor = service.start(m)
-	let program = [instruction.encode(:AXC, 5, 1, 0), instruction.encode(:TXI, 2, 1, 1), instruction.encode(:TRA, 4, 0, 0)]
+	let program = [
+		instruction.encode(:AXC, 5, 1, 0),
+		instruction.encode(:TXI, 2, 1, 1),
+		instruction.encode(:TRA, 4, 0, 0)
+	]
 	equal(service.load_program(monitor, 0, program), 3)
 	equal(service.examine(monitor, 0), program[0])
 	equal(service.set_pc(monitor, 0), true)
@@ -274,4 +278,3 @@ run("channel monitor owns machine access through commands", () {
 	equal(service.pc(monitor), 4)
 	equal(service.stop(monitor), true)
 })
-

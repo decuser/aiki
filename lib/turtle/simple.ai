@@ -110,7 +110,13 @@ let forward = (distance) {
 	let tx1 = _clamp(tx0 + dx, 0 - _bound, _bound)
 	let ty1 = _clamp(ty0 + dy, 0 - _bound, _bound)
 	if _t[5] {
-		_canvas_command(_cvs, :line, [_screen_x(tx0), _screen_y(ty0), _screen_x(tx1), _screen_y(ty1), _t[6]])
+		_canvas_command(_cvs, :line, [
+			_screen_x(tx0),
+			_screen_y(ty0),
+			_screen_x(tx1),
+			_screen_y(ty1),
+			_t[6]
+		])
 	} else {
 		let _ = 0
 	}
@@ -195,4 +201,22 @@ let heading = () {
 	_t[4]
 }
 
-export(:new, :logical, :forward, :backward, :left, :right, :pen_up, :pen_down, :pen_size, :pencolor, :background, :show_turtle, :hide_turtle, :home, :clear, :position, :heading)
+export(
+	:new,
+	:logical,
+	:forward,
+	:backward,
+	:left,
+	:right,
+	:pen_up,
+	:pen_down,
+	:pen_size,
+	:pencolor,
+	:background,
+	:show_turtle,
+	:hide_turtle,
+	:home,
+	:clear,
+	:position,
+	:heading
+)

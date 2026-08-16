@@ -253,4 +253,3 @@ run("truncate rounds toward zero", () {
 	equal(truncate(-2.7), -2)
 	equal(truncate(0), 0)
 })
-

@@ -11,9 +11,39 @@ let str = import("string")
 let @token [kind, lexeme, line, col]
 let @lexical_authority [tokens, keywords, operators, delimiters, skips]
 
-let token_names = ["WHITESPACE", "NEWLINE", "COMMENT", "NUMBER", "STRING", "RUNE", "SYMBOL", "SHAPE", "KEYWORD", "OPERATOR", "DELIMITER", "NAME"]
+let token_names = [
+	"WHITESPACE",
+	"NEWLINE",
+	"COMMENT",
+	"NUMBER",
+	"STRING",
+	"RUNE",
+	"SYMBOL",
+	"SHAPE",
+	"KEYWORD",
+	"OPERATOR",
+	"DELIMITER",
+	"NAME"
+]
 
-let keywords = ["let", "if", "else", "while", "match", "select", "default", "return", "true", "false", "and", "or", "not", "package"]
+
+let keywords = [
+	"let",
+	"if",
+	"else",
+	"while",
+	"match",
+	"select",
+	"default",
+	"return",
+	"true",
+	"false",
+	"and",
+	"or",
+	"not",
+	"package"
+]
+
 
 let operators = ["+", "-", "*", "/", "<", ">", "<=", ">=", "|>", ".", "="]
 let delimiters = ["(", ")", "[", "]", "{", "}", ",", ";", "..."]
@@ -371,7 +401,10 @@ let project_tokens = (tokens) {
 	let i = 0
 	while i < length(tokens) {
 		let t = tokens[i]
-		lines = append(lines, to_str(t.line) + ":" + to_str(t.col) + " " + t.kind + " " + inspect(t.lexeme))
+		lines = append(
+			lines,
+			to_str(t.line) + ":" + to_str(t.col) + " " + t.kind + " " + inspect(t.lexeme)
+		)
 		i = i + 1
 	}
 	return str.join(lines, "\n")

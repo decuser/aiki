@@ -74,4 +74,3 @@ run("set rejects invalid indexes", () {
 		store.set(s, 1/2, 1)
 	})
 })
-

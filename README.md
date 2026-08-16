@@ -118,6 +118,7 @@ docs/decisions.md
 docs/testing.md
 docs/profiling.md
 docs/hal.md
+docs/style.md
 ```
 
 ## Forthcoming

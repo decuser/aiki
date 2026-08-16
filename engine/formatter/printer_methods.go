@@ -519,40 +519,50 @@ func (p *printer) printFuncLiteral(node *syntax.Node) {
 
 func (p *printer) printParams(node *syntax.Node) {
 	p.observe("printParams", "enter", "params")
-	first := true
+	var params []string
 	for _, child := range node.Children {
 		switch child.Type {
 		case "param_list":
 			for _, param := range child.Children {
 				if param.Type == "NAME" {
-					if !first {
-						p.write(", ")
-					}
-					first = false
-					p.observe("printParams", param.Value, "NAME")
-					p.write(param.Value)
+					params = append(params, param.Value)
 				}
 			}
 		case "rest_param":
-			if !first {
-				p.write(", ")
-			}
-			first = false
-			p.write("...")
 			for _, param := range child.Children {
 				if param.Type == "NAME" {
-					p.observe("printParams", "..."+param.Value, "rest")
-					p.write(param.Value)
+					params = append(params, "..."+param.Value)
 				}
 			}
 		case "NAME":
-			if !first {
-				p.write(", ")
-			}
-			first = false
-			p.observe("printParams", child.Value, "NAME")
-			p.write(child.Value)
+			params = append(params, child.Value)
 		}
+	}
+
+	if nodeWasMultiline(node) && len(params) > 0 {
+		p.newline()
+		p.indent++
+		for i, param := range params {
+			p.writeIndent()
+			p.observe("printParams", param, "NAME")
+			p.write(param)
+			if i+1 < len(params) {
+				p.write(",")
+			}
+			p.newline()
+		}
+		p.indent--
+		p.writeIndent()
+		p.observe("printParams", "exit", "params")
+		return
+	}
+
+	for i, param := range params {
+		if i > 0 {
+			p.write(", ")
+		}
+		p.observe("printParams", param, "NAME")
+		p.write(param)
 	}
 	p.observe("printParams", "exit", "params")
 }
@@ -560,16 +570,34 @@ func (p *printer) printParams(node *syntax.Node) {
 func (p *printer) printList(node *syntax.Node) {
 	p.observe("printList", "enter", "list_literal")
 	p.write("[")
-	first := true
+	var items []*syntax.Node
 	for _, child := range node.Children {
-		if child.Type == "TERMINAL" {
-			continue
+		if child.Type != "TERMINAL" {
+			items = append(items, child)
 		}
-		if !first {
+	}
+	if nodeElementsWereExpanded(node) && len(items) > 0 {
+		p.newline()
+		p.indent++
+		for i, item := range items {
+			p.writeIndent()
+			p.printNode(item)
+			if i+1 < len(items) {
+				p.write(",")
+			}
+			p.newline()
+		}
+		p.indent--
+		p.writeIndent()
+		p.write("]")
+		p.observe("printList", "exit", "list_literal")
+		return
+	}
+	for i, item := range items {
+		if i > 0 {
 			p.write(", ")
 		}
-		first = false
-		p.printNode(child)
+		p.printNode(item)
 	}
 	p.write("]")
 	p.observe("printList", "exit", "list_literal")
@@ -578,16 +606,34 @@ func (p *printer) printList(node *syntax.Node) {
 func (p *printer) printCall(node *syntax.Node) {
 	p.observe("printCall", "enter", "call")
 	p.write("(")
-	first := true
+	var args []*syntax.Node
 	for _, child := range node.Children {
-		if child.Type == "TERMINAL" {
-			continue
+		if child.Type != "TERMINAL" {
+			args = append(args, child)
 		}
-		if !first {
+	}
+	if nodeElementsWereExpanded(node) && len(args) > 0 {
+		p.newline()
+		p.indent++
+		for i, arg := range args {
+			p.writeIndent()
+			p.printNode(arg)
+			if i+1 < len(args) {
+				p.write(",")
+			}
+			p.newline()
+		}
+		p.indent--
+		p.writeIndent()
+		p.write(")")
+		p.observe("printCall", "exit", "call")
+		return
+	}
+	for i, arg := range args {
+		if i > 0 {
 			p.write(", ")
 		}
-		first = false
-		p.printNode(child)
+		p.printNode(arg)
 	}
 	p.write(")")
 	p.observe("printCall", "exit", "call")

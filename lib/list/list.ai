@@ -144,4 +144,18 @@ let range = (start, end) {
 	return result
 }
 
-export(:map, :filter, :reduce, :each, :sum, :max, :min, :reverse, :find, :any, :all, :concat, :range)
+export(
+	:map,
+	:filter,
+	:reduce,
+	:each,
+	:sum,
+	:max,
+	:min,
+	:reverse,
+	:find,
+	:any,
+	:all,
+	:concat,
+	:range
+)

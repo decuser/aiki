@@ -64,6 +64,9 @@ func formatSourceOnce(g *grammar.Grammar, file string, source string, observer e
 		return "", p.err
 	}
 	formatted := p.buf.String()
+	if formatted != "" {
+		formatted = strings.TrimRight(formatted, "\n") + "\n"
+	}
 
 	// Parse formatted output.
 	_, fmtAST, err := parseWithTokens(g, file, formatted)
@@ -209,6 +212,50 @@ func nodeStartLine(node *syntax.Node) int {
 		}
 	}
 	return 0
+}
+
+// nodeEndLine returns the greatest source line occupied by a node or any of
+// its descendants. Source span is layout evidence only; it does not affect AST
+// equivalence or language semantics.
+func nodeEndLine(node *syntax.Node) int {
+	if node == nil {
+		return 0
+	}
+	end := node.Pos.Line
+	for _, child := range node.Children {
+		if line := nodeEndLine(child); line > end {
+			end = line
+		}
+	}
+	return end
+}
+
+func nodeWasMultiline(node *syntax.Node) bool {
+	start := nodeStartLine(node)
+	end := nodeEndLine(node)
+	return start > 0 && end > start
+}
+
+// nodeElementsWereExpanded reports whether the immediate elements/arguments
+// begin on a later source line than the opening delimiter. This preserves an
+// explicitly expanded list/call without mistaking a compact call containing a
+// multiline function body for expanded argument layout.
+func nodeElementsWereExpanded(node *syntax.Node) bool {
+	openLine := 0
+	for _, child := range node.Children {
+		if child.Type == "TERMINAL" {
+			if openLine == 0 && (child.Value == "(" || child.Value == "[") {
+				openLine = child.Pos.Line
+			}
+			continue
+		}
+		if openLine == 0 {
+			continue
+		}
+		start := nodeStartLine(child)
+		return start > openLine
+	}
+	return false
 }
 
 type printer struct {

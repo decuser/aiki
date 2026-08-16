@@ -130,4 +130,10 @@ let read_newline_authority = (path) {
 	return extract_newline_authority(source)
 }
 
-export(:extract_token_authority, :read_token_authority, :emit_token_authority, :extract_newline_authority, :read_newline_authority)
+export(
+	:extract_token_authority,
+	:read_token_authority,
+	:emit_token_authority,
+	:extract_newline_authority,
+	:read_newline_authority
+)

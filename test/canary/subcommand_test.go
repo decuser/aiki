@@ -34,6 +34,19 @@ func TestSubcommandFmtExists(t *testing.T) {
 	}
 }
 
+// TestSubcommandDistfmtExists verifies the distfmt subcommand runs.
+func TestSubcommandDistfmtExists(t *testing.T) {
+	cmd := exec.Command("go", "run", "../../cmd/aiki", "distfmt")
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	cmd.Run()
+
+	output := stderr.String()
+	if !strings.Contains(output, "usage:") && !strings.Contains(output, "distfmt") {
+		t.Errorf("distfmt subcommand produced unexpected output: %q", output)
+	}
+}
+
 // TestSubcommandLintExists verifies the lint subcommand runs.
 func TestSubcommandLintExists(t *testing.T) {
 	cmd := exec.Command("go", "run", "../../cmd/aiki", "lint")

@@ -13,7 +13,10 @@ let @parse_result [node, pos]
 let parse_error = (tokens, pos, expected) {
 	if pos < length(tokens) {
 		let t = tokens[pos]
-		return shaped(:error, [:parse, to_str(t.line) + ":" + to_str(t.col) + ": expected " + expected + ", got " + inspect(t.lexeme)])
+		return shaped(:error, [
+			:parse,
+			to_str(t.line) + ":" + to_str(t.col) + ": expected " + expected + ", got " + inspect(t.lexeme)
+		])
 	}
 	return shaped(:error, [:parse, "end of input: expected " + expected])
 }

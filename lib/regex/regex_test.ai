@@ -95,4 +95,3 @@ run("split on regex pattern", () {
 run("split when pattern absent returns whole string", () {
 	equal(split("hello", ","), ["hello"])
 })
-

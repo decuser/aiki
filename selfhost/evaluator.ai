@@ -500,11 +500,17 @@ let apply_value = (fn, args) {
 		let required = length(fn.params)
 		if equal(fn.rest_param, "") {
 			if not equal(length(args), required) {
-				return fault(:arity, "function: want " + to_str(required) + " arguments, got " + to_str(length(args)))
+				return fault(
+					:arity,
+					"function: want " + to_str(required) + " arguments, got " + to_str(length(args))
+				)
 			}
 		} else {
 			if length(args) < required {
-				return fault(:arity, "function: want at least " + to_str(required) + " arguments, got " + to_str(length(args)))
+				return fault(
+					:arity,
+					"function: want at least " + to_str(required) + " arguments, got " + to_str(length(args))
+				)
 			}
 		}
 		let call_env = rt.env_enclose(fn.env)
@@ -1035,4 +1041,11 @@ let eval_program = (node, env) {
 	eval_node(node, env)
 }
 
-export(:eval_expr, :eval_program, :configure_hal, :configure_module_roots, :install_module_intrinsics, :load_module)
+export(
+	:eval_expr,
+	:eval_program,
+	:configure_hal,
+	:configure_module_roots,
+	:install_module_intrinsics,
+	:load_module
+)

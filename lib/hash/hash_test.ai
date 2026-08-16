@@ -108,4 +108,3 @@ run("build and query a small hash", () {
 	is_false(has(m, "two"))
 	equal(length(keys(m)), 2)
 })
-

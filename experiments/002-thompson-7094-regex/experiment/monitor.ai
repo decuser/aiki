@@ -349,4 +349,31 @@ let nlist = (session, count) {
 	format_memory(session, runtime.nlist, count)
 }
 
-export(:octal, :address_text, :word_text, :parse_octal, :disassemble, :new, :close, :reset_session, :set_input, :matches, :registers, :format_registers, :set_pc, :set_ac, :set_xr, :load_words, :examine, :deposit, :format_memory, :step, :run, :trace, :format_trace, :code, :clist, :nlist)
+export(
+	:octal,
+	:address_text,
+	:word_text,
+	:parse_octal,
+	:disassemble,
+	:new,
+	:close,
+	:reset_session,
+	:set_input,
+	:matches,
+	:registers,
+	:format_registers,
+	:set_pc,
+	:set_ac,
+	:set_xr,
+	:load_words,
+	:examine,
+	:deposit,
+	:format_memory,
+	:step,
+	:run,
+	:trace,
+	:format_trace,
+	:code,
+	:clist,
+	:nlist
+)

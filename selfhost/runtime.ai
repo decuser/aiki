@@ -7,6 +7,7 @@ package "selfhost/runtime"
 let @binding [name, value]
 let @shape_binding [name, fields]
 let @env [get, define, assign, has, has_own, define_shape, get_shape, set_package, get_package, set_exports, get_exports, set_file, get_file, outer]
+
 let @closure [params, rest_param, body, env]
 let @return_value [value]
 
@@ -126,7 +127,23 @@ let env_new = (outer) {
 	let get_file = () {
 		file_name
 	}
-	return [@env, get, define, assign, has, has_own, define_shape, get_shape, set_package, get_package, set_exports, get_exports, set_file, get_file, outer]
+	return [
+		@env,
+		get,
+		define,
+		assign,
+		has,
+		has_own,
+		define_shape,
+		get_shape,
+		set_package,
+		get_package,
+		set_exports,
+		get_exports,
+		set_file,
+		get_file,
+		outer
+	]
 }
 
 let env_get = (env, name) {
@@ -197,4 +214,23 @@ let return_new = (value) {
 	[@return_value, value]
 }
 
-export(:env_new, :env_get, :env_define, :env_assign, :env_has, :env_has_own, :env_define_shape, :env_get_shape, :env_set_package, :env_get_package, :env_set_exports, :env_get_exports, :env_set_file, :env_get_file, :env_outer, :env_enclose, :closure_new, :return_new)
+export(
+	:env_new,
+	:env_get,
+	:env_define,
+	:env_assign,
+	:env_has,
+	:env_has_own,
+	:env_define_shape,
+	:env_get_shape,
+	:env_set_package,
+	:env_get_package,
+	:env_set_exports,
+	:env_get_exports,
+	:env_set_file,
+	:env_get_file,
+	:env_outer,
+	:env_enclose,
+	:closure_new,
+	:return_new
+)

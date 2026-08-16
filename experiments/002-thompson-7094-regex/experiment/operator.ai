@@ -26,12 +26,22 @@ let worker = (session, requests, interrupts, state) {
 						while running {
 							select {
 								recv(interrupts) {
-									store.set(state, state_result, [@stopped, count, monitor.registers(session)[0], monitor.matches(session)])
+									store.set(state, state_result, [
+										@stopped,
+										count,
+										monitor.registers(session)[0],
+										monitor.matches(session)
+									])
 									running = false
 								}
 								default {
 									if count >= limit {
-										store.set(state, state_result, [@limit, count, monitor.registers(session)[0], monitor.matches(session)])
+										store.set(state, state_result, [
+											@limit,
+											count,
+											monitor.registers(session)[0],
+											monitor.matches(session)
+										])
 										running = false
 									} else {
 										let result = monitor.step(session)

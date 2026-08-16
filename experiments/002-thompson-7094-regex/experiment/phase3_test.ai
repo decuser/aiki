@@ -64,4 +64,3 @@ run("generated code executes end to end on the Aiki 7094 emulator", () {
 	equal(shape(result), :search)
 	equal(result[0], [8, 12])
 })
-

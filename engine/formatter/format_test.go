@@ -1,6 +1,7 @@
 package formatter
 
 import (
+	"strings"
 	"testing"
 
 	"aiki/engine"
@@ -126,5 +127,84 @@ let env_assign = (env, name, value) { env.assign(name, value) }
 	}
 	if out2 != out {
 		t.Fatalf("format not fixed-point stable\n--- out ---\n%s\n--- out2 ---\n%s", out, out2)
+	}
+}
+
+func TestFormatPreservesExplicitMultilineCollectionsAndCalls(t *testing.T) {
+	g := testGrammar(t)
+	src := `let xs = [
+	alpha,
+	beta,
+	gamma
+]
+
+let f = (
+	a,
+	b,
+	...rest
+) {
+	return g(
+		a,
+		b,
+		rest
+	)
+}
+`
+	out, err := FormatSource(g, "test.ai", src)
+	if err != nil {
+		t.Fatalf("format: %v", err)
+	}
+	for _, want := range []string{
+		"let xs = [\n\talpha,\n\tbeta,\n\tgamma\n]\n",
+		"let f = (\n\ta,\n\tb,\n\t...rest\n) {\n",
+		"return g(\n\t\ta,\n\t\tb,\n\t\trest\n\t)\n",
+	} {
+		if !contains(out, want) {
+			t.Fatalf("multiline layout not preserved; missing %q:\n%s", want, out)
+		}
+	}
+	out2, err := FormatSource(g, "test.ai", out)
+	if err != nil {
+		t.Fatalf("format second pass: %v", err)
+	}
+	if out2 != out {
+		t.Fatalf("multiline format not fixed-point stable\n--- out ---\n%s\n--- out2 ---\n%s", out, out2)
+	}
+}
+
+func TestFormatKeepsCompactCollectionsAndCallsCompact(t *testing.T) {
+	g := testGrammar(t)
+	src := "let xs = [alpha, beta, gamma]\nlet f = (a, b) { return g(a, b) }\n"
+	out, err := FormatSource(g, "test.ai", src)
+	if err != nil {
+		t.Fatalf("format: %v", err)
+	}
+	for _, want := range []string{
+		"let xs = [alpha, beta, gamma]\n",
+		"let f = (a, b) {\n",
+		"return g(a, b)\n",
+	} {
+		if !contains(out, want) {
+			t.Fatalf("compact layout expanded unexpectedly; missing %q:\n%s", want, out)
+		}
+	}
+}
+
+func TestFormatDoesNotExpandCompactCallWithMultilineFunctionArgument(t *testing.T) {
+	g := testGrammar(t)
+	src := `run("name", () {
+	let x = 1
+	return x
+})
+`
+	out, err := FormatSource(g, "test.ai", src)
+	if err != nil {
+		t.Fatalf("format: %v", err)
+	}
+	if strings.Contains(out, "run(\n") {
+		t.Fatalf("compact call with multiline function argument expanded unexpectedly:\n%s", out)
+	}
+	if !strings.Contains(out, "run(\"name\", () {") {
+		t.Fatalf("compact call head was not preserved:\n%s", out)
 	}
 }

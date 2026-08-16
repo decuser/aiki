@@ -317,4 +317,27 @@ let run = (machine, limit, stop_pc) {
 	return [@limit, count, pc(machine)]
 }
 
-export(:WORD_BITS, :ADDR_BITS, :MEMORY_WORDS, :word, :address, :new, :memory_size, :load_word, :store_word, :pc, :set_pc, :ac, :set_ac, :xr, :set_xr, :reset_state, :effective_address, :logical_add, :execute, :step, :run_trace, :run)
+export(
+	:WORD_BITS,
+	:ADDR_BITS,
+	:MEMORY_WORDS,
+	:word,
+	:address,
+	:new,
+	:memory_size,
+	:load_word,
+	:store_word,
+	:pc,
+	:set_pc,
+	:ac,
+	:set_ac,
+	:xr,
+	:set_xr,
+	:reset_state,
+	:effective_address,
+	:logical_add,
+	:execute,
+	:step,
+	:run_trace,
+	:run
+)

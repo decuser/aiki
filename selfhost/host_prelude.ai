@@ -6,7 +6,45 @@ package "selfhost/host_prelude"
 # to prelude.ai by an invariant test.
 let rt = import("./runtime")
 
-let names = ["apply", "load", "stack_limit", "spawn", "channel", "send", "recv", "print", "println", "read", "input", "first", "rest", "length", "prepend", "append", "empty", "type", "inspect", "equal", "ord", "chr", "shape", "is_error", "to_str", "to_decimal", "to_number", "to_symbol", "shaped", "quit", "reset", "delete", "abs", "truncate", "help", "doc"]
+let names = [
+	"apply",
+	"load",
+	"stack_limit",
+	"spawn",
+	"channel",
+	"send",
+	"recv",
+	"print",
+	"println",
+	"read",
+	"input",
+	"first",
+	"rest",
+	"length",
+	"prepend",
+	"append",
+	"empty",
+	"type",
+	"inspect",
+	"equal",
+	"ord",
+	"chr",
+	"shape",
+	"is_error",
+	"to_str",
+	"to_decimal",
+	"to_number",
+	"to_symbol",
+	"shaped",
+	"quit",
+	"reset",
+	"delete",
+	"abs",
+	"truncate",
+	"help",
+	"doc"
+]
+
 
 let install = (env) {
 	rt.env_define(env, "apply", apply)

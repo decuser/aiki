@@ -83,4 +83,22 @@ let _turtle = (c, x, y, heading, visible, color) {
 	_canvas_command(c, :turtle, [x, y, heading, visible, color])
 }
 
-export(:canvas, :width, :height, :dot, :line, :rect, :fill_rect, :circle, :fill_circle, :arc, :clear, :destroy, :set_bg, :set_fg, :set_bg_rgb, :set_fg_rgb, :pen_size)
+export(
+	:canvas,
+	:width,
+	:height,
+	:dot,
+	:line,
+	:rect,
+	:fill_rect,
+	:circle,
+	:fill_circle,
+	:arc,
+	:clear,
+	:destroy,
+	:set_bg,
+	:set_fg,
+	:set_bg_rgb,
+	:set_fg_rgb,
+	:pen_size
+)

@@ -20,4 +20,3 @@ run("timer channel is receive only", () {
 		send(timer, :nope)
 	})
 })
-

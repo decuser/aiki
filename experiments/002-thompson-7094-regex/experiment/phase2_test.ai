@@ -21,7 +21,31 @@ run("runtime installs Thompson's self-modifying list machinery", () {
 
 run("published a(b|c)*d object program is loaded verbatim by operation", () {
 	let m = runtime.prepare_published()
-	let expected = [:TRA, :TXL, :TXH, :TSX, :TRA, :TXL, :TXH, :TSX, :TRA, :TXL, :TXH, :TSX, :TRA, :TSX, :TRA, :TRA, :TSX, :TRA, :TRA, :TXL, :TXH, :TSX, :TRA]
+	let expected = [
+		:TRA,
+		:TXL,
+		:TXH,
+		:TSX,
+		:TRA,
+		:TXL,
+		:TXH,
+		:TSX,
+		:TRA,
+		:TXL,
+		:TXH,
+		:TSX,
+		:TRA,
+		:TSX,
+		:TRA,
+		:TRA,
+		:TSX,
+		:TRA,
+		:TRA,
+		:TXL,
+		:TXH,
+		:TSX,
+		:TRA
+	]
 	let index = 0
 	while index < length(expected) {
 		equal(instruction.opcode(machine.load_word(m, runtime.code + index)), expected[index])
@@ -89,4 +113,3 @@ run("nonmatches do not signal FOUND", () {
 	equal(shape(result), :search)
 	equal(result[0], [])
 })
-

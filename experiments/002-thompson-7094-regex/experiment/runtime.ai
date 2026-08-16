@@ -76,7 +76,31 @@ let install = (m) {
 }
 
 let published_words = (closure_entry) {
-	return [instruction.encode(:TRA, CODE + 1, 0, 0), instruction.encode(:TXL, FAIL, 1, -98), instruction.encode(:TXH, FAIL, 1, -97), instruction.encode(:TSX, NNODE, 4, 0), instruction.encode(:TRA, closure_entry, 0, 0), instruction.encode(:TXL, FAIL, 1, -99), instruction.encode(:TXH, FAIL, 1, -98), instruction.encode(:TSX, NNODE, 4, 0), instruction.encode(:TRA, CODE + 16, 0, 0), instruction.encode(:TXL, FAIL, 1, -100), instruction.encode(:TXH, FAIL, 1, -99), instruction.encode(:TSX, NNODE, 4, 0), instruction.encode(:TRA, CODE + 16, 0, 0), instruction.encode(:TSX, CNODE, 4, 0), instruction.encode(:TRA, CODE + 9, 0, 0), instruction.encode(:TRA, CODE + 5, 0, 0), instruction.encode(:TSX, CNODE, 4, 0), instruction.encode(:TRA, CODE + 13, 0, 0), instruction.encode(:TRA, CODE + 19, 0, 0), instruction.encode(:TXL, FAIL, 1, -101), instruction.encode(:TXH, FAIL, 1, -100), instruction.encode(:TSX, NNODE, 4, 0), instruction.encode(:TRA, FOUND, 0, 0)]
+	return [
+		instruction.encode(:TRA, CODE + 1, 0, 0),
+		instruction.encode(:TXL, FAIL, 1, -98),
+		instruction.encode(:TXH, FAIL, 1, -97),
+		instruction.encode(:TSX, NNODE, 4, 0),
+		instruction.encode(:TRA, closure_entry, 0, 0),
+		instruction.encode(:TXL, FAIL, 1, -99),
+		instruction.encode(:TXH, FAIL, 1, -98),
+		instruction.encode(:TSX, NNODE, 4, 0),
+		instruction.encode(:TRA, CODE + 16, 0, 0),
+		instruction.encode(:TXL, FAIL, 1, -100),
+		instruction.encode(:TXH, FAIL, 1, -99),
+		instruction.encode(:TSX, NNODE, 4, 0),
+		instruction.encode(:TRA, CODE + 16, 0, 0),
+		instruction.encode(:TSX, CNODE, 4, 0),
+		instruction.encode(:TRA, CODE + 9, 0, 0),
+		instruction.encode(:TRA, CODE + 5, 0, 0),
+		instruction.encode(:TSX, CNODE, 4, 0),
+		instruction.encode(:TRA, CODE + 13, 0, 0),
+		instruction.encode(:TRA, CODE + 19, 0, 0),
+		instruction.encode(:TXL, FAIL, 1, -101),
+		instruction.encode(:TXH, FAIL, 1, -100),
+		instruction.encode(:TSX, NNODE, 4, 0),
+		instruction.encode(:TRA, FOUND, 0, 0)
+	]
 }
 
 let load_words = (m, words) {
@@ -130,4 +154,23 @@ let found = FOUND
 let clist = CLIST
 let nlist = NLIST
 
-export(:code, :cnode, :tsxcmd, :nnode, :fail, :xchg, :X1, :X2, :tracmd, :init, :getcha, :found, :clist, :nlist, :install, :clear_lists, :install_published_code, :prepare_published)
+export(
+	:code,
+	:cnode,
+	:tsxcmd,
+	:nnode,
+	:fail,
+	:xchg,
+	:X1,
+	:X2,
+	:tracmd,
+	:init,
+	:getcha,
+	:found,
+	:clist,
+	:nlist,
+	:install,
+	:clear_lists,
+	:install_published_code,
+	:prepare_published
+)

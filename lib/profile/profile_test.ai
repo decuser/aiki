@@ -5,7 +5,17 @@ run("counts measures semantic work", () {
 	let work = () {
 		1 + 2
 	}
-	equal(profile.counts(work), [[:arithmetic, 1], [:comparison, 0], [:call, 1], [:iteration, 0], [:index, 0], [:send, 0], [:receive, 0], [:store_read, 0], [:store_write, 0]])
+	equal(profile.counts(work), [
+		[:arithmetic, 1],
+		[:comparison, 0],
+		[:call, 1],
+		[:iteration, 0],
+		[:index, 0],
+		[:send, 0],
+		[:receive, 0],
+		[:store_read, 0],
+		[:store_write, 0]
+	])
 })
 
 
@@ -15,7 +25,20 @@ run("experiment measures f of size", () {
 	}
 	let result = profile.experiment(10, work)
 	equal(result[0], 10)
-	equal(result[1], [[:arithmetic, 1], [:comparison, 0], [:call, 1], [:iteration, 0], [:index, 0], [:send, 0], [:receive, 0], [:store_read, 0], [:store_write, 0]])
+	equal(
+		result[1],
+		[
+			[:arithmetic, 1],
+			[:comparison, 0],
+			[:call, 1],
+			[:iteration, 0],
+			[:index, 0],
+			[:send, 0],
+			[:receive, 0],
+			[:store_read, 0],
+			[:store_write, 0]
+		]
+	)
 })
 
 
@@ -107,4 +130,3 @@ run("complexity rejects too few sizes", () {
 	let results = profile.experiment([10, 20], work)
 	is_error(profile.complexity(results))
 })
-

@@ -85,4 +85,26 @@ let size = (path) {
 	_file_size(path)
 }
 
-export(:open, :read_text, :read_bytes, :read_line, :write_text, :write_bytes, :close, :exists, :delete, :list, :read_at, :write_at, :stat, :rename, :mkdir, :mkdir_all, :remove_all, :temp, :temp_dir, :copy, :size)
+export(
+	:open,
+	:read_text,
+	:read_bytes,
+	:read_line,
+	:write_text,
+	:write_bytes,
+	:close,
+	:exists,
+	:delete,
+	:list,
+	:read_at,
+	:write_at,
+	:stat,
+	:rename,
+	:mkdir,
+	:mkdir_all,
+	:remove_all,
+	:temp,
+	:temp_dir,
+	:copy,
+	:size
+)
