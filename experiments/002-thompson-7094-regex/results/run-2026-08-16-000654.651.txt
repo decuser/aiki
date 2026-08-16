@@ -1,0 +1,17 @@
+Experiment 002 — Thompson 7094 Regex Reconstruction
+Phases I–III — 7094 machine, Thompson runtime, and compiler reconstruction
+
+Aiki executable: /home/wsenn/forge/dev/aiki/aiki
+Aiki version:    aiki v0.4.0-alpha-26
+
+--- Phase I machine corpus ---
+
+--- Phase II Thompson corpus ---
+
+--- Phase III compiler corpus ---
+
+--- End-to-end demonstration ---
+compiler.ai:138:in 'reverse_polish': index out of bounds: -1
+    while not empty(operators) and not equal(operators[length(operators) - 1], "(") and precedence(operators[length(operators) - 1]) >= precedence(c) {
+        from compiler.ai:8:in 'compile'
+        from demo.ai:1:in '<main>'

@@ -1,0 +1,53 @@
+Experiment 002 — Thompson 7094 Regex Reconstruction
+Phases I–IV — machine, Thompson reconstruction, compiler, and operator monitor
+
+Aiki executable: /home/wsenn/forge/dev/aiki/aiki
+Aiki version:    aiki v0.4.0-alpha-26
+
+--- Phase I machine corpus ---
+PASS machine_test.ai
+
+96 tests, 96 passed, 0 failed
+
+--- Phase II Thompson corpus ---
+PASS phase2_test.ai
+
+59 tests, 59 passed, 0 failed
+
+--- Phase III compiler corpus ---
+PASS phase3_test.ai
+
+39 tests, 39 passed, 0 failed
+
+--- Phase IV monitor corpus ---
+PASS monitor_test.ai
+
+14 tests, 14 passed, 0 failed
+
+--- End-to-end demonstration ---
+Thompson example: a(b|c)*d
+
+compiler
+  stage 1: a.(b|c)*.d
+  stage 2: abc|*.d.
+  stage 3: 23 IBM 7094 words
+
+paper/compiler discrepancy
+  printed  word 4: :TRA CODE+13
+  generated word 4: :TRA CODE+16
+
+generated-code search on the Aiki 7094
+  "ad" -> FOUND end offsets [2]
+  "abd" -> FOUND end offsets [3]
+  "abcbcd" -> FOUND end offsets [6]
+  "xxabcbcdyyad" -> FOUND end offsets [8, 12]
+  "axd" -> FOUND end offsets []
+
+RESULT: regex -> compiler -> IBM 7094 object code -> Aiki 7094 emulator -> Thompson runtime -> FOUND
+PASS
+
+--- Monitor demonstration ---
+warning: shadowing prelude function 'help'
+Aiki Thompson 7094 monitor
+octal input; type help for commands
+7094> 

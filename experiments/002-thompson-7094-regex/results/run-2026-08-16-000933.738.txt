@@ -1,0 +1,21 @@
+Experiment 002 — Thompson 7094 Regex Reconstruction
+Phases I–III — 7094 machine, Thompson runtime, and compiler reconstruction
+
+Aiki executable: /home/wsenn/forge/dev/aiki/aiki
+Aiki version:    aiki v0.4.0-alpha-26
+
+--- Phase I machine corpus ---
+PASS machine_test.ai
+
+96 tests, 96 passed, 0 failed
+
+--- Phase II Thompson corpus ---
+FAIL phase2_test.ai
+  FAIL XCHG initializes CLIST with its terminating transfer (phase2_test.ai:43): expected :stopped, got 10
+  FAIL printed listing exposes the CODE+13 closure discrepancy (phase2_test.ai:51): fault: cannot compare boolean and number
+  FAIL published machine program recognizes the basic language (phase2_test.ai:62): fault: cannot compare boolean and number
+  FAIL published machine program accepts b/c closure paths (phase2_test.ai:68): fault: cannot compare boolean and number
+  FAIL search is substring-oriented and can signal multiple matches (phase2_test.ai:80): fault: cannot compare boolean and number
+  FAIL nonmatches do not signal FOUND (phase2_test.ai:92): fault: cannot compare boolean and number
+
+45 tests, 39 passed, 6 failed

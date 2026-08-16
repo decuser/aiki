@@ -18,8 +18,12 @@ import (
 	"aiki/engine/syntax/grammar"
 )
 
-// Run executes an Aiki source file.
-func Run(filename string) error {
+// Run executes an Aiki source file. programArgs are exposed to the program
+// through system.args(), excluding the interpreter and source filename.
+func Run(filename string, programArgs ...string) error {
+	substrate.SetProgramArgs(programArgs)
+	defer substrate.SetProgramArgs(nil)
+
 	source, err := os.ReadFile(filename)
 	if err != nil {
 		return fmt.Errorf("reading file: %w", err)

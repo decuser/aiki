@@ -1,0 +1,91 @@
+use("test")
+let machine = import("./machine")
+let instruction = import("./instruction")
+let runtime = import("./runtime")
+let search = import("./search")
+
+run("runtime installs Thompson's self-modifying list machinery", () {
+	let m = runtime.prepare_published()
+	equal(instruction.opcode(machine.load_word(m, runtime.CNODE)), :AXC)
+	equal(instruction.address_field(machine.load_word(m, runtime.CNODE)), 0)
+	equal(instruction.tag_field(machine.load_word(m, runtime.CNODE)), 7)
+	equal(instruction.opcode(machine.load_word(m, runtime.NNODE)), :AXC)
+	equal(instruction.address_field(machine.load_word(m, runtime.NNODE)), 0)
+	equal(instruction.opcode(machine.load_word(m, runtime.TRACMD)), :TRA)
+	equal(instruction.address_field(machine.load_word(m, runtime.TRACMD)), runtime.XCHG)
+	equal(instruction.opcode(machine.load_word(m, runtime.TSXCMD)), :TSX)
+	equal(instruction.address_field(machine.load_word(m, runtime.TSXCMD)), 1)
+	equal(instruction.tag_field(machine.load_word(m, runtime.TSXCMD)), 2)
+})
+
+run("published a(b|c)*d object program is loaded verbatim by operation", () {
+	let m = runtime.prepare_published()
+	let expected = [
+		:TRA, :TXL, :TXH, :TSX,
+		:TRA, :TXL, :TXH, :TSX,
+		:TRA, :TXL, :TXH, :TSX,
+		:TRA, :TSX, :TRA, :TRA,
+		:TSX, :TRA, :TRA, :TXL,
+		:TXH, :TSX, :TRA
+	]
+	let index = 0
+	while index < length(expected) {
+		equal(instruction.opcode(machine.load_word(m, runtime.CODE + index)), expected[index])
+		index = index + 1
+	}
+	equal(instruction.address_field(machine.load_word(m, runtime.CODE + 22)), runtime.FOUND)
+})
+
+run("XCHG initializes CLIST with its terminating transfer", () {
+	let m = runtime.prepare_published()
+	# Stop at GETCHA before invoking the host boundary.
+	let result = machine.run(m, 100, runtime.GETCHA)
+	equal(shape(result), :stopped)
+	let terminator = machine.load_word(m, runtime.CLIST)
+	equal(instruction.opcode(terminator), :TRA)
+	equal(instruction.address_field(terminator), runtime.XCHG)
+	equal(instruction.address_field(machine.load_word(m, runtime.CNODE)), 0)
+	equal(instruction.address_field(machine.load_word(m, runtime.NNODE)), 0)
+})
+
+run("published listing contains the closure target CODE+16", () {
+	let m = runtime.prepare_published()
+	equal(instruction.opcode(machine.load_word(m, runtime.CODE + 4)), :TRA)
+	equal(instruction.address_field(machine.load_word(m, runtime.CODE + 4)), runtime.CODE + 16)
+})
+
+run("published machine program recognizes the basic language", () {
+	let result = search.run("ad", 20000)
+	equal(shape(result), :search)
+	equal(result[0], [2])
+})
+
+run("published machine program accepts b/c closure paths", () {
+	let abd = search.run("abd", 30000)
+	equal(shape(abd), :search)
+	equal(abd[0], [3])
+	let acbd = search.run("acbd", 40000)
+	equal(shape(acbd), :search)
+	equal(acbd[0], [4])
+	let abcbcd = search.run("abcbcd", 60000)
+	equal(shape(abcbcd), :search)
+	equal(abcbcd[0], [6])
+})
+
+run("search is substring-oriented and can signal multiple matches", () {
+	let embedded = search.run("xxabbdyy", 60000)
+	equal(shape(embedded), :search)
+	equal(embedded[0], [6])
+	let multiple = search.run("adxxacd", 80000)
+	equal(shape(multiple), :search)
+	equal(multiple[0], [2, 7])
+	let adjacent = search.run("adad", 60000)
+	equal(shape(adjacent), :search)
+	equal(adjacent[0], [2, 4])
+})
+
+run("nonmatches do not signal FOUND", () {
+	let result = search.run("abca xyz", 80000)
+	equal(shape(result), :search)
+	equal(result[0], [])
+})

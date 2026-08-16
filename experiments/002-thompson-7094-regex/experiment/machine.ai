@@ -1,0 +1,334 @@
+package "thompson_7094_machine"
+
+let bits = import("bits")
+let store = import("store")
+let instruction = import("./instruction")
+
+let WORD_BITS = 36
+let ADDR_BITS = 15
+let MEMORY_WORDS = 32768
+let WORD_MODULUS = bits.shl(1, WORD_BITS)
+let AC_MAGNITUDE_MASK = bits.mask(35)
+
+# Machine container indexes.
+let MACHINE_MEMORY = 0
+let MACHINE_STATE = 1
+
+# Private mutable state indexes.
+let STATE_PC = 0
+let STATE_AC = 1
+let STATE_XR1 = 2
+let STATE_XR2 = 3
+let STATE_XR4 = 4
+let STATE_XR6 = 5
+let STATE_XR7 = 6
+let STATE_WORDS = 7
+
+let wrap = (value, width) {
+	let integral = truncate(value)
+	if not equal(value, integral) {
+		# Delegate the fault vocabulary for non-integral bit patterns to bits.
+		return bits.low(value, width)
+	}
+
+	let modulus = bits.shl(1, width)
+	if integral >= 0 {
+		return bits.low(integral, width)
+	}
+
+	let quotient = truncate(integral / modulus)
+	let remainder = integral - (quotient * modulus)
+	if remainder < 0 {
+		return remainder + modulus
+	}
+	return remainder
+}
+
+let word = (value) {
+	wrap(value, WORD_BITS)
+}
+
+let address = (value) {
+	wrap(value, ADDR_BITS)
+}
+
+let new = () {
+	return [store.new(MEMORY_WORDS), store.new(STATE_WORDS)]
+}
+
+let memory = (machine) {
+	machine[MACHINE_MEMORY]
+}
+
+let state = (machine) {
+	machine[MACHINE_STATE]
+}
+
+let memory_size = (machine) {
+	store.length(memory(machine))
+}
+
+let load_word = (machine, location) {
+	store.get(memory(machine), address(location))
+}
+
+let store_word = (machine, location, value) {
+	store.set(memory(machine), address(location), word(value))
+}
+
+let pc = (machine) {
+	store.get(state(machine), STATE_PC)
+}
+
+let set_pc = (machine, value) {
+	store.set(state(machine), STATE_PC, address(value))
+}
+
+let ac = (machine) {
+	store.get(state(machine), STATE_AC)
+}
+
+let set_ac = (machine, value) {
+	store.set(state(machine), STATE_AC, word(value))
+}
+
+let xr_index = (tag) {
+	match tag {
+		1 { return STATE_XR1 }
+		2 { return STATE_XR2 }
+		4 { return STATE_XR4 }
+		6 { return STATE_XR6 }
+		7 { return STATE_XR7 }
+	}
+	# Unsupported tags are outside the Phase-I machine contract. Force a
+	# deterministic store-index fault rather than silently selecting a register.
+	return -1
+}
+
+let xr = (machine, tag) {
+	store.get(state(machine), xr_index(tag))
+}
+
+let set_xr = (machine, tag, value) {
+	store.set(state(machine), xr_index(tag), address(value))
+}
+
+let effective_address = (machine, y, tag) {
+	if equal(tag, 0) {
+		return address(y)
+	}
+	return address(y - xr(machine, tag))
+}
+
+let complement15 = (value) {
+	address(0 - value)
+}
+
+let logical_add = (left, right) {
+	let sum = word(left) + word(right)
+	let carry = truncate(sum / WORD_MODULUS)
+	let low = bits.low(sum, WORD_BITS)
+	if carry > 0 {
+		return word(low + carry)
+	}
+	return low
+}
+
+let execute = (machine, location, encoded) {
+	let op = instruction.opcode(encoded)
+	if is_error(op) {
+		return op
+	}
+	let y = instruction.address_field(encoded)
+	let tag = instruction.tag_field(encoded)
+	let d = instruction.decrement_field(encoded)
+
+	match op {
+		:TRA {
+			set_pc(machine, effective_address(machine, y, tag))
+			return true
+		}
+		:TSX {
+			if equal(tag, 0) {
+				return [@error, :machine, "TSX requires an index register"]
+			}
+			set_xr(machine, tag, complement15(location))
+			set_pc(machine, y)
+			return true
+		}
+		:TXL {
+			if equal(tag, 0) {
+				return true
+			}
+			if xr(machine, tag) <= d {
+				set_pc(machine, y)
+			}
+			return true
+		}
+		:TXH {
+			if equal(tag, 0) {
+				return true
+			}
+			if xr(machine, tag) > d {
+				set_pc(machine, y)
+			}
+			return true
+		}
+		:TXI {
+			if equal(tag, 0) {
+				return [@error, :machine, "TXI requires an index register"]
+			}
+			set_xr(machine, tag, xr(machine, tag) + d)
+			set_pc(machine, y)
+			return true
+		}
+		:AXC {
+			if equal(tag, 0) {
+				return true
+			}
+			set_xr(machine, tag, complement15(y))
+			return true
+		}
+		:LAC {
+			if equal(tag, 0) {
+				return true
+			}
+			let source = instruction.address_field(load_word(machine, y))
+			set_xr(machine, tag, complement15(source))
+			return true
+		}
+		:SCA {
+			let replacement = 0
+			if not equal(tag, 0) {
+				replacement = complement15(xr(machine, tag))
+			}
+			let prior = load_word(machine, y)
+			store_word(machine, y, instruction.replace_address(prior, replacement))
+			return true
+		}
+		:PCA {
+			let replacement = 0
+			if not equal(tag, 0) {
+				replacement = complement15(xr(machine, tag))
+			}
+			set_ac(machine, bits.shl(replacement, instruction.ADDRESS_SHIFT))
+			return true
+		}
+		:PAC {
+			if equal(tag, 0) {
+				return true
+			}
+			set_xr(machine, tag, complement15(instruction.address_field(ac(machine))))
+			return true
+		}
+		:CLA {
+			# The emulator stores only the logical AC slice P,1-35. CLA places
+			# memory 1-35 into AC 1-35 and clears P; the physical AC sign S and
+			# Q positions are outside Thompson's required machine state.
+			let operand = load_word(machine, effective_address(machine, y, tag))
+			set_ac(machine, bits.bit_and(operand, AC_MAGNITUDE_MASK))
+			return true
+		}
+		:CAL {
+			# CAL maps memory S,1-35 directly to logical AC P,1-35.
+			set_ac(machine, load_word(machine, effective_address(machine, y, tag)))
+			return true
+		}
+		:ACL {
+			let operand = load_word(machine, effective_address(machine, y, tag))
+			set_ac(machine, logical_add(ac(machine), operand))
+			return true
+		}
+		:SLW {
+			store_word(machine, effective_address(machine, y, tag), ac(machine))
+			return true
+		}
+	}
+	return [@error, :machine, "unsupported instruction"]
+}
+
+let step = (machine) {
+	let location = pc(machine)
+	let encoded = load_word(machine, location)
+	let op = instruction.opcode(encoded)
+	if is_error(op) {
+		return [@error, :machine, "unsupported instruction"]
+	}
+
+	# Sequential PC progression is established before semantic execution;
+	# transfers replace it.
+	set_pc(machine, location + 1)
+	let result = execute(machine, location, encoded)
+	if is_error(result) {
+		return result
+	}
+	return [@step, location, op, pc(machine)]
+}
+
+let reset_state = (machine) {
+	set_pc(machine, 0)
+	set_ac(machine, 0)
+	set_xr(machine, 1, 0)
+	set_xr(machine, 2, 0)
+	set_xr(machine, 4, 0)
+	set_xr(machine, 6, 0)
+	set_xr(machine, 7, 0)
+	return true
+}
+
+let run_trace = (machine, limit, stop_pc) {
+	let count = 0
+	let records = []
+	while count < limit {
+		if equal(pc(machine), address(stop_pc)) {
+			return [@stopped, count, pc(machine), records]
+		}
+		let result = step(machine)
+		if is_error(result) {
+			return result
+		}
+		records = append(records, result)
+		count = count + 1
+	}
+	return [@limit, count, pc(machine), records]
+}
+
+let run = (machine, limit, stop_pc) {
+	let count = 0
+	while count < limit {
+		if equal(pc(machine), address(stop_pc)) {
+			return [@stopped, count, pc(machine)]
+		}
+		let result = step(machine)
+		if is_error(result) {
+			return result
+		}
+		count = count + 1
+	}
+	return [@limit, count, pc(machine)]
+}
+
+export(
+	:WORD_BITS,
+	:ADDR_BITS,
+	:MEMORY_WORDS,
+	:word,
+	:address,
+	:new,
+	:memory_size,
+	:load_word,
+	:store_word,
+	:pc,
+	:set_pc,
+	:ac,
+	:set_ac,
+	:xr,
+	:set_xr,
+	:effective_address,
+	:logical_add,
+	:execute,
+	:reset_state,
+	:step,
+	:run_trace,
+	:run
+)

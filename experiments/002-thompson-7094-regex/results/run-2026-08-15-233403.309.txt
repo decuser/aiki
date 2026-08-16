@@ -1,0 +1,9 @@
+Experiment 002 — Thompson 7094 Regex Reconstruction
+Phases I–II — 7094 machine and Thompson runtime/object reproduction
+
+Aiki executable: /home/wsenn/forge/dev/aiki/aiki
+Aiki version:    aiki v0.4.0-alpha-26
+
+--- Phase I machine corpus ---
+
+--- Phase II Thompson corpus ---

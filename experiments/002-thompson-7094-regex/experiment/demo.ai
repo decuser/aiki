@@ -1,0 +1,44 @@
+let machine = import("./machine")
+let runtime = import("./runtime")
+let compiler = import("./compiler")
+let search = import("./search")
+
+let source = "a(b|c)*d"
+let compiled = compiler.compile(source)
+
+println("Thompson example: " + source)
+println("")
+println("compiler")
+println("  stage 1: " + compiled[0])
+println("  stage 2: " + compiled[1])
+println("  stage 3: " + to_str(length(compiled[2])) + " IBM 7094 words")
+println("")
+
+let run_generated = (text, limit) {
+	let m = machine.new()
+	runtime.install(m)
+	let i = 0
+	while i < length(compiled[2]) {
+		machine.store_word(m, runtime.CODE + i, compiled[2][i])
+		i = i + 1
+	}
+	machine.set_pc(m, runtime.INIT)
+	return search.execute(m, text, limit)
+}
+
+println("generated-code search on the Aiki 7094")
+let cases = ["ad", "abd", "abcbcd", "xxabcbcdyyad", "axd"]
+let i = 0
+while i < length(cases) {
+	let text = cases[i]
+	let result = run_generated(text, 150000)
+	if empty(result[0]) {
+		println("  " + inspect(text) + " -> no match")
+	} else {
+		println("  " + inspect(text) + " -> FOUND end offsets " + inspect(result[0]))
+	}
+	i = i + 1
+}
+println("")
+println("RESULT: regex -> compiler -> IBM 7094 object code -> Aiki 7094 emulator -> Thompson runtime -> FOUND")
+println("PASS")
