@@ -1,7 +1,6 @@
 package substrate
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -419,6 +418,9 @@ func halSpawn(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if !ok {
 		return value.NewFault("spawn: expected function as first argument, got %s", args[0].Type())
 	}
+	if ctx.ReportAsyncFault == nil {
+		return value.NewFault("spawn: asynchronous fault reporting not available")
+	}
 
 	// Capture arguments passed to spawn: spawn(fn, arg1, arg2)
 	fnArgs := args[1:]
@@ -428,13 +430,7 @@ func halSpawn(args []value.Value, ctx *hal.EvalContext) value.Value {
 	go func() {
 		result := applyUserFunctionIsolated(fn, fnArgs, ctx)
 		if fault, ok := result.(*value.Fault); ok {
-			if ctx.ReportAsyncFault != nil {
-				ctx.ReportAsyncFault(fault)
-				return
-			}
-			// Runtimes without asynchronous fault propagation retain the
-			// historical fallback rather than silently swallowing the fault.
-			fmt.Fprintf(os.Stderr, "spawn: %s\n", fault.Inspect())
+			ctx.ReportAsyncFault(fault)
 		}
 	}()
 

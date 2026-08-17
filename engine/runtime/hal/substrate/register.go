@@ -6,7 +6,7 @@ package substrate
 func (g *GoRuntime) registerHAL() {
 	// True host-facing operations. Canonical contracts currently exist for I/O,
 	// time, program context, file operations, and the narrowed Canvas resource/command
-	// boundary. Randomness remains a host-role compatibility operation.
+	// boundary. Randomness is runtime-owned host state with canonical HAL contracts.
 	g.registerHost(goHostOperation("_print"), g.halPrint)
 	g.registerHost(goHostOperation("_read"), g.halRead)
 	g.registerHost(goHostOperation("_io_read"), g.halIORead)
@@ -47,8 +47,8 @@ func (g *GoRuntime) registerHAL() {
 	g.registerHost(goHostOperation("_system_chdir"), g.halSystemChdir)
 	g.registerHost(goHostOperation("_system_exec"), g.halSystemExec)
 	g.registerHost(goHostOperation("_path_separator"), halPathSeparator)
-	g.registerPrimitive("_seed", g.halSeed)
-	g.registerPrimitive("_random", g.halRandom)
+	g.registerHost(goHostOperation("_seed"), g.halSeed)
+	g.registerHost(goHostOperation("_random"), g.halRandom)
 	g.registerHost(goHostOperation("_canvas"), g.halCanvas)
 	g.registerHost(goHostOperation("_canvas_command"), g.halCanvasCommand)
 	g.registerHost(goHostOperation("_destroy"), g.halDestroy)

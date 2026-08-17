@@ -31,3 +31,12 @@ func TestPrimitiveRoleInvariantRejectsWrongHALRole(t *testing.T) {
 		t.Fatalf("expected wrong HAL role failure, got %v", err)
 	}
 }
+
+func TestPrimitiveRoleInvariantRejectsHostWithoutHALOperation(t *testing.T) {
+	definitions := primitives.Definitions()
+	definitions["_host_without_hal"] = primitives.RoleHost
+	err := primitives.ValidateDefinitions(definitions, hal.OperationDefinitions())
+	if err == nil || !strings.Contains(err.Error(), "host primitive _host_without_hal has no canonical HAL operation") {
+		t.Fatalf("expected host-without-HAL failure, got %v", err)
+	}
+}

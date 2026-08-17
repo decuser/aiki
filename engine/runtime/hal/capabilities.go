@@ -41,6 +41,10 @@ var capabilityRegistry = map[string]Capability{
 		Name:       "time",
 		Operations: []string{"HAL.time.sleep", "HAL.time.after", "HAL.time.now"},
 	},
+	"random": {
+		Name:       "random",
+		Operations: []string{"HAL.random.seed", "HAL.random.below"},
+	},
 	"canvas": {
 		Name: "canvas",
 		Operations: []string{

@@ -3,25 +3,30 @@ package substrate
 import (
 	"testing"
 
+	"aiki/engine/runtime/hal"
 	"aiki/engine/runtime/primitives"
 )
 
 func TestCompatibilityRegistrySeparatedByRole(t *testing.T) {
 	rt := NewGoRuntime()
 
-	want := map[primitives.Role]int{
-		primitives.RoleIntrinsic: 9,
-		primitives.RoleNative:    40,
-		primitives.RoleProvider:  14,
-		primitives.RoleHost:      48,
-		primitives.RoleService:   19,
+	definitions := primitives.Definitions()
+	want := make(map[primitives.Role]int)
+	for _, role := range definitions {
+		want[role]++
 	}
 
 	seen := make(map[string]primitives.Role)
-	for role, count := range want {
+	for _, role := range []primitives.Role{
+		primitives.RoleIntrinsic,
+		primitives.RoleNative,
+		primitives.RoleProvider,
+		primitives.RoleHost,
+		primitives.RoleService,
+	} {
 		registry := rt.registryFor(role)
-		if got := len(registry); got != count {
-			t.Errorf("%s registry has %d entries, want %d", role, got, count)
+		if got := len(registry); got != want[role] {
+			t.Errorf("%s registry has %d entries, architecture defines %d", role, got, want[role])
 		}
 		for name := range registry {
 			if prior, exists := seen[name]; exists {
@@ -31,10 +36,6 @@ func TestCompatibilityRegistrySeparatedByRole(t *testing.T) {
 		}
 	}
 
-	definitions := primitives.Definitions()
-	if got := len(definitions); got != 130 {
-		t.Fatalf("architectural primitive definitions = %d, want 130", got)
-	}
 	if got := len(seen); got != len(definitions) {
 		t.Fatalf("registered %d compatibility primitives, architecture defines %d", got, len(definitions))
 	}
@@ -66,7 +67,7 @@ func TestCompatibilityRegistrySeparatedByRole(t *testing.T) {
 		}
 	}
 
-	if got := len(rt.hostBindings); got != 46 {
-		t.Errorf("canonical host bindings = %d, want 46", got)
+	if got, want := len(rt.hostBindings), len(hal.OperationDefinitions()); got != want {
+		t.Errorf("canonical host bindings = %d, HAL defines %d", got, want)
 	}
 }

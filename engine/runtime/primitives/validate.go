@@ -28,6 +28,13 @@ func ValidateDefinitions(definitions map[string]Role, operations map[string]hal.
 			problems = append(problems, fmt.Sprintf("primitive %s has unknown role %s", name, role))
 		}
 	}
+	for name, role := range definitions {
+		if role == RoleHost {
+			if _, ok := operations[name]; !ok {
+				problems = append(problems, fmt.Sprintf("host primitive %s has no canonical HAL operation", name))
+			}
+		}
+	}
 	for primitive := range operations {
 		role, ok := definitions[primitive]
 		if !ok {

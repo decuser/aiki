@@ -339,3 +339,13 @@ Sessions covered: 2026-08-14 through 2026-08-16.
 - Added exact-number architecture invariant: production Go under `engine/semantics` and `engine/syntax` contains no float types or conversion paths; injected `float64` is rejected. Host-side graphics/time/inexact math remain outside this boundary.
 - Disposable Go 1.23 probe compiled `engine/runtime/hal`, `engine/runtime/prelude`, `engine/runtime/primitives`, and shared doc-example support. Full invariant packages remain environment-limited by unavailable Ebiten download; user-side Go 1.24 validation is required.
 - Exact next action: apply Gate 3 delta on `hal-capability`, rebuild, run `make invariant`, then run `make validate`; any invariant failure is treated as a Gate 3 defect before commit.
+
+## Alpha-29 contract-surface audit cleanup (2026-08-17)
+
+- Audited major contract surfaces after Gates 1–3; no broad Gate 4 justified.
+- AF-018 resolved: randomness now has canonical HAL contracts `HAL.random.seed` and `HAL.random.below`, a `random` capability, desktop profile requirement, Go provenance, and host registration. Removed `_seed`/`_random` from duplicated non-HAL role metadata.
+- Primitive-role validation now rejects any host-role primitive lacking a canonical HAL operation; negative assurance added.
+- AF-019 resolved: canonical HAL descriptor vocabularies are validated, including contexts, effects, blocking classes, lifetimes, optionality, and error contracts; negative assurance mutates each family.
+- AF-020 resolved: `spawn` no longer falls back to ambient stderr. Runtimes must supply asynchronous fault reporting before spawn launches; GoRuntime already does. Runtime-ownership invariant now covers the intrinsic implementation.
+- Focused disposable Go 1.23 probe compiles `engine/runtime/hal` and `engine/runtime/primitives`. Full substrate/invariant validation remains user-side because uncached Ebiten and Go 1.24 cannot be downloaded here.
+- Next action: apply cleanup overlay, rebuild, run `make invariant`, then `make validate`.

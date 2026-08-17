@@ -46,6 +46,8 @@ var goHostProvenance = map[string]string{
 	"_file_read_link":   "go:os.Readlink",
 	"_file_permissions": "go:os.FileMode.Perm",
 	"_file_chmod":       "go:os.Chmod",
+	"_seed":             "go:runtime-owned math/rand.Rand.Seed",
+	"_random":           "go:runtime-owned math/rand.Rand.Int63n",
 	"_time_now":         "go:time.Now",
 	"_system_cwd":       "go:runtime working-directory context",
 	"_system_chdir":     "go:os.Stat + runtime working-directory context",

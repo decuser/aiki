@@ -31,7 +31,10 @@ Status vocabulary:
 | AF-014 | Lint path expansion repeats negative-fixture filtering in multiple branches. | RESOLVED | Post-grammar hardening Cut 2. |
 | AF-015 | `break_call_smoke` and `break_unary_smoke` intentionally have empty golds but source does not explain why. | RESOLVED | Add fixture comments in closeout. |
 | AF-016 | `# @negative parse` can currently appear in arbitrary `.ai` source and exempt it from fmt/lint without smoke pairing. | RESOLVED | Post-grammar hardening Cut 2: constrain declarations to recognized smoke-fixture context. |
-| AF-017 | Prelude help covers the callable surface, but full documentation is not 1:1; `truncate` currently has help with no `.doc` entry. | OPEN | Discovered during Gate 2 authority centralization. Do not silently strengthen the runtime invariant inside a behavior-preserving refactor. |
+| AF-017 | Prelude help covers the callable surface, but full documentation is not 1:1; `truncate` currently has help with no `.doc` entry. | RESOLVED | Gate 2 completion + Gate 3: symmetric prelude help/doc coverage and negative assurance; `truncate` documented. |
+| AF-018 | `_seed` and `_random` were classified as host primitives but had no canonical HAL identities. | RESOLVED | Promoted to `HAL.random.seed` and `HAL.random.below`; added random capability, Go provenance, host registration, and reverse host-role invariant. |
+| AF-019 | HAL descriptor vocabularies were free-form strings checked only for presence. | RESOLVED | HAL metadata validator now enforces canonical context/effect/blocking/lifetime/optionality/error vocabularies with negative mutation tests. |
+| AF-020 | `spawn` fell back to ambient `os.Stderr` when asynchronous fault reporting was unavailable. | RESOLVED | `spawn` now requires an async-fault reporter before launch; runtime-ownership invariant includes the intrinsic implementation. |
 
 ## Current disposition
 

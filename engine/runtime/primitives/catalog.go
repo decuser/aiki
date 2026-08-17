@@ -22,11 +22,6 @@ const (
 )
 
 var nonHALRoles = map[string]Role{
-	// Host compatibility operations not yet represented by canonical HAL
-	// contracts.
-	"_seed":   RoleHost,
-	"_random": RoleHost,
-
 	// Evaluator/language intrinsics.
 	"_apply":   RoleIntrinsic,
 	"_import":  RoleIntrinsic,

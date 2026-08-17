@@ -39,6 +39,7 @@ func loadRuntimeOwnedSurface(t *testing.T) map[string]string {
 		"engine/runtime/hal/substrate/builtins_io*.go",
 		"engine/runtime/hal/substrate/builtins_system.go",
 		"engine/runtime/hal/substrate/builtins_workdir.go",
+		"engine/runtime/hal/substrate/builtins_intrinsic.go",
 	}
 	out := map[string]string{}
 	for _, pattern := range patterns {

@@ -6,6 +6,51 @@ import (
 	"strings"
 )
 
+var validContexts = map[string]bool{
+	"runtime.clock":      true,
+	"runtime.filesystem": true,
+	"runtime.graphics":   true,
+	"runtime.io":         true,
+	"runtime.platform":   true,
+	"runtime.process":    true,
+	"runtime.random":     true,
+	"runtime.resources":  true,
+}
+
+var validEffects = map[string]bool{
+	"async source":         true,
+	"bounded call":         true,
+	"resource acquisition": true,
+	"state mutation":       true,
+}
+
+var validBlocking = map[string]bool{
+	"may block":        true,
+	"nonblocking":      true,
+	"waits externally": true,
+}
+
+var validLifetimes = map[string]bool{
+	"operates on resource": true,
+	"returns resource":     true,
+	"runtime-owned state":  true,
+	"stateless":            true,
+}
+
+var validOptionality = map[string]bool{
+	"constitutive": true,
+	"optional":     true,
+}
+
+var validErrorContracts = map[string]bool{
+	"fault":                               true,
+	"fault or shaped :canvas result":      true,
+	"fault or shaped :environment result": true,
+	"fault or shaped :io result":          true,
+	"fault or shaped :io/:end result":     true,
+	"fault or shaped :process result":     true,
+}
+
 // ValidateMetadata verifies the internal HAL metadata graph. Inputs are explicit
 // so invariant tests can exercise the same validator with deliberately malformed
 // graphs rather than duplicating validation logic.
@@ -26,6 +71,34 @@ func ValidateMetadata(operations map[string]HostOperation, capabilities map[stri
 		}
 		if op.Authority != op.Identity {
 			problems = append(problems, fmt.Sprintf("operation %s authority %s does not match canonical identity %s", primitive, op.Authority, op.Identity))
+		}
+		if len(op.Context) == 0 {
+			problems = append(problems, fmt.Sprintf("operation %s has no context", primitive))
+		}
+		seenContext := map[string]bool{}
+		for _, context := range op.Context {
+			if !validContexts[context] {
+				problems = append(problems, fmt.Sprintf("operation %s has unknown context %s", primitive, context))
+			}
+			if seenContext[context] {
+				problems = append(problems, fmt.Sprintf("operation %s repeats context %s", primitive, context))
+			}
+			seenContext[context] = true
+		}
+		if !validEffects[op.Effect] {
+			problems = append(problems, fmt.Sprintf("operation %s has unknown effect %q", primitive, op.Effect))
+		}
+		if !validBlocking[op.Blocking] {
+			problems = append(problems, fmt.Sprintf("operation %s has unknown blocking class %q", primitive, op.Blocking))
+		}
+		if !validLifetimes[op.Lifetime] {
+			problems = append(problems, fmt.Sprintf("operation %s has unknown lifetime %q", primitive, op.Lifetime))
+		}
+		if !validOptionality[op.Optionality] {
+			problems = append(problems, fmt.Sprintf("operation %s has unknown optionality %q", primitive, op.Optionality))
+		}
+		if !validErrorContracts[op.ErrorContract] {
+			problems = append(problems, fmt.Sprintf("operation %s has unknown error contract %q", primitive, op.ErrorContract))
 		}
 	}
 
