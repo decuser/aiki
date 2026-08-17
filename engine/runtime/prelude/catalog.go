@@ -21,16 +21,20 @@ type Catalog struct {
 // LoadCatalog derives and validates the prelude surface from the real Aiki
 // source plus its authored help and documentation.
 func LoadCatalog(g *grammar.Grammar) (*Catalog, error) {
-	info, err := modules.AnalyzeSource(g, "engine/runtime/prelude/prelude.ai", Source)
+	return loadCatalogFromSources(g, Source, HelpSource, DocSource)
+}
+
+func loadCatalogFromSources(g *grammar.Grammar, source, helpSource, docSource string) (*Catalog, error) {
+	info, err := modules.AnalyzeSource(g, "engine/runtime/prelude/prelude.ai", source)
 	if err != nil {
 		return nil, fmt.Errorf("analyzing prelude source: %w", err)
 	}
 
-	funcs, err := help.ParseHelpFile("prelude.help", HelpSource)
+	funcs, err := help.ParseHelpFile("prelude.help", helpSource)
 	if err != nil {
 		return nil, err
 	}
-	docs, err := help.ParseDocFile("prelude.doc", DocSource)
+	docs, err := help.ParseDocFile("prelude.doc", docSource)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +48,10 @@ func LoadCatalog(g *grammar.Grammar) (*Catalog, error) {
 		declared[name] = true
 		names = append(names, name)
 	}
-	if err := validateCoverage(declared, funcs); err != nil {
+	if err := validateHelpCoverage(declared, funcs); err != nil {
+		return nil, err
+	}
+	if err := validateDocCoverage(declared, docs); err != nil {
 		return nil, err
 	}
 	sort.Strings(names)
@@ -54,7 +61,7 @@ func LoadCatalog(g *grammar.Grammar) (*Catalog, error) {
 	return &Catalog{Registry: registry, Names: names}, nil
 }
 
-func validateCoverage(declared map[string]bool, entries map[string]help.FuncEntry) error {
+func validateHelpCoverage(declared map[string]bool, entries map[string]help.FuncEntry) error {
 	var problems []string
 	for name := range declared {
 		if _, ok := entries[name]; !ok {
@@ -71,4 +78,23 @@ func validateCoverage(declared map[string]bool, entries map[string]help.FuncEntr
 	}
 	sort.Strings(problems)
 	return fmt.Errorf("prelude help mismatch:\n  %s", strings.Join(problems, "\n  "))
+}
+
+func validateDocCoverage(declared map[string]bool, entries map[string]help.DocEntry) error {
+	var problems []string
+	for name := range declared {
+		if _, ok := entries[name]; !ok {
+			problems = append(problems, fmt.Sprintf("missing doc for '%s'", name))
+		}
+	}
+	for name := range entries {
+		if !declared[name] {
+			problems = append(problems, fmt.Sprintf("orphan doc entry '%s'", name))
+		}
+	}
+	if len(problems) == 0 {
+		return nil
+	}
+	sort.Strings(problems)
+	return fmt.Errorf("prelude doc mismatch:\n  %s", strings.Join(problems, "\n  "))
 }
