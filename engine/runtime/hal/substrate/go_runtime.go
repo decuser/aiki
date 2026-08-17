@@ -59,7 +59,9 @@ type GoRuntime struct {
 	services        map[string]*Builtin
 	hostBindings    map[string]hal.HostOperation
 	stdin           io.Reader
+	stdinReader     *bufio.Reader
 	stdout          io.Writer
+	stderr          io.Writer
 	pageOutput      func(string) bool
 	userEnv         *value.Env
 	moduleRegistry  *ModuleRegistry
@@ -99,7 +101,9 @@ func NewGoRuntime() *GoRuntime {
 		hostBindings:    make(map[string]hal.HostOperation),
 		canvasResources: make(map[*value.Canvas]*CanvasResource),
 		stdin:           os.Stdin,
+		stdinReader:     bufio.NewReader(os.Stdin),
 		stdout:          os.Stdout,
+		stderr:          os.Stderr,
 		workingDir:      workingDir,
 		envLookup:       os.LookupEnv,
 		rng:             rand.New(rand.NewSource(time.Now().UnixNano())),
@@ -107,6 +111,9 @@ func NewGoRuntime() *GoRuntime {
 		asyncFaults:     make(chan *value.Fault, 1),
 	}
 	rt.registerHAL()
+	if err := rt.ValidateProfile(hal.DefaultRuntimeProfile); err != nil {
+		panic(err)
+	}
 	return rt
 }
 
@@ -121,7 +128,19 @@ func (g *GoRuntime) SetIO(in io.Reader, out io.Writer) {
 		out = os.Stdout
 	}
 	g.stdin = in
+	g.stdinReader = bufio.NewReader(in)
 	g.stdout = out
+	g.mu.Unlock()
+}
+
+// SetErrorOutput replaces the runtime-owned standard error endpoint. Nil
+// restores the process default.
+func (g *GoRuntime) SetErrorOutput(out io.Writer) {
+	g.mu.Lock()
+	if out == nil {
+		out = os.Stderr
+	}
+	g.stderr = out
 	g.mu.Unlock()
 }
 

@@ -1,0 +1,33 @@
+@preamble let io = import("io")
+read
+Reads up to count bytes from a readable endpoint. The initial standard endpoint
+is :stdin; open file values are also readable. Returns bytes, [@end] at end of
+input, or a shaped :io error.
+
+read(source, count)
+
+type(io.read(:stdin, 0))    # :bytes
+===
+read_line
+Reads one line from :stdin or an open file. The line terminator is removed.
+Returns the final unterminated line as text and [@end] when no input remains.
+
+read_line(source)
+
+let file = import("file")
+let path = file.temp()
+let out = file.open(path, :write)
+file.write_text(out, "alpha\n")    # true
+file.close(out)    # true
+let input = file.open(path, :read)
+io.read_line(input)    # "alpha"
+file.close(input)    # true
+file.delete(path)    # true
+===
+write
+Writes a string or bytes to :stdout, :stderr, or an open file. Returns true on
+success or a shaped :io error.
+
+write(destination, data)
+
+io.write(:stdout, "")    # true

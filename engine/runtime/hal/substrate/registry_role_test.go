@@ -9,8 +9,8 @@ func TestCompatibilityRegistrySeparatedByRole(t *testing.T) {
 		roleIntrinsic: 9,
 		roleNative:    40,
 		roleProvider:  14,
-		roleHost:      40,
-		roleService:   17,
+		roleHost:      48,
+		roleService:   19,
 	}
 
 	seen := make(map[string]registryRole)
@@ -27,8 +27,8 @@ func TestCompatibilityRegistrySeparatedByRole(t *testing.T) {
 		}
 	}
 
-	if got := len(seen); got != 120 {
-		t.Fatalf("classified %d compatibility primitives, want 120", got)
+	if got := len(seen); got != 130 {
+		t.Fatalf("classified %d compatibility primitives, want 130", got)
 	}
 
 	for _, name := range []string{"_apply", "_first", "_regex_match", "_file_open", "_canvas", "_profile_counts"} {
@@ -43,7 +43,7 @@ func TestCompatibilityRegistrySeparatedByRole(t *testing.T) {
 		}
 	}
 
-	if got := len(rt.hostBindings); got != 38 {
-		t.Errorf("canonical host bindings changed during M6: got %d, want 38", got)
+	if got := len(rt.hostBindings); got != 46 {
+		t.Errorf("canonical host bindings = %d, want 46", got)
 	}
 }

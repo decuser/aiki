@@ -51,3 +51,34 @@ func (g *GoRuntime) halModuleRoots(args []value.Value, ctx *hal.EvalContext) val
 	}
 	return &value.List{Elements: elements}
 }
+
+func (g *GoRuntime) halSystemHas(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 1 {
+		return value.NewFault("system.has: want 1 argument, got %d", len(args))
+	}
+	name, ok := args[0].(*value.Symbol)
+	if !ok {
+		return value.NewFault("system.has: expected symbol, got %s", args[0].Type())
+	}
+	if g.HasCapability(name.Val) {
+		return value.TRUE
+	}
+	return value.FALSE
+}
+
+func (g *GoRuntime) halSystemRequire(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 1 {
+		return value.NewFault("system.require: want 1 argument, got %d", len(args))
+	}
+	name, ok := args[0].(*value.Symbol)
+	if !ok {
+		return value.NewFault("system.require: expected symbol, got %s", args[0].Type())
+	}
+	if _, known := hal.CapabilityDefinition(name.Val); !known {
+		return value.NewShapedError("unsupported", "unknown capability: :%s", name.Val)
+	}
+	if !g.HasCapability(name.Val) {
+		return value.NewShapedError("unsupported", "unsupported capability: :%s", name.Val)
+	}
+	return value.EMPTY
+}

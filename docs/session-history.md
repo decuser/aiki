@@ -250,3 +250,26 @@ Sessions covered: 2026-08-14 through 2026-08-16.
   evaluated when the left operand determines the result.
 - This is expected evidence of the lazy logical-control change: it preserves
   native behavior while reducing unnecessary self-host evaluator work.
+
+## HAL capability gates and host affordances (2026-08-17)
+
+- Gate 1 selected as the next HAL effort: centralize HAL architectural metadata,
+  add invariants, then add capability/profile metadata without adding a dispatch
+  layer.
+- Architectural pattern: centralize identity, decentralize concern, validate
+  composition. `engine/runtime/hal` owns operation, authority, capability, and
+  profile metadata; Go substrate files retain realization/provenance.
+- Capability availability and authority are independent. Source-level queries
+  use Aiki names via `system.has` and `system.require`, never raw HAL identities.
+- Phase 1 introduces common `io.read`, `io.read_line`, and `io.write` over
+  `:stdin`, `:stdout`, `:stderr`, and file handles. Stdin buffering is runtime
+  owned so repeated line reads cannot lose buffered input.
+- Phase 2 adds `file.walk`, `file.symlink`, and `file.read_link`; symlink is an
+  optional capability. Relative symlink targets remain literal while link paths
+  follow runtime-owned cwd semantics.
+- Phase 3 adds `file.permissions` and `file.chmod` using the substrate's portable
+  permission vocabulary. Unix-shaped mode bits are not asserted to describe all
+  host permission models.
+- Validation in this environment is limited: repository requires Go 1.24, while
+  the available toolchain is Go 1.23.2 and network access prevents toolchain
+  download. `make validate` is therefore required on the user's local tree.

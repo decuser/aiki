@@ -19,8 +19,8 @@ func TestHALHostOperationThreeNameCoverage(t *testing.T) {
 	root := distributionRoot(t)
 	rt := substrate.NewGoRuntime()
 	ops := rt.HostOperations()
-	if len(ops) != 38 {
-		t.Fatalf("expected 38 canonical host operations, got %d", len(ops))
+	if len(ops) != 46 {
+		t.Fatalf("expected 46 canonical host operations, got %d", len(ops))
 	}
 
 	visible := map[string]bool{}

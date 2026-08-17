@@ -85,6 +85,26 @@ let size = (path) {
 	_file_size(path)
 }
 
+let walk = (path) {
+	_file_walk(path)
+}
+
+let symlink = (target, link_path) {
+	_file_symlink(target, link_path)
+}
+
+let read_link = (path) {
+	_file_read_link(path)
+}
+
+let permissions = (path) {
+	_file_permissions(path)
+}
+
+let chmod = (path, mode) {
+	_file_chmod(path, mode)
+}
+
 export(
 	:open,
 	:read_text,
@@ -106,5 +126,10 @@ export(
 	:temp,
 	:temp_dir,
 	:copy,
-	:size
+	:size,
+	:walk,
+	:symlink,
+	:read_link,
+	:permissions,
+	:chmod
 )

@@ -1,0 +1,19 @@
+let io = import("io")
+let file = import("file")
+let test = import("test")
+
+let run = test.run
+let equal = test.equal
+let is_true = test.is_true
+
+run("io reads lines and writes through file handles", () {
+	let path = "aiki-io-test.tmp"
+	let out = file.open(path, :write)
+	is_true(io.write(out, "alpha\nbeta\n"))
+	is_true(file.close(out))
+	let input = file.open(path, :read)
+	equal(io.read_line(input), "alpha")
+	equal(io.read_line(input), "beta")
+	is_true(file.close(input))
+	is_true(file.delete(path))
+})

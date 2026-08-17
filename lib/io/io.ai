@@ -1,0 +1,16 @@
+package "io"
+
+# io - common sequential I/O over standard endpoints and file handles
+let read = (source, count) {
+	_io_read(source, count)
+}
+
+let read_line = (source) {
+	_io_read_line(source)
+}
+
+let write = (destination, data) {
+	_io_write(destination, data)
+}
+
+export(:read, :read_line, :write)

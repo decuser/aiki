@@ -96,8 +96,10 @@ These artifacts have different jobs:
   acceptance criteria, planned cuts, and which audit findings it addresses.
 - `buglist.md` contains current unresolved defects. It is not a history of every
   observation, accepted limitation, or resolved audit finding.
-- `ai/sessions/` records execution: decisions, discoveries, departures from the
-  proposal, validation evidence, caveats, and restart state.
+- `docs/session-history.md` records durable execution history: decisions,
+  discoveries, departures from proposals, validation evidence, caveats, and
+  restart state. Keep it concise and cumulative rather than creating per-session
+  directories.
 
 A project may close audit findings without adding them to the buglist. A finding
 that remains a genuine unresolved defect should remain represented in the
@@ -126,43 +128,20 @@ change evidence only for an explicit, planned behavior or representation change.
 
 ## Working record
 
-The durable AI record lives in the repository:
+The durable AI record lives in two places:
 
 ```text
-ai/
-  README.md                    durable working method
-  sessions/
-    README.md                  pointer to current/latest session
-    YYYY-MM-DD[-project]/
-      README.md                live index and restart point
-      summary.md               curated conceptual narrative
-      01-<milestone>.md        durable milestone record
-      02-<milestone>.md
-      ...
+ai/README.md               durable working method
+docs/session-history.md    concise cumulative project/session history
 ```
 
-The exact dated-directory naming convention may include a project suffix when
-multiple substantial projects occur on the same date.
-
-### Session files
-
-- The dated `README.md` is the mutable project/session index. It states current
-  status, gated milestones, unresolved discoveries, and the exact next action.
-- `summary.md` preserves the conceptual story: the problem, how the reasoning
-  developed, important distinctions, surprises, and resulting architecture. It
-  is curated provenance, not a chat transcript.
-- Numbered milestone files are the durable engineering record. Once gated, edit
-  them only to correct factual errors or add clearly marked follow-up notes.
-
-Maintain the record as work proceeds, but normally **deliver the consolidated
-session material at project completion or at a genuine interruption/handoff**.
-Do not generate a separate `ai/` tarball after every routine cut merely because a
-cut completed.
+Do not create per-session directories. Record only durable decisions, findings,
+validation evidence, limitations, and exact restart state. Chat transcript and
+routine narration are cruft.
 
 For non-coding Aiki work — design discussion, paper review, proposal development,
-planning, or code review without edits — use the same record when the discussion
-produces durable decisions, findings, or next actions that are not already
-captured elsewhere.
+planning, or code review without edits — update the history only when the work
+produces a durable decision, finding, or next action not already captured elsewhere.
 
 ## Starting or resuming work
 
@@ -171,12 +150,11 @@ When substantial Aiki work begins:
 1. Read this working method.
 2. If a baseline/archive was supplied, inspect it rather than assuming the chat
    describes its current state.
-3. Read `ai/sessions/README.md`, then the current/latest session `README.md` and
-   latest relevant milestone.
+3. Read the latest relevant entries in `docs/session-history.md`.
 4. Read the controlling proposal and any audit-finding IDs it cites.
 5. Inspect Git status, branch, and relevant tree state before making changes.
-6. Continue from the recorded next action or create a new project session when
-   starting genuinely new work.
+6. Continue from the recorded next action and update session history as durable
+   state changes.
 
 Do not ask the user to repeat information that the repository record already
 contains.

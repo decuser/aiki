@@ -196,3 +196,42 @@ size
 Returns the filesystem-reported size of path in bytes, or [@error, :io, msg].
 
 size(path)
+
+===
+walk
+@unchecked
+Returns path and its descendants. Relative input produces paths relative to the
+runtime working directory; absolute input produces absolute paths. Directory
+symlinks are not followed.
+
+walk(path)
+===
+symlink
+@unchecked
+Creates link_path pointing to target. A relative target is preserved exactly and
+is interpreted by the host relative to the link's directory. Requires the
+:symlink capability.
+
+symlink(target, link_path)
+===
+read_link
+@unchecked
+Returns the stored target of a symbolic link. Requires :symlink.
+
+read_link(path)
+===
+permissions
+@unchecked
+Returns permission bits using the portable permission vocabulary exposed by the
+current substrate. The Go substrate reports os.FileMode.Perm bits. Requires
+:permissions.
+
+permissions(path)
+===
+chmod
+@unchecked
+Requests permission bits in the range 0..0777. The substrate maps those bits to
+the host permission model and reports ordinary Aiki I/O errors when the host
+cannot perform the request. Requires :permissions.
+
+chmod(path, mode)
