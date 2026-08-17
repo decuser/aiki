@@ -1,66 +1,45 @@
 # Invariant Tests
 
-Verify the machine is shaped correctly — structural properties that must hold.
+Verify that Aiki's declared architecture is still true.
 
-## Executable couplings
+`make invariant` is the dedicated architectural gate. `make test` excludes the
+invariant and boundary packages; `make check` and therefore `make validate`
+require both behavioral tests and architectural invariants.
 
-Each test enforces that two parts of the distribution agree:
+## Rule
 
-1. grammar productions <-> evaluator handlers (`handler_validation_test.go`)
-2. module exports <-> help entries (`lib_help_test.go`)
-3. module exports <-> doc entries (`lib_help_test.go`)
-4. runtime module roots <-> invariant module discovery (`lib_help_test.go`)
-5. help templates <-> function signatures (`lib_help_test.go`)
-6. doc examples <-> stated expected values (`doc_examples_test.go`)
-7. doc entry disposition: every entry is checked or @unchecked (`doc_examples_test.go`)
-8. every shipped module has both help and doc (`lib_help_test.go`, `doc_examples_test.go`)
-9. ebiten import confined to one file (`graphics_boundary_test.go`)
-10. grammar token authority <-> self-host token inventory (`selfhost_token_authority_test.go`)
-11. Go lexer <-> independent Aiki lexer <-> reviewed lexical fixtures (`selfhost_lexer_conformance_test.go`)
-12. Go newline normalization <-> independent Aiki normalization <-> reviewed newline fixtures (`selfhost_newline_conformance_test.go`)
-13. Go parser <-> independent Aiki parser <-> engine parse-gold corpus (`selfhost_parser_conformance_test.go`)
-14. grammar lexical inventory <-> Xed GtkSourceView declaration (`xed_language_test.go`)
-15. grammar lexical inventory <-> VS Code TextMate declaration (`vscode_language_test.go`)
-16. VS Code language registration/client launch <-> thin `aiki lsp` adapter contract (`vscode_client_test.go`)
-17. self-host runtime environment semantics <-> focused lexical-scope probe (`selfhost_runtime_test.go`)
-18. reference evaluator <-> independent Aiki expression evaluator (`selfhost_evaluator_expr_test.go`)
-19. reference evaluator <-> independent Aiki statement/function evaluator (`selfhost_evaluator_program_test.go`)
-20. prelude exports <-> explicit self-host host-value bridge (`selfhost_prelude_bridge_test.go`)
-21. reference module behavior <-> self-hosted source-module loader (`selfhost_module_test.go`)
-22. behavior gold corpus <-> independent self-host evaluator (`selfhost_behavior_acceptance_test.go`)
-23. Go bootstrap -> Aiki interpreter -> Aiki interpreter -> third-level Aiki result (`selfhost_self_interpretation_test.go`)
+An invariant belongs here when it protects a structural relationship, layer
+boundary, authoritative metadata join, prohibited representation, or another
+architecture-level contract.
 
-## handler_validation_test.go
+A critical invariant is not considered protected merely because the valid tree
+passes. It must also have a negative test that violates the contract and proves
+the same detector rejects the invalid state with a useful diagnostic.
 
-Verifies grammar-evaluator coupling:
-- Every grammar production has a handler
-- Every token has a handler
-- Missing handlers panic at startup
+## Critical assured contracts
 
-## lib_help_test.go
+- HAL metadata identity/capability/profile coherence, including negative graph mutations.
+- HAL runtime host-binding coverage and three-name contract, including missing-binding mutation.
+- capability availability and required-profile gating, including missing-operation mutation.
+- primitive architectural roles and runtime registration-role coverage, including missing/wrong-role mutations.
+- grammar/token handler coverage, including deliberately missing handler tests.
+- prelude source/help/doc coverage, including missing-help and missing-doc mutations.
+- library export/help/doc coverage, including missing and phantom entry mutations.
+- concrete substrate dependency confinement to the composition root, including injected-import mutation.
+- runtime-owned I/O/system state, including injected ambient-process-global mutation.
+- exact-number core representation: no float path in `engine/semantics` or `engine/syntax`, including injected-float mutation.
 
-Verifies that shipped library modules have complete, well-formed
-help and doc files covering all exports. Uses the same module
-registry (`DistributionModuleRoots`) that the runtime uses, so the
-tests discover exactly the modules users see.
+## Other structural checks
 
-## doc_examples_test.go
+The gate also checks documentation disposition, graphics confinement, opaque
+Canvas semantic values, shipped-module discovery, help signature agreement, and
+editor lexical/client coupling. These remain structural distribution checks;
+negative mutation coverage may be added when a concrete regression risk warrants
+promoting one to a critical assured contract.
 
-Runs every doc entry's example code as an Aiki program. Entries
-with `# expected` comments are checked against `inspect()` output.
-Entries marked `@unchecked` run the preamble only (verifying the
-module loads). Every entry must have one disposition or the other.
+## Behavioral/conformance separation
 
-## graphics_boundary_test.go
-
-Confirms ebiten is imported by exactly one file and that the
-language core packages are free of it.
-
-
-## selfhost_*_test.go
-
-Verify Phase-I self-description/conformance couplings. The independent Aiki
-front end does not reuse the Go lexer or parser. Both implementations are
-checked against reviewed language-owned artifacts: extracted grammar facts,
-lexical/newline conformance fixtures, and the existing engine parse-gold
-corpus. Phase III adds runtime-environment, expression, statement/function, prelude-bridge, module-loading, and behavior-acceptance couplings. These compare the independent evaluator against reference behavior while keeping the bridge vocabulary coupled to the real prelude authority and preserving self-hosted Aiki-source module loading. The final self-interpretation invariant runs the Aiki-written interpreter through itself and requires the third-level program to produce the same Aiki result.
+Execution-heavy self-host conformance and executable documentation examples live
+under `test/conformance` and run with `make test`. Exact-number execution behavior
+lives under `test/contract`. They support architectural claims but do not belong
+in the fast structural gate.

@@ -69,3 +69,18 @@ func Capabilities() map[string]Capability {
 	}
 	return out
 }
+
+// CapabilityAvailable reports whether every HAL operation required by a
+// capability is present in the supplied bound-identity set.
+func CapabilityAvailable(name string, boundIdentities map[string]bool) bool {
+	capability, ok := CapabilityDefinition(name)
+	if !ok {
+		return false
+	}
+	for _, identity := range capability.Operations {
+		if !boundIdentities[identity] {
+			return false
+		}
+	}
+	return true
+}

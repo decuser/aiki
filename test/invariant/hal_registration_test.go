@@ -1,23 +1,62 @@
 package invariant
 
 import (
+	"fmt"
+	"sort"
+	"strings"
 	"testing"
 
 	"aiki/engine/runtime/hal/substrate"
-	"aiki/engine/semantics/value"
+	"aiki/engine/runtime/primitives"
 )
 
-// TestHALAllRegistrationsNonNil verifies all registered HAL functions are non-nil.
-// The register() method panics if fn is nil, so if NewGoRuntime() succeeds,
-// all registrations are valid.
-func TestHALAllRegistrationsNonNil(t *testing.T) {
-	// Creating a GoRuntime runs registerHAL() which would panic if any are nil.
-	// If we get here without panic, all registrations are valid.
+func TestRuntimePrimitiveRegistrationsMatchArchitecture(t *testing.T) {
 	rt := substrate.NewGoRuntime()
-
-	// Verify we have a reasonable number of registrations
-	names := rt.BuiltinNames(value.ScopePrelude)
-	if len(names) < 50 {
-		t.Errorf("expected at least 50 HAL registrations, got %d", len(names))
+	if err := validatePrimitiveRegistrations(primitives.Definitions(), rt.PrimitiveRegistrations()); err != nil {
+		t.Fatal(err)
 	}
+}
+
+func TestRuntimeRegistrationInvariantRejectsMissingPrimitive(t *testing.T) {
+	rt := substrate.NewGoRuntime()
+	actual := rt.PrimitiveRegistrations()
+	delete(actual, "_file_stat")
+	err := validatePrimitiveRegistrations(primitives.Definitions(), actual)
+	if err == nil || !strings.Contains(err.Error(), "missing runtime primitive _file_stat") {
+		t.Fatalf("expected missing primitive failure, got %v", err)
+	}
+}
+
+func TestRuntimeRegistrationInvariantRejectsWrongRole(t *testing.T) {
+	rt := substrate.NewGoRuntime()
+	actual := rt.PrimitiveRegistrations()
+	actual["_file_stat"] = primitives.RoleNative
+	err := validatePrimitiveRegistrations(primitives.Definitions(), actual)
+	if err == nil || !strings.Contains(err.Error(), "runtime primitive _file_stat registered as native, architecture requires host") {
+		t.Fatalf("expected wrong-role failure, got %v", err)
+	}
+}
+
+func validatePrimitiveRegistrations(want, actual map[string]primitives.Role) error {
+	var problems []string
+	for name, role := range want {
+		got, ok := actual[name]
+		if !ok {
+			problems = append(problems, "missing runtime primitive "+name)
+			continue
+		}
+		if got != role {
+			problems = append(problems, fmt.Sprintf("runtime primitive %s registered as %s, architecture requires %s", name, got, role))
+		}
+	}
+	for name := range actual {
+		if _, ok := want[name]; !ok {
+			problems = append(problems, "runtime registers primitive with no architectural definition "+name)
+		}
+	}
+	if len(problems) == 0 {
+		return nil
+	}
+	sort.Strings(problems)
+	return fmt.Errorf("runtime primitive-registration invariant failure:\n  %s", strings.Join(problems, "\n  "))
 }

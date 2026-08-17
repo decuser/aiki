@@ -51,3 +51,24 @@ func (g *GoRuntime) registerPrimitive(name string, fn BuiltinFunc) {
 	}
 	g.registryFor(role)[name] = &Builtin{name: name, fn: fn, runtime: g}
 }
+
+// PrimitiveRegistrations returns the runtime's actual primitive registrations
+// classified by architectural role. The returned map is a validation snapshot;
+// callers cannot mutate runtime dispatch through it.
+func (g *GoRuntime) PrimitiveRegistrations() map[string]primitives.Role {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	out := map[string]primitives.Role{}
+	for _, role := range []primitives.Role{
+		primitives.RoleIntrinsic,
+		primitives.RoleNative,
+		primitives.RoleProvider,
+		primitives.RoleHost,
+		primitives.RoleService,
+	} {
+		for name := range g.registryFor(role) {
+			out[name] = role
+		}
+	}
+	return out
+}

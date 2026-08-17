@@ -1,4 +1,4 @@
-package invariant
+package contract
 
 import (
 	"math/big"

@@ -1,5 +1,7 @@
 package hal
 
+import "fmt"
+
 // RuntimeProfile declares the capabilities required before a runtime may begin
 // execution. Any capability not required by a profile is optional.
 type RuntimeProfile struct {
@@ -41,4 +43,20 @@ func RuntimeProfiles() map[string]RuntimeProfile {
 		out[name] = profile
 	}
 	return out
+}
+
+// ValidateProfileAvailability checks a profile against the supplied capability
+// availability query. It is the profile gate's architectural rule independent
+// of any concrete substrate.
+func ValidateProfileAvailability(name string, hasCapability func(string) bool) error {
+	profile, ok := RuntimeProfileDefinition(name)
+	if !ok {
+		return fmt.Errorf("unknown runtime profile: %s", name)
+	}
+	for _, capability := range profile.Capabilities {
+		if !hasCapability(capability) {
+			return fmt.Errorf("runtime profile %s requires unsupported capability: :%s", name, capability)
+		}
+	}
+	return nil
 }

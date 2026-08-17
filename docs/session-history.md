@@ -313,3 +313,29 @@ Sessions covered: 2026-08-14 through 2026-08-16.
 - Exact next action: apply the Gate 2 overlay to the user's `hal-capability`
   branch, delete the two retired substrate registry files, rebuild, and run
   `make validate`.
+
+## Invariant system overhaul — Gate 3 (2026-08-17)
+
+- New authoritative baseline: commit `9cc220c` on branch `hal-capability`.
+- Gate 2 and the prelude help/doc coverage correction are committed and validated locally by the user with `make validate` passing.
+- Gate 3 begins as an invariant-system overhaul, not a feature effort.
+- Primary build contract: `make test` checks behavior, `make invariant` checks architecture, and `make validate` requires both.
+- Critical rule: an architectural invariant is not considered protected until a negative test proves that violating it is detected through the same invariant path used by the real gate.
+- HAL is the first full specimen; engine authorities and representation guardrails follow.
+- Exact next action: inventory the current invariant test package and Makefile wiring, classify checks, then introduce the dedicated `make invariant` target without weakening existing validation.
+
+### Gate 3 implementation state (2026-08-17)
+
+- Added dedicated `make invariant`; `make test` excludes invariant/boundary packages and `make check`/`make validate` require `make invariant`.
+- Reclassified execution-heavy self-host tests to `test/conformance` and exact-number execution behavior to `test/contract`; executable documentation examples moved to conformance with shared doc-example parsing support.
+- HAL metadata now has a reusable validator with negative mutations for duplicate identity, unknown capability operation, and unknown profile capability.
+- HAL capability/profile rules are pure architectural functions used by GoRuntime and directly mutation-tested.
+- Runtime host binding coverage now compares canonical identities rather than fixed counts and has a missing-binding negative test.
+- Primitive-role validation no longer depends on fixed totals; runtime primitive registrations are compared by exact name and role with missing/wrong-role negative tests.
+- Prelude source/help/doc negative assurance now runs under the invariant gate through the same catalog validation path.
+- Library export/help/doc coverage uses a shared coverage validator with missing/phantom negative tests.
+- Added engine layer invariant: only the HAL substrate itself and `engine/runner` composition root may import the concrete Go substrate; injected leak is rejected.
+- Added runtime-ownership invariant over Aiki-facing I/O/system implementations to prevent regression to ambient `os.Stdin`, `os.Stdout`, `os.Stderr`, `os.Args`, environment, or cwd APIs; injected regression is rejected.
+- Added exact-number architecture invariant: production Go under `engine/semantics` and `engine/syntax` contains no float types or conversion paths; injected `float64` is rejected. Host-side graphics/time/inexact math remain outside this boundary.
+- Disposable Go 1.23 probe compiled `engine/runtime/hal`, `engine/runtime/prelude`, `engine/runtime/primitives`, and shared doc-example support. Full invariant packages remain environment-limited by unavailable Ebiten download; user-side Go 1.24 validation is required.
+- Exact next action: apply Gate 3 delta on `hal-capability`, rebuild, run `make invariant`, then run `make validate`; any invariant failure is treated as a Gate 3 defect before commit.

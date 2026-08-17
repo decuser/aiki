@@ -1,6 +1,7 @@
 package invariant
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -88,6 +89,41 @@ func shippedModulePaths(t *testing.T) map[string]string {
 	return paths
 }
 
+func validateNameCoverage(moduleName, artifact string, exports, entries []string) error {
+	exported := map[string]bool{}
+	for _, name := range exports {
+		exported[name] = true
+	}
+	present := map[string]bool{}
+	for _, name := range entries {
+		present[name] = true
+	}
+	var problems []string
+	for name := range exported {
+		if !present[name] {
+			problems = append(problems, fmt.Sprintf("%s: exported but absent from %s: %s", moduleName, artifact, name))
+		}
+	}
+	for name := range present {
+		if name != "===" && !exported[name] {
+			problems = append(problems, fmt.Sprintf("%s: %s describes procedure not exported: %s", moduleName, artifact, name))
+		}
+	}
+	if len(problems) == 0 {
+		return nil
+	}
+	sort.Strings(problems)
+	return fmt.Errorf("%s coverage invariant failure:\n  %s", artifact, strings.Join(problems, "\n  "))
+}
+
+func mapKeys[V any](m map[string]V) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	return out
+}
+
 func splitArgs(s string) []string {
 	var out []string
 	for _, p := range strings.Split(s, ",") {
@@ -170,31 +206,8 @@ func TestLibHelpCoversExports(t *testing.T) {
 			continue
 		}
 
-		var missing []string
-		for _, name := range m.exports {
-			if _, ok := entries[name]; !ok {
-				missing = append(missing, name)
-			}
-		}
-		sort.Strings(missing)
-		if len(missing) > 0 {
-			t.Errorf("%s: exported but absent from help: %s", m.name, strings.Join(missing, ", "))
-		}
-
-		exported := map[string]bool{}
-		for _, name := range m.exports {
-			exported[name] = true
-		}
-		var phantom []string
-		for name := range entries {
-			if !exported[name] {
-				phantom = append(phantom, name)
-			}
-		}
-		sort.Strings(phantom)
-		if len(phantom) > 0 {
-			t.Errorf("%s: help describes procedures the module does not export: %s",
-				m.name, strings.Join(phantom, ", "))
+		if err := validateNameCoverage(m.name, "help", m.exports, mapKeys(entries)); err != nil {
+			t.Error(err)
 		}
 	}
 }
@@ -311,31 +324,8 @@ func TestLibDocCoversExports(t *testing.T) {
 			continue
 		}
 
-		var missing []string
-		for _, name := range m.exports {
-			if _, ok := docs[name]; !ok {
-				missing = append(missing, name)
-			}
-		}
-		sort.Strings(missing)
-		if len(missing) > 0 {
-			t.Errorf("%s: exported but absent from doc: %s", m.name, strings.Join(missing, ", "))
-		}
-
-		exported := map[string]bool{}
-		for _, name := range m.exports {
-			exported[name] = true
-		}
-		var phantom []string
-		for name := range docs {
-			if name == "===" || !exported[name] {
-				phantom = append(phantom, name)
-			}
-		}
-		sort.Strings(phantom)
-		if len(phantom) > 0 {
-			t.Errorf("%s: doc describes procedures the module does not export: %s",
-				m.name, strings.Join(phantom, ", "))
+		if err := validateNameCoverage(m.name, "doc", m.exports, mapKeys(docs)); err != nil {
+			t.Error(err)
 		}
 	}
 }
@@ -374,5 +364,22 @@ func TestShippedModuleDiscovery(t *testing.T) {
 			t.Errorf("%s at %s is outside the distribution roots %v",
 				name, path, modules.DistributionModuleRoots())
 		}
+	}
+}
+
+func TestLibraryCoverageInvariantRejectsMissingAndPhantomEntries(t *testing.T) {
+	for _, artifact := range []string{"help", "doc"} {
+		t.Run(artifact+" missing", func(t *testing.T) {
+			err := validateNameCoverage("fixture", artifact, []string{"alpha", "beta"}, []string{"alpha"})
+			if err == nil || !strings.Contains(err.Error(), "exported but absent from "+artifact+": beta") {
+				t.Fatalf("expected missing-entry failure, got %v", err)
+			}
+		})
+		t.Run(artifact+" phantom", func(t *testing.T) {
+			err := validateNameCoverage("fixture", artifact, []string{"alpha"}, []string{"alpha", "ghost"})
+			if err == nil || !strings.Contains(err.Error(), artifact+" describes procedure not exported: ghost") {
+				t.Fatalf("expected phantom-entry failure, got %v", err)
+			}
+		})
 	}
 }

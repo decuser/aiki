@@ -1,4 +1,4 @@
-package invariant
+package conformance
 
 import (
 	"bytes"

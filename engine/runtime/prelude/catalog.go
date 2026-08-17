@@ -21,10 +21,14 @@ type Catalog struct {
 // LoadCatalog derives and validates the prelude surface from the real Aiki
 // source plus its authored help and documentation.
 func LoadCatalog(g *grammar.Grammar) (*Catalog, error) {
-	return loadCatalogFromSources(g, Source, HelpSource, DocSource)
+	return ValidateSources(g, Source, HelpSource, DocSource)
 }
 
-func loadCatalogFromSources(g *grammar.Grammar, source, helpSource, docSource string) (*Catalog, error) {
+// ValidateSources validates a prelude source/help/doc triple through the same
+// catalog construction path used by the runtime. It exists so architectural
+// invariant tests can deliberately mutate one authority without duplicating the
+// join logic.
+func ValidateSources(g *grammar.Grammar, source, helpSource, docSource string) (*Catalog, error) {
 	info, err := modules.AnalyzeSource(g, "engine/runtime/prelude/prelude.ai", source)
 	if err != nil {
 		return nil, fmt.Errorf("analyzing prelude source: %w", err)
