@@ -250,3 +250,52 @@ run("filter result is subset of original length", () {
 		x > 3
 	})) <= length(xs))
 })
+
+
+# sort
+run("sort returns natural ascending order", () {
+	let xs = [3, 1, 4, 1, 5, 2]
+	equal(sort(xs), [1, 1, 2, 3, 4, 5])
+	equal(xs, [3, 1, 4, 1, 5, 2])
+})
+
+
+run("sort uses Aiki natural scalar ordering", () {
+	equal(sort(["beta", "alpha", "gamma"]), ["alpha", "beta", "gamma"])
+	equal(sort(['z', 'a', 'λ']), ['a', 'z', 'λ'])
+	equal(sort([:gamma, :alpha, :beta]), [:alpha, :beta, :gamma])
+})
+
+
+run("sort accepts custom ordering", () {
+	equal(sort([3, 1, 4, 2], (a, b) {
+		a > b
+	}), [4, 3, 2, 1])
+})
+
+
+run("sort comparator supports strings", () {
+	equal(sort(["bbb", "a", "cc"], (a, b) {
+		length(a) < length(b)
+	}), ["a", "cc", "bbb"])
+})
+
+
+run("sort is stable", () {
+	let xs = [[2, :a], [1, :b], [2, :c], [1, :d]]
+	equal(sort(xs, (a, b) {
+		a[0] < b[0]
+	}), [[1, :b], [1, :d], [2, :a], [2, :c]])
+})
+
+
+run("sort rejects non-function comparator", () {
+	error(sort([2, 1], 7))
+})
+
+
+run("sort rejects non-boolean comparator result", () {
+	error(sort([2, 1], (a, b) {
+		0
+	}))
+})

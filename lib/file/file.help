@@ -104,3 +104,19 @@
 @func chmod
 @template "chmod(path, mode)"
 @help "Requests permission bits 0..0777 when the host provides :permissions."
+
+@func read_all
+@template "read_all(path)"
+@help "Reads an entire file as text and closes it."
+
+@func write_all
+@template "write_all(path, text)"
+@help "Creates or replaces a file with text and closes it."
+
+@func read_all_bytes
+@template "read_all_bytes(path)"
+@help "Reads an entire file as bytes and closes it."
+
+@func write_all_bytes
+@template "write_all_bytes(path, bytes)"
+@help "Creates or replaces a file with bytes and closes it."

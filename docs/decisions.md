@@ -185,3 +185,38 @@ right side is only meaningful if the left guard succeeds.
 
 **Disposition:** Accepted semantic correction. Implemented as lazy evaluator
 handling for `and` and `or`; no syntax change.
+
+## D5. Natural scalar ordering is shared across comparison and sorting
+
+**Date:** 2026-08-17
+
+**Question:** Should `list.sort(xs)` invent its own notion of natural ordering,
+remain limited to numeric `<`, or should Aiki define one scalar ordering relation
+shared by comparison operators and sorting?
+
+**Decision:** Aiki defines natural ordering for values of the same scalar type:
+
+- numbers compare by exact numeric value;
+- strings compare lexicographically by rune sequence;
+- runes compare by Unicode code point;
+- symbols compare lexicographically by symbol name.
+
+`<`, `>`, `<=`, and `>=` use this relation. `list.sort(xs)` uses the same relation.
+Mixed-type values, booleans, lists, shaped lists, functions, and other composites
+remain unordered and produce the ordinary comparison fault. `list.sort(xs, fn)`
+supplies an explicit ordering relation when the natural scalar relation is not
+applicable.
+
+**Rationale:** A default sort that knows more ordering rules than the comparison
+operators would give Aiki two meanings of "comes before." Keeping sorting numeric
+only would make ordinary systems work such as filename ordering unnecessarily
+ceremonial. The selected scalar domains have straightforward intrinsic orderings;
+composites do not need an invented total order merely to make them sortable.
+
+Natural ordering is centralized below the evaluator so comparison operators and
+future optimized sorting implementations consume one semantic contract. The
+current list implementation remains a stable, non-mutating pure-Aiki merge sort
+behind a private implementation seam; a native or FFI implementation may replace
+that algorithm later without changing the public ordering contract.
+
+**Disposition:** Accepted semantic refinement. No syntax change and no HAL change.

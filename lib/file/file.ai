@@ -29,6 +29,70 @@ let close = (file) {
 	_file_close(file)
 }
 
+let read_all = (path) {
+	let file = open(path, :read)
+	if is_error(file) {
+		return file
+	}
+	let result = read_text(file)
+	let closed = close(file)
+	if is_error(result) {
+		return result
+	}
+	if is_error(closed) {
+		return closed
+	}
+	return result
+}
+
+let write_all = (path, text) {
+	let file = open(path, :write)
+	if is_error(file) {
+		return file
+	}
+	let result = write_text(file, text)
+	let closed = close(file)
+	if is_error(result) {
+		return result
+	}
+	if is_error(closed) {
+		return closed
+	}
+	return true
+}
+
+let read_all_bytes = (path) {
+	let file = open(path, :read)
+	if is_error(file) {
+		return file
+	}
+	let result = read_bytes(file)
+	let closed = close(file)
+	if is_error(result) {
+		return result
+	}
+	if is_error(closed) {
+		return closed
+	}
+	return result
+}
+
+let write_all_bytes = (path, bytes) {
+	let file = open(path, :write)
+	if is_error(file) {
+		return file
+	}
+	let result = write_bytes(file, bytes)
+	let closed = close(file)
+	if is_error(result) {
+		return result
+	}
+	if is_error(closed) {
+		return closed
+	}
+	return true
+}
+
 let exists = (path) {
 	_file_exists(path)
 }
@@ -113,6 +177,10 @@ export(
 	:write_text,
 	:write_bytes,
 	:close,
+	:read_all,
+	:write_all,
+	:read_all_bytes,
+	:write_all_bytes,
 	:exists,
 	:delete,
 	:list,

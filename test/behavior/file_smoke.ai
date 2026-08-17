@@ -48,3 +48,12 @@ match result {
 }
 
 println("done")
+
+# Whole-file convenience
+println(file.write_all("_test_all.txt", "whole\nfile"))
+println(file.read_all("_test_all.txt"))
+let bytes = import("bytes/ffi")
+println(file.write_all_bytes("_test_all.bin", bytes.str_to_bytes("ABC")))
+println(bytes.bytes_to_str(file.read_all_bytes("_test_all.bin")))
+file.delete("_test_all.txt")
+file.delete("_test_all.bin")

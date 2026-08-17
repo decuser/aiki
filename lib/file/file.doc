@@ -235,3 +235,50 @@ the host permission model and reports ordinary Aiki I/O errors when the host
 cannot perform the request. Requires :permissions.
 
 chmod(path, mode)
+===
+read_all
+Reads the entire file at path as text, closes the file, and returns the string.
+Returns a shaped :io error if open, read, or close fails.
+
+read_all(path)
+
+let p = temp()
+write_all(p, "alpha\nbeta")    # true
+read_all(p)    # "alpha\nbeta"
+delete(p)    # true
+===
+write_all
+Creates or replaces path with text, closes the file, and returns true. Returns a
+shaped :io error if open, write, or close fails.
+
+write_all(path, text)
+
+let p = temp()
+write_all(p, "replacement")    # true
+read_all(p)    # "replacement"
+delete(p)    # true
+===
+read_all_bytes
+Reads the entire file at path as bytes, closes the file, and returns the bytes
+value. Returns a shaped :io error if open, read, or close fails.
+
+read_all_bytes(path)
+
+let bytes = import("bytes/ffi")
+let p = temp()
+write_all_bytes(p, bytes.str_to_bytes("ABC"))    # true
+bytes.bytes_to_str(read_all_bytes(p))    # "ABC"
+delete(p)    # true
+===
+write_all_bytes
+Creates or replaces path with bytes, closes the file, and returns true. Returns
+a shaped :io error if open, write, or close fails.
+
+write_all_bytes(path, bytes)
+
+let bytes = import("bytes/ffi")
+let p = temp()
+write_all_bytes(p, bytes.str_to_bytes("XYZ"))    # true
+bytes.bytes_to_str(read_all_bytes(p))    # "XYZ"
+delete(p)    # true
+===

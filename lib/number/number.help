@@ -1,0 +1,9 @@
+# number - exact numeric representation utilities
+
+@func to_base
+@template "to_base(n, base)"
+@help "Formats an integer-valued exact number in base 2 through 36."
+
+@func from_base
+@template "from_base(text, base)"
+@help "Parses a signed integer string in base 2 through 36 as an exact number."

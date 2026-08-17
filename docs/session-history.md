@@ -349,3 +349,21 @@ Sessions covered: 2026-08-14 through 2026-08-16.
 - AF-020 resolved: `spawn` no longer falls back to ambient stderr. Runtimes must supply asynchronous fault reporting before spawn launches; GoRuntime already does. Runtime-ownership invariant now covers the intrinsic implementation.
 - Focused disposable Go 1.23 probe compiles `engine/runtime/hal` and `engine/runtime/primitives`. Full substrate/invariant validation remains user-side because uncached Ebiten and Go 1.24 cannot be downloaded here.
 - Next action: apply cleanup overlay, rebuild, run `make invariant`, then `make validate`.
+
+## Systems programmer convenience refinements (2026-08-17)
+
+- New authoritative baseline: commit `20bc799`, release line `v0.4.0-alpha-29`, clean `master`.
+- Project branch: `systems-convenience`.
+- Proposal: `proposals/systems-programmer-convenience-refinements.md`.
+- Scope is deliberately small: Phase 1 natural scalar ordering plus list sorting, Phase 2 pure `lib/number` base conversion, Phase 3 whole-file text/byte convenience. Phase 1 includes a semantic comparison refinement; no phase adds HAL capability.
+- Phase 1 refinement: Aiki natural scalar ordering is centralized for numbers, strings (rune-lexicographic), runes (code point), and symbols (name). `<`, `>`, `<=`, `>=`, and default `list.sort(xs)` share that contract. Mixed types and composites remain unordered; `list.sort(xs, fn)` supplies explicit ordering. Sorting remains stable and non-mutating, with the pure-Aiki merge sort isolated behind an implementation seam for later native/FFI replacement if profiling justifies it.
+- Phase 1 semantic decision recorded as D5. Exact next action: gate the combined systems-convenience implementation locally with `make invariant` and `make validate`; treat any failure as project work before commit.
+
+### Systems convenience implementation state (2026-08-17)
+
+- Phase 1 implemented in pure Aiki: stable non-mutating merge sort exposed as `list.sort(xs)` and `list.sort(xs, fn)`. Natural scalar ordering is centralized for numbers, strings, runes, and symbols and shared by comparison operators and default sort; custom comparator must be a function returning boolean. Merge sort is isolated behind a private implementation seam for later native/FFI replacement if profiling justifies it.
+- Phase 2 implemented as new pure `lib/number`: `to_base` / `from_base`, bases 2..36, signed exact integers, lowercase formatting, upper/lowercase parsing, shaped domain errors, no HAL or float path.
+- Phase 3 implemented by composition in `lib/file`: `read_all`, `write_all`, `read_all_bytes`, `write_all_bytes`. Helpers own open/read-or-write/close and add no HAL operation.
+- Help, full docs, executable examples/tests, list tests, number tests, and file behavior smoke coverage were added with each surface.
+- Sandbox limitation: authoritative Aiki execution is unavailable because the source-only baseline requires Go 1.24 and toolchain download is blocked.
+- Exact next action: apply the project delta locally, rebuild, run `make invariant`, then `make validate`; treat any gate failure as project work before commit.

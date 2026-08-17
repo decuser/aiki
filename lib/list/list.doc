@@ -98,3 +98,19 @@ range(start, end)
 
 range(0, 5)    # [0, 1, 2, 3, 4]
 range(3, 7)    # [3, 4, 5, 6]
+===
+sort
+Returns a stable sorted copy of list, leaving the input unchanged. With no
+comparator, sorting uses Aiki natural scalar ordering: numbers numerically,
+strings by rune sequence, runes by code point, and symbols by name. Other values
+require a comparator. comparator(a, b) must return a boolean that is true when a
+comes before b.
+
+sort(list)
+sort(list, comparator)
+
+sort([3, 1, 2])    # [1, 2, 3]
+sort(["beta", "alpha"])    # ["alpha", "beta"]
+sort([3, 1, 2], (a, b) { a > b })    # [3, 2, 1]
+sort(["bbb", "a", "cc"], (a, b) { length(a) < length(b) })    # ["a", "cc", "bbb"]
+===

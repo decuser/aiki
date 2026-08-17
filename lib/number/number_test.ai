@@ -1,0 +1,49 @@
+use("test")
+use("number")
+
+run("to_base formats common systems bases", () {
+	equal(to_base(255, 16), "ff")
+	equal(to_base(493, 8), "755")
+	equal(to_base(10, 2), "1010")
+	equal(to_base(35, 36), "z")
+})
+
+
+run("base conversion handles sign and zero", () {
+	equal(to_base(-255, 16), "-ff")
+	equal(to_base(0, 2), "0")
+	equal(from_base("-ff", 16), -255)
+	equal(from_base("+10", 10), 10)
+})
+
+
+run("from_base accepts upper and lowercase digits", () {
+	equal(from_base("FF", 16), 255)
+	equal(from_base("ff", 16), 255)
+	equal(from_base("z", 36), 35)
+})
+
+
+run("base conversion round trips exact integers", () {
+	let values = [0, 1, 7, 42, 255, 4096, -17]
+	let bases = [2, 8, 10, 16, 36]
+	let i = 0
+	while i < length(values) {
+		let j = 0
+		while j < length(bases) {
+			equal(from_base(to_base(values[i], bases[j]), bases[j]), values[i])
+			j = j + 1
+		}
+		i = i + 1
+	}
+})
+
+
+run("base conversion rejects invalid input", () {
+	error(to_base(3 / 2, 10))
+	error(to_base(10, 1))
+	error(to_base(10, 37))
+	error(from_base("2", 2))
+	error(from_base("", 10))
+	error(from_base("-", 10))
+})
