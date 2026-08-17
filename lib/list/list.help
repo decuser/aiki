@@ -51,3 +51,7 @@
 @func range
 @template "range(start, end)"
 @help "Returns list of integers from start to end-1."
+
+@func sort
+@template "sort(list, ...comparator)"
+@help "Returns a stable sorted copy using Aiki natural scalar ordering or an optional comparator(a, b)."

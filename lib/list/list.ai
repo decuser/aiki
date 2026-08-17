@@ -134,6 +134,101 @@ let concat = (a, b) {
 	})
 }
 
+let _sort_less = (less, a, b) {
+	let result = less(a, b)
+	if is_error(result) {
+		return result
+	}
+	if not equal(type(result), :boolean) {
+		return [@error, :type, "sort comparator must return boolean"]
+	}
+	return result
+}
+
+let _sort_take = (list, count) {
+	let result = []
+	let i = 0
+	while i < count {
+		result = append(result, list[i])
+		i = i + 1
+	}
+	return result
+}
+
+let _sort_drop = (list, count) {
+	let result = []
+	let i = count
+	while i < length(list) {
+		result = append(result, list[i])
+		i = i + 1
+	}
+	return result
+}
+
+let _sort_merge = (left, right, less) {
+	let result = []
+	let li = 0
+	let ri = 0
+	while (li < length(left)) and (ri < length(right)) {
+		let right_first = _sort_less(less, right[ri], left[li])
+		if is_error(right_first) {
+			return right_first
+		}
+		if right_first {
+			result = append(result, right[ri])
+			ri = ri + 1
+		} else {
+			result = append(result, left[li])
+			li = li + 1
+		}
+	}
+	while li < length(left) {
+		result = append(result, left[li])
+		li = li + 1
+	}
+	while ri < length(right) {
+		result = append(result, right[ri])
+		ri = ri + 1
+	}
+	return result
+}
+
+let _sort_merge_sort = (list, less) {
+	if length(list) < 2 {
+		return list
+	}
+	let middle = truncate(length(list) / 2)
+	let left = _sort_merge_sort(_sort_take(list, middle), less)
+	if is_error(left) {
+		return left
+	}
+	let right = _sort_merge_sort(_sort_drop(list, middle), less)
+	if is_error(right) {
+		return right
+	}
+	return _sort_merge(left, right, less)
+}
+
+let _sort_impl = (list, less) {
+	return _sort_merge_sort(list, less)
+}
+
+let sort = (list, ...rest) {
+	if length(rest) > 1 {
+		return [@error, :arity, "sort expects list and optional comparator"]
+	}
+	let less = (a, b) {
+		a < b
+	}
+	if length(rest) > 0 {
+		less = first(rest)
+		if not equal(type(less), :function) {
+			return [@error, :type, "sort comparator must be function"]
+		}
+	}
+	return _sort_impl(list, less)
+}
+
 let range = (start, end) {
 	let result = []
 	let i = start
@@ -157,5 +252,6 @@ export(
 	:any,
 	:all,
 	:concat,
+	:sort,
 	:range
 )

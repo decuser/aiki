@@ -49,6 +49,30 @@ func TestEvalArithmetic(t *testing.T) {
 	}
 }
 
+func TestEvalNaturalScalarOrdering(t *testing.T) {
+	tests := []struct{ in, out string }{
+		{`1 < 2`, "true"},
+		{`2 >= 2`, "true"},
+		{`"alpha" < "beta"`, "true"},
+		{`"beta" >= "beta"`, "true"},
+		{`'a' < 'b'`, "true"},
+		{`:alpha < :beta`, "true"},
+		{`"猫" > "é"`, "true"},
+	}
+	for _, tt := range tests {
+		v := eval(t, tt.in)
+		if v.Inspect() != tt.out {
+			t.Errorf("%s: got %s, want %s", tt.in, v.Inspect(), tt.out)
+		}
+	}
+
+	for _, in := range []string{`[1] < [2]`, `1 < "2"`, `true < false`} {
+		if v := eval(t, in); v.Type() != value.FaultType {
+			t.Errorf("%s: got %s, want comparison fault", in, v.Inspect())
+		}
+	}
+}
+
 func TestEvalLazyLogicalOperators(t *testing.T) {
 	tests := []struct {
 		in  string

@@ -1,0 +1,22 @@
+@preamble use("number")
+to_base
+Formats an integer-valued exact number using lowercase digits in base 2 through
+36. Returns a shaped :domain error for an invalid base or non-integer value.
+
+to_base(n, base)
+
+to_base(255, 16)    # "ff"
+to_base(493, 8)     # "755"
+to_base(-10, 2)     # "-1010"
+===
+from_base
+Parses a signed integer string in base 2 through 36 and returns an exact Aiki
+number. Alphabetic digits may be upper- or lowercase. Invalid input returns a
+shaped :domain error.
+
+from_base(text, base)
+
+from_base("ff", 16)    # 255
+from_base("755", 8)    # 493
+from_base("-1010", 2)    # -10
+===

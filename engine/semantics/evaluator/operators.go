@@ -177,50 +177,54 @@ func (e *Evaluator) opDiv(left, right value.Value, node *syntax.Node, env *value
 	return e.makeFault(node, env, "cannot divide %s and %s", left.Type(), right.Type())
 }
 
-func (e *Evaluator) opLt(left, right value.Value, node *syntax.Node, env *value.Env) value.Value {
-	if ln, ok := left.(*value.Number); ok {
-		if rn, ok := right.(*value.Number); ok {
-			if ln.Val.Cmp(rn.Val) < 0 {
-				return value.TRUE
-			}
-			return value.FALSE
-		}
+func (e *Evaluator) compareNatural(left, right value.Value, node *syntax.Node, env *value.Env) (int, value.Value) {
+	cmp, ok := value.CompareNatural(left, right)
+	if !ok {
+		return 0, e.makeFault(node, env, "cannot compare %s and %s", left.Type(), right.Type())
 	}
-	return e.makeFault(node, env, "cannot compare %s and %s", left.Type(), right.Type())
+	return cmp, nil
+}
+
+func (e *Evaluator) opLt(left, right value.Value, node *syntax.Node, env *value.Env) value.Value {
+	cmp, fault := e.compareNatural(left, right, node, env)
+	if fault != nil {
+		return fault
+	}
+	if cmp < 0 {
+		return value.TRUE
+	}
+	return value.FALSE
 }
 
 func (e *Evaluator) opGt(left, right value.Value, node *syntax.Node, env *value.Env) value.Value {
-	if ln, ok := left.(*value.Number); ok {
-		if rn, ok := right.(*value.Number); ok {
-			if ln.Val.Cmp(rn.Val) > 0 {
-				return value.TRUE
-			}
-			return value.FALSE
-		}
+	cmp, fault := e.compareNatural(left, right, node, env)
+	if fault != nil {
+		return fault
 	}
-	return e.makeFault(node, env, "cannot compare %s and %s", left.Type(), right.Type())
+	if cmp > 0 {
+		return value.TRUE
+	}
+	return value.FALSE
 }
 
 func (e *Evaluator) opLte(left, right value.Value, node *syntax.Node, env *value.Env) value.Value {
-	if ln, ok := left.(*value.Number); ok {
-		if rn, ok := right.(*value.Number); ok {
-			if ln.Val.Cmp(rn.Val) <= 0 {
-				return value.TRUE
-			}
-			return value.FALSE
-		}
+	cmp, fault := e.compareNatural(left, right, node, env)
+	if fault != nil {
+		return fault
 	}
-	return e.makeFault(node, env, "cannot compare %s and %s", left.Type(), right.Type())
+	if cmp <= 0 {
+		return value.TRUE
+	}
+	return value.FALSE
 }
 
 func (e *Evaluator) opGte(left, right value.Value, node *syntax.Node, env *value.Env) value.Value {
-	if ln, ok := left.(*value.Number); ok {
-		if rn, ok := right.(*value.Number); ok {
-			if ln.Val.Cmp(rn.Val) >= 0 {
-				return value.TRUE
-			}
-			return value.FALSE
-		}
+	cmp, fault := e.compareNatural(left, right, node, env)
+	if fault != nil {
+		return fault
 	}
-	return e.makeFault(node, env, "cannot compare %s and %s", left.Type(), right.Type())
+	if cmp >= 0 {
+		return value.TRUE
+	}
+	return value.FALSE
 }
