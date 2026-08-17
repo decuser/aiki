@@ -97,7 +97,7 @@ func (e *Evaluator) SetGrammar(g *grammar.Grammar) {
 	e.grammar = g
 	e.binaryOperators = g.Analysis().TerminalAlternatives("BINOP")
 	e.validateHandlers()
-	if err := validateBinaryOperatorCoverage(e.binaryOperators, binaryOperatorSemantics); err != nil {
+	if err := validateBinaryOperatorCoverage(e.binaryOperators, eagerBinaryOperatorSemantics, lazyLogicalOperators); err != nil {
 		panic(err)
 	}
 }

@@ -1,0 +1,15 @@
+# and/or are lazy logical control operators, not eager value operators.
+println(false and (1 / 0))
+println(true or (1 / 0))
+println(true and "right")
+println(false or "right")
+
+let xs = [1]
+let i = 2
+if (i < length(xs)) and equal(xs[i], 9) {
+	println("unsafe")
+} else {
+	println("safe")
+}
+
+println("LAZY_LOGICAL_SMOKE_DONE")

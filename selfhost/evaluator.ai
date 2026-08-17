@@ -613,16 +613,42 @@ let eval_expr = (node, env) {
 		let i = 1
 		while i < length(node.children) {
 			let op_node = node.children[i]
-			let right = eval_expr(node.children[i + 1], env)
-			if is_fault(right) {
-				return right
-			}
 			let op = op_node.children[0].value
-			result = apply_binary(op, result, right)
-			if is_fault(result) {
-				return result
+			if equal(op, "and") {
+				if not truthy(result) {
+					i = i + 2
+				} else {
+					let right = eval_expr(node.children[i + 1], env)
+					if is_fault(right) {
+						return right
+					}
+					result = right
+					i = i + 2
+				}
+			} else {
+				if equal(op, "or") {
+					if truthy(result) {
+						i = i + 2
+					} else {
+						let right = eval_expr(node.children[i + 1], env)
+						if is_fault(right) {
+							return right
+						}
+						result = right
+						i = i + 2
+					}
+				} else {
+					let right = eval_expr(node.children[i + 1], env)
+					if is_fault(right) {
+						return right
+					}
+					result = apply_binary(op, result, right)
+					if is_fault(result) {
+						return result
+					}
+					i = i + 2
+				}
 			}
-			i = i + 2
 		}
 		return result
 	}

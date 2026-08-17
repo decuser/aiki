@@ -175,6 +175,19 @@ func (e *Evaluator) evalInfix(node *syntax.Node, env *value.Env) value.Value {
 			continue
 		}
 
+		if result != nil && op != "" && isLazyLogicalOperator(op) {
+			var handled bool
+			result, handled = e.applyLazyLogicalOperator(op, result, child, node, env)
+			if !handled {
+				return e.makeFault(node, env, "unknown logical operator: %s", op)
+			}
+			if shouldHalt(result) {
+				return result
+			}
+			op = ""
+			continue
+		}
+
 		val := e.Eval(child, env)
 		if shouldHalt(val) {
 			return val

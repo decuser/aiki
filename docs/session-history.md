@@ -128,8 +128,9 @@ Sessions covered: 2026-08-14 through 2026-08-16.
 - Independent Aiki front end (lexer, normalizer, parser) written without Go
   front-end facilities. Grammar reader derives lexical and newline policy facts
   from `grammar.ebnfx`.
-- `equal()` is atomic and non-structural for lists. `and`/`or` are not
-  short-circuit. Both discovered by running code, not inferred.
+- `equal()` is atomic and non-structural for lists. The then-current
+  non-short-circuit behavior of `and`/`or` was discovered by running code, not
+  inferred; this later became D4 and was corrected on 2026-08-16.
 - `to_symbol("foo")` and `shaped(:point, [1,2])` were added to close a
   value-model sufficiency gap found by self-hosting.
 - Self-hosted module loading delegates host `import()` only for platform
@@ -162,10 +163,11 @@ Sessions covered: 2026-08-14 through 2026-08-16.
 - The test runner initially ran `*_test.ai` as ordinary programs rather than
   through `aiki test`. Aiki assertions accumulate without failing unless the
   test command reports them. This was a genuine gate defect, not a test defect.
-- Aiki's eager left-to-right evaluation and non-short-circuit booleans produced
+- Aiki's left-to-right evaluation and then-eager `and`/`or` behavior produced
   several compiler bugs during reconstruction (e.g., `i < length(xs) - 1`
-  evaluates as `(i < length(xs)) - 1`). These are language-semantics findings,
-  not machine-semantics findings.
+  evaluates as `(i < length(xs)) - 1`). These were language-semantics findings,
+  not machine-semantics findings. The `and`/`or` portion was later corrected by
+  D4.
 - Phase IV added the operator monitor with octal presentation, disassembly,
   Thompson-specific views, and replayable command files.
 
@@ -232,6 +234,30 @@ Sessions covered: 2026-08-14 through 2026-08-16.
 - Store is a dense indexed array, not a sparse map. Using `store.new(256)`
   for address-keyed lookup with addresses at 1000+ fails. Simple list scan
   is the correct Aiki pattern for small static lookups.
-- `and`/`or` non-short-circuit trap recurred in range checks. All compound
-  boolean expressions replaced with nested ifs. D4 (make `and`/`or`
-  short-circuit infix operators) planned as the corrective language change.
+- `and`/`or` non-short-circuit trap recurred in range checks. This motivated
+  D4: make `and`/`or` lazy logical control operators while preserving eager
+  function calls and eager ordinary binary operators.
+
+## Lazy logical control operators (2026-08-16)
+
+- D4: `and` and `or` are lazy logical control operators, not ordinary eager
+  binary value operators. They remain infix keywords/operators; no `and(a, b)`
+  or `or(a, b)` form was added.
+- Function calls remain eager. Arithmetic, comparison, pipeline, indexing, and
+  ordinary binary operators remain eager. `not` remains unary logical
+  evaluation.
+- Evaluator structure separates `lazyLogicalOperators` from
+  `eagerBinaryOperatorSemantics`. `evalInfix` handles `and`/`or` before
+  evaluating the right operand; all other infix operators continue through the
+  eager path.
+- The self-host evaluator mirrors the Go evaluator: `and` evaluates the right
+  side only when the left side is true; `or` evaluates the right side only when
+  the left side is false.
+- Smoke coverage uses statically valid skipped right-hand expressions that
+  would fail at runtime if evaluated (`false and (1 / 0)`, `true or (1 / 0)`).
+  Earlier undefined-name smoke tests were rejected correctly by lint.
+- Treecheck caught a packaging artifact (`MANIFEST.txt`) in the first source
+  drop. The final gated state requires no repository-root manifest artifact.
+- Local validation passed after the correction: `./aiki fmt ./...`,
+  `./aiki distfmt ./...`, `./aiki lint ./...`, `treecheck`, and the project
+  validation gate.

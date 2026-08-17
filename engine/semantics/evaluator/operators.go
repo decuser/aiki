@@ -20,41 +20,82 @@ const (
 	operatorGt
 	operatorLte
 	operatorGte
-	operatorAnd
-	operatorOr
 )
 
-// binaryOperatorSemantics is the evaluator's authority on operator meaning.
-// Membership is checked bidirectionally against the grammar's BINOP production.
-var binaryOperatorSemantics = map[string]binaryOperatorKind{
-	"+":   operatorAdd,
-	"-":   operatorSub,
-	"*":   operatorMul,
-	"/":   operatorDiv,
-	"<":   operatorLt,
-	">":   operatorGt,
-	"<=":  operatorLte,
-	">=":  operatorGte,
-	"and": operatorAnd,
-	"or":  operatorOr,
+// eagerBinaryOperatorSemantics is the evaluator's authority on ordinary eager
+// binary operator meaning. Logical and/or remain grammar-level BINOPs, but they
+// are intentionally handled by lazyLogicalOperators before this dispatch.
+var eagerBinaryOperatorSemantics = map[string]binaryOperatorKind{
+	"+":  operatorAdd,
+	"-":  operatorSub,
+	"*":  operatorMul,
+	"/":  operatorDiv,
+	"<":  operatorLt,
+	">":  operatorGt,
+	"<=": operatorLte,
+	">=": operatorGte,
 }
 
-func validateBinaryOperatorCoverage(grammarOps map[string]struct{}, semanticOps map[string]binaryOperatorKind) error {
+var lazyLogicalOperators = map[string]struct{}{
+	"and": {},
+	"or":  {},
+}
+
+func validateBinaryOperatorCoverage(grammarOps map[string]struct{}, eagerOps map[string]binaryOperatorKind, lazyOps map[string]struct{}) error {
 	for op := range grammarOps {
-		if _, ok := semanticOps[op]; !ok {
-			return fmt.Errorf("grammar BINOP has no evaluator semantics: %s", op)
+		if _, ok := eagerOps[op]; ok {
+			continue
+		}
+		if _, ok := lazyOps[op]; ok {
+			continue
+		}
+		return fmt.Errorf("grammar BINOP has no evaluator semantics: %s", op)
+	}
+	for op := range eagerOps {
+		if _, ok := grammarOps[op]; !ok {
+			return fmt.Errorf("evaluator eager operator has no grammar BINOP: %s", op)
 		}
 	}
-	for op := range semanticOps {
+	for op := range lazyOps {
 		if _, ok := grammarOps[op]; !ok {
-			return fmt.Errorf("evaluator operator has no grammar BINOP: %s", op)
+			return fmt.Errorf("evaluator lazy operator has no grammar BINOP: %s", op)
 		}
 	}
 	return nil
 }
 
+func isLazyLogicalOperator(op string) bool {
+	_, ok := lazyLogicalOperators[op]
+	return ok
+}
+
+func (e *Evaluator) applyLazyLogicalOperator(op string, left value.Value, rightNode *syntax.Node, node *syntax.Node, env *value.Env) (value.Value, bool) {
+	switch op {
+	case "and":
+		if !value.IsTruthy(left) {
+			return left, true
+		}
+		right := e.Eval(rightNode, env)
+		if shouldHalt(right) {
+			return right, true
+		}
+		return right, true
+	case "or":
+		if value.IsTruthy(left) {
+			return left, true
+		}
+		right := e.Eval(rightNode, env)
+		if shouldHalt(right) {
+			return right, true
+		}
+		return right, true
+	default:
+		return nil, false
+	}
+}
+
 func (e *Evaluator) applyOperator(op string, left, right value.Value, node *syntax.Node, env *value.Env) value.Value {
-	kind, ok := binaryOperatorSemantics[op]
+	kind, ok := eagerBinaryOperatorSemantics[op]
 	if !ok {
 		return e.makeFault(node, env, "unknown operator: %s", op)
 	}
@@ -83,16 +124,6 @@ func (e *Evaluator) applyOperator(op string, left, right value.Value, node *synt
 		return e.opLte(left, right, node, env)
 	case operatorGte:
 		return e.opGte(left, right, node, env)
-	case operatorAnd:
-		if !value.IsTruthy(left) {
-			return left
-		}
-		return right
-	case operatorOr:
-		if value.IsTruthy(left) {
-			return left
-		}
-		return right
 	default:
 		return e.makeFault(node, env, "unknown operator: %s", op)
 	}

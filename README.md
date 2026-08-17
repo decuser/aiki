@@ -2,7 +2,7 @@
 
 Aiki is an experimental programming language designed as a learning field. Its goal is to make language behavior inspectable enough to support learning, debugging, and careful reasoning about programs.
 
-Aiki uses a small syntax, exact rational arithmetic by default, left-to-right evaluation, explicit grouping, recoverable errors as values, and an inspectable prelude and library surface.
+Aiki uses a small syntax, exact rational arithmetic by default, left-to-right evaluation, explicit grouping, lazy logical control operators (`and`/`or`), recoverable errors as values, and an inspectable prelude and library surface.
 
 Development notes and project updates: [https://decuser.github.io](https://decuser.github.io)
 

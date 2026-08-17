@@ -154,3 +154,34 @@ facts.
 structural facts once; consume everywhere.** Apply this rule where concrete
 duplicated derivation exists; do not treat it as a mandate for a repository-wide
 abstraction campaign.
+
+## D4. `and` and `or` are lazy logical control operators
+
+**Date:** 2026-08-16
+
+**Question:** Should `and` and `or` evaluate both operands like ordinary binary
+value operators, or should they short-circuit?
+
+**Decision:** `and` and `or` are lazy logical control operators. They keep their
+existing infix surface syntax, but they are evaluated by the evaluator before
+ordinary eager binary dispatch. `and` evaluates its left operand first and skips
+the right operand when the left value is falsey. `or` evaluates its left operand
+first and skips the right operand when the left value is truthy. Function calls
+remain eager. Arithmetic and comparison operators remain eager. `not` remains a
+unary logical operator over one evaluated operand.
+
+**Rationale:** Aiki's function-call syntax should not lie: `f(a, b)` evaluates
+its arguments before calling `f`. Short-circuiting therefore should not be
+introduced as `and(a, b)` or `or(a, b)`. But the existing grammar already treats
+`and` and `or` as keyword/operator surface forms rather than function calls.
+They can therefore honestly belong with evaluation-control constructs such as
+`if`, `while`, and `match`.
+
+This preserves left-to-right evaluation while recognizing that logical guards
+express conditional dependency between tests. The right operand is not skipped as
+an optimization; it is skipped because the logical result is already determined.
+This also removes a repeated practical trap in range and bounds checks, where the
+right side is only meaningful if the left guard succeeds.
+
+**Disposition:** Accepted semantic correction. Implemented as lazy evaluator
+handling for `and` and `or`; no syntax change.

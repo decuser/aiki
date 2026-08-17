@@ -49,6 +49,34 @@ func TestEvalArithmetic(t *testing.T) {
 	}
 }
 
+func TestEvalLazyLogicalOperators(t *testing.T) {
+	tests := []struct {
+		in  string
+		out string
+	}{
+		{"false and missing_name", "false"},
+		{"true or missing_name", "true"},
+		{"true and 7", "7"},
+		{"false or 7", "7"},
+		{"[] and missing_name", "[]"},
+		{"[1] or missing_name", "[1]"},
+	}
+
+	for _, tt := range tests {
+		v := eval(t, tt.in)
+		if v.Inspect() != tt.out {
+			t.Errorf("%s: got %s, want %s", tt.in, v.Inspect(), tt.out)
+		}
+	}
+}
+
+func TestEvalEagerNonLogicalOperators(t *testing.T) {
+	v := eval(t, "1 + missing_name")
+	if _, ok := v.(*value.Fault); !ok {
+		t.Fatalf("ordinary binary operators must remain eager; got %s", v.Inspect())
+	}
+}
+
 func TestEvalLet(t *testing.T) {
 	v := eval(t, "let x = 5\nx * 2")
 	if v.Inspect() != "10" {
@@ -165,7 +193,7 @@ func TestBinaryOperatorCoverageMatchesGrammar(t *testing.T) {
 	}
 
 	ops := g.Analysis().TerminalAlternatives("BINOP")
-	if err := validateBinaryOperatorCoverage(ops, binaryOperatorSemantics); err != nil {
+	if err := validateBinaryOperatorCoverage(ops, eagerBinaryOperatorSemantics, lazyLogicalOperators); err != nil {
 		t.Fatal(err)
 	}
 	if len(ops) != 10 {
@@ -185,22 +213,22 @@ func TestBinaryOperatorCoverageRejectsBothDirections(t *testing.T) {
 	}
 	ops := g.Analysis().TerminalAlternatives("BINOP")
 
-	missing := make(map[string]binaryOperatorKind, len(binaryOperatorSemantics)-1)
-	for op, kind := range binaryOperatorSemantics {
+	missing := make(map[string]binaryOperatorKind, len(eagerBinaryOperatorSemantics)-1)
+	for op, kind := range eagerBinaryOperatorSemantics {
 		if op != "+" {
 			missing[op] = kind
 		}
 	}
-	if err := validateBinaryOperatorCoverage(ops, missing); err == nil {
+	if err := validateBinaryOperatorCoverage(ops, missing, lazyLogicalOperators); err == nil {
 		t.Fatal("expected grammar operator without evaluator semantics to fail")
 	}
 
-	extra := make(map[string]binaryOperatorKind, len(binaryOperatorSemantics)+1)
-	for op, kind := range binaryOperatorSemantics {
+	extra := make(map[string]binaryOperatorKind, len(eagerBinaryOperatorSemantics)+1)
+	for op, kind := range eagerBinaryOperatorSemantics {
 		extra[op] = kind
 	}
 	extra["fake-op"] = operatorAdd
-	if err := validateBinaryOperatorCoverage(ops, extra); err == nil {
+	if err := validateBinaryOperatorCoverage(ops, extra, lazyLogicalOperators); err == nil {
 		t.Fatal("expected evaluator operator without grammar BINOP to fail")
 	}
 }
