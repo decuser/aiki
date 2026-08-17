@@ -1,12 +1,15 @@
 package invariant
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"testing"
 
+	"aiki/engine/runtime/hal"
 	"aiki/engine/runtime/hal/substrate"
 	"aiki/engine/semantics/value"
 )
@@ -19,8 +22,8 @@ func TestHALHostOperationThreeNameCoverage(t *testing.T) {
 	root := distributionRoot(t)
 	rt := substrate.NewGoRuntime()
 	ops := rt.HostOperations()
-	if len(ops) != 38 {
-		t.Fatalf("expected 38 canonical host operations, got %d", len(ops))
+	if err := validateHostOperationCoverage(ops, hal.OperationDefinitions()); err != nil {
+		t.Fatal(err)
 	}
 
 	visible := map[string]bool{}
@@ -100,4 +103,46 @@ func assertAikiBindingUsesPrimitive(t *testing.T, root, qualifiedName, source, p
 	if !strings.Contains(string(match[1]), primitive) {
 		t.Errorf("%s: wrapper in %s does not depend on %s", qualifiedName, source, primitive)
 	}
+}
+
+func TestHALHostCoverageInvariantRejectsMissingBinding(t *testing.T) {
+	rt := substrate.NewGoRuntime()
+	ops := rt.HostOperations()
+	if len(ops) == 0 {
+		t.Fatal("runtime has no host operations")
+	}
+	missing := ops[0].Identity
+	ops = ops[1:]
+	err := validateHostOperationCoverage(ops, hal.OperationDefinitions())
+	if err == nil || !strings.Contains(err.Error(), "missing runtime host binding "+missing) {
+		t.Fatalf("expected missing host binding failure for %s, got %v", missing, err)
+	}
+}
+
+func validateHostOperationCoverage(bound []hal.HostOperation, definitions map[string]hal.HostOperation) error {
+	want := map[string]bool{}
+	for _, op := range definitions {
+		want[op.Identity] = true
+	}
+	seen := map[string]bool{}
+	var problems []string
+	for _, op := range bound {
+		if !want[op.Identity] {
+			problems = append(problems, "runtime binds unknown HAL identity "+op.Identity)
+		}
+		if seen[op.Identity] {
+			problems = append(problems, "runtime binds duplicate HAL identity "+op.Identity)
+		}
+		seen[op.Identity] = true
+	}
+	for identity := range want {
+		if !seen[identity] {
+			problems = append(problems, "missing runtime host binding "+identity)
+		}
+	}
+	if len(problems) == 0 {
+		return nil
+	}
+	sort.Strings(problems)
+	return fmt.Errorf("HAL host-binding invariant failure:\n  %s", strings.Join(problems, "\n  "))
 }

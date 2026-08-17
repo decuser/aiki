@@ -1,14 +1,15 @@
 package substrate
 
 import (
-	"aiki/engine"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"aiki/engine"
 	"aiki/engine/runtime/hal"
 	"aiki/engine/runtime/libpath"
+	"aiki/engine/runtime/modules"
 	"aiki/engine/semantics/value"
 	"aiki/engine/syntax"
 )
@@ -187,7 +188,7 @@ func (g *GoRuntime) loadModule(name string, ctx *hal.EvalContext) (*value.Module
 	var pkgName string
 	var requestedName string
 
-	if IsPathImport(name) {
+	if modules.IsPathImport(name) {
 		// Path-based import: resolve relative to current file
 		modulePath = resolveRelativePath(name, ctx.Env)
 		if modulePath == "" {
@@ -298,7 +299,7 @@ func (g *GoRuntime) loadModule(name string, ctx *hal.EvalContext) (*value.Module
 	// Cache the canonical module for registry-based imports. Aliases resolve to
 	// this cache entry but receive a module value bearing the public name used
 	// by the caller.
-	if g.moduleRegistry != nil && !IsPathImport(name) {
+	if g.moduleRegistry != nil && !modules.IsPathImport(name) {
 		g.moduleRegistry.Cache(pkgName, mod)
 		if requestedName != "" && requestedName != pkgName {
 			return value.NewModule(requestedName, exports), nil

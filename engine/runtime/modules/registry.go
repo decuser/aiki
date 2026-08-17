@@ -1,4 +1,4 @@
-package substrate
+package modules
 
 import (
 	"fmt"
@@ -10,7 +10,6 @@ import (
 	"aiki/engine/runtime/help"
 	"aiki/engine/runtime/libpath"
 	"aiki/engine/semantics/value"
-	"aiki/engine/syntax"
 	"aiki/engine/syntax/grammar"
 )
 
@@ -267,54 +266,15 @@ func (r *ModuleRegistry) extractPackageName(path string, g *grammar.Grammar) (st
 	}
 
 	source := string(data)
-
-	// Quick check: does it contain "package"?
 	if !strings.Contains(source, "package") {
 		return "", nil
 	}
 
-	// Parse to find package declaration
-	lexer := syntax.NewLexer(g, path, source, nil)
-	tokens, err := lexer.Tokenize()
+	info, err := AnalyzeSource(g, path, source)
 	if err != nil {
 		return "", err
 	}
-
-	parser := syntax.NewParser(g, tokens, source, nil)
-	ast, err := parser.Parse()
-	if err != nil {
-		return "", err
-	}
-
-	// Find package_stmt in AST
-	return findPackageName(ast), nil
-}
-
-func findPackageName(node *syntax.Node) string {
-	if node == nil {
-		return ""
-	}
-
-	if node.Type == "package_stmt" {
-		for _, child := range node.Children {
-			if child.Type == "STRING" {
-				name := child.Value
-				// Remove quotes
-				if len(name) >= 2 && name[0] == '"' && name[len(name)-1] == '"' {
-					return name[1 : len(name)-1]
-				}
-				return name
-			}
-		}
-	}
-
-	for _, child := range node.Children {
-		if name := findPackageName(child); name != "" {
-			return name
-		}
-	}
-
-	return ""
+	return info.Package, nil
 }
 
 // Roots returns a copy of the configured named-module search roots in lookup order.

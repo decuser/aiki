@@ -15,7 +15,6 @@ import (
 
 	"aiki/engine"
 	"aiki/engine/runtime/hal/substrate"
-	"aiki/engine/runtime/help"
 	"aiki/engine/runtime/prelude"
 	"aiki/engine/semantics/evaluator"
 	"aiki/engine/semantics/value"
@@ -305,21 +304,12 @@ func loadGrammar(overridePath string) (*grammar.Grammar, error) {
 	return grammar.Load(overridePath, string(data), "grammar.help", syntax.HelpSource)
 }
 
-func initHelpRegistry(rt *substrate.GoRuntime) error {
-	registry := help.NewRegistry()
-
-	funcs, err := help.ParseHelpFile("prelude.help", prelude.HelpSource)
+func initHelpRegistry(g *grammar.Grammar, rt *substrate.GoRuntime) error {
+	catalog, err := prelude.LoadCatalog(g)
 	if err != nil {
 		return err
 	}
-
-	docs, err := help.ParseDocFile("prelude.doc", prelude.DocSource)
-	if err != nil {
-		return err
-	}
-
-	registry.Merge(funcs, docs)
-	rt.SetHelpRegistry(registry)
+	rt.SetHelpRegistry(catalog.Registry)
 	return nil
 }
 
@@ -371,7 +361,7 @@ func dumpEval(g *grammar.Grammar, file, source string) ([]byte, error) {
 	// Load prelude into a fresh environment.
 	rt := substrate.NewGoRuntime()
 	rt.SetIO(nil, &out)
-	if err := initHelpRegistry(rt); err != nil {
+	if err := initHelpRegistry(g, rt); err != nil {
 		return nil, err
 	}
 	preludeEnv := value.NewEnvWithScope(value.ScopePrelude)

@@ -21,4 +21,12 @@ let exec = (command, args) {
 	_system_exec(command, args)
 }
 
-export(:args, :env, :cwd, :chdir, :exec)
+let has = (capability) {
+	_system_has(capability)
+}
+
+let require = (capability) {
+	_system_require(capability)
+}
+
+export(:args, :env, :cwd, :chdir, :exec, :has, :require)

@@ -84,3 +84,23 @@
 @func size
 @template "size(path)"
 @help "Returns file size in bytes, or [@error, :io, msg]."
+
+@func walk
+@template "walk(path)"
+@help "Returns path and its descendants without following directory symlinks."
+
+@func symlink
+@template "symlink(target, link_path)"
+@help "Creates a symbolic link when the host provides :symlink."
+
+@func read_link
+@template "read_link(path)"
+@help "Returns a symbolic link target when the host provides :symlink."
+
+@func permissions
+@template "permissions(path)"
+@help "Returns the host permission bits represented by Aiki's Go-backed permission contract."
+
+@func chmod
+@template "chmod(path, mode)"
+@help "Requests permission bits 0..0777 when the host provides :permissions."

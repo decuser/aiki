@@ -250,3 +250,92 @@ Sessions covered: 2026-08-14 through 2026-08-16.
   evaluated when the left operand determines the result.
 - This is expected evidence of the lazy logical-control change: it preserves
   native behavior while reducing unnecessary self-host evaluator work.
+
+## HAL capability gates and host affordances (2026-08-17)
+
+- Gate 1 selected as the next HAL effort: centralize HAL architectural metadata,
+  add invariants, then add capability/profile metadata without adding a dispatch
+  layer.
+- Architectural pattern: centralize identity, decentralize concern, validate
+  composition. `engine/runtime/hal` owns operation, authority, capability, and
+  profile metadata; Go substrate files retain realization/provenance.
+- Capability availability and authority are independent. Source-level queries
+  use Aiki names via `system.has` and `system.require`, never raw HAL identities.
+- Phase 1 introduces common `io.read`, `io.read_line`, and `io.write` over
+  `:stdin`, `:stdout`, `:stderr`, and file handles. Stdin buffering is runtime
+  owned so repeated line reads cannot lose buffered input.
+- Phase 2 adds `file.walk`, `file.symlink`, and `file.read_link`; symlink is an
+  optional capability. Relative symlink targets remain literal while link paths
+  follow runtime-owned cwd semantics.
+- Phase 3 adds `file.permissions` and `file.chmod` using the substrate's portable
+  permission vocabulary. Unix-shaped mode bits are not asserted to describe all
+  host permission models.
+- Validation in this environment is limited: repository requires Go 1.24, while
+  the available toolchain is Go 1.23.2 and network access prevents toolchain
+  download. `make validate` is therefore required on the user's local tree.
+
+## Engine authority centralization — Gate 2 (2026-08-17)
+
+- Gate 1 completed locally by the user with `make validate` passing after the
+  executable `io.read_line` documentation example was corrected to retain its
+  write/close side effects through explicit expected results.
+- Gate 2 scoped as behavior-preserving engine authority centralization. Governing
+  rule: centralize identity, decentralize concern, validate composition.
+- Gate 2 does not move authored artifacts merely for locality. It moves or
+  centralizes architectural ownership and reusable derivation under `engine/`.
+- Initial inventory already shows grammar/evaluator coverage is substantially in
+  the desired state: grammar owns cached structural analysis and evaluator
+  validates its handlers against that authority.
+- First concrete Gate 2 candidate: named-module registry and module-root policy
+  currently live under `engine/runtime/hal/substrate` despite being consumed by
+  runner, language services, imports, help, and invariants. Treating this as
+  substrate authority leaks a concrete implementation into engine-level
+  consumers.
+- Next action: move the module registry/policy to an engine-owned runtime package
+  without changing resolution semantics, then retarget consumers and invariants.
+
+- Gate 2 probe found an existing documentation asymmetry: prelude help coverage is
+  complete, but `truncate` has no prelude `.doc` entry. Recorded as AF-017; Gate 2
+  does not strengthen that contract silently because this project is
+  behavior-preserving.
+
+- Gate 2 implementation completed pending local `make validate`: module registry
+  and root policy are engine-owned under `engine/runtime/modules`; module source
+  metadata is derived once from the real AST; prelude source/help/docs join
+  through `prelude.LoadCatalog`; runtime primitive roles are authoritative under
+  `engine/runtime/primitives`; language services no longer reconstruct prelude
+  exports or depend on the Go substrate for primitive vocabulary.
+- Disposable Go 1.23 probe (go.mod lowered only in `/tmp`) passed focused tests
+  for `engine/runtime/modules`, `engine/runtime/prelude`,
+  `engine/runtime/primitives`, and `engine/language`. Full validation remains
+  unavailable in this environment because Go 1.24 and uncached ebiten dependencies
+  cannot be downloaded.
+- Exact next action: apply the Gate 2 overlay to the user's `hal-capability`
+  branch, delete the two retired substrate registry files, rebuild, and run
+  `make validate`.
+
+## Invariant system overhaul — Gate 3 (2026-08-17)
+
+- New authoritative baseline: commit `9cc220c` on branch `hal-capability`.
+- Gate 2 and the prelude help/doc coverage correction are committed and validated locally by the user with `make validate` passing.
+- Gate 3 begins as an invariant-system overhaul, not a feature effort.
+- Primary build contract: `make test` checks behavior, `make invariant` checks architecture, and `make validate` requires both.
+- Critical rule: an architectural invariant is not considered protected until a negative test proves that violating it is detected through the same invariant path used by the real gate.
+- HAL is the first full specimen; engine authorities and representation guardrails follow.
+- Exact next action: inventory the current invariant test package and Makefile wiring, classify checks, then introduce the dedicated `make invariant` target without weakening existing validation.
+
+### Gate 3 implementation state (2026-08-17)
+
+- Added dedicated `make invariant`; `make test` excludes invariant/boundary packages and `make check`/`make validate` require `make invariant`.
+- Reclassified execution-heavy self-host tests to `test/conformance` and exact-number execution behavior to `test/contract`; executable documentation examples moved to conformance with shared doc-example parsing support.
+- HAL metadata now has a reusable validator with negative mutations for duplicate identity, unknown capability operation, and unknown profile capability.
+- HAL capability/profile rules are pure architectural functions used by GoRuntime and directly mutation-tested.
+- Runtime host binding coverage now compares canonical identities rather than fixed counts and has a missing-binding negative test.
+- Primitive-role validation no longer depends on fixed totals; runtime primitive registrations are compared by exact name and role with missing/wrong-role negative tests.
+- Prelude source/help/doc negative assurance now runs under the invariant gate through the same catalog validation path.
+- Library export/help/doc coverage uses a shared coverage validator with missing/phantom negative tests.
+- Added engine layer invariant: only the HAL substrate itself and `engine/runner` composition root may import the concrete Go substrate; injected leak is rejected.
+- Added runtime-ownership invariant over Aiki-facing I/O/system implementations to prevent regression to ambient `os.Stdin`, `os.Stdout`, `os.Stderr`, `os.Args`, environment, or cwd APIs; injected regression is rejected.
+- Added exact-number architecture invariant: production Go under `engine/semantics` and `engine/syntax` contains no float types or conversion paths; injected `float64` is rejected. Host-side graphics/time/inexact math remain outside this boundary.
+- Disposable Go 1.23 probe compiled `engine/runtime/hal`, `engine/runtime/prelude`, `engine/runtime/primitives`, and shared doc-example support. Full invariant packages remain environment-limited by unavailable Ebiten download; user-side Go 1.24 validation is required.
+- Exact next action: apply Gate 3 delta on `hal-capability`, rebuild, run `make invariant`, then run `make validate`; any invariant failure is treated as a Gate 3 defect before commit.

@@ -19,3 +19,11 @@
 @func exec
 @template "exec(command, args)"
 @help "Runs a command synchronously and returns [@ok, stdout, stderr, exit_code] or [@error, :process, msg]."
+
+@func has
+@template "has(capability)"
+@help "Reports whether the current runtime provides an Aiki capability."
+
+@func require
+@template "require(capability)"
+@help "Succeeds when a capability is available or returns an :unsupported error."

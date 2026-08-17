@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"testing"
 
+	"aiki/engine/runtime/hal"
 	"aiki/engine/semantics/value"
 )
 
@@ -47,7 +48,7 @@ func TestAuthorityPolicyMatchesTrustedSourceDependencies(t *testing.T) {
 	root := filepath.Clean(filepath.Join(filepath.Dir(here), "../../../.."))
 	ident := regexp.MustCompile(`\b_[A-Za-z][A-Za-z0-9_]*\b`)
 
-	for source, declared := range authorityPolicy {
+	for source, declared := range hal.AuthorityPolicy() {
 		data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(source)))
 		if err != nil {
 			t.Fatalf("%s: reading trusted source: %v", source, err)

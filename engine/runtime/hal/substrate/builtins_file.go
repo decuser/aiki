@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"io"
 	"os"
+	"path/filepath"
 
 	"aiki/engine/runtime/hal"
 	"aiki/engine/semantics/value"
@@ -519,4 +520,100 @@ func halFileSize(args []value.Value, ctx *hal.EvalContext) value.Value {
 		return value.NewShapedError("io", "%s", err.Error())
 	}
 	return value.NewNumber(info.Size(), 1)
+}
+
+// halFileWalk returns root and its descendants without following directory
+// symlinks. Paths use the host representation returned by filepath.WalkDir.
+func halFileWalk(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 1 {
+		return value.NewFault("_file_walk: want 1 argument, got %d", len(args))
+	}
+	root, ok := args[0].(*value.String)
+	if !ok {
+		return value.NewFault("_file_walk: expected string path, got %s", args[0].Type())
+	}
+	paths := []value.Value{}
+	err := filepath.WalkDir(root.Val, func(path string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		paths = append(paths, &value.String{Val: path})
+		return nil
+	})
+	if err != nil {
+		return value.NewShapedError("io", "%s", err.Error())
+	}
+	return &value.List{Elements: paths}
+}
+
+func halFileSymlink(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 2 {
+		return value.NewFault("_file_symlink: want 2 arguments, got %d", len(args))
+	}
+	target, ok := args[0].(*value.String)
+	if !ok {
+		return value.NewFault("_file_symlink: expected string target, got %s", args[0].Type())
+	}
+	link, ok := args[1].(*value.String)
+	if !ok {
+		return value.NewFault("_file_symlink: expected string link path, got %s", args[1].Type())
+	}
+	if err := os.Symlink(target.Val, link.Val); err != nil {
+		return value.NewShapedError("io", "%s", err.Error())
+	}
+	return value.TRUE
+}
+
+func halFileReadLink(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 1 {
+		return value.NewFault("_file_read_link: want 1 argument, got %d", len(args))
+	}
+	path, ok := args[0].(*value.String)
+	if !ok {
+		return value.NewFault("_file_read_link: expected string path, got %s", args[0].Type())
+	}
+	target, err := os.Readlink(path.Val)
+	if err != nil {
+		return value.NewShapedError("io", "%s", err.Error())
+	}
+	return &value.String{Val: target}
+}
+
+// halFilePermissions returns the host permission bits represented by Go's
+// portable FileMode.Perm vocabulary.
+func halFilePermissions(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 1 {
+		return value.NewFault("_file_permissions: want 1 argument, got %d", len(args))
+	}
+	path, ok := args[0].(*value.String)
+	if !ok {
+		return value.NewFault("_file_permissions: expected string path, got %s", args[0].Type())
+	}
+	info, err := os.Stat(path.Val)
+	if err != nil {
+		return value.NewShapedError("io", "%s", err.Error())
+	}
+	return value.NewNumber(int64(info.Mode().Perm()), 1)
+}
+
+func halFileChmod(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 2 {
+		return value.NewFault("_file_chmod: want 2 arguments, got %d", len(args))
+	}
+	path, ok := args[0].(*value.String)
+	if !ok {
+		return value.NewFault("_file_chmod: expected string path, got %s", args[0].Type())
+	}
+	mode, ok := args[1].(*value.Number)
+	if !ok || !mode.Val.IsInt() {
+		return value.NewFault("_file_chmod: mode must be an integer")
+	}
+	m := mode.Val.Num().Int64()
+	if m < 0 || m > 0777 {
+		return value.NewShapedError("io", "permission mode out of range: %d", m)
+	}
+	if err := os.Chmod(path.Val, os.FileMode(m)); err != nil {
+		return value.NewShapedError("io", "%s", err.Error())
+	}
+	return value.TRUE
 }

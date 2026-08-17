@@ -1,6 +1,7 @@
 package invariant
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -8,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"aiki/engine/runtime/hal/substrate"
 	"aiki/engine/runtime/help"
+	"aiki/engine/runtime/modules"
 	"aiki/engine/syntax"
 	"aiki/engine/syntax/grammar"
 )
@@ -28,12 +29,7 @@ import (
 // the distribution roots. Adding a module anywhere the distribution ships one
 // therefore brings it under these checks without touching this file.
 
-var (
-	reExport   = regexp.MustCompile(`(?s)export\(([^)]*)\)`)
-	reSymbol   = regexp.MustCompile(`:(\w+)`)
-	reLetFunc  = regexp.MustCompile(`(?m)^let\s+(\w+)\s*=\s*\(([^)]*)\)\s*\{`)
-	reTemplate = regexp.MustCompile(`^(\w+)\(([^)]*)\)$`)
-)
+var reTemplate = regexp.MustCompile(`^(\w+)\(([^)]*)\)$`)
 
 type module struct {
 	name     string // e.g. "regex/ffi"
@@ -70,11 +66,11 @@ func shippedModulePaths(t *testing.T) map[string]string {
 
 	root := distributionRoot(t)
 	var roots []string
-	for _, r := range substrate.DistributionModuleRoots() {
+	for _, r := range modules.DistributionModuleRoots() {
 		roots = append(roots, filepath.Join(root, r))
 	}
 
-	registry := substrate.NewModuleRegistry(roots)
+	registry := modules.NewModuleRegistry(roots)
 	if err := registry.Scan(g); err != nil {
 		t.Fatalf("scanning distribution roots: %v", err)
 	}
@@ -93,6 +89,41 @@ func shippedModulePaths(t *testing.T) map[string]string {
 	return paths
 }
 
+func validateNameCoverage(moduleName, artifact string, exports, entries []string) error {
+	exported := map[string]bool{}
+	for _, name := range exports {
+		exported[name] = true
+	}
+	present := map[string]bool{}
+	for _, name := range entries {
+		present[name] = true
+	}
+	var problems []string
+	for name := range exported {
+		if !present[name] {
+			problems = append(problems, fmt.Sprintf("%s: exported but absent from %s: %s", moduleName, artifact, name))
+		}
+	}
+	for name := range present {
+		if name != "===" && !exported[name] {
+			problems = append(problems, fmt.Sprintf("%s: %s describes procedure not exported: %s", moduleName, artifact, name))
+		}
+	}
+	if len(problems) == 0 {
+		return nil
+	}
+	sort.Strings(problems)
+	return fmt.Errorf("%s coverage invariant failure:\n  %s", artifact, strings.Join(problems, "\n  "))
+}
+
+func mapKeys[V any](m map[string]V) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	return out
+}
+
 func splitArgs(s string) []string {
 	var out []string
 	for _, p := range strings.Split(s, ",") {
@@ -109,6 +140,11 @@ func splitArgs(s string) []string {
 func loadModules(t *testing.T) []module {
 	t.Helper()
 
+	g, err := grammar.Load("grammar.ebnfx", syntax.EbnfxSource, "grammar.help", syntax.HelpSource)
+	if err != nil {
+		t.Fatalf("loading grammar: %v", err)
+	}
+
 	var mods []module
 	for name, path := range shippedModulePaths(t) {
 		src, err := os.ReadFile(path)
@@ -117,28 +153,22 @@ func loadModules(t *testing.T) []module {
 			continue
 		}
 
+		info, err := modules.AnalyzeSource(g, path, string(src))
+		if err != nil {
+			t.Errorf("%s: cannot analyze %s: %v", name, path, err)
+			continue
+		}
+
 		mod := module{
 			name:    name,
 			aiPath:  path,
+			exports: append([]string(nil), info.Exports...),
 			params:  map[string][]string{},
 			hasRest: map[string]bool{},
 		}
-		if m := reExport.FindSubmatch(src); m != nil {
-			for _, sym := range reSymbol.FindAllSubmatch(m[1], -1) {
-				mod.exports = append(mod.exports, string(sym[1]))
-			}
-		}
-		for _, f := range reLetFunc.FindAllSubmatch(src, -1) {
-			fname := string(f[1])
-			var ordinary []string
-			for _, p := range splitArgs(string(f[2])) {
-				if strings.HasPrefix(p, "...") {
-					mod.hasRest[fname] = true
-					continue
-				}
-				ordinary = append(ordinary, p)
-			}
-			mod.params[fname] = ordinary
+		for fname, fn := range info.Functions {
+			mod.params[fname] = append([]string(nil), fn.Parameters...)
+			mod.hasRest[fname] = fn.Rest != ""
 		}
 
 		base := strings.TrimSuffix(path, ".ai")
@@ -176,31 +206,8 @@ func TestLibHelpCoversExports(t *testing.T) {
 			continue
 		}
 
-		var missing []string
-		for _, name := range m.exports {
-			if _, ok := entries[name]; !ok {
-				missing = append(missing, name)
-			}
-		}
-		sort.Strings(missing)
-		if len(missing) > 0 {
-			t.Errorf("%s: exported but absent from help: %s", m.name, strings.Join(missing, ", "))
-		}
-
-		exported := map[string]bool{}
-		for _, name := range m.exports {
-			exported[name] = true
-		}
-		var phantom []string
-		for name := range entries {
-			if !exported[name] {
-				phantom = append(phantom, name)
-			}
-		}
-		sort.Strings(phantom)
-		if len(phantom) > 0 {
-			t.Errorf("%s: help describes procedures the module does not export: %s",
-				m.name, strings.Join(phantom, ", "))
+		if err := validateNameCoverage(m.name, "help", m.exports, mapKeys(entries)); err != nil {
+			t.Error(err)
 		}
 	}
 }
@@ -317,31 +324,8 @@ func TestLibDocCoversExports(t *testing.T) {
 			continue
 		}
 
-		var missing []string
-		for _, name := range m.exports {
-			if _, ok := docs[name]; !ok {
-				missing = append(missing, name)
-			}
-		}
-		sort.Strings(missing)
-		if len(missing) > 0 {
-			t.Errorf("%s: exported but absent from doc: %s", m.name, strings.Join(missing, ", "))
-		}
-
-		exported := map[string]bool{}
-		for _, name := range m.exports {
-			exported[name] = true
-		}
-		var phantom []string
-		for name := range docs {
-			if name == "===" || !exported[name] {
-				phantom = append(phantom, name)
-			}
-		}
-		sort.Strings(phantom)
-		if len(phantom) > 0 {
-			t.Errorf("%s: doc describes procedures the module does not export: %s",
-				m.name, strings.Join(phantom, ", "))
+		if err := validateNameCoverage(m.name, "doc", m.exports, mapKeys(docs)); err != nil {
+			t.Error(err)
 		}
 	}
 }
@@ -370,7 +354,7 @@ func TestShippedModuleDiscovery(t *testing.T) {
 	for name, path := range paths {
 		rel := filepath.ToSlash(path)
 		shipped := false
-		for _, root := range substrate.DistributionModuleRoots() {
+		for _, root := range modules.DistributionModuleRoots() {
 			if strings.Contains(rel, "/"+root+"/") {
 				shipped = true
 				break
@@ -378,7 +362,24 @@ func TestShippedModuleDiscovery(t *testing.T) {
 		}
 		if !shipped {
 			t.Errorf("%s at %s is outside the distribution roots %v",
-				name, path, substrate.DistributionModuleRoots())
+				name, path, modules.DistributionModuleRoots())
 		}
+	}
+}
+
+func TestLibraryCoverageInvariantRejectsMissingAndPhantomEntries(t *testing.T) {
+	for _, artifact := range []string{"help", "doc"} {
+		t.Run(artifact+" missing", func(t *testing.T) {
+			err := validateNameCoverage("fixture", artifact, []string{"alpha", "beta"}, []string{"alpha"})
+			if err == nil || !strings.Contains(err.Error(), "exported but absent from "+artifact+": beta") {
+				t.Fatalf("expected missing-entry failure, got %v", err)
+			}
+		})
+		t.Run(artifact+" phantom", func(t *testing.T) {
+			err := validateNameCoverage("fixture", artifact, []string{"alpha"}, []string{"alpha", "ghost"})
+			if err == nil || !strings.Contains(err.Error(), artifact+" describes procedure not exported: ghost") {
+				t.Fatalf("expected phantom-entry failure, got %v", err)
+			}
+		})
 	}
 }

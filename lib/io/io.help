@@ -1,0 +1,13 @@
+# io - common sequential I/O
+
+@func read
+@template "read(source, count)"
+@help "Reads up to count bytes from :stdin or an open file."
+
+@func read_line
+@template "read_line(source)"
+@help "Reads one line from :stdin or an open file."
+
+@func write
+@template "write(destination, data)"
+@help "Writes a string or bytes to :stdout, :stderr, or an open file."

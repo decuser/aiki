@@ -31,6 +31,7 @@ Status vocabulary:
 | AF-014 | Lint path expansion repeats negative-fixture filtering in multiple branches. | RESOLVED | Post-grammar hardening Cut 2. |
 | AF-015 | `break_call_smoke` and `break_unary_smoke` intentionally have empty golds but source does not explain why. | RESOLVED | Add fixture comments in closeout. |
 | AF-016 | `# @negative parse` can currently appear in arbitrary `.ai` source and exempt it from fmt/lint without smoke pairing. | RESOLVED | Post-grammar hardening Cut 2: constrain declarations to recognized smoke-fixture context. |
+| AF-017 | Prelude help covers the callable surface, but full documentation is not 1:1; `truncate` currently has help with no `.doc` entry. | OPEN | Discovered during Gate 2 authority centralization. Do not silently strengthen the runtime invariant inside a behavior-preserving refactor. |
 
 ## Current disposition
 

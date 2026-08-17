@@ -7,57 +7,65 @@ func (g *GoRuntime) registerHAL() {
 	// True host-facing operations. Canonical contracts currently exist for I/O,
 	// time, program context, file operations, and the narrowed Canvas resource/command
 	// boundary. Randomness remains a host-role compatibility operation.
-	g.registerHost(hostOperationDescriptors["_print"], g.halPrint)
-	g.registerHost(hostOperationDescriptors["_read"], g.halRead)
-	g.registerHost(hostOperationDescriptors["_sleep"], halSleep)
-	g.registerHost(hostOperationDescriptors["_after"], halAfter)
-	g.registerHost(hostOperationDescriptors["_system_args"], g.halSystemArgs)
-	g.registerHost(hostOperationDescriptors["_system_env"], g.halSystemEnv)
-	g.registerHost(hostOperationDescriptors["_file_open"], g.halFileOpenPath)
-	g.registerHost(hostOperationDescriptors["_file_read_text"], halFileReadText)
-	g.registerHost(hostOperationDescriptors["_file_read_bytes"], halFileReadBytes)
-	g.registerHost(hostOperationDescriptors["_file_read_line"], g.halFileReadLine)
-	g.registerHost(hostOperationDescriptors["_file_write_text"], halFileWriteText)
-	g.registerHost(hostOperationDescriptors["_file_write_bytes"], halFileWriteBytes)
-	g.registerHost(hostOperationDescriptors["_file_close"], g.halFileClose)
-	g.registerHost(hostOperationDescriptors["_file_exists"], g.halFileExistsPath)
-	g.registerHost(hostOperationDescriptors["_file_delete"], g.halFileDeletePath)
-	g.registerHost(hostOperationDescriptors["_file_list"], g.halFileListPath)
-	g.registerHost(hostOperationDescriptors["_file_read_at"], halFileReadAt)
-	g.registerHost(hostOperationDescriptors["_file_write_at"], halFileWriteAt)
-	g.registerHost(hostOperationDescriptors["_file_stat"], g.halFileStatPath)
-	g.registerHost(hostOperationDescriptors["_file_rename"], g.halFileRenamePath)
-	g.registerHost(hostOperationDescriptors["_file_mkdir"], g.halFileMkdirPath)
-	g.registerHost(hostOperationDescriptors["_file_mkdir_all"], g.halFileMkdirAllPath)
-	g.registerHost(hostOperationDescriptors["_file_remove_all"], g.halFileRemoveAllPath)
-	g.registerHost(hostOperationDescriptors["_file_temp"], halFileTemp)
-	g.registerHost(hostOperationDescriptors["_file_temp_dir"], halFileTempDir)
-	g.registerHost(hostOperationDescriptors["_file_copy"], g.halFileCopyPath)
-	g.registerHost(hostOperationDescriptors["_file_size"], g.halFileSizePath)
-	g.registerHost(hostOperationDescriptors["_time_now"], halTimeNow)
-	g.registerHost(hostOperationDescriptors["_system_cwd"], g.halSystemCwd)
-	g.registerHost(hostOperationDescriptors["_system_chdir"], g.halSystemChdir)
-	g.registerHost(hostOperationDescriptors["_system_exec"], g.halSystemExec)
-	g.registerHost(hostOperationDescriptors["_path_separator"], halPathSeparator)
-	g.registerRole(roleHost, "_seed", g.halSeed)
-	g.registerRole(roleHost, "_random", g.halRandom)
-	g.registerHost(hostOperationDescriptors["_canvas"], g.halCanvas)
-	g.registerHost(hostOperationDescriptors["_canvas_command"], g.halCanvasCommand)
-	g.registerHost(hostOperationDescriptors["_destroy"], g.halDestroy)
-	g.registerHost(hostOperationDescriptors["_canvas_width"], g.halCanvasWidth)
-	g.registerHost(hostOperationDescriptors["_canvas_height"], g.halCanvasHeight)
-	g.registerHost(hostOperationDescriptors["_canvas_alive"], g.halCanvasAlive)
+	g.registerHost(goHostOperation("_print"), g.halPrint)
+	g.registerHost(goHostOperation("_read"), g.halRead)
+	g.registerHost(goHostOperation("_io_read"), g.halIORead)
+	g.registerHost(goHostOperation("_io_read_line"), g.halIOReadLine)
+	g.registerHost(goHostOperation("_io_write"), g.halIOWrite)
+	g.registerHost(goHostOperation("_sleep"), halSleep)
+	g.registerHost(goHostOperation("_after"), halAfter)
+	g.registerHost(goHostOperation("_system_args"), g.halSystemArgs)
+	g.registerHost(goHostOperation("_system_env"), g.halSystemEnv)
+	g.registerHost(goHostOperation("_file_open"), g.halFileOpenPath)
+	g.registerHost(goHostOperation("_file_read_text"), halFileReadText)
+	g.registerHost(goHostOperation("_file_read_bytes"), halFileReadBytes)
+	g.registerHost(goHostOperation("_file_read_line"), g.halFileReadLine)
+	g.registerHost(goHostOperation("_file_write_text"), halFileWriteText)
+	g.registerHost(goHostOperation("_file_write_bytes"), halFileWriteBytes)
+	g.registerHost(goHostOperation("_file_close"), g.halFileClose)
+	g.registerHost(goHostOperation("_file_exists"), g.halFileExistsPath)
+	g.registerHost(goHostOperation("_file_delete"), g.halFileDeletePath)
+	g.registerHost(goHostOperation("_file_list"), g.halFileListPath)
+	g.registerHost(goHostOperation("_file_read_at"), halFileReadAt)
+	g.registerHost(goHostOperation("_file_write_at"), halFileWriteAt)
+	g.registerHost(goHostOperation("_file_stat"), g.halFileStatPath)
+	g.registerHost(goHostOperation("_file_rename"), g.halFileRenamePath)
+	g.registerHost(goHostOperation("_file_mkdir"), g.halFileMkdirPath)
+	g.registerHost(goHostOperation("_file_mkdir_all"), g.halFileMkdirAllPath)
+	g.registerHost(goHostOperation("_file_remove_all"), g.halFileRemoveAllPath)
+	g.registerHost(goHostOperation("_file_temp"), halFileTemp)
+	g.registerHost(goHostOperation("_file_temp_dir"), halFileTempDir)
+	g.registerHost(goHostOperation("_file_copy"), g.halFileCopyPath)
+	g.registerHost(goHostOperation("_file_size"), g.halFileSizePath)
+	g.registerHost(goHostOperation("_file_walk"), g.halFileWalkPath)
+	g.registerHost(goHostOperation("_file_symlink"), g.halFileSymlinkPath)
+	g.registerHost(goHostOperation("_file_read_link"), g.halFileReadLinkPath)
+	g.registerHost(goHostOperation("_file_permissions"), g.halFilePermissionsPath)
+	g.registerHost(goHostOperation("_file_chmod"), g.halFileChmodPath)
+	g.registerHost(goHostOperation("_time_now"), halTimeNow)
+	g.registerHost(goHostOperation("_system_cwd"), g.halSystemCwd)
+	g.registerHost(goHostOperation("_system_chdir"), g.halSystemChdir)
+	g.registerHost(goHostOperation("_system_exec"), g.halSystemExec)
+	g.registerHost(goHostOperation("_path_separator"), halPathSeparator)
+	g.registerPrimitive("_seed", g.halSeed)
+	g.registerPrimitive("_random", g.halRandom)
+	g.registerHost(goHostOperation("_canvas"), g.halCanvas)
+	g.registerHost(goHostOperation("_canvas_command"), g.halCanvasCommand)
+	g.registerHost(goHostOperation("_destroy"), g.halDestroy)
+	g.registerHost(goHostOperation("_canvas_width"), g.halCanvasWidth)
+	g.registerHost(goHostOperation("_canvas_height"), g.halCanvasHeight)
+	g.registerHost(goHostOperation("_canvas_alive"), g.halCanvasAlive)
 
 	// Evaluator/language intrinsics.
-	g.registerRole(roleIntrinsic, "_apply", halApply)
-	g.registerRole(roleIntrinsic, "_import", g.halImport)
-	g.registerRole(roleIntrinsic, "_use", g.halUse)
-	g.registerRole(roleIntrinsic, "_export", halExport)
-	g.registerRole(roleIntrinsic, "_load", halLoad)
-	g.registerRole(roleIntrinsic, "_spawn", halSpawn)
-	g.registerRole(roleIntrinsic, "_channel", halChannel)
-	g.registerRole(roleIntrinsic, "_send", halSend)
-	g.registerRole(roleIntrinsic, "_recv", halRecv)
+	g.registerPrimitive("_apply", halApply)
+	g.registerPrimitive("_import", g.halImport)
+	g.registerPrimitive("_use", g.halUse)
+	g.registerPrimitive("_export", halExport)
+	g.registerPrimitive("_load", halLoad)
+	g.registerPrimitive("_spawn", halSpawn)
+	g.registerPrimitive("_channel", halChannel)
+	g.registerPrimitive("_send", halSend)
+	g.registerPrimitive("_recv", halRecv)
 
 	// Language/value primitives implemented natively.
 	for name, fn := range map[string]BuiltinFunc{
@@ -76,7 +84,7 @@ func (g *GoRuntime) registerHAL() {
 		"_bits_and":     halBitsAnd, "_bits_or": halBitsOr, "_bits_xor": halBitsXor,
 		"_bits_not": halBitsNot, "_bits_shl": halBitsShl, "_bits_shr": halBitsShr,
 	} {
-		g.registerRole(roleNative, name, fn)
+		g.registerPrimitive(name, fn)
 	}
 
 	// Native/FFI library providers. Native realization does not imply host
@@ -89,12 +97,14 @@ func (g *GoRuntime) registerHAL() {
 		"_regex_find_all": halRegexFindAll, "_regex_replace": halRegexReplace,
 		"_regex_replace_first": halRegexReplaceFirst, "_regex_split": halRegexSplit,
 	} {
-		g.registerRole(roleProvider, name, fn)
+		g.registerPrimitive(name, fn)
 	}
 
 	// Runtime/tooling/session services.
 	for name, fn := range map[string]BuiltinFunc{
 		"_module_roots":   g.halModuleRoots,
+		"_system_has":     g.halSystemHas,
+		"_system_require": g.halSystemRequire,
 		"_profile_counts": halProfileCounts, "_profile_measure": halProfileMeasure,
 		"_profile_experiment": halProfileExperiment,
 		"_quit":               g.halQuit, "_reset": g.halReset, "_delete": g.halDelete, "_help": g.halHelp, "_doc": g.halDoc,
@@ -103,6 +113,6 @@ func (g *GoRuntime) registerHAL() {
 		"_test_error": g.halTestError, "_test_not_error": g.halTestNotError,
 		"_test_run": g.halTestRun, "_test_faults": g.halTestFaults,
 	} {
-		g.registerRole(roleService, name, fn)
+		g.registerPrimitive(name, fn)
 	}
 }

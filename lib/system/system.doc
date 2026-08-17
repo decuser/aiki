@@ -43,3 +43,20 @@ even when exit_code is nonzero. Failure to start the process returns
 [@error, :process, msg].
 
 exec(command, args)
+
+===
+has
+Reports whether the current runtime provides capability. Capability names are
+Aiki symbols, not HAL identities.
+
+has(capability)
+
+system.has(:filesystem)    # true
+===
+require
+Requires capability. Returns [] on success or [@error, :unsupported, msg] when
+the capability is unknown or unavailable.
+
+require(capability)
+
+system.require(:filesystem)    # []

@@ -156,3 +156,51 @@ func halPathSeparator(args []value.Value, ctx *hal.EvalContext) value.Value {
 	}
 	return &value.String{Val: string(filepath.Separator)}
 }
+
+func (g *GoRuntime) halFileWalkPath(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 1 {
+		return halFileWalk(args, ctx)
+	}
+	original, ok := args[0].(*value.String)
+	if !ok {
+		return halFileWalk(args, ctx)
+	}
+	resolved := g.resolveHostPath(original.Val)
+	result := halFileWalk([]value.Value{&value.String{Val: resolved}}, ctx)
+	list, ok := result.(*value.List)
+	if !ok || filepath.IsAbs(original.Val) {
+		return result
+	}
+	g.mu.RLock()
+	cwd := g.workingDir
+	g.mu.RUnlock()
+	for i, elem := range list.Elements {
+		path, ok := elem.(*value.String)
+		if !ok {
+			continue
+		}
+		rel, err := filepath.Rel(cwd, path.Val)
+		if err == nil {
+			list.Elements[i] = &value.String{Val: rel}
+		}
+	}
+	return list
+}
+
+func (g *GoRuntime) halFileSymlinkPath(args []value.Value, ctx *hal.EvalContext) value.Value {
+	// Preserve the target exactly: a relative symlink target is interpreted
+	// relative to the link's directory by the host filesystem.
+	return halFileSymlink(g.withResolvedPath(args, 1), ctx)
+}
+
+func (g *GoRuntime) halFileReadLinkPath(args []value.Value, ctx *hal.EvalContext) value.Value {
+	return halFileReadLink(g.withResolvedPath(args, 0), ctx)
+}
+
+func (g *GoRuntime) halFilePermissionsPath(args []value.Value, ctx *hal.EvalContext) value.Value {
+	return halFilePermissions(g.withResolvedPath(args, 0), ctx)
+}
+
+func (g *GoRuntime) halFileChmodPath(args []value.Value, ctx *hal.EvalContext) value.Value {
+	return halFileChmod(g.withResolvedPath(args, 0), ctx)
+}

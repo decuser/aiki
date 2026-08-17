@@ -10,7 +10,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime/pprof"
-	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -18,6 +17,8 @@ import (
 	"aiki/engine"
 	"aiki/engine/runtime/hal"
 	"aiki/engine/runtime/help"
+	"aiki/engine/runtime/modules"
+	"aiki/engine/runtime/primitives"
 	"aiki/engine/semantics/value"
 )
 
@@ -59,10 +60,12 @@ type GoRuntime struct {
 	services        map[string]*Builtin
 	hostBindings    map[string]hal.HostOperation
 	stdin           io.Reader
+	stdinReader     *bufio.Reader
 	stdout          io.Writer
+	stderr          io.Writer
 	pageOutput      func(string) bool
 	userEnv         *value.Env
-	moduleRegistry  *ModuleRegistry
+	moduleRegistry  *modules.ModuleRegistry
 	helpRegistry    *help.Registry
 	openCanvases    []*value.Canvas
 	canvasResources map[*value.Canvas]*CanvasResource
@@ -99,7 +102,9 @@ func NewGoRuntime() *GoRuntime {
 		hostBindings:    make(map[string]hal.HostOperation),
 		canvasResources: make(map[*value.Canvas]*CanvasResource),
 		stdin:           os.Stdin,
+		stdinReader:     bufio.NewReader(os.Stdin),
 		stdout:          os.Stdout,
+		stderr:          os.Stderr,
 		workingDir:      workingDir,
 		envLookup:       os.LookupEnv,
 		rng:             rand.New(rand.NewSource(time.Now().UnixNano())),
@@ -107,6 +112,9 @@ func NewGoRuntime() *GoRuntime {
 		asyncFaults:     make(chan *value.Fault, 1),
 	}
 	rt.registerHAL()
+	if err := rt.ValidateProfile(hal.DefaultRuntimeProfile); err != nil {
+		panic(err)
+	}
 	return rt
 }
 
@@ -121,7 +129,19 @@ func (g *GoRuntime) SetIO(in io.Reader, out io.Writer) {
 		out = os.Stdout
 	}
 	g.stdin = in
+	g.stdinReader = bufio.NewReader(in)
 	g.stdout = out
+	g.mu.Unlock()
+}
+
+// SetErrorOutput replaces the runtime-owned standard error endpoint. Nil
+// restores the process default.
+func (g *GoRuntime) SetErrorOutput(out io.Writer) {
+	g.mu.Lock()
+	if out == nil {
+		out = os.Stderr
+	}
+	g.stderr = out
 	g.mu.Unlock()
 }
 
@@ -140,7 +160,7 @@ func (g *GoRuntime) SetUserEnv(env *value.Env) {
 }
 
 // SetModuleRegistry installs the runtime-owned module registry/cache.
-func (g *GoRuntime) SetModuleRegistry(registry *ModuleRegistry) {
+func (g *GoRuntime) SetModuleRegistry(registry *modules.ModuleRegistry) {
 	g.mu.Lock()
 	g.moduleRegistry = registry
 	g.mu.Unlock()
@@ -254,41 +274,11 @@ func (g *GoRuntime) GetBuiltin(name string, authority value.Authority) (value.Ca
 	return b, ok
 }
 
-// BuiltinNames returns the names that are visible to a given scope.
-// This is intended for tooling like lint and fmt.
+// BuiltinNames returns the architectural runtime names visible to tooling.
+// Primitive classification and scope visibility are engine-owned; the Go
+// substrate binds implementations to that vocabulary.
 func (g *GoRuntime) BuiltinNames(scope value.Scope) []string {
-	set := make(map[string]bool)
-
-	// Language primitives that are always available.
-	set["import"] = true
-	set["use"] = true
-	set["export"] = true
-
-	// User scope cannot access _prefixed primitives directly.
-	if scope == value.ScopeUser {
-		out := make([]string, 0, len(set))
-		for k := range set {
-			out = append(out, k)
-		}
-		sort.Strings(out)
-		return out
-	}
-
-	// Prelude scope can access _prefixed HAL primitives.
-	g.mu.RLock()
-	for _, registry := range g.registries() {
-		for name := range registry {
-			set[name] = true
-		}
-	}
-	g.mu.RUnlock()
-
-	out := make([]string, 0, len(set))
-	for k := range set {
-		out = append(out, k)
-	}
-	sort.Strings(out)
-	return out
+	return primitives.NamesForScope(scope)
 }
 
 // registerHost registers an existing host-role compatibility primitive and
@@ -302,7 +292,7 @@ func (g *GoRuntime) registerHost(op hal.HostOperation, fn BuiltinFunc) {
 	if _, exists := g.hostBindings[op.Primitive]; exists {
 		panic(fmt.Sprintf("duplicate host operation registration: %s", op.Primitive))
 	}
-	g.registerRole(roleHost, op.Primitive, fn)
+	g.registerPrimitive(op.Primitive, fn)
 	g.hostBindings[op.Primitive] = op
 }
 

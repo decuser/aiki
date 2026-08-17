@@ -92,8 +92,17 @@ baseline:
 run: build
 	./aiki
 
+# Behavioral and implementation tests. Architectural invariants are run
+# separately by `make invariant` and composed back into `make check`.
 test:
-	go test ./...
+	@set -e; \
+	pkgs="$$(go list ./... | grep -Ev '/test/(invariant|boundary)$$')"; \
+	go test $$pkgs
+
+# Fast architectural contract checks. Keep this target free of fuzzing, gold
+# blessing, and other long-running behavioral validation.
+invariant:
+	go test ./test/invariant ./test/boundary
 
 fmt:
 	go fmt ./...
@@ -135,7 +144,7 @@ enginesmokegold: build fmt
 	./aiki enginesmoke --stage all --gold test/structure/engine
 
 # Snapshot-independent correctness checks. This target never writes gold files.
-check: build fmt lint treecheck test aikitest enginecoverage
+check: build fmt lint treecheck test invariant aikitest enginecoverage
 
 # Bless the current, independently checked behavior and engine structure.
 # Blessing records a reference state; it is not validation.

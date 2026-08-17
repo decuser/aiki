@@ -1,4 +1,4 @@
-package invariant
+package conformance
 
 import (
 	"fmt"
@@ -13,22 +13,20 @@ import (
 	"aiki/engine/syntax/grammar"
 )
 
-func TestSelfhostLexerConformance(t *testing.T) {
+func TestSelfhostNewlineConformance(t *testing.T) {
 	root := distributionRoot(t)
 	exe := buildAiki(t)
 
-	// First prove that the independent lexer's duplicated enumerated tables are
-	// still exactly the lexical facts derived by Aiki from grammar.ebnfx.
-	checkPath := filepath.Join(root, "selfhost", "check_lexer_authority.ai")
+	checkPath := filepath.Join(root, "selfhost", "check_normalization_authority.ai")
 	stdout, stderr, exitCode, err := runAikiFile(exe, checkPath, root)
 	if err != nil {
-		t.Fatalf("run lexer authority check: %v", err)
+		t.Fatalf("run normalization authority check: %v", err)
 	}
 	if exitCode != 0 {
-		t.Fatalf("lexer authority check exited %d\nstderr: %s", exitCode, stderr)
+		t.Fatalf("normalization authority check exited %d\nstderr: %s", exitCode, stderr)
 	}
 	if strings.TrimSpace(stdout) != "ok" {
-		t.Fatalf("lexer authority coupling failed\nstdout: %s\nstderr: %s", stdout, stderr)
+		t.Fatalf("normalization authority coupling failed\nstdout: %s\nstderr: %s", stdout, stderr)
 	}
 
 	g, err := grammar.Load("grammar.ebnfx", syntax.EbnfxSource, "grammar.help", syntax.HelpSource)
@@ -36,14 +34,14 @@ func TestSelfhostLexerConformance(t *testing.T) {
 		t.Fatalf("load grammar: %v", err)
 	}
 
-	fixtureDir := filepath.Join(root, "test", "conformance", "syntax", "lex")
+	fixtureDir := filepath.Join(root, "test", "conformance", "syntax", "newline")
 	fixtures, err := filepath.Glob(filepath.Join(fixtureDir, "*.input"))
 	if err != nil {
-		t.Fatalf("glob lexical fixtures: %v", err)
+		t.Fatalf("glob newline fixtures: %v", err)
 	}
 	sort.Strings(fixtures)
 	if len(fixtures) == 0 {
-		t.Fatal("no lexical conformance fixtures")
+		t.Fatal("no newline conformance fixtures")
 	}
 
 	for _, fixture := range fixtures {
@@ -61,17 +59,17 @@ func TestSelfhostLexerConformance(t *testing.T) {
 			want := strings.TrimSpace(string(goldBytes))
 
 			goLexer := syntax.NewLexer(g, filepath.Base(fixture), string(sourceBytes), nil)
-			goTokens, err := goLexer.Tokenize()
+			raw, err := goLexer.Tokenize()
 			if err != nil {
 				t.Fatalf("Go lexer rejected fixture: %v", err)
 			}
+			normalized := syntax.NormalizeTokens(g, raw)
 			var goLines []string
-			for _, tok := range goTokens {
+			for _, tok := range normalized {
 				goLines = append(goLines, fmt.Sprintf("%d:%d %s %q", tok.Pos.Line, tok.Pos.Col, tok.Type, tok.Lexeme))
 			}
-			goProjection := strings.Join(goLines, "\n")
-			if goProjection != want {
-				t.Fatalf("reviewed token projection disagrees with Go lexer\nwant:\n%s\n\ngot:\n%s", want, goProjection)
+			if got := strings.Join(goLines, "\n"); got != want {
+				t.Fatalf("reviewed newline projection disagrees with Go normalization\nwant:\n%s\n\ngot:\n%s", want, got)
 			}
 
 			rel, err := filepath.Rel(root, fixture)
@@ -81,22 +79,22 @@ func TestSelfhostLexerConformance(t *testing.T) {
 			rel = filepath.ToSlash(rel)
 			harness := "let file = import(\"file\")\n" +
 				"let lexer = import(\"./selfhost/lexer\")\n" +
+				"let normalizer = import(\"./selfhost/normalize\")\n" +
 				"let f = file.open(" + strconv.Quote(rel) + ", :read)\n" +
 				"let source = file.read_text(f)\n" +
 				"file.close(f)\n" +
-				"let tokens = lexer.tokenize(source)\n" +
-				"if is_error(tokens) { println(inspect(tokens)) } else { println(lexer.project_tokens(tokens)) }\n"
+				"let raw = lexer.tokenize(source)\n" +
+				"if is_error(raw) { println(inspect(raw)) } else { println(lexer.project_tokens(normalizer.normalize(raw))) }\n"
 
 			stdout, stderr, exitCode, err := runAikiSource(exe, harness, root)
 			if err != nil {
-				t.Fatalf("run Aiki lexer: %v", err)
+				t.Fatalf("run Aiki normalization: %v", err)
 			}
 			if exitCode != 0 {
-				t.Fatalf("Aiki lexer exited %d\nstderr: %s", exitCode, stderr)
+				t.Fatalf("Aiki normalization exited %d\nstderr: %s", exitCode, stderr)
 			}
-			aikiProjection := strings.TrimSpace(stdout)
-			if aikiProjection != want {
-				t.Fatalf("reviewed token projection disagrees with Aiki lexer\nwant:\n%s\n\ngot:\n%s\n\nstderr:\n%s", want, aikiProjection, stderr)
+			if got := strings.TrimSpace(stdout); got != want {
+				t.Fatalf("reviewed newline projection disagrees with Aiki normalization\nwant:\n%s\n\ngot:\n%s\n\nstderr:\n%s", want, got, stderr)
 			}
 		})
 	}

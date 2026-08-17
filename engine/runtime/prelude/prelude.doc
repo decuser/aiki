@@ -163,6 +163,15 @@ abs(-5)    # 5
 abs(3)     # 3
 abs(0)     # 0
 ===
+truncate
+Truncates a number toward zero, returning its integer part.
+
+truncate(n)
+
+truncate(2.7)     # 2
+truncate(-2.7)    # -2
+truncate(0)       # 0
+===
 type
 Returns the type of a value as a symbol.
 

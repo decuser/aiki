@@ -104,4 +104,4 @@ Repository invariants enforce the architecture rather than leaving it as prose:
 - semantic Canvas values cannot regain concrete substrate state.
 
 The detailed design and migration record is retained under
-`ai/sessions/2026-08-16/`.
+`docs/session-history.md`.

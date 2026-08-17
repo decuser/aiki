@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"aiki/engine"
+	"aiki/engine/runtime/modules"
 	"aiki/engine/runtime/prelude"
 	"aiki/engine/semantics/value"
 	"aiki/engine/syntax"
@@ -39,7 +40,7 @@ func analyzeNode(g *grammar.Grammar, file string, node *syntax.Node, lintScope v
 	// Build a set of all HAL builtins that exist in prelude scope.
 	// Linting should be grounded only in what the runtime exposes for the active scope.
 	c := &checker{
-		scopes:      []scopeFrame{makeGlobals(lintScope, catalog)},
+		scopes:      []scopeFrame{makeGlobals(g, lintScope, catalog)},
 		diags:       nil,
 		grammar:     g,
 		currentFile: file,
@@ -70,11 +71,13 @@ func isValidCase(name string) bool {
 	return snakeRe.MatchString(name) || screamRe.MatchString(name)
 }
 
-func makeGlobals(lintScope value.Scope, catalog Catalog) scopeFrame {
+func makeGlobals(g *grammar.Grammar, lintScope value.Scope, catalog Catalog) scopeFrame {
 	globals := make(scopeFrame)
-	// Prelude exports are the user visible surface.
-	for name := range extractPreludeLets(prelude.Source) {
-		globals[name] = true
+	// Prelude exports are derived from the engine-owned prelude catalog.
+	if authored, err := prelude.LoadCatalog(g); err == nil {
+		for _, name := range authored.Names {
+			globals[name] = true
+		}
 	}
 	// Runtime-visible names come through the neutral catalog contract.
 	if catalog != nil {
@@ -89,32 +92,6 @@ func makeGlobals(lintScope value.Scope, catalog Catalog) scopeFrame {
 	globals["and"] = true
 	globals["or"] = true
 	return globals
-}
-
-func extractPreludeLets(source string) map[string]bool {
-	// This intentionally matches the runner's extraction logic: find top level "let name".
-	lets := make(map[string]bool)
-	lines := strings.Split(source, "\n")
-	for _, ln := range lines {
-		trim := strings.TrimSpace(ln)
-		if !strings.HasPrefix(trim, "let ") {
-			continue
-		}
-		rest := strings.TrimSpace(strings.TrimPrefix(trim, "let "))
-		// name ends at first space or '='.
-		name := rest
-		for i := 0; i < len(rest); i++ {
-			if rest[i] == ' ' || rest[i] == '=' {
-				name = rest[:i]
-				break
-			}
-		}
-		name = strings.TrimSpace(name)
-		if name != "" && isNameToken(name) {
-			lets[name] = true
-		}
-	}
-	return lets
 }
 
 func isNameToken(s string) bool {
@@ -371,97 +348,7 @@ func (c *checker) resolveModuleExports(moduleName string) []string {
 	if !ok {
 		return nil
 	}
-	return extractExportsFromSource(source, c.grammar)
-}
-
-// extractExportsFromSource parses source and finds export(:name, ...) symbols.
-func extractExportsFromSource(source string, g *grammar.Grammar) []string {
-	if g == nil {
-		// Fallback: simple text extraction
-		return extractExportsSimple(source)
-	}
-
-	// Parse the module
-	lx := syntax.NewLexer(g, "<module>", source, nil)
-	toks, err := lx.Tokenize()
-	if err != nil {
-		return extractExportsSimple(source)
-	}
-	p := syntax.NewParser(g, toks, source, nil)
-	node, err := p.Parse()
-	if err != nil {
-		return extractExportsSimple(source)
-	}
-
-	// Find export(...) call and extract symbols
-	return findExportSymbols(node)
-}
-
-// findExportSymbols walks the AST to find export() calls and extract symbol names.
-func findExportSymbols(node *syntax.Node) []string {
-	if node == nil {
-		return nil
-	}
-
-	var exports []string
-
-	// Look for postfix_expr with "export" as the function name
-	if node.Type == "postfix_expr" && len(node.Children) > 0 {
-		prim := node.Children[0]
-		nameTok := prim.ChildByType("NAME")
-		if nameTok != nil && nameTok.Value == "export" {
-			// Found export call - extract symbols from call arguments
-			for _, ch := range node.Children[1:] {
-				if ch.Type != "call" {
-					continue
-				}
-				for _, sym := range findAllByType(ch, "SYMBOL") {
-					name := strings.TrimPrefix(sym.Value, ":")
-					if name != "" && isNameToken(name) {
-						exports = append(exports, name)
-					}
-				}
-			}
-			return exports
-		}
-	}
-
-	// Recurse into children
-	for _, ch := range node.Children {
-		exports = append(exports, findExportSymbols(ch)...)
-	}
-	return exports
-}
-
-// extractExportsSimple is a fallback text-based extraction.
-func extractExportsSimple(source string) []string {
-	var exports []string
-	// Look for export(:name, :name2, ...)
-	lines := strings.Split(source, "\n")
-	for _, line := range lines {
-		trim := strings.TrimSpace(line)
-		if !strings.HasPrefix(trim, "export(") {
-			continue
-		}
-		// Extract symbols from the line
-		start := strings.Index(trim, "(")
-		end := strings.LastIndex(trim, ")")
-		if start < 0 || end < 0 || end <= start {
-			continue
-		}
-		args := trim[start+1 : end]
-		parts := strings.Split(args, ",")
-		for _, part := range parts {
-			part = strings.TrimSpace(part)
-			if strings.HasPrefix(part, ":") {
-				name := strings.TrimPrefix(part, ":")
-				if isNameToken(name) {
-					exports = append(exports, name)
-				}
-			}
-		}
-	}
-	return exports
+	return modules.ExportNames(c.grammar, "<module>", source)
 }
 
 func findAllByType(n *syntax.Node, typ string) []*syntax.Node {
