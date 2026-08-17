@@ -216,3 +216,22 @@ Sessions covered: 2026-08-14 through 2026-08-16.
 - Semantic counts identical across alpha-25 and beta-1 for all native/sanity
   workloads. Two-level self-host counts shift proportionally due to expanded
   baseline bootstrap, confirming no regression from HAL redesign.
+
+## Guide mode for the Thompson 7094 monitor (2026-08-16)
+
+- Added `guide on/off` mode to the monitor console. Guided trace shows
+  Thompson's published CACM comments as the primary layer, modern gloss
+  underneath, symbolic named addresses, and region context for compiled code.
+- `info machine` and `info thompson` provide reference cards. `demo` runs a
+  self-contained guided walkthrough. All fixed output fits 80×24.
+- Annotation corpus is a static Aiki list of address/comment/gloss triples,
+  separate from display logic. Covers CNODE, NNODE, FAIL, XCHG, INIT,
+  TSXCMD, TRACMD, GETCHA, and FOUND.
+- Compiled CODE region receives region context ("compiled pattern code"),
+  not fabricated Thompson commentary.
+- Store is a dense indexed array, not a sparse map. Using `store.new(256)`
+  for address-keyed lookup with addresses at 1000+ fails. Simple list scan
+  is the correct Aiki pattern for small static lookups.
+- `and`/`or` non-short-circuit trap recurred in range checks. All compound
+  boolean expressions replaced with nested ifs. D4 (make `and`/`or`
+  short-circuit infix operators) planned as the corrective language change.

@@ -1,0 +1,93 @@
+Experiment 002 — Thompson 7094 Regex Reconstruction
+Phases I–IV — machine, Thompson reconstruction, compiler, and operator monitor
+
+Aiki executable: /home/wsenn/forge/dev/aiki/aiki
+Aiki version:    aiki v0.4.0-beta.1-2-g965e46c-dirty
+
+--- Phase I machine corpus ---
+PASS machine_test.ai
+
+96 tests, 96 passed, 0 failed
+
+--- Phase II Thompson corpus ---
+PASS phase2_test.ai
+
+57 tests, 57 passed, 0 failed
+
+--- Phase III compiler corpus ---
+PASS phase3_test.ai
+
+39 tests, 39 passed, 0 failed
+
+--- Phase IV monitor corpus ---
+PASS monitor_test.ai
+
+24 tests, 24 passed, 0 failed
+
+--- End-to-end demonstration ---
+Thompson example: a(b|c)*d
+
+compiler
+  stage 1: a.(b|c)*.d
+  stage 2: abc|*.d.
+  stage 3: 23 IBM 7094 words
+
+generated-code search on the Aiki 7094
+  "ad" -> FOUND end offsets [2]
+  "abd" -> FOUND end offsets [3]
+  "abcbcd" -> FOUND end offsets [6]
+  "xxabcbcdyyad" -> FOUND end offsets [8, 12]
+  "axd" -> no match
+
+RESULT: regex -> compiler -> IBM 7094 object code -> Aiki 7094 emulator -> Thompson runtime -> FOUND
+PASS
+
+--- Monitor demonstration ---
+Aiki Thompson 7094 monitor
+octal input; type help for commands
+Type 'guide on' for guided TTY trace output.
+7094> # Phase IV operator walkthrough
+7094> show registers
+IC  02210  AC  000000000000
+XR1 00000  XR2 00000  XR4 00000
+XR6 00000  XR7 00000
+7094> show code 4
+01750  002000001751  TRA 01751
+01751  777636102152  TXL 02152,1,77636
+01752  377637102152  TXH 02152,1,77637
+01753  007400402140  TSX 02140,4
+7094> input ad
+input set; machine reset to INIT
+7094> trace 6
+02210  063600002140  SCA 02140  -> 02211
+02211  002000002164  TRA 02164  -> 02164
+02164  053500702140  LAC 02140,7  -> 02165
+02165  477400600000  AXC 00000,6  -> 02166
+02166  700000702173  TXL 02173,7,00000  -> 02173
+02173  050000002203  CLA 02203  -> 02174
+7094> run
+running
+7094> wait
+[@eof, 115, [2]]
+7094> show clist 6
+03720  002000002164  TRA 02164
+03721  002000002164  TRA 02164
+03722  007400201766  TSX 01766,2
+03723  002000002164  TRA 02164
+03724  000000000000  ??? 000000000000
+03725  000000000000  ??? 000000000000
+7094> show nlist 6
+04064  007400201776  TSX 01776,2
+04065  000000000000  ??? 000000000000
+04066  000000000000  ??? 000000000000
+04067  000000000000  ??? 000000000000
+04070  000000000000  ??? 000000000000
+04071  000000000000  ??? 000000000000
+7094> show matches
+[2]
+7094> reset
+machine reset to Thompson INIT
+7094> show registers
+IC  02210  AC  000000000000
+XR1 00000  XR2 00000  XR4 00000
+XR6 00000  XR7 00000

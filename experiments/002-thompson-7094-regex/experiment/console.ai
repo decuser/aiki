@@ -7,6 +7,7 @@ let system = import("system")
 let session = monitor.new()
 let controller = operator.new(session)
 let alive = true
+let guide_mode = false
 let logging = false
 let log_handle = []
 
@@ -26,29 +27,58 @@ let is_comment = (text) {
 
 let show_help = () {
 	emit("commands:")
-	emit("  help                       show this help")
-	emit("  input TEXT                 reset and set Thompson search input")
-	emit("  step [N]                   execute N machine/host steps (default 1)")
-	emit("  run [LIMIT]                start running asynchronously (default 100000)")
-	emit("  stop                       operator stop at an instruction boundary")
-	emit("  status                     show running/halted result")
-	emit("  wait                       wait for the current run to stop")
-	emit("  trace [N]                  execute and display N traced steps (default 10)")
-	emit("  show registers             display IC, AC, and Thompson index registers")
-	emit("  show code [N]              disassemble generated CODE (default 23)")
-	emit("  show clist [N]             display CLIST words (default 12)")
-	emit("  show nlist [N]             display NLIST words (default 12)")
-	emit("  show matches               display FOUND end offsets")
-	emit("  examine OCTAL [N]          examine memory (default 1)")
-	emit("  deposit OCTAL OCTAL        deposit a 36-bit word")
-	emit("  set ic OCTAL               set instruction counter")
-	emit("  set ac OCTAL               set logical accumulator")
-	emit("  set xr1|xr2|xr4|xr6|xr7 N set an index register")
-	emit("  load OCTAL FILE            load one octal word per line")
-	emit("  reset                      restore Thompson runtime/object program")
-	emit("  log FILE | log off         write monitor output to a file")
-	emit("  do FILE                    execute commands from FILE")
-	emit("  quit                       leave the monitor")
+	emit("  help                        this help")
+	emit("  info machine|thompson       reference cards")
+	emit("  demo                        guided walkthrough")
+	emit("  guide [on|off]              annotated trace mode")
+	emit("  input TEXT                  set search text and reset")
+	emit("  trace [N]                   trace N steps (default 8)")
+	emit("  step [N]                    step N instructions")
+	emit("  run [LIMIT]                 run until done or limit")
+	emit("  stop / wait / status        control a running machine")
+	emit("  show registers              IC, AC, index registers")
+	emit("  show code|clist|nlist [N]   memory regions")
+	emit("  show matches                match positions found")
+	emit("  examine ADDR [N]            read N words at ADDR")
+	emit("  deposit ADDR WORD           write WORD at ADDR")
+	emit("  set REGISTER VALUE          set ic, ac, or xr1..xr7")
+	emit("  load ADDR FILE              load octal words from FILE")
+	emit("  reset                       reload Thompson runtime")
+	emit("  log FILE | log off          session transcript")
+	emit("  do FILE                     run commands from FILE")
+	emit("  quit")
+}
+
+let show_info_machine = () {
+	emit("IBM 7094 (subset)")
+	emit("36-bit word, 15-bit address, octal representation")
+	emit("")
+	emit("IC   instruction counter")
+	emit("AC   accumulator (logical P,1-35)")
+	emit("XR1  index register 1 (Thompson character)")
+	emit("XR2  index register 2 (CLIST return)")
+	emit("XR4  index register 4 (subroutine return)")
+	emit("XR6  index register 6")
+	emit("XR7  index register 7 (list counter)")
+	emit("")
+	emit("Instructions:")
+	emit("  TRA TSX TXI TXL TXH AXC")
+	emit("  CLA CAL LAC SLW ACL SCA PCA PAC")
+}
+
+let show_info_thompson = () {
+	emit("Thompson runtime (CACM 1968)")
+	emit("")
+	emit("CODE    compiled regex program")
+	emit("CLIST   current search frontier")
+	emit("NLIST   next frontier (built during scan)")
+	emit("CNODE   split current search path in CLIST")
+	emit("NNODE   schedule a continuation in NLIST")
+	emit("XCHG    swap NLIST->CLIST, fetch next char")
+	emit("FAIL    path failed; try next CLIST entry")
+	emit("FOUND   entire regex matched here")
+	emit("GETCHA  obtain next input character")
+	emit("INIT    clear NLIST and enter XCHG")
 }
 
 let number_arg = (parts, index, fallback) {
@@ -172,6 +202,70 @@ let execute = (line) {
 		"help" {
 			show_help()
 		}
+		"info" {
+			if length(parts) < 2 {
+				emit("info machine | info thompson")
+			} else {
+				match parts[1] {
+					"machine" {
+						show_info_machine()
+					}
+					"thompson" {
+						show_info_thompson()
+					}
+					_ {
+						emit("info machine | info thompson")
+					}
+				}
+			}
+		}
+		"demo" {
+			let was_guide = guide_mode
+			guide_mode = true
+			emit("--- Thompson's a(b|c)*d on the Aiki 7094 ---")
+			emit("")
+			show_info_thompson()
+			emit("")
+			execute("input ad")
+			emit("")
+			emit("--- trace: first 12 steps ---")
+			execute("trace 12")
+			emit("")
+			execute("run")
+			execute("wait")
+			emit("")
+			execute("show matches")
+			emit("")
+			emit("--- reset and try a longer input ---")
+			execute("input abcbcd")
+			execute("run")
+			execute("wait")
+			execute("show matches")
+			guide_mode = was_guide
+		}
+		"guide" {
+			if length(parts) < 2 {
+				if guide_mode {
+					emit("guide: on")
+				} else {
+					emit("guide: off")
+				}
+			} else {
+				match parts[1] {
+					"on" {
+						guide_mode = true
+						emit("guide on")
+					}
+					"off" {
+						guide_mode = false
+						emit("guide off")
+					}
+					_ {
+						emit("guide [on|off]")
+					}
+				}
+			}
+		}
 		"status" {
 			emit(inspect(operator.status(controller)))
 		}
@@ -230,7 +324,11 @@ let execute = (line) {
 					if is_error(records) {
 						emit(inspect(records))
 					} else {
-						emit(monitor.format_trace(session, records))
+						if guide_mode {
+							emit(monitor.format_guided_trace(session, records))
+						} else {
+							emit(monitor.format_trace(session, records))
+						}
 					}
 				}
 				"show" {
@@ -378,6 +476,7 @@ let execute = (line) {
 
 emit("Aiki Thompson 7094 monitor")
 emit("octal input; type help for commands")
+emit("type 'guide on' for annotated trace output")
 
 let args = system.args()
 if not empty(args) {

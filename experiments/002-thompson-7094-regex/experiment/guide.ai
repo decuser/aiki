@@ -1,0 +1,212 @@
+package "thompson_7094_guide"
+
+# Guide-mode annotation corpus for the Thompson 7094 monitor.
+#
+# Each entry maps a runtime address to Thompson's published comment
+# (from the 1968 CACM paper, pp. 421-422) and a modern explanation.
+# Only the fixed runtime scaffold is annotated; compiled CODE region
+# instructions receive region context, not fabricated Thompson comments.
+
+let runtime = import("./runtime")
+
+# Annotation record: [address, thompson_comment, modern_gloss]
+# Thompson's comments are transcribed verbatim from the listing.
+# Modern gloss explains the effect for a reader unfamiliar with the 7094.
+
+let runtime_annotations = () {
+	[
+		# CNODE -- Thompson 1968, p. 421
+		[runtime.cnode + 0, "CLIST COUNT", "load the current CLIST count into XR7"],
+		[runtime.cnode + 1, "", "fetch the word at CLIST[XR7]"],
+		[runtime.cnode + 2, "MOVE TRA XCHG INSTRUCTION", "shift the list terminator down one slot in CLIST"],
+		[runtime.cnode + 3, "", "place the return address from XR4 into the accumulator"],
+		[runtime.cnode + 4, "", "combine with TSX template to build a continuation"],
+		[runtime.cnode + 5, "INSERT NEW TSX **,2 INSTRUCTION", "store the new continuation into CLIST, branching the search path"],
+		[runtime.cnode + 6, "", "advance the CLIST index"],
+		[runtime.cnode + 7, "INCREMENT CLIST COUNT", "save the updated CLIST count back into CNODE's address field"],
+		[runtime.cnode + 8, "RETURN", "return to the caller at offset +2 from the TSX"],
+		[runtime.tsxcmd, "CONSTANT, NOT EXECUTED", "TSX 1,2 template word used to construct CLIST/NLIST entries"],
+		# NNODE -- Thompson 1968, p. 421
+		[runtime.nnode + 0, "NLIST COUNT", "load the current NLIST count into XR7"],
+		[runtime.nnode + 1, "", "place the return address from XR4 into the accumulator"],
+		[runtime.nnode + 2, "", "combine with TSX template to build a continuation"],
+		[runtime.nnode + 3, "PLACE NEW TSX **,2 INSTRUCTION", "store the continuation into NLIST for the next input character"],
+		[runtime.nnode + 4, "", "advance the NLIST index"],
+		[runtime.nnode + 5, "INCREMENT NLIST COUNT", "save the updated NLIST count back into NNODE's address field"],
+		[runtime.nnode + 6, "", "return to the next CLIST entry via XR2"],
+		# FAIL -- Thompson 1968, p. 421
+		[runtime.fail, "", "this search path did not match; advance to the next CLIST entry"],
+		# XCHG -- Thompson 1968, p. 421
+		[runtime.xchg + 0, "PICK UP NLIST COUNT", "load the NLIST count from NNODE's self-modifying address field"],
+		[runtime.xchg + 1, "PICK UP CLIST COUNT", "initialize XR6 as the CLIST write index"],
+		[runtime.xchg + 2, "", "if NLIST is empty, skip the copy loop"],
+		[runtime.xchg + 3, "", "advance the NLIST read index"],
+		[runtime.xchg + 4, "", "fetch the next NLIST entry"],
+		[runtime.xchg + 5, "COPY NLIST ONTO CLIST", "store the fetched NLIST entry into CLIST"],
+		[runtime.xchg + 6, "", "advance the CLIST write index and loop back"],
+		[runtime.xchg + 7, "", "load the TRA XCHG constant"],
+		[runtime.xchg + 8, "PUT TRA XCHG AT BOTTOM", "append the list terminator to CLIST"],
+		[runtime.xchg + 9, "INITIALIZE CNODE COUNT", "set CNODE's self-modifying count to the new CLIST length"],
+		[runtime.xchg + 10, "INITIALIZE NNODE COUNT", "clear NNODE's count for the next character's matches"],
+		[runtime.xchg + 11, "GET NEXT CHARACTER", "call GETCHA to obtain the next search character"],
+		[runtime.xchg + 12, "GET NEXT CHARACTER", "place the character into XR1 for Thompson comparisons"],
+		[runtime.xchg + 13, "START SEARCH", "enter CODE to start a new search path for this character"],
+		[runtime.xchg + 14, "FINISH SEARCH", "after CODE returns, execute the CLIST continuation paths"],
+		[runtime.tracmd, "CONSTANT, NOT EXECUTED", "TRA XCHG template used to terminate CLIST"],
+		# INIT -- Thompson 1968, p. 421
+		[runtime.init + 0, "INITIALIZE NNODE COUNT", "clear the next-list counter before the first character"],
+		[runtime.init + 1, "", "enter XCHG to begin the search cycle"]
+	]
+}
+
+# Look up an annotation by address. Simple list scan; the corpus is small.
+let _annotations = runtime_annotations()
+
+let annotate = (address) {
+	let i = 0
+	while i < length(_annotations) {
+		if equal(_annotations[i][0], address) {
+			return [_annotations[i][1], _annotations[i][2]]
+		}
+		i = i + 1
+	}
+	return []
+}
+
+# Region context for compiled code addresses.
+let region_context = (address) {
+	if not equal(type(address), "number") {
+		return ""
+	}
+	if address >= runtime.code {
+		if address < runtime.code + 300 {
+			return "compiled pattern code"
+		}
+	}
+	if address >= runtime.cnode {
+		if address < runtime.cnode + 10 {
+			return "CNODE: split current search path"
+		}
+	}
+	if address >= runtime.nnode {
+		if address < runtime.nnode + 7 {
+			return "NNODE: schedule successful continuation"
+		}
+	}
+	if equal(address, runtime.fail) {
+		return "FAIL: advance to next CLIST entry"
+	}
+	if address >= runtime.xchg {
+		if address < runtime.xchg + 16 {
+			return "XCHG: exchange lists and advance input"
+		}
+	}
+	if address >= runtime.init {
+		if address < runtime.init + 2 {
+			return "INIT: initialize and enter search"
+		}
+	}
+	if equal(address, runtime.getcha) {
+		return "GETCHA: host character input"
+	}
+	if equal(address, runtime.found) {
+		return "FOUND: match target"
+	}
+	if address >= runtime.clist {
+		if address < runtime.clist + 64 {
+			return "CLIST: current frontier"
+		}
+	}
+	if address >= runtime.nlist {
+		if address < runtime.nlist + 64 {
+			return "NLIST: next frontier"
+		}
+	}
+	return ""
+}
+
+# Named-address resolution for disassembly.
+let named_address = (address) {
+	if not equal(type(address), "number") {
+		return ""
+	}
+	if equal(address, runtime.code) {
+		return "CODE"
+	}
+	if address > runtime.code {
+		if address < runtime.code + 300 {
+			return "CODE+" + to_str(address - runtime.code)
+		}
+	}
+	if equal(address, runtime.cnode) {
+		return "CNODE"
+	}
+	if address > runtime.cnode {
+		if address < runtime.cnode + 10 {
+			return "CNODE+" + to_str(address - runtime.cnode)
+		}
+	}
+	if equal(address, runtime.tsxcmd) {
+		return "TSXCMD"
+	}
+	if equal(address, runtime.nnode) {
+		return "NNODE"
+	}
+	if address > runtime.nnode {
+		if address < runtime.nnode + 7 {
+			return "NNODE+" + to_str(address - runtime.nnode)
+		}
+	}
+	if equal(address, runtime.fail) {
+		return "FAIL"
+	}
+	if equal(address, runtime.xchg) {
+		return "XCHG"
+	}
+	if address > runtime.xchg {
+		if address < runtime.xchg + 16 {
+			return "XCHG+" + to_str(address - runtime.xchg)
+		}
+	}
+	if equal(address, runtime.tracmd) {
+		return "TRACMD"
+	}
+	if equal(address, runtime.init) {
+		return "INIT"
+	}
+	if address > runtime.init {
+		if address < runtime.init + 2 {
+			return "INIT+" + to_str(address - runtime.init)
+		}
+	}
+	if equal(address, runtime.getcha) {
+		return "GETCHA"
+	}
+	if equal(address, runtime.found) {
+		return "FOUND"
+	}
+	if equal(address, runtime.clist) {
+		return "CLIST"
+	}
+	if address > runtime.clist {
+		if address < runtime.clist + 64 {
+			return "CLIST+" + to_str(address - runtime.clist)
+		}
+	}
+	if equal(address, runtime.nlist) {
+		return "NLIST"
+	}
+	if address > runtime.nlist {
+		if address < runtime.nlist + 64 {
+			return "NLIST+" + to_str(address - runtime.nlist)
+		}
+	}
+	return ""
+}
+
+export(
+	:runtime_annotations,
+	:annotate,
+	:region_context,
+	:named_address
+)
