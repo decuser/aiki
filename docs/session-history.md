@@ -238,26 +238,15 @@ Sessions covered: 2026-08-14 through 2026-08-16.
   D4: make `and`/`or` lazy logical control operators while preserving eager
   function calls and eager ordinary binary operators.
 
-## Lazy logical control operators (2026-08-16)
+## Lazy logical control operators: profiler comparison (2026-08-16)
 
-- D4: `and` and `or` are lazy logical control operators, not ordinary eager
-  binary value operators. They remain infix keywords/operators; no `and(a, b)`
-  or `or(a, b)` form was added.
-- Function calls remain eager. Arithmetic, comparison, pipeline, indexing, and
-  ordinary binary operators remain eager. `not` remains unary logical
-  evaluation.
-- Evaluator structure separates `lazyLogicalOperators` from
-  `eagerBinaryOperatorSemantics`. `evalInfix` handles `and`/`or` before
-  evaluating the right operand; all other infix operators continue through the
-  eager path.
-- The self-host evaluator mirrors the Go evaluator: `and` evaluates the right
-  side only when the left side is true; `or` evaluates the right side only when
-  the left side is false.
-- Smoke coverage uses statically valid skipped right-hand expressions that
-  would fail at runtime if evaluated (`false and (1 / 0)`, `true or (1 / 0)`).
-  Earlier undefined-name smoke tests were rejected correctly by lint.
-- Treecheck caught a packaging artifact (`MANIFEST.txt`) in the first source
-  drop. The final gated state requires no repository-root manifest artifact.
-- Local validation passed after the correction: `./aiki fmt ./...`,
-  `./aiki distfmt ./...`, `./aiki lint ./...`, `treecheck`, and the project
-  validation gate.
+- Pre-lazy and post-lazy profiler runs show no semantic-count change for
+  sanity and native loop workloads. Arithmetic, comparison, and iteration
+  counts match exactly in those fixtures.
+- Self-host workloads improve after lazy `and`/`or`. Two-level self-host runs
+  show lower wall-clock time, fewer allocation bytes, and fewer mallocs.
+- The semantic-count shift is the main explanation: comparison, call, and index
+  counts generally drop because guarded right-hand expressions are no longer
+  evaluated when the left operand determines the result.
+- This is expected evidence of the lazy logical-control change: it preserves
+  native behavior while reducing unnecessary self-host evaluator work.

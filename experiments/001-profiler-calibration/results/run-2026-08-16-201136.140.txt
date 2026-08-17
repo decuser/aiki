@@ -1,0 +1,314 @@
+Experiment 001 — Profiler Calibration
+
+Aiki executable: /home/wsenn/forge/dev/aiki/aiki
+Aiki version:    aiki v0.4.0-beta.1-4-g3b57fd8-dirty
+
+---- Sanity check: visible decade scaling -----------------------
+Expected leaf calculations: 10, 100, 1000, 10000
+Expected total loop iterations: 10, 110, 1110, 11110
+
+================================================================
+sanity-10.ai
+================================================================
+Aiki semantic work
+  arithmetic   20
+  comparison   11
+  call         0
+  iteration    10
+  index        0
+  send         0
+  receive      0
+  store_read   0
+  store_write  0
+
+Go substrate realization
+  elapsed      37.771µs
+  alloc_bytes  15552
+  mallocs      539
+  gc_cycles    0
+
+================================================================
+sanity-100.ai
+================================================================
+Aiki semantic work
+  arithmetic   210
+  comparison   121
+  call         0
+  iteration    110
+  index        0
+  send         0
+  receive      0
+  store_read   0
+  store_write  0
+
+Go substrate realization
+  elapsed      247.035µs
+  alloc_bytes  136800
+  mallocs      5610
+  gc_cycles    0
+
+================================================================
+sanity-1000.ai
+================================================================
+Aiki semantic work
+  arithmetic   2110
+  comparison   1221
+  call         0
+  iteration    1110
+  index        0
+  send         0
+  receive      0
+  store_read   0
+  store_write  0
+
+Go substrate realization
+  elapsed      2.51295ms
+  alloc_bytes  1351352
+  mallocs      56317
+  gc_cycles    1
+
+================================================================
+sanity-10000.ai
+================================================================
+Aiki semantic work
+  arithmetic   21110
+  comparison   12221
+  call         0
+  iteration    11110
+  index        0
+  send         0
+  receive      0
+  store_read   0
+  store_write  0
+
+Go substrate realization
+  elapsed      23.402064ms
+  alloc_bytes  13484224
+  mallocs      563371
+  gc_cycles    5
+
+---- Native exact count -----------------------------------------
+================================================================
+native-exact.ai
+================================================================
+Aiki semantic work
+  arithmetic   3
+  comparison   0
+  call         0
+  iteration    0
+  index        0
+  send         0
+  receive      0
+  store_read   0
+  store_write  0
+
+Go substrate realization
+  elapsed      14.296µs
+  alloc_bytes  4008
+  mallocs      65
+  gc_cycles    0
+
+---- Native loop scaling ----------------------------------------
+================================================================
+native-loop-10.ai
+================================================================
+Aiki semantic work
+  arithmetic   20
+  comparison   11
+  call         0
+  iteration    10
+  index        0
+  send         0
+  receive      0
+  store_read   0
+  store_write  0
+
+Go substrate realization
+  elapsed      35.517µs
+  alloc_bytes  14136
+  mallocs      462
+  gc_cycles    0
+
+================================================================
+native-loop-100.ai
+================================================================
+Aiki semantic work
+  arithmetic   200
+  comparison   101
+  call         0
+  iteration    100
+  index        0
+  send         0
+  receive      0
+  store_read   0
+  store_write  0
+
+Go substrate realization
+  elapsed      229.402µs
+  alloc_bytes  113544
+  mallocs      4423
+  gc_cycles    0
+
+================================================================
+native-loop-1000.ai
+================================================================
+Aiki semantic work
+  arithmetic   2000
+  comparison   1001
+  call         0
+  iteration    1000
+  index        0
+  send         0
+  receive      0
+  store_read   0
+  store_write  0
+
+Go substrate realization
+  elapsed      1.900937ms
+  alloc_bytes  1107144
+  mallocs      44023
+  gc_cycles    0
+
+---- One-level self-host differential scaling -------------------
+================================================================
+selfhost-1x-0.ai
+================================================================
+Aiki semantic work
+  arithmetic   0
+  comparison   1
+  call         3
+  iteration    0
+  index        0
+  send         0
+  receive      0
+  store_read   0
+  store_write  0
+
+Go substrate realization
+  elapsed      168.225023ms
+  alloc_bytes  166916680
+  mallocs      1952857
+  gc_cycles    28
+
+================================================================
+selfhost-1x-1.ai
+================================================================
+Aiki semantic work
+  arithmetic   944
+  comparison   1038
+  call         3087
+  iteration    828
+  index        924
+  send         0
+  receive      0
+  store_read   0
+  store_write  0
+
+Go substrate realization
+  elapsed      172.448471ms
+  alloc_bytes  169153280
+  mallocs      2006362
+  gc_cycles    28
+
+================================================================
+selfhost-1x-2.ai
+================================================================
+Aiki semantic work
+  arithmetic   1888
+  comparison   2075
+  call         6171
+  iteration    1656
+  index        1848
+  send         0
+  receive      0
+  store_read   0
+  store_write  0
+
+Go substrate realization
+  elapsed      183.45653ms
+  alloc_bytes  171786656
+  mallocs      2059866
+  gc_cycles    27
+
+================================================================
+selfhost-1x-4.ai
+================================================================
+Aiki semantic work
+  arithmetic   3776
+  comparison   4149
+  call         12339
+  iteration    3312
+  index        3696
+  send         0
+  receive      0
+  store_read   0
+  store_write  0
+
+Go substrate realization
+  elapsed      189.585124ms
+  alloc_bytes  175900264
+  mallocs      2166822
+  gc_cycles    28
+
+---- Two-level self-host differential scaling -------------------
+================================================================
+selfhost-2x-0.ai
+================================================================
+Aiki semantic work
+  arithmetic   703923
+  comparison   1184963
+  call         4742868
+  iteration    509745
+  index        775968
+  send         0
+  receive      0
+  store_read   0
+  store_write  0
+
+Go substrate realization
+  elapsed      8.347518135s
+  alloc_bytes  6441365360
+  mallocs      73486446
+  gc_cycles    339
+
+================================================================
+selfhost-2x-1.ai
+================================================================
+Aiki semantic work
+  arithmetic   1047953
+  comparison   1563178
+  call         7023427
+  iteration    805330
+  index        1162037
+  send         0
+  receive      0
+  store_read   0
+  store_write  0
+
+Go substrate realization
+  elapsed      12.08950357s
+  alloc_bytes  7958905040
+  mallocs      104797616
+  gc_cycles    389
+
+================================================================
+selfhost-2x-2.ai
+================================================================
+Aiki semantic work
+  arithmetic   1391983
+  comparison   1941393
+  call         9303986
+  iteration    1100915
+  index        1548106
+  send         0
+  receive      0
+  store_read   0
+  store_write  0
+
+Go substrate realization
+  elapsed      15.004058204s
+  alloc_bytes  9476634032
+  mallocs      136109240
+  gc_cycles    443
+
+Experiment complete.
