@@ -97,10 +97,12 @@ func (g *GoRuntime) halIOWrite(args []value.Value, ctx *hal.EvalContext) value.V
 	switch v := args[1].(type) {
 	case *value.String:
 		data = []byte(v.Val)
-	case *value.Bytes:
-		data = v.Val
 	default:
-		return value.NewFault("io.write: expected string or bytes, got %s", args[1].Type())
+		var err error
+		data, err = bytesFromAiki(args[1])
+		if err != nil {
+			return value.NewFault("io.write: %v", err)
+		}
 	}
 	written, err := writer.Write(data)
 	if err != nil {

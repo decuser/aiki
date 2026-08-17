@@ -187,12 +187,12 @@ func halFileWriteBytes(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if file.F == nil {
 		return value.NewShapedError("io", "file is closed")
 	}
-	b, ok := args[1].(*value.Bytes)
-	if !ok {
-		return value.NewFault("_file_write_bytes: expected bytes, got %s", args[1].Type())
+	b, err := bytesFromAiki(args[1])
+	if err != nil {
+		return value.NewFault("_file_write_bytes: %v", err)
 	}
 
-	_, err := file.F.Write(b.Val)
+	_, err = file.F.Write(b)
 	if err != nil {
 		return value.NewShapedError("io", "%s", err.Error())
 	}
