@@ -1,0 +1,27 @@
+@func connect
+@template "connect(host, port)"
+@help "Connect TCP and return an I/O endpoint."
+@func listen
+@template "listen(host, port)"
+@help "Listen for TCP connections and return a listener."
+@func accept
+@template "accept(listener)"
+@help "Accept one TCP connection and return an I/O endpoint."
+@func local
+@template "local(resource)"
+@help "Return [@address, host, port] for a network resource."
+@func remote
+@template "remote(endpoint)"
+@help "Return [@address, host, port] for a TCP endpoint peer."
+@func close
+@template "close(resource)"
+@help "Close a TCP listener or UDP socket."
+@func udp_bind
+@template "udp_bind(host, port)"
+@help "Bind a UDP socket."
+@func udp_send
+@template "udp_send(socket, host, port, data)"
+@help "Send one UDP datagram from string or bytes data."
+@func udp_recv
+@template "udp_recv(socket)"
+@help "Receive one UDP datagram as [@datagram, bytes, host, port]."

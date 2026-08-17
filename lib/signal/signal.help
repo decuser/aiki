@@ -1,0 +1,13 @@
+# signal - portable process/runtime signals
+
+@func watch
+@template "watch(...signals)"
+@help "Returns a receive-only channel carrying portable signal symbols such as :interrupt and :terminate."
+
+@func stop
+@template "stop(source)"
+@help "Stops a signal source returned by watch."
+
+@func send
+@template "send(process, signal)"
+@help "Sends a portable signal such as :interrupt or :terminate to a started process."

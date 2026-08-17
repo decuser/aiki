@@ -1,0 +1,15 @@
+package "signal"
+
+let watch = (...signals) {
+	_signal_watch(signals)
+}
+
+let stop = (source) {
+	_signal_stop(source)
+}
+
+let send = (process, signal) {
+	_signal_send(process, signal)
+}
+
+export(:watch, :stop, :send)

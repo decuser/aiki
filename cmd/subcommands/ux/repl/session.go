@@ -53,7 +53,7 @@ func NewSession(out io.Writer, debug bool) (*Session, error) {
 // Run starts the REPL loop.
 func (s *Session) Run() {
 	defer s.reader.Close()
-	defer s.session.Runtime.CloseAllCanvases()
+	defer s.session.Runtime.CloseAllResources()
 	defer s.session.Runtime.SetPageOutput(nil)
 
 	var buffer string

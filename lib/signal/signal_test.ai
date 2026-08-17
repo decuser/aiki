@@ -1,0 +1,11 @@
+let test = import("test")
+let signal = import("signal")
+
+test.run("invalid signal is recoverable", () {
+	test.error(signal.watch(:not_a_signal))
+})
+
+
+test.run("invalid signal source is recoverable", () {
+	test.error(signal.stop(channel()))
+})

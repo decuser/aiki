@@ -113,3 +113,24 @@ func (g *GoRuntime) halIOWrite(args []value.Value, ctx *hal.EvalContext) value.V
 	}
 	return value.TRUE
 }
+
+func (g *GoRuntime) halIOClose(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 1 {
+		return value.NewFault("io.close: want 1 argument, got %d", len(args))
+	}
+	switch v := args[0].(type) {
+	case *value.File:
+		return g.halFileClose(args, ctx)
+	case *value.Endpoint:
+		resource, ok := g.endpointResource(v)
+		if !ok {
+			return value.NewShapedError("io", "endpoint does not belong to this runtime")
+		}
+		if err := resource.close(); err != nil {
+			return value.NewShapedError("io", "close: %v", err)
+		}
+		return value.TRUE
+	default:
+		return value.NewShapedError("io", "expected file or endpoint, got %s", args[0].Type())
+	}
+}

@@ -1,0 +1,18 @@
+@preamble let signal = import("signal")
+watch
+@unchecked
+Subscribes to one or more portable signal names and returns a receive-only Aiki channel. Received values are signal symbols and can participate in recv or select. Supported signal names may vary by substrate; unsupported names return a shaped :unsupported error.
+
+watch(...signals)
+===
+stop
+@unchecked
+Stops delivery to a channel returned by signal.watch. Repeated host signal delivery may coalesce; signals are event notifications rather than a lossless message queue.
+
+stop(source)
+===
+send
+@unchecked
+Sends a portable signal to a process handle. The substrate maps the semantic signal where it can do so faithfully; unsupported signal/host combinations return a shaped :unsupported error.
+
+send(process, signal)

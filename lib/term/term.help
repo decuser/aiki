@@ -1,0 +1,15 @@
+@func is
+@template "is(endpoint)"
+@help "Reports whether an I/O endpoint is attached to a terminal."
+
+@func size
+@template "size(endpoint)"
+@help "Returns [@terminal_size, columns, rows] for a terminal endpoint."
+
+@func raw
+@template "raw(endpoint)"
+@help "Places a terminal endpoint in raw mode and returns a restore token."
+
+@func restore
+@template "restore(state)"
+@help "Restores terminal state captured by raw."

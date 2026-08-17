@@ -159,3 +159,22 @@ func TestRuntimeTestStateIsIsolated(t *testing.T) {
 		t.Fatalf("runtime b test state leaked: passed %d failed %d messages %d", bp, bf, len(bm))
 	}
 }
+
+func TestRuntimeEnvironmentMutationIsIsolated(t *testing.T) {
+	a := NewGoRuntime()
+	b := NewGoRuntime()
+	name := &value.String{Val: "AIKI_RUNTIME_ISOLATION"}
+	val := &value.String{Val: "alpha"}
+	if got := a.halSystemSetEnv([]value.Value{name, val}, nil); got != value.TRUE {
+		t.Fatalf("set env = %s", got.Inspect())
+	}
+	if got := a.halSystemEnv([]value.Value{name}, nil); got.Inspect() != `"alpha"` {
+		t.Fatalf("runtime a env = %s", got.Inspect())
+	}
+	if got := b.halSystemEnv([]value.Value{name}, nil); got.Inspect() == `"alpha"` {
+		t.Fatalf("runtime environment mutation leaked to runtime b")
+	}
+	if got := a.halSystemUnsetEnv([]value.Value{name}, nil); got != value.TRUE {
+		t.Fatalf("unset env = %s", got.Inspect())
+	}
+}

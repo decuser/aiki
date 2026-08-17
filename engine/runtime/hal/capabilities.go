@@ -10,7 +10,11 @@ type Capability struct {
 var capabilityRegistry = map[string]Capability{
 	"basic-io": {
 		Name:       "basic-io",
-		Operations: []string{"HAL.io.print", "HAL.io.read", "HAL.io.read_bytes", "HAL.io.read_line", "HAL.io.write"},
+		Operations: []string{"HAL.io.print", "HAL.io.read", "HAL.io.read_bytes", "HAL.io.read_line", "HAL.io.write", "HAL.io.close"},
+	},
+	"file_lock": {
+		Name:       "file_lock",
+		Operations: []string{"HAL.file.lock", "HAL.file.try_lock", "HAL.file.unlock"},
 	},
 	"filesystem": {
 		Name: "filesystem",
@@ -34,8 +38,24 @@ var capabilityRegistry = map[string]Capability{
 	"process": {
 		Name: "process",
 		Operations: []string{
-			"HAL.system.args", "HAL.system.env", "HAL.system.cwd", "HAL.system.chdir", "HAL.process.exec",
+			"HAL.system.args", "HAL.system.env", "HAL.system.environ", "HAL.system.set_env", "HAL.system.unset_env", "HAL.system.cwd", "HAL.system.chdir", "HAL.process.exec",
+			"HAL.process.start", "HAL.process.stdin", "HAL.process.stdout", "HAL.process.stderr", "HAL.process.wait", "HAL.process.terminate",
 		},
+	},
+	"network": {
+		Name: "network",
+		Operations: []string{
+			"HAL.net.connect", "HAL.net.listen", "HAL.net.accept", "HAL.net.local", "HAL.net.remote", "HAL.net.close",
+			"HAL.net.udp_bind", "HAL.net.udp_send", "HAL.net.udp_recv",
+		},
+	},
+	"signals": {
+		Name:       "signals",
+		Operations: []string{"HAL.signal.watch", "HAL.signal.stop", "HAL.signal.send"},
+	},
+	"terminal": {
+		Name:       "terminal",
+		Operations: []string{"HAL.term.is", "HAL.term.size", "HAL.term.raw", "HAL.term.restore"},
 	},
 	"time": {
 		Name:       "time",

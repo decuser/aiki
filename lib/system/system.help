@@ -8,6 +8,18 @@
 @template "env(name)"
 @help "Returns an environment variable value, or [@error, :environment, msg] if it is not set."
 
+@func environ
+@template "environ()"
+@help "Returns the runtime-owned environment as sorted [@env, name, value] entries."
+
+@func set_env
+@template "set_env(name, value)"
+@help "Sets an environment variable in this Aiki runtime and future child processes."
+
+@func unset_env
+@template "unset_env(name)"
+@help "Removes an environment variable from this Aiki runtime and future child processes."
+
 @func cwd
 @template "cwd()"
 @help "Returns the working directory owned by this Aiki runtime."

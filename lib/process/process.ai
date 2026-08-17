@@ -1,0 +1,27 @@
+package "process"
+
+let start = (command, args) {
+	_process_start(command, args)
+}
+
+let stdin = (process) {
+	_process_stdin(process)
+}
+
+let stdout = (process) {
+	_process_stdout(process)
+}
+
+let stderr = (process) {
+	_process_stderr(process)
+}
+
+let wait = (process) {
+	_process_wait(process)
+}
+
+let terminate = (process) {
+	_process_terminate(process)
+}
+
+export(:start, :stdin, :stdout, :stderr, :wait, :terminate)

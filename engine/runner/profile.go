@@ -56,7 +56,7 @@ func RunProfileDetailed(filename string, opts ProfileOptions) (ProfileRun, error
 		return out, fmt.Errorf("loading grammar: %w", err)
 	}
 	rt := substrate.NewGoRuntime()
-	defer rt.CloseAllCanvases()
+	defer rt.CloseAllResources()
 	if err := initModuleRegistry(g, rt); err != nil {
 		return out, fmt.Errorf("initializing registry: %w", err)
 	}

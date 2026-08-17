@@ -1,0 +1,39 @@
+package "net"
+
+let connect = (host, port) {
+	_net_connect(host, port)
+}
+
+let listen = (host, port) {
+	_net_listen(host, port)
+}
+
+let accept = (listener) {
+	_net_accept(listener)
+}
+
+let local = (resource) {
+	_net_local(resource)
+}
+
+let remote = (endpoint) {
+	_net_remote(endpoint)
+}
+
+let close = (resource) {
+	_net_close(resource)
+}
+
+let udp_bind = (host, port) {
+	_net_udp_bind(host, port)
+}
+
+let udp_send = (socket, host, port, data) {
+	_net_udp_send(socket, host, port, data)
+}
+
+let udp_recv = (socket) {
+	_net_udp_recv(socket)
+}
+
+export(:connect, :listen, :accept, :local, :remote, :close, :udp_bind, :udp_send, :udp_recv)

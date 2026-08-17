@@ -10,7 +10,7 @@ import (
 )
 
 func (g *GoRuntime) halQuit(args []value.Value, ctx *hal.EvalContext) value.Value {
-	g.CloseAllCanvases()
+	g.CloseAllResources()
 	return value.EXIT
 }
 
@@ -18,7 +18,7 @@ func (g *GoRuntime) halReset(args []value.Value, ctx *hal.EvalContext) value.Val
 	if len(args) != 0 {
 		return value.NewFault("reset: want 0 arguments, got %d", len(args))
 	}
-	g.CloseAllCanvases()
+	g.CloseAllResources()
 	return value.RESET
 }
 

@@ -1,0 +1,15 @@
+let test = import("test")
+let net = import("net")
+
+test.run("net rejects invalid port", () {
+	test.faults(() {
+		net.listen("127.0.0.1", -1)
+	})
+})
+
+
+test.run("net close rejects unrelated value", () {
+	test.faults(() {
+		net.close([])
+	})
+})

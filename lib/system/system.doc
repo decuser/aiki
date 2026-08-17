@@ -16,6 +16,37 @@ env(name)
 
 is_error(system.env("AIKI_VARIABLE_THAT_IS_NOT_SET"))    # true
 ===
+environ
+Returns the environment owned by the current Aiki runtime as a sorted list of
+[@env, name, value] entries. The snapshot is independent of later host-process
+environment changes.
+
+environ()
+
+type(system.environ())    # :list
+===
+set_env
+Sets an environment variable in the current Aiki runtime. Future system.exec
+and process.start children inherit a snapshot of this runtime environment. The
+embedding process environment is not modified.
+
+set_env(name, value)
+
+system.set_env("AIKI_DOC_ENV", "present")    # true
+system.env("AIKI_DOC_ENV")    # "present"
+system.unset_env("AIKI_DOC_ENV")    # true
+===
+unset_env
+Removes an environment variable from the current Aiki runtime. Future child
+processes do not inherit the removed variable. The embedding process environment
+is not modified.
+
+unset_env(name)
+
+system.set_env("AIKI_DOC_UNSET", "present")    # true
+system.unset_env("AIKI_DOC_UNSET")    # true
+is_error(system.env("AIKI_DOC_UNSET"))    # true
+===
 cwd
 Returns the working directory owned by the current Aiki runtime. The runtime
 working directory controls relative filesystem operations and process

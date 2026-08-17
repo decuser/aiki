@@ -1,0 +1,67 @@
+@preamble let net = import("net")
+connect
+Connects to a TCP host and port and returns an I/O endpoint. Use io.read,
+io.read_line, io.write, and io.close with the returned endpoint.
+
+connect(host, port)
+
+@unchecked
+===
+listen
+Listens for TCP connections. Port 0 requests an available host port.
+
+listen(host, port)
+
+@unchecked
+===
+accept
+Accepts one connection from a TCP listener and returns an I/O endpoint.
+
+accept(listener)
+
+@unchecked
+===
+local
+Returns the local address as [@address, host, port]. Works with TCP listeners,
+TCP endpoints, and UDP sockets.
+
+local(resource)
+
+@unchecked
+===
+remote
+Returns the peer address of a TCP endpoint as [@address, host, port].
+
+remote(endpoint)
+
+@unchecked
+===
+close
+Closes a TCP listener or UDP socket. TCP connection endpoints close through
+io.close so all sequential I/O resources share the same lifecycle operation.
+
+close(resource)
+
+@unchecked
+===
+udp_bind
+Binds a UDP socket. Port 0 requests an available host port.
+
+udp_bind(host, port)
+
+@unchecked
+===
+udp_send
+Sends one UDP datagram. Data may be opaque bytes or native @bytes.
+
+udp_send(socket, host, port, data)
+
+@unchecked
+===
+udp_recv
+Receives one complete UDP datagram and returns [@datagram, bytes, host, port].
+Datagram boundaries are preserved rather than exposed through io.read.
+
+udp_recv(socket)
+
+@unchecked

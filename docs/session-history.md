@@ -367,3 +367,75 @@ Sessions covered: 2026-08-14 through 2026-08-16.
 - Help, full docs, executable examples/tests, list tests, number tests, and file behavior smoke coverage were added with each surface.
 - Sandbox limitation: authoritative Aiki execution is unavailable because the source-only baseline requires Go 1.24 and toolchain download is blocked.
 - Exact next action: apply the project delta locally, rebuild, run `make invariant`, then `make validate`; treat any gate failure as project work before commit.
+
+## Portable systems completeness (2026-08-17)
+
+- Authoritative working baseline: `v0.4.0-alpha-30`, commit `c9769d6`, with the byte-boundary normalization refinement carried forward in this working tree.
+- Project branch: `portable-systems`.
+- Proposal: `proposals/portable-systems-completeness.md`.
+- Goal: eliminate the remaining material gaps for portable Go-like systems programming while keeping policy/composition in Aiki and HAL limited to irreducible host mechanisms.
+- Governing additions: sufficient portability rather than host-union completeness; every new byte-oriented host resource must first be tested against the existing `io` endpoint abstraction.
+- Phase order: process lifecycle/pipes -> signals -> TCP/UDP networking -> terminal/TTY -> portable file locking -> final completeness audit.
+- Exact next action: inventory current process HAL operations, `system.exec`, runtime resource ownership, and `io` endpoint dispatch; define the smallest Phase 1 contract before changing behavior.
+
+### Portable systems Phase 1 implementation state (2026-08-17)
+
+- Process lifecycle surface added as `lib/process`: `start`, `stdin`, `stdout`, `stderr`, `wait`, and `terminate`.
+- Added opaque runtime-owned `process` and `endpoint` values. Process pipes are generic endpoints consumed by existing `io.read`, `io.read_line`, and `io.write`; no process-specific read/write API was introduced.
+- Added `io.close` because closing child stdin is required to deliver EOF and complete pipeline/interactive process semantics. It also accepts file handles, preserving I/O convergence.
+- Added canonical HAL operations, Go provenance, authority grants, capability membership, host registrations, and runtime-owned process/endpoint resource maps.
+- Runtime teardown is generalized through `CloseAllResources`, which terminates/reaps child processes before closing canvases; existing canvas-only cleanup remains available for focused tests.
+- `process.wait` is idempotent and returns the exit code, including nonzero codes; start failures remain shaped `:process` errors. `process.terminate` is the portable forceful termination primitive; graceful signaling remains Phase 2.
+- Focused Go tests cover attached stdin/stdout/stderr, EOF by closing stdin, nonzero exit status, repeated wait, and cross-runtime handle rejection.
+- Runtime-ownership invariant now includes process implementation. HAL metadata/role/binding invariants derive the new operations automatically.
+- Sandbox probe confirms `engine/semantics/value` and `engine/runtime/hal` compile after the change; full substrate tests remain blocked by uncached Ebiten/Go 1.24 dependencies.
+- Exact next action: apply Phase 1 on local `portable-systems`, rebuild, run `make invariant`, then `make validate`; any gate failure is Phase 1 work before Signals begins.
+
+### 2026-08-17 — Portable Systems Completeness, Phase 2
+
+Phase 1 process lifecycle/process I/O passed `make invariant` and `make validate` on the authoritative development tree.
+
+Phase 2 adds portable signals without introducing a parallel event model. `signal.watch(...signals)` returns a receive-only Aiki channel carrying semantic signal symbols, `signal.stop(source)` releases the runtime-owned subscription, and `signal.send(process, signal)` targets the opaque process handle introduced in Phase 1. The portable vocabulary begins with `:interrupt` and `:terminate`; individual host mappings may return shaped `:unsupported` when a semantic signal cannot be represented faithfully. Signal receipt is edge-like and may coalesce rather than acting as a lossless queue.
+
+The Go substrate owns signal subscriptions and tears them down with other runtime resources. The `:signals` capability is required by the desktop profile. Higher-level shutdown, cleanup, forwarding, and supervision remain Aiki policy.
+
+## 2026-08-17 — Portable systems Phase 3: networking
+
+- Added TCP connect/listen/accept using the existing generic I/O endpoint abstraction.
+- Added network address inspection for local/remote TCP endpoints and bound resources.
+- Added message-oriented UDP bind/send/receive with datagram boundaries preserved.
+- Added runtime-owned listener/datagram resources and cleanup.
+- Added `:network` HAL capability and desktop-profile requirement.
+- No parallel TCP read/write API was introduced; TCP uses `io.*`.
+
+## 2026-08-17 — Portable systems Phase 4: terminal/TTY
+
+- Added minimal terminal HAL: detect, size, raw, restore.
+- Terminal operations reuse existing I/O endpoints; no parallel terminal stream type.
+- Raw-mode restoration is represented by an opaque runtime-owned token and is restored at teardown.
+- ANSI rendering remains Aiki/library policy, not HAL.
+- Go substrate uses the already-shipped `github.com/chzyer/readline` terminal primitives, avoiding a new dependency.
+
+## 2026-08-17 — Portable systems Phase 5: file locking
+
+- Added exclusive interprocess locking as the sufficient portable contract.
+- `file.lock(path)` blocks until acquired; `file.try_lock(path)` is nonblocking; `file.unlock(lock)` releases.
+- Locks are opaque runtime-owned resources and are released during runtime teardown.
+- Shared locking is intentionally excluded from the portable contract.
+- Go substrate uses `github.com/gofrs/flock` v0.12.1; Aiki remains responsible for locking policy and composition.
+
+
+## 2026-08-17 — Portable systems Phase 6 audit remediation: runtime environment
+
+- Completeness audit found the system environment was read-only despite the proposal requiring inspect/modify semantics.
+- Added runtime-owned environ/set_env/unset_env; neither mutates the embedding process environment.
+- system.exec and process.start now inherit a snapshot of the Aiki runtime environment.
+- This closes the only material irreducible capability gap found by the Phase 6 source audit.
+## 2026-08-17 — Portable systems final reconciliation
+
+- Reconciled the validated Phase 6 implementation line-by-line against `proposals/portable-systems-completeness.md`.
+- Confirmed public surfaces, canonical HAL operations, capability/profile membership, authority grants, Go provenance/registration, runtime ownership, and module docs/tests for process, signals, networking, terminal control, file locking, and runtime environment.
+- Representative-program pressure check found no additional irreducible host capability: pipeline forwarding and supervisor coordination compose from existing process endpoints, spawn arguments, channels, signals, timers, and select.
+- AF-022 found/resolved: common `io` help/docs lagged endpoint convergence and now explicitly describe process pipes and TCP connections as runtime endpoints.
+- No material proposal/implementation contradiction remains. Portable-systems completeness is reconciled; showcase work is intentionally separate.
+

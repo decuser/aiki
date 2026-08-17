@@ -20,7 +20,7 @@ import (
 // through system.args(), excluding the interpreter and source filename.
 func Run(filename string, programArgs ...string) error {
 	rt := substrate.NewGoRuntime()
-	defer rt.CloseAllCanvases()
+	defer rt.CloseAllResources()
 	return RunWithRuntime(filename, rt, programArgs...)
 }
 
@@ -37,7 +37,7 @@ func RunWithRuntime(filename string, rt *substrate.GoRuntime, programArgs ...str
 // RunSource executes Aiki source code.
 func RunSource(filename, source string) error {
 	rt := substrate.NewGoRuntime()
-	defer rt.CloseAllCanvases()
+	defer rt.CloseAllResources()
 	return runSourceWithRuntime(filename, source, nil, rt)
 }
 
@@ -105,7 +105,7 @@ func runSourceWithRuntime(filename, source string, programArgs []string, rt *sub
 // Returns the counters after execution for coverage/profiling analysis.
 func RunWithCounters(filename string, counters *evaluator.Counters) (*evaluator.Counters, error) {
 	rt := substrate.NewGoRuntime()
-	defer rt.CloseAllCanvases()
+	defer rt.CloseAllResources()
 	return RunWithCountersRuntime(filename, counters, rt)
 }
 
@@ -224,7 +224,7 @@ func RunExpr(expr string) (string, error) {
 	}
 
 	rt := substrate.NewGoRuntime()
-	defer rt.CloseAllCanvases()
+	defer rt.CloseAllResources()
 	if err := initModuleRegistry(g, rt); err != nil {
 		return "", fmt.Errorf("initializing registry: %w", err)
 	}

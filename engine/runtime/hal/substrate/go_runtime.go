@@ -53,33 +53,47 @@ var _ hal.ContextCallable = (*Builtin)(nil)
 // machinery is separated by architectural role, and only canonical host
 // operations populate hostBindings. User-visible names are defined in Aiki.
 type GoRuntime struct {
-	intrinsics      map[string]*Builtin
-	natives         map[string]*Builtin
-	providers       map[string]*Builtin
-	hostRegistry    map[string]*Builtin
-	services        map[string]*Builtin
-	hostBindings    map[string]hal.HostOperation
-	stdin           io.Reader
-	stdinReader     *bufio.Reader
-	stdout          io.Writer
-	stderr          io.Writer
-	pageOutput      func(string) bool
-	userEnv         *value.Env
-	moduleRegistry  *modules.ModuleRegistry
-	helpRegistry    *help.Registry
-	openCanvases    []*value.Canvas
-	canvasResources map[*value.Canvas]*CanvasResource
-	nextCanvasID    uint64
-	programArgs     []string
-	workingDir      string
-	envLookup       func(string) (string, bool)
-	rng             *rand.Rand
-	fileReaders     map[*value.File]*bufio.Reader
-	testState       runtimeTestState
-	mu              sync.RWMutex
-	profileLabels   atomic.Bool
-	labelContexts   sync.Map // map[engine.ProfileLabels]context.Context
-	asyncFaults     chan *value.Fault
+	intrinsics        map[string]*Builtin
+	natives           map[string]*Builtin
+	providers         map[string]*Builtin
+	hostRegistry      map[string]*Builtin
+	services          map[string]*Builtin
+	hostBindings      map[string]hal.HostOperation
+	stdin             io.Reader
+	stdinReader       *bufio.Reader
+	stdout            io.Writer
+	stderr            io.Writer
+	pageOutput        func(string) bool
+	userEnv           *value.Env
+	moduleRegistry    *modules.ModuleRegistry
+	helpRegistry      *help.Registry
+	openCanvases      []*value.Canvas
+	canvasResources   map[*value.Canvas]*CanvasResource
+	nextCanvasID      uint64
+	programArgs       []string
+	workingDir        string
+	environment       map[string]string
+	envLookup         func(string) (string, bool)
+	rng               *rand.Rand
+	fileReaders       map[*value.File]*bufio.Reader
+	processResources  map[*value.Process]*ProcessResource
+	endpointResources map[*value.Endpoint]*EndpointResource
+	signalResources   map[*value.Channel]*SignalResource
+	listenerResources map[*value.Listener]*ListenerResource
+	datagramResources map[*value.Datagram]*DatagramResource
+	terminalResources map[*value.TerminalState]*TerminalResource
+	fileLockResources map[*value.FileLock]*FileLockResource
+	nextProcessID     uint64
+	nextEndpointID    uint64
+	nextListenerID    uint64
+	nextDatagramID    uint64
+	nextTerminalID    uint64
+	nextFileLockID    uint64
+	testState         runtimeTestState
+	mu                sync.RWMutex
+	profileLabels     atomic.Bool
+	labelContexts     sync.Map // map[engine.ProfileLabels]context.Context
+	asyncFaults       chan *value.Fault
 }
 
 // Verify GoRuntime implements RuntimeContract
@@ -94,22 +108,29 @@ func NewGoRuntime() *GoRuntime {
 		workingDir = "."
 	}
 	rt := &GoRuntime{
-		intrinsics:      make(map[string]*Builtin),
-		natives:         make(map[string]*Builtin),
-		providers:       make(map[string]*Builtin),
-		hostRegistry:    make(map[string]*Builtin),
-		services:        make(map[string]*Builtin),
-		hostBindings:    make(map[string]hal.HostOperation),
-		canvasResources: make(map[*value.Canvas]*CanvasResource),
-		stdin:           os.Stdin,
-		stdinReader:     bufio.NewReader(os.Stdin),
-		stdout:          os.Stdout,
-		stderr:          os.Stderr,
-		workingDir:      workingDir,
-		envLookup:       os.LookupEnv,
-		rng:             rand.New(rand.NewSource(time.Now().UnixNano())),
-		fileReaders:     make(map[*value.File]*bufio.Reader),
-		asyncFaults:     make(chan *value.Fault, 1),
+		intrinsics:        make(map[string]*Builtin),
+		natives:           make(map[string]*Builtin),
+		providers:         make(map[string]*Builtin),
+		hostRegistry:      make(map[string]*Builtin),
+		services:          make(map[string]*Builtin),
+		hostBindings:      make(map[string]hal.HostOperation),
+		canvasResources:   make(map[*value.Canvas]*CanvasResource),
+		stdin:             os.Stdin,
+		stdinReader:       bufio.NewReader(os.Stdin),
+		stdout:            os.Stdout,
+		stderr:            os.Stderr,
+		workingDir:        workingDir,
+		environment:       snapshotHostEnvironment(),
+		rng:               rand.New(rand.NewSource(time.Now().UnixNano())),
+		fileReaders:       make(map[*value.File]*bufio.Reader),
+		processResources:  make(map[*value.Process]*ProcessResource),
+		endpointResources: make(map[*value.Endpoint]*EndpointResource),
+		signalResources:   make(map[*value.Channel]*SignalResource),
+		listenerResources: make(map[*value.Listener]*ListenerResource),
+		datagramResources: make(map[*value.Datagram]*DatagramResource),
+		terminalResources: make(map[*value.TerminalState]*TerminalResource),
+		fileLockResources: make(map[*value.FileLock]*FileLockResource),
+		asyncFaults:       make(chan *value.Fault, 1),
 	}
 	rt.registerHAL()
 	if err := rt.ValidateProfile(hal.DefaultRuntimeProfile); err != nil {
@@ -180,12 +201,11 @@ func (g *GoRuntime) SetProgramArgs(args []string) {
 	g.mu.Unlock()
 }
 
-// SetEnvLookup replaces the runtime environment view. A nil lookup restores the host view.
+// SetEnvLookup installs an optional environment lookup override for embedding/tests.
+// A nil lookup restores the runtime-owned environment view. Child processes
+// always inherit the runtime-owned environment snapshot.
 func (g *GoRuntime) SetEnvLookup(lookup func(string) (string, bool)) {
 	g.mu.Lock()
-	if lookup == nil {
-		lookup = os.LookupEnv
-	}
 	g.envLookup = lookup
 	g.mu.Unlock()
 }

@@ -1,16 +1,18 @@
 @preamble let io = import("io")
 read
-Reads up to count bytes from a readable endpoint. The initial standard endpoint
-is :stdin; open file values are also readable. Returns bytes, [@end] at end of
-input, or a shaped :io error.
+Reads up to count bytes from a readable source. :stdin, open files, process
+pipes, and TCP connections participate in the same I/O abstraction. Returns
+bytes, [@end] at end of input, or a shaped :io error.
 
 read(source, count)
 
 type(io.read(:stdin, 0))    # :bytes
 ===
 read_line
-Reads one line from :stdin or an open file. The line terminator is removed.
-Returns the final unterminated line as text and [@end] when no input remains.
+Reads one line from :stdin, an open file, or a readable runtime endpoint such
+as a process stdout/stderr pipe or TCP connection. The line terminator is
+removed. Returns the final unterminated line as text and [@end] when no input
+remains.
 
 read_line(source)
 
@@ -25,9 +27,24 @@ file.close(input)    # true
 file.delete(path)    # true
 ===
 write
-Writes a string or bytes to :stdout, :stderr, or an open file. Returns true on
+Writes a string or bytes to :stdout, :stderr, an open file, or a writable
+runtime endpoint such as process stdin or a TCP connection. Returns true on
 success or a shaped :io error.
 
 write(destination, data)
 
 io.write(:stdout, "")    # true
+
+===
+close
+Closes an open file or runtime-owned I/O endpoint, including process pipes and
+TCP connections. Standard endpoint symbols are not closeable. Repeated close of
+a runtime endpoint is harmless.
+
+close(endpoint)
+
+let file = import("file")
+let p = file.temp()
+let f = file.open(p, :write)
+io.close(f)    # true
+file.delete(p)    # true
