@@ -20,7 +20,7 @@ func TestPreludeHelpRegistryComplete(t *testing.T) {
 	// Make sure help registry init does not error, then use the same runtime
 	// to load the prelude.
 	rt := substrate.NewGoRuntime()
-	if err := initHelpRegistry(rt); err != nil {
+	if err := initHelpRegistry(g, rt); err != nil {
 		t.Fatalf("initHelpRegistry: %v", err)
 	}
 

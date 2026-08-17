@@ -1,29 +1,18 @@
 package substrate
 
-// registryRole records why a runtime binding exists. The old single native
-// registry is permanently separated by architectural responsibility; roleHost
-// does not itself imply that a binding has a canonical HAL contract.
-type registryRole string
+import "aiki/engine/runtime/primitives"
 
-const (
-	roleIntrinsic registryRole = "intrinsic"
-	roleNative    registryRole = "native"
-	roleProvider  registryRole = "provider"
-	roleHost      registryRole = "host"
-	roleService   registryRole = "service"
-)
-
-func (g *GoRuntime) registryFor(role registryRole) map[string]*Builtin {
+func (g *GoRuntime) registryFor(role primitives.Role) map[string]*Builtin {
 	switch role {
-	case roleIntrinsic:
+	case primitives.RoleIntrinsic:
 		return g.intrinsics
-	case roleNative:
+	case primitives.RoleNative:
 		return g.natives
-	case roleProvider:
+	case primitives.RoleProvider:
 		return g.providers
-	case roleHost:
+	case primitives.RoleHost:
 		return g.hostRegistry
-	case roleService:
+	case primitives.RoleService:
 		return g.services
 	default:
 		panic("unknown registry role: " + string(role))
@@ -49,9 +38,13 @@ func (g *GoRuntime) lookupBuiltin(name string) (*Builtin, bool) {
 	return nil, false
 }
 
-func (g *GoRuntime) registerRole(role registryRole, name string, fn BuiltinFunc) {
+func (g *GoRuntime) registerPrimitive(name string, fn BuiltinFunc) {
 	if fn == nil {
-		panic("HAL registration has nil function: " + name)
+		panic("runtime primitive registration has nil function: " + name)
+	}
+	role, ok := primitives.RoleOf(name)
+	if !ok {
+		panic("runtime primitive has no architectural role: " + name)
 	}
 	if _, exists := g.lookupBuiltin(name); exists {
 		panic("duplicate compatibility primitive registration: " + name)

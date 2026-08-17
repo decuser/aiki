@@ -10,7 +10,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime/pprof"
-	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -18,6 +17,8 @@ import (
 	"aiki/engine"
 	"aiki/engine/runtime/hal"
 	"aiki/engine/runtime/help"
+	"aiki/engine/runtime/modules"
+	"aiki/engine/runtime/primitives"
 	"aiki/engine/semantics/value"
 )
 
@@ -64,7 +65,7 @@ type GoRuntime struct {
 	stderr          io.Writer
 	pageOutput      func(string) bool
 	userEnv         *value.Env
-	moduleRegistry  *ModuleRegistry
+	moduleRegistry  *modules.ModuleRegistry
 	helpRegistry    *help.Registry
 	openCanvases    []*value.Canvas
 	canvasResources map[*value.Canvas]*CanvasResource
@@ -159,7 +160,7 @@ func (g *GoRuntime) SetUserEnv(env *value.Env) {
 }
 
 // SetModuleRegistry installs the runtime-owned module registry/cache.
-func (g *GoRuntime) SetModuleRegistry(registry *ModuleRegistry) {
+func (g *GoRuntime) SetModuleRegistry(registry *modules.ModuleRegistry) {
 	g.mu.Lock()
 	g.moduleRegistry = registry
 	g.mu.Unlock()
@@ -273,41 +274,11 @@ func (g *GoRuntime) GetBuiltin(name string, authority value.Authority) (value.Ca
 	return b, ok
 }
 
-// BuiltinNames returns the names that are visible to a given scope.
-// This is intended for tooling like lint and fmt.
+// BuiltinNames returns the architectural runtime names visible to tooling.
+// Primitive classification and scope visibility are engine-owned; the Go
+// substrate binds implementations to that vocabulary.
 func (g *GoRuntime) BuiltinNames(scope value.Scope) []string {
-	set := make(map[string]bool)
-
-	// Language primitives that are always available.
-	set["import"] = true
-	set["use"] = true
-	set["export"] = true
-
-	// User scope cannot access _prefixed primitives directly.
-	if scope == value.ScopeUser {
-		out := make([]string, 0, len(set))
-		for k := range set {
-			out = append(out, k)
-		}
-		sort.Strings(out)
-		return out
-	}
-
-	// Prelude scope can access _prefixed HAL primitives.
-	g.mu.RLock()
-	for _, registry := range g.registries() {
-		for name := range registry {
-			set[name] = true
-		}
-	}
-	g.mu.RUnlock()
-
-	out := make([]string, 0, len(set))
-	for k := range set {
-		out = append(out, k)
-	}
-	sort.Strings(out)
-	return out
+	return primitives.NamesForScope(scope)
 }
 
 // registerHost registers an existing host-role compatibility primitive and
@@ -321,7 +292,7 @@ func (g *GoRuntime) registerHost(op hal.HostOperation, fn BuiltinFunc) {
 	if _, exists := g.hostBindings[op.Primitive]; exists {
 		panic(fmt.Sprintf("duplicate host operation registration: %s", op.Primitive))
 	}
-	g.registerRole(roleHost, op.Primitive, fn)
+	g.registerPrimitive(op.Primitive, fn)
 	g.hostBindings[op.Primitive] = op
 }
 

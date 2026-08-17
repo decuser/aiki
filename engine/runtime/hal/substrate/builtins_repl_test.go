@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"aiki/engine/runtime/hal"
+	"aiki/engine/runtime/modules"
 	"aiki/engine/syntax"
 	"aiki/engine/syntax/grammar"
 )
@@ -26,7 +27,7 @@ func TestStripDocMarkersLeavesOrdinaryAtLines(t *testing.T) {
 }
 
 func TestModuleHelpCarriesPreamble(t *testing.T) {
-	mh := &ModuleHelp{Preamble: `use("turtle/simple")`}
+	mh := &modules.ModuleHelp{Preamble: `use("turtle/simple")`}
 	if got, want := mh.Preamble, `use("turtle/simple")`; got != want {
 		t.Fatalf("ModuleHelp.Preamble = %q, want %q", got, want)
 	}

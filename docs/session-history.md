@@ -273,3 +273,43 @@ Sessions covered: 2026-08-14 through 2026-08-16.
 - Validation in this environment is limited: repository requires Go 1.24, while
   the available toolchain is Go 1.23.2 and network access prevents toolchain
   download. `make validate` is therefore required on the user's local tree.
+
+## Engine authority centralization — Gate 2 (2026-08-17)
+
+- Gate 1 completed locally by the user with `make validate` passing after the
+  executable `io.read_line` documentation example was corrected to retain its
+  write/close side effects through explicit expected results.
+- Gate 2 scoped as behavior-preserving engine authority centralization. Governing
+  rule: centralize identity, decentralize concern, validate composition.
+- Gate 2 does not move authored artifacts merely for locality. It moves or
+  centralizes architectural ownership and reusable derivation under `engine/`.
+- Initial inventory already shows grammar/evaluator coverage is substantially in
+  the desired state: grammar owns cached structural analysis and evaluator
+  validates its handlers against that authority.
+- First concrete Gate 2 candidate: named-module registry and module-root policy
+  currently live under `engine/runtime/hal/substrate` despite being consumed by
+  runner, language services, imports, help, and invariants. Treating this as
+  substrate authority leaks a concrete implementation into engine-level
+  consumers.
+- Next action: move the module registry/policy to an engine-owned runtime package
+  without changing resolution semantics, then retarget consumers and invariants.
+
+- Gate 2 probe found an existing documentation asymmetry: prelude help coverage is
+  complete, but `truncate` has no prelude `.doc` entry. Recorded as AF-017; Gate 2
+  does not strengthen that contract silently because this project is
+  behavior-preserving.
+
+- Gate 2 implementation completed pending local `make validate`: module registry
+  and root policy are engine-owned under `engine/runtime/modules`; module source
+  metadata is derived once from the real AST; prelude source/help/docs join
+  through `prelude.LoadCatalog`; runtime primitive roles are authoritative under
+  `engine/runtime/primitives`; language services no longer reconstruct prelude
+  exports or depend on the Go substrate for primitive vocabulary.
+- Disposable Go 1.23 probe (go.mod lowered only in `/tmp`) passed focused tests
+  for `engine/runtime/modules`, `engine/runtime/prelude`,
+  `engine/runtime/primitives`, and `engine/language`. Full validation remains
+  unavailable in this environment because Go 1.24 and uncached ebiten dependencies
+  cannot be downloaded.
+- Exact next action: apply the Gate 2 overlay to the user's `hal-capability`
+  branch, delete the two retired substrate registry files, rebuild, and run
+  `make validate`.

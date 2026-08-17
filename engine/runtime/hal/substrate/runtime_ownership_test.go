@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"aiki/engine/runtime/modules"
 	"aiki/engine/semantics/value"
 )
 
@@ -124,8 +125,8 @@ func TestRuntimeREPLUserEnvironmentIsIsolated(t *testing.T) {
 func TestRuntimeModuleRegistryIsIsolated(t *testing.T) {
 	a := NewGoRuntime()
 	b := NewGoRuntime()
-	a.SetModuleRegistry(NewModuleRegistry([]string{"alpha", "shared"}))
-	b.SetModuleRegistry(NewModuleRegistry([]string{"beta"}))
+	a.SetModuleRegistry(modules.NewModuleRegistry([]string{"alpha", "shared"}))
+	b.SetModuleRegistry(modules.NewModuleRegistry([]string{"beta"}))
 
 	av, err := a.Execute("_module_roots", nil, nil)
 	if err != nil {

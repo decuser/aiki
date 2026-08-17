@@ -47,8 +47,8 @@ func (g *GoRuntime) registerHAL() {
 	g.registerHost(goHostOperation("_system_chdir"), g.halSystemChdir)
 	g.registerHost(goHostOperation("_system_exec"), g.halSystemExec)
 	g.registerHost(goHostOperation("_path_separator"), halPathSeparator)
-	g.registerRole(roleHost, "_seed", g.halSeed)
-	g.registerRole(roleHost, "_random", g.halRandom)
+	g.registerPrimitive("_seed", g.halSeed)
+	g.registerPrimitive("_random", g.halRandom)
 	g.registerHost(goHostOperation("_canvas"), g.halCanvas)
 	g.registerHost(goHostOperation("_canvas_command"), g.halCanvasCommand)
 	g.registerHost(goHostOperation("_destroy"), g.halDestroy)
@@ -57,15 +57,15 @@ func (g *GoRuntime) registerHAL() {
 	g.registerHost(goHostOperation("_canvas_alive"), g.halCanvasAlive)
 
 	// Evaluator/language intrinsics.
-	g.registerRole(roleIntrinsic, "_apply", halApply)
-	g.registerRole(roleIntrinsic, "_import", g.halImport)
-	g.registerRole(roleIntrinsic, "_use", g.halUse)
-	g.registerRole(roleIntrinsic, "_export", halExport)
-	g.registerRole(roleIntrinsic, "_load", halLoad)
-	g.registerRole(roleIntrinsic, "_spawn", halSpawn)
-	g.registerRole(roleIntrinsic, "_channel", halChannel)
-	g.registerRole(roleIntrinsic, "_send", halSend)
-	g.registerRole(roleIntrinsic, "_recv", halRecv)
+	g.registerPrimitive("_apply", halApply)
+	g.registerPrimitive("_import", g.halImport)
+	g.registerPrimitive("_use", g.halUse)
+	g.registerPrimitive("_export", halExport)
+	g.registerPrimitive("_load", halLoad)
+	g.registerPrimitive("_spawn", halSpawn)
+	g.registerPrimitive("_channel", halChannel)
+	g.registerPrimitive("_send", halSend)
+	g.registerPrimitive("_recv", halRecv)
 
 	// Language/value primitives implemented natively.
 	for name, fn := range map[string]BuiltinFunc{
@@ -84,7 +84,7 @@ func (g *GoRuntime) registerHAL() {
 		"_bits_and":     halBitsAnd, "_bits_or": halBitsOr, "_bits_xor": halBitsXor,
 		"_bits_not": halBitsNot, "_bits_shl": halBitsShl, "_bits_shr": halBitsShr,
 	} {
-		g.registerRole(roleNative, name, fn)
+		g.registerPrimitive(name, fn)
 	}
 
 	// Native/FFI library providers. Native realization does not imply host
@@ -97,7 +97,7 @@ func (g *GoRuntime) registerHAL() {
 		"_regex_find_all": halRegexFindAll, "_regex_replace": halRegexReplace,
 		"_regex_replace_first": halRegexReplaceFirst, "_regex_split": halRegexSplit,
 	} {
-		g.registerRole(roleProvider, name, fn)
+		g.registerPrimitive(name, fn)
 	}
 
 	// Runtime/tooling/session services.
@@ -113,6 +113,6 @@ func (g *GoRuntime) registerHAL() {
 		"_test_error": g.halTestError, "_test_not_error": g.halTestNotError,
 		"_test_run": g.halTestRun, "_test_faults": g.halTestFaults,
 	} {
-		g.registerRole(roleService, name, fn)
+		g.registerPrimitive(name, fn)
 	}
 }

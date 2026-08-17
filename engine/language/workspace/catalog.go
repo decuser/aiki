@@ -1,4 +1,4 @@
-// Package workspace adapts the Go runtime/module workspace to the neutral
+// Package workspace adapts the engine module workspace to the neutral
 // language.Catalog contract.
 package workspace
 
@@ -9,9 +9,9 @@ import (
 	"strings"
 
 	"aiki/engine/language"
-	"aiki/engine/runtime/hal/substrate"
-	"aiki/engine/runtime/help"
+	"aiki/engine/runtime/modules"
 	"aiki/engine/runtime/prelude"
+	"aiki/engine/runtime/primitives"
 	"aiki/engine/semantics/value"
 	"aiki/engine/syntax/grammar"
 )
@@ -19,24 +19,35 @@ import (
 var _ language.Catalog = (*Catalog)(nil)
 
 type Catalog struct {
-	grammar  *grammar.Grammar
-	runtime  *substrate.GoRuntime
-	registry *substrate.ModuleRegistry
+	grammar        *grammar.Grammar
+	registry       *modules.ModuleRegistry
+	preludeCatalog *prelude.Catalog
 }
 
 func NewCatalog(g *grammar.Grammar) *Catalog {
-	return &Catalog{grammar: g, runtime: substrate.NewGoRuntime()}
+	return &Catalog{grammar: g}
+}
+
+func (c *Catalog) authoredPrelude() *prelude.Catalog {
+	if c.preludeCatalog != nil {
+		return c.preludeCatalog
+	}
+	catalog, err := prelude.LoadCatalog(c.grammar)
+	if err != nil {
+		return nil
+	}
+	c.preludeCatalog = catalog
+	return catalog
 }
 
 func (c *Catalog) VisibleNames(scope value.Scope) []string {
 	set := map[string]bool{}
-	for _, name := range c.runtime.BuiltinNames(scope) {
+	for _, name := range primitives.NamesForScope(scope) {
 		set[name] = true
 	}
 	if scope == value.ScopeUser {
-		funcs, err := help.ParseHelpFile("prelude.help", prelude.HelpSource)
-		if err == nil {
-			for name := range funcs {
+		if catalog := c.authoredPrelude(); catalog != nil {
+			for _, name := range catalog.Names {
 				set[name] = true
 			}
 		}
@@ -50,17 +61,16 @@ func (c *Catalog) VisibleNames(scope value.Scope) []string {
 }
 
 func (c *Catalog) Help(name string) (language.HelpEntry, bool) {
-	funcs, err := help.ParseHelpFile("prelude.help", prelude.HelpSource)
-	if err != nil {
+	catalog := c.authoredPrelude()
+	if catalog == nil {
 		return language.HelpEntry{}, false
 	}
-	entry, ok := funcs[name]
-	if !ok {
+	entry := catalog.Registry.GetHelp(name)
+	if entry == nil {
 		return language.HelpEntry{}, false
 	}
-	docs, _ := help.ParseDocFile("prelude.doc", prelude.DocSource)
 	doc := ""
-	if d, found := docs[name]; found {
+	if d := catalog.Registry.GetDoc(name); d != nil {
 		doc = d.Doc
 	}
 	return language.HelpEntry{Name: name, Template: entry.Template, Summary: entry.Help, Doc: doc}, true
@@ -79,7 +89,7 @@ func (c *Catalog) ModuleSource(currentFile, name string) (string, string, bool) 
 }
 
 func (c *Catalog) resolveModulePath(currentFile, name string) string {
-	if substrate.IsPathImport(name) {
+	if modules.IsPathImport(name) {
 		path := name
 		if !strings.HasSuffix(path, ".ai") {
 			path += ".ai"
@@ -97,7 +107,7 @@ func (c *Catalog) resolveModulePath(currentFile, name string) string {
 	}
 	if c.registry == nil {
 		homeDir, _ := os.UserHomeDir()
-		r := substrate.NewModuleRegistry(substrate.DefaultModuleRoots(homeDir))
+		r := modules.NewModuleRegistry(modules.DefaultModuleRoots(homeDir))
 		if err := r.Scan(c.grammar); err != nil {
 			return ""
 		}

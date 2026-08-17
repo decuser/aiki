@@ -1,4 +1,4 @@
-package substrate
+package modules
 
 import (
 	"os"

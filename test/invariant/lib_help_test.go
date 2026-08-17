@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"aiki/engine/runtime/hal/substrate"
 	"aiki/engine/runtime/help"
+	"aiki/engine/runtime/modules"
 	"aiki/engine/syntax"
 	"aiki/engine/syntax/grammar"
 )
@@ -28,12 +28,7 @@ import (
 // the distribution roots. Adding a module anywhere the distribution ships one
 // therefore brings it under these checks without touching this file.
 
-var (
-	reExport   = regexp.MustCompile(`(?s)export\(([^)]*)\)`)
-	reSymbol   = regexp.MustCompile(`:(\w+)`)
-	reLetFunc  = regexp.MustCompile(`(?m)^let\s+(\w+)\s*=\s*\(([^)]*)\)\s*\{`)
-	reTemplate = regexp.MustCompile(`^(\w+)\(([^)]*)\)$`)
-)
+var reTemplate = regexp.MustCompile(`^(\w+)\(([^)]*)\)$`)
 
 type module struct {
 	name     string // e.g. "regex/ffi"
@@ -70,11 +65,11 @@ func shippedModulePaths(t *testing.T) map[string]string {
 
 	root := distributionRoot(t)
 	var roots []string
-	for _, r := range substrate.DistributionModuleRoots() {
+	for _, r := range modules.DistributionModuleRoots() {
 		roots = append(roots, filepath.Join(root, r))
 	}
 
-	registry := substrate.NewModuleRegistry(roots)
+	registry := modules.NewModuleRegistry(roots)
 	if err := registry.Scan(g); err != nil {
 		t.Fatalf("scanning distribution roots: %v", err)
 	}
@@ -109,6 +104,11 @@ func splitArgs(s string) []string {
 func loadModules(t *testing.T) []module {
 	t.Helper()
 
+	g, err := grammar.Load("grammar.ebnfx", syntax.EbnfxSource, "grammar.help", syntax.HelpSource)
+	if err != nil {
+		t.Fatalf("loading grammar: %v", err)
+	}
+
 	var mods []module
 	for name, path := range shippedModulePaths(t) {
 		src, err := os.ReadFile(path)
@@ -117,28 +117,22 @@ func loadModules(t *testing.T) []module {
 			continue
 		}
 
+		info, err := modules.AnalyzeSource(g, path, string(src))
+		if err != nil {
+			t.Errorf("%s: cannot analyze %s: %v", name, path, err)
+			continue
+		}
+
 		mod := module{
 			name:    name,
 			aiPath:  path,
+			exports: append([]string(nil), info.Exports...),
 			params:  map[string][]string{},
 			hasRest: map[string]bool{},
 		}
-		if m := reExport.FindSubmatch(src); m != nil {
-			for _, sym := range reSymbol.FindAllSubmatch(m[1], -1) {
-				mod.exports = append(mod.exports, string(sym[1]))
-			}
-		}
-		for _, f := range reLetFunc.FindAllSubmatch(src, -1) {
-			fname := string(f[1])
-			var ordinary []string
-			for _, p := range splitArgs(string(f[2])) {
-				if strings.HasPrefix(p, "...") {
-					mod.hasRest[fname] = true
-					continue
-				}
-				ordinary = append(ordinary, p)
-			}
-			mod.params[fname] = ordinary
+		for fname, fn := range info.Functions {
+			mod.params[fname] = append([]string(nil), fn.Parameters...)
+			mod.hasRest[fname] = fn.Rest != ""
 		}
 
 		base := strings.TrimSuffix(path, ".ai")
@@ -370,7 +364,7 @@ func TestShippedModuleDiscovery(t *testing.T) {
 	for name, path := range paths {
 		rel := filepath.ToSlash(path)
 		shipped := false
-		for _, root := range substrate.DistributionModuleRoots() {
+		for _, root := range modules.DistributionModuleRoots() {
 			if strings.Contains(rel, "/"+root+"/") {
 				shipped = true
 				break
@@ -378,7 +372,7 @@ func TestShippedModuleDiscovery(t *testing.T) {
 		}
 		if !shipped {
 			t.Errorf("%s at %s is outside the distribution roots %v",
-				name, path, substrate.DistributionModuleRoots())
+				name, path, modules.DistributionModuleRoots())
 		}
 	}
 }

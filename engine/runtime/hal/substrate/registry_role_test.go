@@ -1,19 +1,23 @@
 package substrate
 
-import "testing"
+import (
+	"testing"
+
+	"aiki/engine/runtime/primitives"
+)
 
 func TestCompatibilityRegistrySeparatedByRole(t *testing.T) {
 	rt := NewGoRuntime()
 
-	want := map[registryRole]int{
-		roleIntrinsic: 9,
-		roleNative:    40,
-		roleProvider:  14,
-		roleHost:      48,
-		roleService:   19,
+	want := map[primitives.Role]int{
+		primitives.RoleIntrinsic: 9,
+		primitives.RoleNative:    40,
+		primitives.RoleProvider:  14,
+		primitives.RoleHost:      48,
+		primitives.RoleService:   19,
 	}
 
-	seen := make(map[string]registryRole)
+	seen := make(map[string]primitives.Role)
 	for role, count := range want {
 		registry := rt.registryFor(role)
 		if got := len(registry); got != count {
@@ -27,8 +31,27 @@ func TestCompatibilityRegistrySeparatedByRole(t *testing.T) {
 		}
 	}
 
-	if got := len(seen); got != 130 {
-		t.Fatalf("classified %d compatibility primitives, want 130", got)
+	definitions := primitives.Definitions()
+	if got := len(definitions); got != 130 {
+		t.Fatalf("architectural primitive definitions = %d, want 130", got)
+	}
+	if got := len(seen); got != len(definitions) {
+		t.Fatalf("registered %d compatibility primitives, architecture defines %d", got, len(definitions))
+	}
+	for name, role := range definitions {
+		got, ok := seen[name]
+		if !ok {
+			t.Errorf("architectural primitive %s (%s) has no substrate binding", name, role)
+			continue
+		}
+		if got != role {
+			t.Errorf("primitive %s registered as %s, architecture defines %s", name, got, role)
+		}
+	}
+	for name, role := range seen {
+		if _, ok := definitions[name]; !ok {
+			t.Errorf("substrate primitive %s (%s) has no architectural definition", name, role)
+		}
 	}
 
 	for _, name := range []string{"_apply", "_first", "_regex_match", "_file_open", "_canvas", "_profile_counts"} {
