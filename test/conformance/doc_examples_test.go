@@ -84,13 +84,12 @@ func buildAiki(t *testing.T) string {
 	if err != nil {
 		t.Fatalf("abs root: %v", err)
 	}
-	exe := filepath.Join(absRoot, "aiki-test-bin")
+	exe := filepath.Join(t.TempDir(), "aiki-test-bin")
 	cmd := exec.Command("go", "build", "-buildvcs=false", "-o", exe, "./cmd/aiki")
 	cmd.Dir = absRoot
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("building aiki: %v\n%s", err, out)
 	}
-	t.Cleanup(func() { _ = os.Remove(exe) })
 	return exe
 }
 
