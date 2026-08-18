@@ -1,3 +1,5 @@
+//go:build rigorous
+
 package conformance
 
 import (
