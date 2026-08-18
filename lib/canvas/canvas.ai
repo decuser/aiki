@@ -87,6 +87,7 @@ export(
 	:canvas,
 	:width,
 	:height,
+	:alive,
 	:dot,
 	:line,
 	:rect,

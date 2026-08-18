@@ -439,3 +439,50 @@ The Go substrate owns signal subscriptions and tears them down with other runtim
 - AF-022 found/resolved: common `io` help/docs lagged endpoint convergence and now explicitly describe process pipes and TCP connections as runtime endpoints.
 - No material proposal/implementation contradiction remains. Portable-systems completeness is reconciled; showcase work is intentionally separate.
 
+
+## 2026-08-17 — Experiment 003 Four-Way Life begins
+
+- Baseline: `e09cf60` (`v0.4.0-alpha-30-2-ge09cf60`), branch/workstream `four-way-life`.
+- Four-Way Life is experiment `003`, following the repository experiment layout.
+- Governing proposal saved as `proposals/four-way-life.md`.
+- Gate 1 implementation started as a true five-process design: coordinator + four `aiki worker.ai` children.
+- Store is coordinator-only. Workers receive immutable newline-delimited generation frames and return color-specific next-generation proposals.
+- Headless acceptance runs the same seed twice and requires identical committed-generation transcripts; canvas mode is optional and renders only committed generations.
+
+## 2026-08-17 — Four-Way Life Gate 2 worker domains
+
+- Gate 1 validated as five real OS processes with deterministic headless transcripts.
+- Gate 2 keeps the protocol/barrier unchanged and makes worker domains load-bearing by protecting existing owner cells only, preventing new cross-owner proposal conflicts.
+- Engine A: recurring file/path/string/bytes pattern input.
+- Engine B: runtime env + deterministic random/hash; wall time is fallback seed only when explicit seed is absent.
+- Engine C: project-controlled Aiki helper subprocess + process pipe + regex + base conversion.
+- Engine D: pure list/sort/map/filter/reduce + pipeline + shape/match + exact math path.
+
+
+## 2026-08-17 — Four-Way Life Gate 4
+
+- Gate 3 systems acceptance passed: lock held/released, signal shutdown,
+  generation logging, and terminal raw/restore.
+- Added Gate 4 hardening acceptance with no new public capability.
+- `helper.ai` supports deliberate `FWL_HELPER_FAIL=1` status-7 failure so
+  Worker C's local subprocess-failure contract is exercised end to end.
+- `terminal_probe.ai` now exits nonzero on actual raw/restore failure; non-TTY
+  execution remains an explicit skip.
+- `gate4.sh` composes deterministic five-process acceptance, failure recovery,
+  and Gate 3 systems acceptance.
+- Final completion requires `gate4.sh` plus repository `make validate`.
+
+
+## 2026-08-17 — Four-Way Life final showcase reconciliation
+
+- `showcase.sh` now launches the intended interactive presentation: coordinator
+  in the current terminal, canvas window, and four worker-status terminal
+  windows.
+- Worker-status terminals display log views from the actual coordinator-owned
+  A/B/C/D processes; they do not replace or duplicate the worker protocol pipes.
+- Debian `x-terminal-emulator` compatibility was verified against
+  `gnome-terminal.wrapper`; the launcher uses the working `-e` form.
+- Canvas closure now terminates the coordinator run, stops/reaps workers, and
+  causes all four worker-view terminals to stop and close.
+- Final showcase architecture and lifecycle reconciled into experiment docs and
+  proposal.

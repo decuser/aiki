@@ -1,0 +1,53 @@
+Experiment 003 — Four-Way Life
+Gate 1 — deterministic five-process Life core
+
+Aiki executable: /home/wsenn/forge/dev/aiki/aiki
+Aiki version:    aiki v0.4.0-alpha-30-2-ge09cf60-dirty
+
+--- Pure Life rules ---
+PASS life_test.ai
+
+4 tests, 4 passed, 0 failed
+
+--- Line protocol ---
+PASS protocol_test.ai
+
+3 tests, 3 passed, 0 failed
+
+--- Determinism run 1 ---
+FOUR-WAY-LIFE seed=42 size=24x18
+GEN 0 796199938
+GEN 1 142920083
+GEN 2 426777559
+GEN 3 293360139
+GEN 4 468300634
+GEN 5 970669387
+GEN 6 642935684
+GEN 7 931171167
+GEN 8 818622283
+GEN 9 712668050
+GEN 10 542131116
+GEN 11 479735020
+GEN 12 980130041
+PASS
+
+--- Determinism run 2 ---
+FOUR-WAY-LIFE seed=42 size=24x18
+GEN 0 796199938
+GEN 1 142920083
+GEN 2 426777559
+GEN 3 293360139
+GEN 4 468300634
+GEN 5 970669387
+GEN 6 642935684
+GEN 7 931171167
+GEN 8 818622283
+GEN 9 712668050
+GEN 10 542131116
+GEN 11 479735020
+GEN 12 980130041
+PASS
+
+DETERMINISM PASS
+
+Interactive canvas: aiki coordinator.ai canvas 100 48 32 42

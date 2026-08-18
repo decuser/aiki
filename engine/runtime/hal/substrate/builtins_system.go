@@ -7,6 +7,27 @@ import (
 	"strings"
 )
 
+func (g *GoRuntime) halSystemExit(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 1 {
+		return value.NewFault("system.exit: want 1 argument, got %d", len(args))
+	}
+	n, ok := args[0].(*value.Number)
+	if !ok {
+		return value.NewFault("system.exit: expected number, got %s", args[0].Type())
+	}
+	if !n.Val.IsInt() {
+		return value.NewFault("system.exit: exit code must be an integer")
+	}
+	if !n.Val.Num().IsInt64() {
+		return value.NewFault("system.exit: exit code must be from 0 through 255")
+	}
+	code := n.Val.Num().Int64()
+	if code < 0 || code > 255 {
+		return value.NewFault("system.exit: exit code must be from 0 through 255")
+	}
+	return &value.ProgramExitSignal{Code: int(code)}
+}
+
 func (g *GoRuntime) halSystemArgs(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 0 {
 		return value.NewFault("system.args: want 0 arguments, got %d", len(args))

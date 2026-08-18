@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -140,15 +141,22 @@ func startREPL(opts Options) {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
-	sess.Run()
+	if code := sess.Run(); code != 0 {
+		os.Exit(code)
+	}
 }
 
 func runFile(filename string, opts Options) {
 	err := runner.Run(filename, flag.Args()[1:]...)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+	if err == nil {
+		return
 	}
+	var exitErr *runner.ExitStatusError
+	if errors.As(err, &exitErr) {
+		os.Exit(exitErr.Code)
+	}
+	fmt.Fprintln(os.Stderr, err)
+	os.Exit(1)
 }
 
 func runExpr(expr string, opts Options) {
@@ -162,6 +170,10 @@ func runExpr(expr string, opts Options) {
 
 	if _, ok := result.(*value.ExitSignal); ok {
 		return
+	}
+	if exit, ok := result.(*value.ProgramExitSignal); ok {
+		sess.Runtime.CloseAllResources()
+		os.Exit(exit.Code)
 	}
 
 	if f, ok := result.(*value.Fault); ok {

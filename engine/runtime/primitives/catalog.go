@@ -93,6 +93,7 @@ var nonHALRoles = map[string]Role{
 
 	// Runtime/tooling/session services.
 	"_module_roots":       RoleService,
+	"_system_exit":        RoleService,
 	"_system_has":         RoleService,
 	"_system_require":     RoleService,
 	"_profile_counts":     RoleService,

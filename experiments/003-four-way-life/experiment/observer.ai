@@ -1,0 +1,29 @@
+let system = import("system")
+let net = import("net")
+let io = import("io")
+
+let args = system.args()
+if length(args) < 1 {
+	io.write(:stderr, "observer: usage: aiki observer.ai PORT\n")
+	system.exit(2)
+} else {
+	let endpoint = net.connect("127.0.0.1", to_number(args[0]))
+	if is_error(endpoint) {
+		io.write(:stderr, "observer: connect failed: " + inspect(endpoint) + "\n")
+		system.exit(1)
+	}
+	let reading = true
+	while reading {
+		let line = io.read_line(endpoint)
+		if is_error(line) {
+			reading = false
+		} else {
+			if equal(shape(line), :end) {
+				reading = false
+			} else {
+				println(line)
+			}
+		}
+	}
+	io.close(endpoint)
+}

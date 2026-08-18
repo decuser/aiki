@@ -274,6 +274,16 @@ func (e *ExitSignal) Inspect() string { return "" }
 
 var EXIT = &ExitSignal{}
 
+// ProgramExitSignal requests immediate termination of the current Aiki program
+// with a portable process exit status. It is evaluator control flow, not an
+// ordinary Aiki value.
+type ProgramExitSignal struct {
+	Code int
+}
+
+func (e *ProgramExitSignal) Type() Type      { return "program_exit" }
+func (e *ProgramExitSignal) Inspect() string { return fmt.Sprintf("<exit:%d>", e.Code) }
+
 // ResetSignal signals REPL to reset environment.
 type ResetSignal struct{}
 

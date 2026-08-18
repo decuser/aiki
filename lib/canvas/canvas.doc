@@ -24,6 +24,15 @@ height(c)
 
 let h = height(c)
 ===
+alive
+@unchecked
+Reports whether the canvas window is still open. Returns false after the
+user closes the window or the canvas is destroyed.
+
+alive(c)
+
+let open = alive(c)
+===
 dot
 @unchecked
 Draws a single dot at the specified coordinates using the current
@@ -106,7 +115,7 @@ Supported: black, white, red, green, blue, yellow, cyan, magenta, gray.
 
 set_bg(c, color)
 
-set_bg(c, "black")
+set_bg(c, :black)
 ===
 set_fg
 @unchecked
@@ -115,7 +124,7 @@ Supported: black, white, red, green, blue, yellow, cyan, magenta, gray.
 
 set_fg(c, color)
 
-set_fg(c, "red")
+set_fg(c, :red)
 ===
 set_bg_rgb
 @unchecked

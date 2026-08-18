@@ -132,6 +132,7 @@ func (g *GoRuntime) registerHAL() {
 	// Runtime/tooling/session services.
 	for name, fn := range map[string]BuiltinFunc{
 		"_module_roots":   g.halModuleRoots,
+		"_system_exit":    g.halSystemExit,
 		"_system_has":     g.halSystemHas,
 		"_system_require": g.halSystemRequire,
 		"_profile_counts": halProfileCounts, "_profile_measure": halProfileMeasure,

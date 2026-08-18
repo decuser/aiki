@@ -16,6 +16,24 @@ import (
 	"aiki/engine/syntax/grammar"
 )
 
+// ExitStatusError carries a requested nonzero Aiki program exit status back to the CLI.
+type ExitStatusError struct{ Code int }
+
+func (e *ExitStatusError) Error() string { return fmt.Sprintf("exit status %d", e.Code) }
+
+func executionResultError(result value.Value) error {
+	if fault, ok := result.(*value.Fault); ok {
+		return fmt.Errorf("%s", fault.Inspect())
+	}
+	if exit, ok := result.(*value.ProgramExitSignal); ok {
+		if exit.Code == 0 {
+			return nil
+		}
+		return &ExitStatusError{Code: exit.Code}
+	}
+	return nil
+}
+
 // Run executes an Aiki source file. programArgs are exposed to the program
 // through system.args(), excluding the interpreter and source filename.
 func Run(filename string, programArgs ...string) error {
@@ -94,11 +112,7 @@ func runSourceWithRuntime(filename, source string, programArgs []string, rt *sub
 	ev := evaluator.New(rt, nil)
 	ev.SetGrammar(g)
 	result := ev.Eval(ast, userEnv)
-	if fault, ok := result.(*value.Fault); ok {
-		return fmt.Errorf("%s", fault.Inspect())
-	}
-
-	return nil
+	return executionResultError(result)
 }
 
 // RunWithCounters executes an Aiki source file with counter probes enabled.
@@ -157,8 +171,8 @@ func RunWithCountersRuntime(filename string, counters *evaluator.Counters, rt *s
 	ev.SetGrammar(g)
 	ev.Counters = counters
 	result := ev.Eval(ast, userEnv)
-	if fault, ok := result.(*value.Fault); ok {
-		return counters, fmt.Errorf("%s", fault.Inspect())
+	if err := executionResultError(result); err != nil {
+		return counters, err
 	}
 
 	return counters, nil

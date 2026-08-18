@@ -4,6 +4,10 @@
 @template "args()"
 @help "Returns the Aiki program arguments as a list of strings."
 
+@func exit
+@template "exit(code)"
+@help "Terminates the current Aiki program with exit status 0 through 255 after runtime cleanup."
+
 @func env
 @template "env(name)"
 @help "Returns an environment variable value, or [@error, :environment, msg] if it is not set."

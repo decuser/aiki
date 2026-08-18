@@ -1,0 +1,346 @@
+let system = import("system")
+let process = import("process")
+let io = import("io")
+let store = import("store")
+let canvas = import("canvas")
+let time = import("time")
+let file = import("file")
+let net = import("net")
+let signal = import("signal")
+let term = import("term")
+let life = import("./life")
+let protocol = import("./protocol")
+
+let args = system.args()
+let mode = "headless"
+let generations = 12
+let width = 24
+let height = 18
+let seed = 42
+if length(args) > 0 {
+	mode = args[0]
+}
+
+if length(args) > 1 {
+	generations = to_number(args[1])
+}
+
+if length(args) > 2 {
+	width = to_number(args[2])
+}
+
+if length(args) > 3 {
+	height = to_number(args[3])
+}
+
+if length(args) > 4 {
+	seed = to_number(args[4])
+}
+
+if (width < 12) or (height < 12) {
+	io.write(:stderr, "four-way-life: width and height must be at least 12\n")
+	system.exit(2)
+} else {
+	# Workers inherit this runtime-owned environment snapshot through process.start.
+	system.set_env("FWL_SEED", to_str(seed))
+	system.set_env("FWL_MUTATION_RATE", "2")
+	let grid = store.new(width * height)
+	let seeded = life.seed_grid(width, height, seed)
+	let i = 0
+	while i < length(seeded) {
+		store.set(grid, i, seeded[i])
+		i = i + 1
+	}
+	let procs = []
+	let inputs = []
+	let outputs = []
+	let owner = 1
+	while owner <= 4 {
+		let p = process.start("aiki", ["worker.ai", to_str(owner)])
+		procs = append(procs, p)
+		inputs = append(inputs, process.stdin(p))
+		outputs = append(outputs, process.stdout(p))
+		owner = owner + 1
+	}
+	let draw = equal(mode, "canvas")
+	let systems = draw or equal(mode, "systems")
+	let log_handle = []
+	let log_lock = []
+	let listener = []
+	let signal_source = []
+	let observer_ch = channel()
+	let observers = []
+	let terminal_state = []
+	let terminal_raw = false
+	let accept_loop = (server, out) {
+		let network = import("net")
+		let accepting = true
+		while accepting {
+			let endpoint = network.accept(server)
+			if is_error(endpoint) {
+				accepting = false
+			} else {
+				send(out, endpoint)
+			}
+		}
+	}
+	if systems {
+		log_lock = file.lock("../results/four-way-life.lock")
+		if is_error(log_lock) {
+			io.write(:stderr, "four-way-life: cannot lock results log: " + inspect(log_lock) + "\n")
+			system.exit(1)
+		}
+		log_handle = file.open("../results/four-way-life.log", :write)
+		if is_error(log_handle) {
+			io.write(:stderr, "four-way-life: cannot open results log: " + inspect(log_handle) + "\n")
+			system.exit(1)
+		}
+		signal_source = signal.watch(:interrupt, :terminate)
+		if is_error(signal_source) {
+			io.write(:stderr, "four-way-life: signal watch unavailable: " + inspect(signal_source) + "\n")
+			system.exit(1)
+		}
+		let port = 0
+		let port_text = system.env("FWL_PORT")
+		if not is_error(port_text) {
+			port = to_number(port_text)
+		}
+		listener = net.listen("127.0.0.1", port)
+		if is_error(listener) {
+			io.write(:stderr, "four-way-life: network listen failed: " + inspect(listener) + "\n")
+			system.exit(1)
+		}
+		spawn(accept_loop, listener, observer_ch)
+		io.write(:stderr, "four-way-life: observer " + inspect(net.local(listener)) + "\n")
+		if term.is(:stdout) {
+			io.write(:stderr, "four-way-life: terminal " + inspect(term.size(:stdout)) + "\n")
+		}
+		let raw_text = system.env("FWL_RAW_TERMINAL")
+		if not is_error(raw_text) {
+			if equal(raw_text, "1") {
+				if term.is(:stdin) {
+					terminal_state = term.raw(:stdin)
+					if not is_error(terminal_state) {
+						terminal_raw = true
+					}
+				}
+			}
+		}
+	}
+	let c = []
+	let cell_size = 4
+	if draw {
+		c = canvas.canvas(width * cell_size, height * cell_size)
+		canvas.set_bg(c, :black)
+	}
+	let grid_text = () {
+		let text = ""
+		let j = 0
+		while j < (width * height) {
+			text = text + to_str(store.get(grid, j))
+			j = j + 1
+		}
+		return text
+	}
+	let render = () {
+		if draw {
+			if not canvas.alive(c) {
+				return false
+			}
+			canvas.clear(c)
+			let colors = [:black, :red, :green, :blue, :yellow]
+			let j = 0
+			while j < (width * height) {
+				let cell = store.get(grid, j)
+				if cell > 0 {
+					canvas.set_fg(c, colors[cell])
+					let x = j - (truncate(j / width) * width)
+					let y = truncate(j / width)
+					canvas.fill_rect(c, x * cell_size, y * cell_size, cell_size, cell_size)
+				}
+				j = j + 1
+			}
+			return canvas.alive(c)
+		}
+		return true
+	}
+	let accept_observer = () {
+		if systems {
+			select {
+				let endpoint = recv(observer_ch) {
+					observers = append(observers, endpoint)
+					io.write(:stderr, "four-way-life: observer connected " + inspect(net.remote(endpoint)) + "\n")
+				}
+				default {
+				}
+			}
+		}
+	}
+	let broadcast = (text) {
+		if systems {
+			let kept = []
+			let oi = 0
+			while oi < length(observers) {
+				let result = io.write(observers[oi], text + "\n")
+				if is_error(result) {
+					io.close(observers[oi])
+				} else {
+					kept = append(kept, observers[oi])
+				}
+				oi = oi + 1
+			}
+			observers = kept
+		}
+	}
+	let log_status = (text) {
+		if systems {
+			file.write_text(log_handle, text + "\n")
+			broadcast(text)
+		}
+	}
+	let terminal_status = (generation) {
+		if systems {
+			if term.is(:stderr) {
+				io.write(
+					:stderr,
+					"\rFWL gen=" + to_str(generation) + " observers=" + to_str(length(observers)) + "   "
+				)
+			}
+		}
+	}
+	let signal_received = () {
+		if systems {
+			select {
+				let caught = recv(signal_source) {
+					io.write(:stderr, "four-way-life: signal " + to_str(caught) + "\n")
+					return true
+				}
+				default {
+				}
+			}
+		}
+		return false
+	}
+	let generation = 0
+	println("FOUR-WAY-LIFE seed=" + to_str(seed) + " size=" + to_str(width) + "x" + to_str(height))
+	let initial_status = "GEN " + to_str(generation) + " " + to_str(life.checksum(life.grid_from_text(grid_text())))
+	println(initial_status)
+	let running = render()
+	log_status(initial_status)
+	accept_observer()
+	terminal_status(generation)
+	while (generation < generations) and running {
+		let frame = protocol.encode_gen(generation, width, height, grid_text()) + "\n"
+		let w = 0
+		while w < 4 {
+			io.write(inputs[w], frame)
+			w = w + 1
+		}
+		let replies = []
+		w = 0
+		while w < 4 {
+			let line = io.read_line(outputs[w])
+			let reply = protocol.decode_done(line)
+			if is_error(reply) {
+				io.write(
+					:stderr,
+					"four-way-life: worker " + to_str(w + 1) + " invalid reply: " + inspect(line) + "\n"
+				)
+				# Read stderr before wait: process.wait closes Go's stdout/stderr pipes.
+				let err = io.read_line(process.stderr(procs[w]))
+				if not equal(shape(err), :end) {
+					io.write(:stderr, "four-way-life: worker " + to_str(w + 1) + " stderr: " + to_str(err) + "\n")
+				}
+				let status = process.wait(procs[w])
+				io.write(:stderr, "four-way-life: worker " + to_str(w + 1) + " exit " + to_str(status) + "\n")
+				system.exit(1)
+			}
+			replies = append(replies, reply)
+			w = w + 1
+		}
+		i = 0
+		while i < (width * height) {
+			store.set(grid, i, 0)
+			i = i + 1
+		}
+		w = 0
+		while w < 4 {
+			let reply = replies[w]
+			let reply_owner = reply[0]
+			let positions = reply[2]
+			let k = 0
+			while k < length(positions) {
+				let pos = positions[k]
+				if not equal(store.get(grid, pos), 0) {
+					io.write(:stderr, "four-way-life: conflicting proposal at " + to_str(pos) + "\n")
+				}
+				store.set(grid, pos, reply_owner)
+				k = k + 1
+			}
+			w = w + 1
+		}
+		generation = generation + 1
+		let committed = life.grid_from_text(grid_text())
+		let status_text = "GEN " + to_str(generation) + " " + to_str(life.checksum(committed))
+		println(status_text)
+		log_status(status_text)
+		accept_observer()
+		terminal_status(generation)
+		running = render()
+		if running {
+			if signal_received() {
+				running = false
+			}
+		}
+		if running {
+			if draw {
+				time.sleep(50)
+			}
+		}
+	}
+	let w = 0
+	while w < 4 {
+		io.write(inputs[w], "STOP\n")
+		io.close(inputs[w])
+		w = w + 1
+	}
+	w = 0
+	while w < 4 {
+		let status = process.wait(procs[w])
+		if not equal(status, 0) {
+			io.write(:stderr, "four-way-life: worker " + to_str(w + 1) + " exit " + to_str(status) + "\n")
+		}
+		w = w + 1
+	}
+	if systems {
+		if term.is(:stderr) {
+			io.write(:stderr, "\n")
+		}
+		if not is_error(listener) {
+			net.close(listener)
+		}
+		let oi = 0
+		while oi < length(observers) {
+			io.close(observers[oi])
+			oi = oi + 1
+		}
+		if not is_error(signal_source) {
+			signal.stop(signal_source)
+		}
+		if terminal_raw {
+			term.restore(terminal_state)
+		}
+		file.close(log_handle)
+		file.unlock(log_lock)
+	}
+	if draw {
+		if canvas.alive(c) {
+			canvas.destroy(c)
+		}
+	}
+	if running {
+		println("PASS")
+	} else {
+		println("CLOSED")
+	}
+}

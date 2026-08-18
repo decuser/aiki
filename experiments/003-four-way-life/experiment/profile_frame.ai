@@ -1,0 +1,27 @@
+let life = import("./life")
+let protocol = import("./protocol")
+
+let system = import("system")
+
+let env_number = (name, fallback) {
+	let v = system.env(name)
+	if is_error(v) {
+		return fallback
+	}
+	return to_number(v)
+}
+
+let width = env_number("FWL_WIDTH", 60)
+let height = env_number("FWL_HEIGHT", 40)
+let seed = env_number("FWL_SEED", 42)
+let generation = env_number("FWL_PROFILE_GENERATION", 0)
+let grid = life.seed_grid(width, height, seed)
+let text = ""
+let i = 0
+while i < length(grid) {
+	text = text + to_str(grid[i])
+	i = i + 1
+}
+
+println(protocol.encode_gen(generation, width, height, text))
+println("STOP")

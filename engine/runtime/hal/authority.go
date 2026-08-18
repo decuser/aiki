@@ -272,6 +272,7 @@ var authorityPolicy = map[string][]string{
 		"_system_cwd",
 		"_system_env",
 		"_system_environ",
+		"_system_exit",
 		"_system_exec",
 		"_system_has",
 		"_system_require",

@@ -1,0 +1,17 @@
+DONE|2|0|175,236,237,295,296
+Aiki semantic work
+  arithmetic   27845
+  comparison   27827
+  call         67427
+  iteration    13460
+  index        13053
+  send         0
+  receive      0
+  store_read   180
+  store_write  88
+
+Go substrate realization
+  elapsed      173.732819ms
+  alloc_bytes  213085640
+  mallocs      1737609
+  gc_cycles    40

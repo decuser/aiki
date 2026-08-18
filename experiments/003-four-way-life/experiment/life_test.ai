@@ -1,0 +1,73 @@
+let test = import("test")
+let life = import("./life")
+let list = import("list")
+
+let blinker = [
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	1,
+	1,
+	1,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0
+]
+
+
+test.run("single-color blinker proposal", () {
+	test.equal(life.next_for_owner(blinker, 5, 5, 1), [7, 12, 17])
+})
+
+
+test.run("other owner does not claim blinker", () {
+	test.equal(life.next_for_owner(blinker, 5, 5, 2), [])
+})
+
+
+test.run("grid text round trip", () {
+	let text = life.grid_to_text(blinker)
+	test.equal(life.grid_from_text(text), blinker)
+})
+
+
+test.run("seed is deterministic", () {
+	test.equal(life.seed_grid(24, 18, 42), life.seed_grid(24, 18, 42))
+})
+
+
+test.run("active frontier excludes irrelevant dead cells", () {
+	test.equal(list.sort(life.active_frontier(blinker, 5, 5)), [
+		5,
+		6,
+		7,
+		8,
+		9,
+		10,
+		11,
+		12,
+		13,
+		14,
+		15,
+		16,
+		17,
+		18,
+		19
+	])
+})

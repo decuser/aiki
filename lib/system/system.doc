@@ -8,6 +8,16 @@ args()
 
 type(system.args())    # :list
 ===
+exit
+@unchecked
+Terminates the current Aiki program immediately with the integer exit status code.
+code must be from 0 through 255. Runtime-owned resources are cleaned up before
+the command-line process returns the requested status.
+
+exit(code)
+
+system.exit(0)
+===
 env
 Returns the value of the named host environment variable as a string. If the
 variable is not set, returns [@error, :environment, msg].

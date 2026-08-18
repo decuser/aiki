@@ -38,6 +38,8 @@ Status vocabulary:
 | AF-021 | Portable-systems completeness audit found the runtime environment was read-only and child processes inherited ambient host environment rather than the Aiki runtime view. | RESOLVED | Phase 6 remediation: runtime-owned `environ`/`set_env`/`unset_env`; `system.exec` and `process.start` inherit per-start snapshots. |
 | AF-022 | Common `io` help/docs lagged the endpoint architecture and described only standard streams/files after process pipes and TCP became generic endpoints. | RESOLVED | Portable-systems final reconciliation: `io` help/docs now name runtime endpoints, process pipes, and TCP explicitly. |
 
+| AF-023 | Portable systems completeness lacked deliberate program termination with an exit status; `quit()` is REPL control and does not provide script/process status semantics. | RESOLVED | Added `system.exit(code)` as evaluator control flow with portable 0..255 status, runner/CLI propagation, and cleanup-before-return regression coverage. |
+
 ## Current disposition
 
 `proposals/post-grammar-hardening.md` resolved AF-001, AF-005, AF-006, AF-007,

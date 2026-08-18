@@ -1,0 +1,24 @@
+FOUR-WAY-LIFE seed=42 size=60x40
+GEN 0 497593190
+GEN 1 772008918
+GEN 2 65433240
+GEN 3 346268567
+GEN 4 99309836
+GEN 5 332457275
+PASS
+Aiki semantic work
+  arithmetic   281880
+  comparison   78304
+  call         427195
+  iteration    74651
+  index        33791
+  send         0
+  receive      0
+  store_read   26515
+  store_write  14515
+
+Go substrate realization
+  elapsed      2.050956904s
+  alloc_bytes  894745768
+  mallocs      8882753
+  gc_cycles    172

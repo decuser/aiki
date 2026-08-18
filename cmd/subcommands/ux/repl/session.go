@@ -51,7 +51,7 @@ func NewSession(out io.Writer, debug bool) (*Session, error) {
 }
 
 // Run starts the REPL loop.
-func (s *Session) Run() {
+func (s *Session) Run() int {
 	defer s.reader.Close()
 	defer s.session.Runtime.CloseAllResources()
 	defer s.session.Runtime.SetPageOutput(nil)
@@ -68,7 +68,7 @@ func (s *Session) Run() {
 		}
 		if err != nil {
 			fmt.Fprintln(s.out, "\nGoodbye!")
-			return
+			return 0
 		}
 
 		if buffer == "" {
@@ -105,7 +105,10 @@ func (s *Session) Run() {
 
 		if _, ok := result.(*value.ExitSignal); ok {
 			fmt.Fprintln(s.out, "Goodbye!")
-			return
+			return 0
+		}
+		if exit, ok := result.(*value.ProgramExitSignal); ok {
+			return exit.Code
 		}
 
 		if result != nil && result != value.EMPTY {
