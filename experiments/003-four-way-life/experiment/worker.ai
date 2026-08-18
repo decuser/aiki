@@ -58,11 +58,12 @@ let contains = (xs, value) {
 }
 
 let owned_positions = (grid, owner) {
-	let buffer = store.new(length(grid))
+	let n = bytes.bytes_length(grid)
+	let buffer = store.new(n)
 	let count = 0
 	let i = 0
-	while i < length(grid) {
-		if equal(grid[i], owner) {
+	while i < n {
+		if equal(bytes.bytes_get(grid, i), owner) {
 			store.set(buffer, count, i)
 			count = count + 1
 		}
@@ -203,7 +204,7 @@ if length(args) < 1 {
 					let width = frame[1]
 					let height = frame[2]
 					let grid = life.grid_from_text(frame[3])
-					let positions = life.next_for_owner(grid, width, height, owner)
+					let positions = life.byte_next_for_owner(grid, width, height, owner)
 					if equal(owner, 1) {
 						positions = engine_a(generation, grid, owner, positions)
 					}

@@ -136,3 +136,42 @@ func halBytesNew(args []value.Value, ctx *hal.EvalContext) value.Value {
 	}
 	return &value.Bytes{Val: result}
 }
+
+// halBytesDigitsFromText decodes ASCII decimal digits into raw byte values 0-9.
+func halBytesDigitsFromText(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 1 {
+		return value.NewFault("bytes_digits_from_text: want 1 argument, got %d", len(args))
+	}
+	s, ok := args[0].(*value.String)
+	if !ok {
+		return value.NewFault("bytes_digits_from_text: expected string, got %s", args[0].Type())
+	}
+	result := make([]byte, len(s.Val))
+	for i := 0; i < len(s.Val); i++ {
+		c := s.Val[i]
+		if c < '0' || c > '9' {
+			return value.NewFault("bytes_digits_from_text: byte %d is not an ASCII digit", i)
+		}
+		result[i] = c - '0'
+	}
+	return &value.Bytes{Val: result}
+}
+
+// halBytesDigitsToText encodes raw byte values 0-9 as ASCII decimal digits.
+func halBytesDigitsToText(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 1 {
+		return value.NewFault("bytes_digits_to_text: want 1 argument, got %d", len(args))
+	}
+	b, ok := args[0].(*value.Bytes)
+	if !ok {
+		return value.NewFault("bytes_digits_to_text: expected bytes, got %s", args[0].Type())
+	}
+	result := make([]byte, len(b.Val))
+	for i, c := range b.Val {
+		if c > 9 {
+			return value.NewFault("bytes_digits_to_text: byte %d out of digit range 0-9: %d", i, c)
+		}
+		result[i] = '0' + c
+	}
+	return &value.String{Val: string(result)}
+}

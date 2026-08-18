@@ -94,3 +94,23 @@ run("snapshot rejects invalid count", () {
 		store.snapshot(s, 3)
 	})
 })
+
+
+run("store digits_to_text", () {
+	let s = store.new(4)
+	store.set(s, 0, 1)
+	store.set(s, 1, 2)
+	store.set(s, 2, 3)
+	store.set(s, 3, 4)
+	equal(store.digits_to_text(s), "1234")
+	equal(store.digits_to_text(s, 2), "12")
+})
+
+
+run("store checksum", () {
+	let s = store.new(3)
+	store.set(s, 0, 1)
+	store.set(s, 1, 0)
+	store.set(s, 2, 1)
+	equal(store.checksum(s, 3), 38234842)
+})

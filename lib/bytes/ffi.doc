@@ -47,3 +47,22 @@ bytes_slice(bytes, start, end)
 
 let b = str_to_bytes("ABCD")
 bytes_slice(b, 1, 3)    # <bytes:2 [66 67]>
+
+===
+digits_from_text
+Decodes ASCII decimal digits into raw byte values 0-9. This is useful at
+text protocol boundaries where the in-memory representation should remain
+bytes rather than a list of characters.
+
+digits_from_text(text)
+
+let b = digits_from_text("0123")
+b    # <bytes:4 [0 1 2 3]>
+===
+digits_to_text
+Encodes raw byte values 0-9 as ASCII decimal digits.
+
+digits_to_text(bytes)
+
+let b = digits_from_text("0123")
+digits_to_text(b)    # "0123"

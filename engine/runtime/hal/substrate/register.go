@@ -106,11 +106,14 @@ func (g *GoRuntime) registerHAL() {
 		"_bytes_new": halBytesNew, "_bytes_length": halBytesLength, "_bytes_get": halBytesGet,
 		"_bytes_slice": halBytesSlice, "_str_to_bytes": halStrToBytes,
 		"_bytes_to_str": halBytesToStr, "_bytes_to_str_pure": halBytesToStrPure,
+		"_bytes_digits_from_text": halBytesDigitsFromText, "_bytes_digits_to_text": halBytesDigitsToText,
 		"_shape": halShape, "_make_shaped_list": halMakeShapedList, "_to_str": halToStr,
 		"_to_decimal": halToDecimal, "_to_number": halToNumber, "_to_symbol": halToSymbol,
 		"_store_new": halStoreNew, "_store_get": halStoreGet, "_store_set": halStoreSet,
 		"_store_length": halStoreLength, "_store_snapshot": halStoreSnapshot,
-		"_bits_and": halBitsAnd, "_bits_or": halBitsOr, "_bits_xor": halBitsXor,
+		"_store_digits_to_text": halStoreDigitsToText,
+		"_store_checksum":       halStoreChecksum,
+		"_bits_and":             halBitsAnd, "_bits_or": halBitsOr, "_bits_xor": halBitsXor,
 		"_bits_not": halBitsNot, "_bits_shl": halBitsShl, "_bits_shr": halBitsShr,
 	} {
 		g.registerPrimitive(name, fn)

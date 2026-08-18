@@ -2,6 +2,7 @@ package "four_way_life"
 
 let list = import("list")
 let store = import("store")
+let bytes = import("bytes/ffi")
 
 let mod = (a, b) {
 	return a - (truncate(a / b) * b)
@@ -12,16 +13,35 @@ let index = (x, y, width) {
 }
 
 let grid_from_text = (text) {
-	let grid = []
-	let i = 0
-	while i < length(text) {
-		grid = append(grid, ord(text[i]) - 48)
-		i = i + 1
+	return bytes.digits_from_text(text)
+}
+
+let grid_length = (grid) {
+	if equal(type(grid), :bytes) {
+		return bytes.bytes_length(grid)
 	}
-	return grid
+	return length(grid)
+}
+
+let cell = (grid, i) {
+	if equal(type(grid), :bytes) {
+		return bytes.bytes_get(grid, i)
+	}
+	return grid[i]
+}
+
+let byte_grid_length = (grid) {
+	return bytes.bytes_length(grid)
+}
+
+let byte_cell = (grid, i) {
+	return bytes.bytes_get(grid, i)
 }
 
 let grid_to_text = (grid) {
+	if equal(type(grid), :bytes) {
+		return bytes.digits_to_text(grid)
+	}
 	let text = ""
 	let i = 0
 	while i < length(grid) {
@@ -31,7 +51,7 @@ let grid_to_text = (grid) {
 	return text
 }
 
-let neighbor_counts = (grid, width, height, x, y) {
+let byte_neighbor_counts = (grid, width, height, x, y) {
 	let total = 0
 	let c1 = 0
 	let c2 = 0
@@ -45,7 +65,7 @@ let neighbor_counts = (grid, width, height, x, y) {
 				let nx = x + dx
 				let ny = y + dy
 				if (nx >= 0) and (nx < width) and (ny >= 0) and (ny < height) {
-					let owner = grid[index(nx, ny, width)]
+					let owner = bytes.bytes_get(grid, index(nx, ny, width))
 					if owner > 0 {
 						total = total + 1
 						if equal(owner, 1) {
@@ -70,17 +90,56 @@ let neighbor_counts = (grid, width, height, x, y) {
 	return [total, c1, c2, c3, c4]
 }
 
-# active_frontier returns exactly the cells that can possibly matter to the
-# next generation: every live cell plus every in-bounds neighbor of a live
-# cell. Dead cells outside this set cannot be born, so running the Life rule
-# there is wasted work. A local Store is used only as a dedup bitmap.
-let active_frontier = (grid, width, height) {
-	let marks = store.new(length(grid))
-	let candidate_buffer = store.new(length(grid))
+let neighbor_counts = (grid, width, height, x, y) {
+	let total = 0
+	let c1 = 0
+	let c2 = 0
+	let c3 = 0
+	let c4 = 0
+	let dy = 0 - 1
+	while dy <= 1 {
+		let dx = 0 - 1
+		while dx <= 1 {
+			if not (equal(dx, 0) and equal(dy, 0)) {
+				let nx = x + dx
+				let ny = y + dy
+				if (nx >= 0) and (nx < width) and (ny >= 0) and (ny < height) {
+					let owner = cell(grid, index(nx, ny, width))
+					if owner > 0 {
+						total = total + 1
+						if equal(owner, 1) {
+							c1 = c1 + 1
+						}
+						if equal(owner, 2) {
+							c2 = c2 + 1
+						}
+						if equal(owner, 3) {
+							c3 = c3 + 1
+						}
+						if equal(owner, 4) {
+							c4 = c4 + 1
+						}
+					}
+				}
+			}
+			dx = dx + 1
+		}
+		dy = dy + 1
+	}
+	return [total, c1, c2, c3, c4]
+}
+
+# byte_active_frontier is the hot byte-grid version of active_frontier. It avoids
+# the generic type/cell dispatch because worker grids are byte-backed after
+# protocol decoding.
+let byte_active_frontier = (grid, width, height) {
+	let n = bytes.bytes_length(grid)
+	let marks = store.new(n)
+	let candidate_buffer = store.new(n)
 	let candidate_count = 0
 	let i = 0
-	while i < length(grid) {
-		if grid[i] > 0 {
+	while i < n {
+		if bytes.bytes_get(grid, i) > 0 {
 			let y = truncate(i / width)
 			let x = mod(i, width)
 			let dy = 0 - 1
@@ -107,6 +166,75 @@ let active_frontier = (grid, width, height) {
 	return store.snapshot(candidate_buffer, candidate_count)
 }
 
+# active_frontier returns exactly the cells that can possibly matter to the
+# next generation: every live cell plus every in-bounds neighbor of a live
+# cell. Dead cells outside this set cannot be born, so running the Life rule
+# there is wasted work. A local Store is used only as a dedup bitmap.
+let active_frontier = (grid, width, height) {
+	let n = grid_length(grid)
+	let marks = store.new(n)
+	let candidate_buffer = store.new(n)
+	let candidate_count = 0
+	let i = 0
+	while i < n {
+		if cell(grid, i) > 0 {
+			let y = truncate(i / width)
+			let x = mod(i, width)
+			let dy = 0 - 1
+			while dy <= 1 {
+				let dx = 0 - 1
+				while dx <= 1 {
+					let nx = x + dx
+					let ny = y + dy
+					if (nx >= 0) and (nx < width) and (ny >= 0) and (ny < height) {
+						let candidate = index(nx, ny, width)
+						if equal(store.get(marks, candidate), 0) {
+							store.set(marks, candidate, 1)
+							store.set(candidate_buffer, candidate_count, candidate)
+							candidate_count = candidate_count + 1
+						}
+					}
+					dx = dx + 1
+				}
+				dy = dy + 1
+			}
+		}
+		i = i + 1
+	}
+	return store.snapshot(candidate_buffer, candidate_count)
+}
+
+let byte_next_for_owner = (grid, width, height, owner) {
+	let candidates = byte_active_frontier(grid, width, height)
+	let position_buffer = store.new(length(candidates))
+	let position_count = 0
+	let at = 0
+	while at < length(candidates) {
+		let i = candidates[at]
+		let y = truncate(i / width)
+		let x = mod(i, width)
+		let current = bytes.bytes_get(grid, i)
+		let counts = byte_neighbor_counts(grid, width, height, x, y)
+		let total = counts[0]
+		let alive_next = false
+		if equal(current, owner) {
+			alive_next = equal(total, 2) or equal(total, 3)
+		} else {
+			if equal(current, 0) and equal(total, 3) and (counts[owner] >= 2) {
+				alive_next = true
+			}
+		}
+		if alive_next {
+			store.set(position_buffer, position_count, i)
+			position_count = position_count + 1
+		}
+		at = at + 1
+	}
+	# Preserve the original row-major proposal order as part of the experiment
+	# protocol even though frontier discovery itself is sparse.
+	return list.sort(store.snapshot(position_buffer, position_count))
+}
+
 let next_for_owner = (grid, width, height, owner) {
 	let candidates = active_frontier(grid, width, height)
 	let position_buffer = store.new(length(candidates))
@@ -116,7 +244,7 @@ let next_for_owner = (grid, width, height, owner) {
 		let i = candidates[at]
 		let y = truncate(i / width)
 		let x = mod(i, width)
-		let current = grid[i]
+		let current = cell(grid, i)
 		let counts = neighbor_counts(grid, width, height, x, y)
 		let total = counts[0]
 		let alive_next = false
@@ -187,9 +315,20 @@ let seed_grid = (width, height, seed) {
 
 let checksum = (grid) {
 	let value = 17
+	let n = grid_length(grid)
 	let i = 0
-	while i < length(grid) {
-		value = mod(((value * 131) + grid[i]) + i, 1000000007)
+	while i < n {
+		value = mod(((value * 131) + cell(grid, i)) + i, 1000000007)
+		i = i + 1
+	}
+	return value
+}
+
+let store_checksum = (grid, n) {
+	let value = 17
+	let i = 0
+	while i < n {
+		value = mod(((value * 131) + store.get(grid, i)) + i, 1000000007)
 		i = i + 1
 	}
 	return value
@@ -199,9 +338,16 @@ export(
 	:index,
 	:grid_from_text,
 	:grid_to_text,
-	:neighbor_counts,
+	:grid_length,
+	:cell,
+	:byte_grid_length,
+	:byte_cell,
+	:byte_neighbor_counts,
 	:active_frontier,
+	:byte_active_frontier,
 	:next_for_owner,
+	:byte_next_for_owner,
 	:seed_grid,
-	:checksum
+	:checksum,
+	:store_checksum
 )

@@ -23,3 +23,12 @@
 @func bytes_slice
 @template "bytes_slice(bytes, start, end)"
 @help "Returns slice from start to end-1."
+
+
+@func digits_from_text
+@template "digits_from_text(text)"
+@help "Decodes ASCII decimal digits into raw byte values 0-9."
+
+@func digits_to_text
+@template "digits_to_text(bytes)"
+@help "Encodes raw byte values 0-9 as ASCII decimal digits."

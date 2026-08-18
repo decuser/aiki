@@ -52,3 +52,30 @@ let memory = store.new(4)
 let ignored0 = store.set(memory, 0, 10)
 let ignored1 = store.set(memory, 1, 20)
 store.snapshot(memory, 2)    # [10, 20]
+
+===
+digits_to_text
+Encodes a store containing integer digits 0-9 into a string. With an optional
+count, only the first count cells are encoded.
+
+digits_to_text(store, ...args)
+
+let memory = store.new(4)
+let ignored0 = store.set(memory, 0, 1)
+let ignored1 = store.set(memory, 1, 2)
+let ignored2 = store.set(memory, 2, 3)
+store.digits_to_text(memory, 3)    # "123"
+
+===
+checksum
+Computes the standard dense-store checksum used by diagnostics over all cells
+or the first count cells. The checksum starts at 17 and updates with
+((value * 131) + cell + index) modulo 1000000007.
+
+checksum(store, ...args)
+
+let memory = store.new(3)
+let ignored0 = store.set(memory, 0, 1)
+let ignored1 = store.set(memory, 1, 0)
+let ignored2 = store.set(memory, 2, 1)
+store.checksum(memory, 3)    # 38234842

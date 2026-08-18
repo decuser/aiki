@@ -134,13 +134,7 @@ if (width < 12) or (height < 12) {
 		canvas.set_bg(c, :black)
 	}
 	let grid_text = () {
-		let text = ""
-		let j = 0
-		while j < (width * height) {
-			text = text + to_str(store.get(grid, j))
-			j = j + 1
-		}
-		return text
+		return store.digits_to_text(grid, width * height)
 	}
 	let render = () {
 		if draw {
@@ -223,7 +217,7 @@ if (width < 12) or (height < 12) {
 	}
 	let generation = 0
 	println("FOUR-WAY-LIFE seed=" + to_str(seed) + " size=" + to_str(width) + "x" + to_str(height))
-	let initial_status = "GEN " + to_str(generation) + " " + to_str(life.checksum(life.grid_from_text(grid_text())))
+	let initial_status = "GEN " + to_str(generation) + " " + to_str(store.checksum(grid, width * height))
 	println(initial_status)
 	let running = render()
 	log_status(initial_status)
@@ -280,8 +274,7 @@ if (width < 12) or (height < 12) {
 			w = w + 1
 		}
 		generation = generation + 1
-		let committed = life.grid_from_text(grid_text())
-		let status_text = "GEN " + to_str(generation) + " " + to_str(life.checksum(committed))
+		let status_text = "GEN " + to_str(generation) + " " + to_str(store.checksum(grid, width * height))
 		println(status_text)
 		log_status(status_text)
 		accept_observer()

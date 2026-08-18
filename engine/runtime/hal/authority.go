@@ -52,6 +52,8 @@ var authorityPolicy = map[string][]string{
 		"_bits_xor",
 	},
 	"lib/bytes/ffi.ai": {
+		"_bytes_digits_from_text",
+		"_bytes_digits_to_text",
 		"_bytes_get",
 		"_bytes_length",
 		"_bytes_new",
@@ -259,6 +261,8 @@ var authorityPolicy = map[string][]string{
 		"_store_new",
 		"_store_set",
 		"_store_snapshot",
+		"_store_digits_to_text",
+		"_store_checksum",
 	},
 	"lib/string/string.ai": {
 		"_chars",

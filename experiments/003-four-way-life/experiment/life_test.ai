@@ -41,9 +41,12 @@ test.run("other owner does not claim blinker", () {
 })
 
 
-test.run("grid text round trip", () {
+test.run("grid text round trip uses byte grid", () {
 	let text = life.grid_to_text(blinker)
-	test.equal(life.grid_from_text(text), blinker)
+	let grid = life.grid_from_text(text)
+	test.equal(type(grid), :bytes)
+	test.equal(life.grid_to_text(grid), text)
+	test.equal(life.checksum(grid), life.checksum(blinker))
 })
 
 
