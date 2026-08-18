@@ -89,3 +89,25 @@ func halStoreLength(args []value.Value, ctx *hal.EvalContext) value.Value {
 	}
 	return value.NewNumber(int64(s.StoreLen()), 1)
 }
+
+func halStoreSnapshot(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) < 1 || len(args) > 2 {
+		return value.NewFault("store.snapshot: want 1 or 2 arguments, got %d", len(args))
+	}
+	s, ok := args[0].(*value.Store)
+	if !ok {
+		return value.NewFault("store.snapshot: expected store, got %s", args[0].Type())
+	}
+	count := s.StoreLen()
+	if len(args) == 2 {
+		count64, fault := storeInteger(args[1], "store.snapshot: count")
+		if fault != nil {
+			return fault
+		}
+		if count64 < 0 || count64 > int64(count) {
+			return value.NewFault("store.snapshot: count %d out of bounds (length %d)", count64, count)
+		}
+		count = int(count64)
+	}
+	return &value.List{Elements: s.StoreSnapshot(count)}
+}

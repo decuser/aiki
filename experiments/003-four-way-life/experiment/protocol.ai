@@ -1,6 +1,6 @@
 package "four_way_protocol"
 
-let string = import("string")
+let string = import("string/ffi")
 
 let encode_gen = (generation, width, height, grid_text) {
 	return "GEN|" + to_str(generation) + "|" + to_str(width) + "|" + to_str(height) + "|" + grid_text

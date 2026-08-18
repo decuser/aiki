@@ -2,7 +2,7 @@ let system = import("system")
 let io = import("io")
 let file = import("file")
 let path = import("path")
-let string = import("string")
+let string = import("string/ffi")
 let bytes = import("bytes/ffi")
 let time = import("time")
 let hash = import("hash")
@@ -11,6 +11,7 @@ let process = import("process")
 let regex = import("regex/ffi")
 let number = import("number")
 let list = import("list")
+let store = import("store")
 let math = import("math/native")
 let life = import("./life")
 let protocol = import("./protocol")
@@ -20,51 +21,77 @@ let args = system.args()
 let showcase_dir = system.env("FWL_SHOWCASE_DIR")
 
 let worker_label = (owner) {
-	if equal(owner, 1) { return "A FILE" }
-	if equal(owner, 2) { return "B ENV/TIME" }
-	if equal(owner, 3) { return "C PROCESS" }
+	if equal(owner, 1) {
+		return "A FILE"
+	}
+	if equal(owner, 2) {
+		return "B ENV/TIME"
+	}
+	if equal(owner, 3) {
+		return "C PROCESS"
+	}
 	return "D COMPUTE"
 }
 
 let showcase_log = (owner, text) {
-	if is_error(showcase_dir) { return [] }
+	if is_error(showcase_dir) {
+		return []
+	}
 	let log_path = path.join(showcase_dir, "worker-" + to_str(owner) + ".log")
 	let log = file.open(log_path, :append)
-	if is_error(log) { return log }
+	if is_error(log) {
+		return log
+	}
 	file.write_text(log, text + "\n")
 	file.close(log)
 	return true
 }
 
-let mod = (a, b) { a - (truncate(a / b) * b) }
+let mod = (a, b) {
+	a - (truncate(a / b) * b)
+}
 
 let contains = (xs, value) {
-	return list.any(xs, (x) { equal(x, value) })
+	return list.any(xs, (x) {
+		equal(x, value)
+	})
 }
 
 let owned_positions = (grid, owner) {
-	let positions = []
+	let buffer = store.new(length(grid))
+	let count = 0
 	let i = 0
 	while i < length(grid) {
-		if equal(grid[i], owner) { positions = append(positions, i) }
+		if equal(grid[i], owner) {
+			store.set(buffer, count, i)
+			count = count + 1
+		}
 		i = i + 1
 	}
-	return positions
+	return store.snapshot(buffer, count)
 }
 
 let protect = (grid, positions, owner, selector) {
 	let owned = owned_positions(grid, owner)
-	if equal(length(owned), 0) { return positions }
+	if equal(length(owned), 0) {
+		return positions
+	}
 	let pick = owned[mod(abs(selector), length(owned))]
-	if not contains(positions, pick) { return append(positions, pick) }
+	if not contains(positions, pick) {
+		return append(positions, pick)
+	}
 	return positions
 }
 
 let engine_a = (generation, grid, owner, positions) {
-	if not equal(mod(generation, 3), 0) { return positions }
+	if not equal(mod(generation, 3), 0) {
+		return positions
+	}
 	let pattern_path = path.join(path.cwd(), "data/engine-a.pattern")
 	let info = file.stat(pattern_path)
-	if equal(shape(info), :error) { return positions }
+	if equal(shape(info), :error) {
+		return positions
+	}
 	let text = file.read_all(pattern_path) |> string.trim()
 	let raw = file.read_all_bytes(pattern_path)
 	let fields = text |> string.split("|")
@@ -79,14 +106,22 @@ let engine_a = (generation, grid, owner, positions) {
 let engine_b = (generation, grid, owner, positions) {
 	let seed_text = system.env("FWL_SEED")
 	let seed = 42
-	if not equal(shape(seed_text), :error) { seed = to_number(seed_text) }
+	if not equal(shape(seed_text), :error) {
+		seed = to_number(seed_text)
+	}
 	let rate_text = system.env("FWL_MUTATION_RATE")
 	let rate = 2
-	if not equal(shape(rate_text), :error) { rate = to_number(rate_text) }
-	if equal(rate, 0) { return positions }
+	if not equal(shape(rate_text), :error) {
+		rate = to_number(rate_text)
+	}
+	if equal(rate, 0) {
+		return positions
+	}
 	# An explicit runtime seed makes headless runs reproducible. Current time is
 	# used only when the coordinator deliberately omits that seed.
-	if equal(shape(seed_text), :error) { seed = time.now() }
+	if equal(shape(seed_text), :error) {
+		seed = time.now()
+	}
 	random.seed(seed + generation)
 	let jitter = random.random(1000000)
 	let h = hash.hash_code("B:" + to_str(seed) + ":" + to_str(generation) + ":" + to_str(jitter))
@@ -94,32 +129,54 @@ let engine_b = (generation, grid, owner, positions) {
 }
 
 let engine_c = (generation, grid, owner, positions) {
-	if not equal(mod(generation, 4), 0) { return positions }
+	if not equal(mod(generation, 4), 0) {
+		return positions
+	}
 	let child = process.start("aiki", ["helper.ai", to_str(generation)])
 	let out = process.stdout(child)
 	let line = io.read_line(out)
 	io.close(out)
 	let status = process.wait(child)
-	if not equal(status, 0) { return positions }
-	if not regex.matches(line, "^VALUE\\|[0-9a-f]+$") { return positions }
+	if not equal(status, 0) {
+		return positions
+	}
+	if not regex.matches(line, "^VALUE\\|[0-9a-f]+$") {
+		return positions
+	}
 	let parts = string.split(line, "|")
 	let selector = number.from_base(parts[1], 16)
-	if equal(shape(selector), :error) { return positions }
+	if equal(shape(selector), :error) {
+		return positions
+	}
 	return protect(grid, positions, owner, selector)
 }
 
 let engine_d = (generation, grid, owner, positions) {
 	let owned = owned_positions(grid, owner)
-	if equal(length(owned), 0) { return positions }
-	let transformed = owned |> list.map((x) { x + generation })
-	let selected = transformed |> list.filter((x) { equal(mod(x, 2), mod(generation, 2)) })
-	let ordered = list.sort(selected, (a, b) { a > b })
-	let score = ordered |> list.reduce(0, (acc, x) { acc + x })
+	if equal(length(owned), 0) {
+		return positions
+	}
+	let transformed = owned |> list.map((x) {
+		x + generation
+	})
+	let selected = transformed |> list.filter((x) {
+		equal(mod(x, 2), mod(generation, 2))
+	})
+	let ordered = list.sort(selected, (a, b) {
+		a > b
+	})
+	let score = ordered |> list.reduce(0, (acc, x) {
+		acc + x
+	})
 	let root = math.sqrt((score * score) + 1, 8)
 	let event = [@engine_d, generation, truncate(root)]
 	match event {
-		[@engine_d, generation, score] { return protect(grid, positions, owner, score) }
-		_ { return positions }
+		[@engine_d, generation, score] {
+			return protect(grid, positions, owner, score)
+		}
+		_ {
+			return positions
+		}
 	}
 }
 
@@ -147,14 +204,22 @@ if length(args) < 1 {
 					let height = frame[2]
 					let grid = life.grid_from_text(frame[3])
 					let positions = life.next_for_owner(grid, width, height, owner)
-					if equal(owner, 1) { positions = engine_a(generation, grid, owner, positions) }
-					if equal(owner, 2) { positions = engine_b(generation, grid, owner, positions) }
-					if equal(owner, 3) { positions = engine_c(generation, grid, owner, positions) }
-					if equal(owner, 4) { positions = engine_d(generation, grid, owner, positions) }
-					showcase_log(owner,
-						"ENGINE " + worker_label(owner) +
-						" gen=" + to_str(generation) +
-						" live=" + to_str(length(positions)))
+					if equal(owner, 1) {
+						positions = engine_a(generation, grid, owner, positions)
+					}
+					if equal(owner, 2) {
+						positions = engine_b(generation, grid, owner, positions)
+					}
+					if equal(owner, 3) {
+						positions = engine_c(generation, grid, owner, positions)
+					}
+					if equal(owner, 4) {
+						positions = engine_d(generation, grid, owner, positions)
+					}
+					showcase_log(
+						owner,
+						"ENGINE " + worker_label(owner) + " gen=" + to_str(generation) + " live=" + to_str(length(positions))
+					)
 					io.write(:stdout, protocol.encode_done(owner, generation, positions) + "\n")
 				}
 			}

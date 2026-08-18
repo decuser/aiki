@@ -69,3 +69,31 @@ func TestStoreRejectsWrongReceiver(t *testing.T) {
 	requireFault(t, halStoreSet([]value.Value{value.EMPTY, number(0), number(1)}, nil))
 	requireFault(t, halStoreLength([]value.Value{value.EMPTY}, nil))
 }
+
+func TestStoreSnapshotCopiesPrefix(t *testing.T) {
+	s := halStoreNew([]value.Value{number(4)}, nil).(*value.Store)
+	halStoreSet([]value.Value{s, number(0), number(10)}, nil)
+	halStoreSet([]value.Value{s, number(1), number(20)}, nil)
+
+	got := halStoreSnapshot([]value.Value{s, number(2)}, nil)
+	list, ok := got.(*value.List)
+	if !ok {
+		t.Fatalf("snapshot: got %T", got)
+	}
+	if len(list.Elements) != 2 || list.Elements[0].Inspect() != "10" || list.Elements[1].Inspect() != "20" {
+		t.Fatalf("snapshot: got %s", list.Inspect())
+	}
+
+	// Snapshot is immutable with respect to later Store mutation.
+	halStoreSet([]value.Value{s, number(0), number(99)}, nil)
+	if list.Elements[0].Inspect() != "10" {
+		t.Fatalf("snapshot changed after store mutation: %s", list.Inspect())
+	}
+}
+
+func TestStoreSnapshotRejectsInvalidCount(t *testing.T) {
+	s := halStoreNew([]value.Value{number(2)}, nil).(*value.Store)
+	requireFault(t, halStoreSnapshot([]value.Value{s, number(-1)}, nil))
+	requireFault(t, halStoreSnapshot([]value.Value{s, number(3)}, nil))
+	requireFault(t, halStoreSnapshot([]value.Value{s, value.NewNumber(1, 2)}, nil))
+}

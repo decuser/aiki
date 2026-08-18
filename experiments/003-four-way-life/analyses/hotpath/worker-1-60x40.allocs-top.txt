@@ -1,0 +1,110 @@
+File: aiki
+Build ID: 60bda1ecd351fc174c6858828f8bb9acca67ed15
+Type: alloc_space
+Time: 2026-08-17 21:50:26 CDT
+Showing nodes accounting for 220.97MB, 96.70% of 228.50MB total
+Dropped 89 nodes (cum <= 1.14MB)
+      flat  flat%   sum%        cum   cum%
+   73.02MB 31.96% 31.96%    73.02MB 31.96%  aiki/engine/syntax.(*Parser).recordFailure (inline)
+   47.23MB 20.67% 52.63%    47.23MB 20.67%  aiki/engine/runtime/hal/substrate.halAppend
+   23.72MB 10.38% 63.01%    23.72MB 10.38%  aiki/engine/semantics/evaluator.(*Evaluator).evalStringIndex
+       8MB  3.50% 66.51%    97.02MB 42.46%  aiki/engine/syntax.(*Parser).parseProduction
+       8MB  3.50% 70.01%    72.02MB 31.52%  aiki/engine/syntax.(*Parser).parseTerminal
+    7.54MB  3.30% 73.31%    10.11MB  4.42%  aiki/engine/syntax.(*Lexer).Tokenize
+    7.50MB  3.28% 76.59%   125.85MB 55.08%  aiki/engine/semantics/evaluator.(*Evaluator).applyFunction
+    5.01MB  2.19% 78.78%     5.01MB  2.19%  runtime.mallocgc
+       4MB  1.75% 80.54%        4MB  1.75%  aiki/engine/semantics/value.NewCallEnv (inline)
+    3.84MB  1.68% 82.21%     3.84MB  1.68%  aiki/engine/syntax.normalizeTokens
+       3MB  1.31% 83.53%        3MB  1.31%  aiki/engine/semantics/value.(*Env).Set (inline)
+       3MB  1.31% 84.84%   100.49MB 43.98%  aiki/engine/semantics/evaluator.(*Evaluator).applyUserFunction
+       3MB  1.31% 86.15%        3MB  1.31%  errors.New (inline)
+    2.57MB  1.12% 87.28%     2.57MB  1.12%  regexp.(*bitState).reset
+    2.50MB  1.09% 88.37%        3MB  1.31%  aiki/engine/runtime/hal.OperationDefinitions (inline)
+    2.50MB  1.09% 89.47%     3.50MB  1.53%  github.com/hajimehoshi/ebiten/v2/internal/gamepaddb.parseLine
+    2.50MB  1.09% 90.56%     2.50MB  1.09%  math/big.nat.make (inline)
+       2MB  0.88% 91.44%    34.22MB 14.98%  aiki/engine/semantics/evaluator.(*Evaluator).evalCallArgs
+       2MB  0.88% 92.31%     5.50MB  2.41%  fmt.errorf
+    1.50MB  0.66% 92.97%     1.50MB  0.66%  sync.(*Pool).pinSlow
+    1.50MB  0.66% 93.62%       16MB  7.00%  aiki/engine/syntax.(*Parser).parseTokenRef
+    1.50MB  0.66% 94.28%     2.50MB  1.09%  aiki/engine/semantics/evaluator.(*Evaluator).opAdd
+    1.03MB  0.45% 94.73%     4.53MB  1.98%  github.com/hajimehoshi/ebiten/v2/internal/gamepaddb.Update
+       1MB  0.44% 95.17%     1.50MB  0.66%  aiki/engine/semantics/value.NewNumberFromString
+       1MB  0.44% 95.61%     1.50MB  0.66%  math/big.NewRat (inline)
+       1MB  0.44% 96.04%    97.02MB 42.46%  aiki/engine/syntax.(*Parser).parseRepetition
+    0.50MB  0.22% 96.26%    27.36MB 11.98%  aiki/engine/runtime/hal/substrate.(*GoRuntime).loadModule
+    0.50MB  0.22% 96.48%     1.50MB  0.66%  github.com/hajimehoshi/ebiten/v2/internal/shader.(*compileState).parse
+    0.50MB  0.22% 96.70%     1.50MB  0.66%  aiki/engine/semantics/evaluator.(*Evaluator).opSub
+         0     0% 96.70%   143.91MB 62.98%  aiki/cmd/subcommands/tools/profile.Run
+         0     0% 96.70%   144.41MB 63.20%  aiki/engine/runner.RunProfileDetailed
+         0     0% 96.70%   110.32MB 48.28%  aiki/engine/runner.RunProfileDetailed.func1
+         0     0% 96.70%    29.59MB 12.95%  aiki/engine/runner.initModuleRegistry
+         0     0% 96.70%    76.62MB 33.53%  aiki/engine/runtime/hal/substrate.(*Builtin).CallWithContext
+         0     0% 96.70%   126.35MB 55.29%  aiki/engine/runtime/hal/substrate.(*GoRuntime).WithProfileLabels
+         0     0% 96.70%    27.36MB 11.98%  aiki/engine/runtime/hal/substrate.(*GoRuntime).halImport
+         0     0% 96.70%        3MB  1.31%  aiki/engine/runtime/hal/substrate.(*GoRuntime).registerHAL
+         0     0% 96.70%        3MB  1.31%  aiki/engine/runtime/hal/substrate.(*GoRuntime).registerPrimitive
+         0     0% 96.70%        3MB  1.31%  aiki/engine/runtime/hal/substrate.NewGoRuntime
+         0     0% 96.70%    30.09MB 13.17%  aiki/engine/runtime/modules.(*ModuleRegistry).Scan
+         0     0% 96.70%    31.09MB 13.61%  aiki/engine/runtime/modules.(*ModuleRegistry).extractPackageName
+         0     0% 96.70%    30.09MB 13.17%  aiki/engine/runtime/modules.(*ModuleRegistry).scanDir
+         0     0% 96.70%    31.59MB 13.83%  aiki/engine/runtime/modules.AnalyzeSource
+         0     0% 96.70%        3MB  1.31%  aiki/engine/runtime/primitives.RoleOf
+         0     0% 96.70%   125.85MB 55.08%  aiki/engine/semantics/evaluator.(*Evaluator).Eval
+         0     0% 96.70%    76.12MB 33.31%  aiki/engine/semantics/evaluator.(*Evaluator).applyFunction.func2
+         0     0% 96.70%        5MB  2.19%  aiki/engine/semantics/evaluator.(*Evaluator).applyOperator
+         0     0% 96.70%   100.49MB 43.98%  aiki/engine/semantics/evaluator.(*Evaluator).applyUserFunction.func1
+         0     0% 96.70%    83.45MB 36.52%  aiki/engine/semantics/evaluator.(*Evaluator).evalAssign
+         0     0% 96.70%   100.49MB 43.98%  aiki/engine/semantics/evaluator.(*Evaluator).evalBlock
+         0     0% 96.70%   100.49MB 43.98%  aiki/engine/semantics/evaluator.(*Evaluator).evalBlockTail
+         0     0% 96.70%   125.85MB 55.08%  aiki/engine/semantics/evaluator.(*Evaluator).evalExpr
+         0     0% 96.70%    59.27MB 25.94%  aiki/engine/semantics/evaluator.(*Evaluator).evalExprStmt
+         0     0% 96.70%   100.49MB 43.98%  aiki/engine/semantics/evaluator.(*Evaluator).evalIf
+         0     0% 96.70%    24.72MB 10.82%  aiki/engine/semantics/evaluator.(*Evaluator).evalIndex
+         0     0% 96.70%   124.35MB 54.42%  aiki/engine/semantics/evaluator.(*Evaluator).evalInfix
+         0     0% 96.70%   122.35MB 53.54%  aiki/engine/semantics/evaluator.(*Evaluator).evalLet
+         0     0% 96.70%     1.50MB  0.66%  aiki/engine/semantics/evaluator.(*Evaluator).evalNumber
+         0     0% 96.70%   122.35MB 53.54%  aiki/engine/semantics/evaluator.(*Evaluator).evalPipe
+         0     0% 96.70%   125.85MB 55.08%  aiki/engine/semantics/evaluator.(*Evaluator).evalPostfix
+         0     0% 96.70%        3MB  1.31%  aiki/engine/semantics/evaluator.(*Evaluator).evalPrimary
+         0     0% 96.70%   114.82MB 50.25%  aiki/engine/semantics/evaluator.(*Evaluator).evalProgram
+         0     0% 96.70%   122.35MB 53.54%  aiki/engine/semantics/evaluator.(*Evaluator).evalStatement
+         0     0% 96.70%   100.49MB 43.98%  aiki/engine/semantics/evaluator.(*Evaluator).evalTail
+         0     0% 96.70%   125.35MB 54.86%  aiki/engine/semantics/evaluator.(*Evaluator).evalUnary
+         0     0% 96.70%   100.49MB 43.98%  aiki/engine/semantics/evaluator.(*Evaluator).evalWhile
+         0     0% 96.70%   125.85MB 55.08%  aiki/engine/semantics/evaluator.(*Evaluator).withProfileLabels
+         0     0% 96.70%     1.50MB  0.66%  aiki/engine/semantics/value.NewNumber (inline)
+         0     0% 96.70%     2.57MB  1.12%  aiki/engine/syntax.(*Lexer).Next
+         0     0% 96.70%    46.01MB 20.13%  aiki/engine/syntax.(*Parser).Parse
+         0     0% 96.70%    96.52MB 42.24%  aiki/engine/syntax.(*Parser).parseAlternative
+         0     0% 96.70%    97.02MB 42.46%  aiki/engine/syntax.(*Parser).parseExpr
+         0     0% 96.70%    46.01MB 20.14%  aiki/engine/syntax.(*Parser).parseOption
+         0     0% 96.70%    97.02MB 42.46%  aiki/engine/syntax.(*Parser).parseReference (inline)
+         0     0% 96.70%    97.02MB 42.46%  aiki/engine/syntax.(*Parser).parseSequence
+         0     0% 96.70%     3.84MB  1.68%  aiki/engine/syntax.NewParser
+         0     0% 96.70%     5.50MB  2.41%  fmt.Errorf (inline)
+         0     0% 96.70%     4.53MB  1.98%  github.com/hajimehoshi/ebiten/v2/internal/gamepaddb.init.0
+         0     0% 96.70%        3MB  1.31%  github.com/hajimehoshi/ebiten/v2/internal/graphics.CompileShader
+         0     0% 96.70%     1.50MB  0.66%  github.com/hajimehoshi/ebiten/v2/internal/restorable.init.0.func3
+         0     0% 96.70%     2.50MB  1.09%  github.com/hajimehoshi/ebiten/v2/internal/shader.Compile
+         0     0% 96.70%        3MB  1.31%  golang.org/x/sync/errgroup.(*Group).Go.func1
+         0     0% 96.70%   141.91MB 62.10%  main.main
+         0     0% 96.70%     1.50MB  0.66%  math/big.(*Int).scaleDenom
+         0     0% 96.70%        2MB  0.88%  math/big.nat.mul
+         0     0% 96.70%        2MB  0.88%  math/big.nat.mulAddWW
+         0     0% 96.70%     2.57MB  1.12%  regexp.(*Regexp).FindString
+         0     0% 96.70%     2.57MB  1.12%  regexp.(*Regexp).backtrack
+         0     0% 96.70%     2.57MB  1.12%  regexp.(*Regexp).doExecute
+         0     0% 96.70%     4.01MB  1.75%  runtime.allocm
+         0     0% 96.70%     5.03MB  2.20%  runtime.doInit (inline)
+         0     0% 96.70%     5.03MB  2.20%  runtime.doInit1
+         0     0% 96.70%   143.44MB 62.77%  runtime.main
+         0     0% 96.70%     3.01MB  1.32%  runtime.mcall
+         0     0% 96.70%     4.01MB  1.75%  runtime.newm
+         0     0% 96.70%     4.51MB  1.97%  runtime.newobject
+         0     0% 96.70%     3.01MB  1.32%  runtime.park_m
+         0     0% 96.70%     3.01MB  1.32%  runtime.resetspinning
+         0     0% 96.70%     3.51MB  1.53%  runtime.schedule
+         0     0% 96.70%     3.51MB  1.53%  runtime.startm
+         0     0% 96.70%     3.01MB  1.32%  runtime.wakep
+         0     0% 96.70%     1.50MB  0.66%  sync.(*Pool).Get
+         0     0% 96.70%     1.50MB  0.66%  sync.(*Pool).pin

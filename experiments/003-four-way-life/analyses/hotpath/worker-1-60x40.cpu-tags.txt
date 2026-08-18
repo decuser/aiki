@@ -1,0 +1,31 @@
+ aiki_file: Total 130ms of 250ms (52.00%)
+            40ms (16.00%): <prelude>
+            30ms (12.00%): .profile-worker.ai
+            30ms (12.00%): life.ai
+            10ms ( 4.00%): /home/wsenn/forge/dev/aiki/lib/io/io.ai
+            10ms ( 4.00%): /home/wsenn/forge/dev/aiki/lib/path/path.ai
+            10ms ( 4.00%): /home/wsenn/forge/dev/aiki/lib/string/string.ai
+
+ aiki_function: Total 130ms of 250ms (52.00%)
+                40ms (16.00%): <main>
+                30ms (12.00%): length
+                20ms ( 8.00%): append
+                20ms ( 8.00%): equal
+                10ms ( 4.00%): ord
+                10ms ( 4.00%): read_line
+
+ aiki_layer: Total 130ms of 250ms (52.00%)
+             80ms (32.00%): semantic
+             50ms (20.00%): substrate
+
+ aiki_line: Total 50ms of 250ms (20.00%)
+            10ms ( 4.00%): 11
+            10ms ( 4.00%): 16
+            10ms ( 4.00%): 4
+            10ms ( 4.00%): 5
+            10ms ( 4.00%): 71
+
+ aiki_primitive: Total 50ms of 250ms (20.00%)
+                 40ms (16.00%): _import
+                 10ms ( 4.00%): _append
+

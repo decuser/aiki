@@ -74,3 +74,23 @@ run("set rejects invalid indexes", () {
 		store.set(s, 1/2, 1)
 	})
 })
+
+
+run("snapshot copies a store prefix", () {
+	let s = store.new(4)
+	store.set(s, 0, 10)
+	store.set(s, 1, 20)
+	store.set(s, 2, 30)
+	equal(store.snapshot(s, 2), [10, 20])
+	let snap = store.snapshot(s)
+	store.set(s, 0, 99)
+	equal(snap, [10, 20, 30, 0])
+})
+
+
+run("snapshot rejects invalid count", () {
+	let s = store.new(2)
+	faults(() {
+		store.snapshot(s, 3)
+	})
+})

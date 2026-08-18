@@ -48,10 +48,18 @@ let neighbor_counts = (grid, width, height, x, y) {
 					let owner = grid[index(nx, ny, width)]
 					if owner > 0 {
 						total = total + 1
-						if equal(owner, 1) { c1 = c1 + 1 }
-						if equal(owner, 2) { c2 = c2 + 1 }
-						if equal(owner, 3) { c3 = c3 + 1 }
-						if equal(owner, 4) { c4 = c4 + 1 }
+						if equal(owner, 1) {
+							c1 = c1 + 1
+						}
+						if equal(owner, 2) {
+							c2 = c2 + 1
+						}
+						if equal(owner, 3) {
+							c3 = c3 + 1
+						}
+						if equal(owner, 4) {
+							c4 = c4 + 1
+						}
 					}
 				}
 			}
@@ -68,7 +76,8 @@ let neighbor_counts = (grid, width, height, x, y) {
 # there is wasted work. A local Store is used only as a dedup bitmap.
 let active_frontier = (grid, width, height) {
 	let marks = store.new(length(grid))
-	let candidates = []
+	let candidate_buffer = store.new(length(grid))
+	let candidate_count = 0
 	let i = 0
 	while i < length(grid) {
 		if grid[i] > 0 {
@@ -84,7 +93,8 @@ let active_frontier = (grid, width, height) {
 						let candidate = index(nx, ny, width)
 						if equal(store.get(marks, candidate), 0) {
 							store.set(marks, candidate, 1)
-							candidates = append(candidates, candidate)
+							store.set(candidate_buffer, candidate_count, candidate)
+							candidate_count = candidate_count + 1
 						}
 					}
 					dx = dx + 1
@@ -94,12 +104,13 @@ let active_frontier = (grid, width, height) {
 		}
 		i = i + 1
 	}
-	return candidates
+	return store.snapshot(candidate_buffer, candidate_count)
 }
 
 let next_for_owner = (grid, width, height, owner) {
-	let positions = []
 	let candidates = active_frontier(grid, width, height)
+	let position_buffer = store.new(length(candidates))
+	let position_count = 0
 	let at = 0
 	while at < length(candidates) {
 		let i = candidates[at]
@@ -117,20 +128,25 @@ let next_for_owner = (grid, width, height, owner) {
 			}
 		}
 		if alive_next {
-			positions = append(positions, i)
+			store.set(position_buffer, position_count, i)
+			position_count = position_count + 1
 		}
 		at = at + 1
 	}
 	# Preserve the original row-major proposal order as part of the experiment
 	# protocol even though frontier discovery itself is sparse.
-	return list.sort(positions)
+	return list.sort(store.snapshot(position_buffer, position_count))
 }
 
 let _glider_at = (x, y, base_x, base_y, flip_x, flip_y) {
 	let dx = x - base_x
 	let dy = y - base_y
-	if flip_x { dx = 2 - dx }
-	if flip_y { dy = 2 - dy }
+	if flip_x {
+		dx = 2 - dx
+	}
+	if flip_y {
+		dy = 2 - dy
+	}
 	return (equal(dx, 0) and equal(dy, 1)) or (equal(dx, 1) and equal(dy, 2)) or (equal(dx, 2) and equal(dy, 0)) or (equal(dx, 2) and equal(dy, 1)) or (equal(dx, 2) and equal(dy, 2))
 }
 
@@ -149,10 +165,18 @@ let seed_grid = (width, height, seed) {
 			# All four populations begin with the same canonical glider,
 			# reflected so its initial motion is toward the center. Anchors
 			# are proportional to grid size so the populations meet sooner.
-			if _glider_at(x, y, left_x, top_y, false, false) { owner = 1 }
-			if _glider_at(x, y, right_x, top_y, true, false) { owner = 2 }
-			if _glider_at(x, y, left_x, bottom_y, false, true) { owner = 3 }
-			if _glider_at(x, y, right_x, bottom_y, true, true) { owner = 4 }
+			if _glider_at(x, y, left_x, top_y, false, false) {
+				owner = 1
+			}
+			if _glider_at(x, y, right_x, top_y, true, false) {
+				owner = 2
+			}
+			if _glider_at(x, y, left_x, bottom_y, false, true) {
+				owner = 3
+			}
+			if _glider_at(x, y, right_x, bottom_y, true, true) {
+				owner = 4
+			}
 			grid = append(grid, owner)
 			x = x + 1
 		}
@@ -171,4 +195,13 @@ let checksum = (grid) {
 	return value
 }
 
-export(:index, :grid_from_text, :grid_to_text, :neighbor_counts, :active_frontier, :next_for_owner, :seed_grid, :checksum)
+export(
+	:index,
+	:grid_from_text,
+	:grid_to_text,
+	:neighbor_counts,
+	:active_frontier,
+	:next_for_owner,
+	:seed_grid,
+	:checksum
+)

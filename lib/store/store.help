@@ -15,3 +15,8 @@
 @func length
 @template "length(store)"
 @help "Returns the number of cells in a store."
+
+
+@func snapshot
+@template "snapshot(store, ...args)"
+@help "Returns an immutable list snapshot of all cells or the first count cells."

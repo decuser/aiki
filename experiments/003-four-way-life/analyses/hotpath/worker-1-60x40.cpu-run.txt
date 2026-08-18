@@ -1,0 +1,776 @@
+DONE|1|0|801,862,863,921,922,802
+Aiki semantic work
+  arithmetic   15875
+  comparison   15758
+  call         36094
+  iteration    8623
+  index        8239
+  send         0
+  receive      0
+  store_read   180
+  store_write  186
+
+Aiki source attribution
+      7379  call         <prelude>:63:9 in length -> <builtin: _length>
+            _length(list)
+      4556  call         <prelude>:88:8 in equal -> <builtin: _equal>
+            _equal(a, b)
+      2431  call         <prelude>:71:9 in append -> <builtin: _append>
+            _append(list, val)
+      2401  call         .profile-worker.ai:64:18 in owned_positions -> length
+            while i < length(grid) {
+      2401  call         life.ai:17:18 in grid_from_text -> length
+            while i < length(text) {
+      2401  call         life.ai:82:18 in active_frontier -> length
+            while i < length(grid) {
+      2401  comparison   .profile-worker.ai:64:8 in owned_positions
+            while i < length(grid) {
+      2401  comparison   life.ai:17:8 in grid_from_text
+            while i < length(text) {
+      2401  comparison   life.ai:82:8 in active_frontier
+            while i < length(grid) {
+      2400  arithmetic   .profile-worker.ai:69:7 in owned_positions
+            i = i + 1
+      2400  arithmetic   life.ai:18:23 in grid_from_text
+            grid = append(grid, ord(text[i]) - 48)
+      2400  arithmetic   life.ai:19:7 in grid_from_text
+            i = i + 1
+      2400  arithmetic   life.ai:105:7 in active_frontier
+            i = i + 1
+      2400  call         .profile-worker.ai:65:11 in owned_positions -> equal
+            if equal(grid[i], owner) {
+      2400  call         <prelude>:92:6 in ord -> <builtin: _ord>
+            _ord(r)
+      2400  call         life.ai:18:16 in grid_from_text -> append
+            grid = append(grid, ord(text[i]) - 48)
+      2400  call         life.ai:18:26 in grid_from_text -> ord
+            grid = append(grid, ord(text[i]) - 48)
+      2400  comparison   life.ai:83:6 in active_frontier
+            if grid[i] > 0 {
+      2400  index        .profile-worker.ai:65:16 in owned_positions
+            if equal(grid[i], owner) {
+      2400  index        life.ai:18:31 in grid_from_text
+            grid = append(grid, ord(text[i]) - 48)
+      2400  index        life.ai:83:10 in active_frontier
+            if grid[i] > 0 {
+      2400  iteration    .profile-worker.ai:64:25 in owned_positions
+            while i < length(grid) {
+      2400  iteration    life.ai:17:25 in grid_from_text
+            while i < length(text) {
+      2400  iteration    life.ai:82:25 in active_frontier
+            while i < length(grid) {
+      1056  comparison   life.ai:43:9 in neighbor_counts
+            while dx <= 1 {
+       884  arithmetic   life.ai:11:9 in index
+            return (y * width) + x
+       884  arithmetic   life.ai:11:10 in index
+            return (y * width) + x
+       792  arithmetic   life.ai:66:9 in neighbor_counts
+            dx = dx + 1
+       792  call         life.ai:44:17 in neighbor_counts -> equal
+            if not (equal(dx, 0) and equal(dy, 0)) {
+       792  iteration    life.ai:43:17 in neighbor_counts
+            while dx <= 1 {
+       704  arithmetic   life.ai:45:14 in neighbor_counts
+            let nx = x + dx
+       704  arithmetic   life.ai:46:14 in neighbor_counts
+            let ny = y + dy
+       704  call         life.ai:48:28 in neighbor_counts -> index
+            let owner = grid[index(nx, ny, width)]
+       704  comparison   life.ai:47:9 in neighbor_counts
+            if (nx >= 0) and (nx < width) and (ny >= 0) and (ny < height) {
+       704  comparison   life.ai:47:23 in neighbor_counts
+            if (nx >= 0) and (nx < width) and (ny >= 0) and (ny < height) {
+       704  comparison   life.ai:47:40 in neighbor_counts
+            if (nx >= 0) and (nx < width) and (ny >= 0) and (ny < height) {
+       704  comparison   life.ai:47:54 in neighbor_counts
+            if (nx >= 0) and (nx < width) and (ny >= 0) and (ny < height) {
+       704  comparison   life.ai:49:9 in neighbor_counts
+            if owner > 0 {
+       704  index        life.ai:48:22 in neighbor_counts
+            let owner = grid[index(nx, ny, width)]
+       352  comparison   life.ai:41:8 in neighbor_counts
+            while dy <= 1 {
+       264  arithmetic   life.ai:42:12 in neighbor_counts
+            let dx = 0 - 1
+       264  arithmetic   life.ai:68:8 in neighbor_counts
+            dy = dy + 1
+       264  call         life.ai:44:34 in neighbor_counts -> equal
+            if not (equal(dx, 0) and equal(dy, 0)) {
+       264  iteration    life.ai:41:16 in neighbor_counts
+            while dy <= 1 {
+       240  comparison   life.ai:89:11 in active_frontier
+            while dx <= 1 {
+       223  call         <prelude>:149:11 in truncate -> <builtin: _truncate>
+            _truncate(x)
+       186  call         /home/wsenn/forge/dev/aiki/lib/store/store.ai:13:12 in set -> <builtin: _store_set>
+            _store_set(store, index, value)
+       186  store_write  /home/wsenn/forge/dev/aiki/lib/store/store.ai:13:12 in set
+            _store_set(store, index, value)
+       180  arithmetic   life.ai:90:15 in active_frontier
+            let nx = x + dx
+       180  arithmetic   life.ai:91:15 in active_frontier
+            let ny = y + dy
+       180  arithmetic   life.ai:100:11 in active_frontier
+            dx = dx + 1
+       180  call         /home/wsenn/forge/dev/aiki/lib/store/store.ai:9:12 in get -> <builtin: _store_get>
+            _store_get(store, index)
+       180  call         life.ai:93:28 in active_frontier -> index
+            let candidate = index(nx, ny, width)
+       180  call         life.ai:94:15 in active_frontier -> equal
+            if equal(store.get(marks, candidate), 0) {
+       180  call         life.ai:94:25 in active_frontier -> get
+            if equal(store.get(marks, candidate), 0) {
+       180  comparison   life.ai:92:10 in active_frontier
+            if (nx >= 0) and (nx < width) and (ny >= 0) and (ny < height) {
+       180  comparison   life.ai:92:24 in active_frontier
+            if (nx >= 0) and (nx < width) and (ny >= 0) and (ny < height) {
+       180  comparison   life.ai:92:41 in active_frontier
+            if (nx >= 0) and (nx < width) and (ny >= 0) and (ny < height) {
+       180  comparison   life.ai:92:55 in active_frontier
+            if (nx >= 0) and (nx < width) and (ny >= 0) and (ny < height) {
+       180  iteration    life.ai:89:19 in active_frontier
+            while dx <= 1 {
+       180  store_read   /home/wsenn/forge/dev/aiki/lib/store/store.ai:9:12 in get
+            _store_get(store, index)
+       160  arithmetic   life.ai:50:15 in neighbor_counts
+            total = total + 1
+       160  call         life.ai:51:15 in neighbor_counts -> equal
+            if equal(owner, 1) {
+       160  call         life.ai:54:15 in neighbor_counts -> equal
+            if equal(owner, 2) {
+       160  call         life.ai:57:15 in neighbor_counts -> equal
+            if equal(owner, 3) {
+       160  call         life.ai:60:15 in neighbor_counts -> equal
+            if equal(owner, 4) {
+       108  arithmetic   life.ai:7:9 in mod
+            return a - (truncate(a / b) * b)
+       108  arithmetic   life.ai:7:14 in mod
+            return a - (truncate(a / b) * b)
+       108  arithmetic   life.ai:7:23 in mod
+            return a - (truncate(a / b) * b)
+       108  call         life.ai:7:22 in mod -> truncate
+            return a - (truncate(a / b) * b)
+        89  call         life.ai:115:19 in next_for_owner -> length
+            while at < length(candidates) {
+        89  comparison   life.ai:115:8 in next_for_owner
+            while at < length(candidates) {
+        88  arithmetic   life.ai:40:11 in neighbor_counts
+            let dy = 0 - 1
+        88  arithmetic   life.ai:97:26 in active_frontier
+            candidate_count = candidate_count + 1
+        88  arithmetic   life.ai:117:20 in next_for_owner
+            let y = truncate(i / width)
+        88  arithmetic   life.ai:134:8 in next_for_owner
+            at = at + 1
+        88  call         life.ai:95:17 in active_frontier -> set
+            store.set(marks, candidate, 1)
+        88  call         life.ai:96:17 in active_frontier -> set
+            store.set(candidate_buffer, candidate_count, candidate)
+        88  call         life.ai:117:19 in next_for_owner -> truncate
+            let y = truncate(i / width)
+        88  call         life.ai:118:14 in next_for_owner -> mod
+            let x = mod(i, width)
+        88  call         life.ai:120:31 in next_for_owner -> neighbor_counts
+            let counts = neighbor_counts(grid, width, height, x, y)
+        88  call         life.ai:123:11 in next_for_owner -> equal
+            if equal(current, owner) {
+        88  index        life.ai:116:21 in next_for_owner
+            let i = candidates[at]
+        88  index        life.ai:119:21 in next_for_owner
+            let current = grid[i]
+        88  index        life.ai:121:21 in next_for_owner
+            let total = counts[0]
+        88  iteration    life.ai:115:32 in next_for_owner
+            while at < length(candidates) {
+        83  call         life.ai:126:12 in next_for_owner -> equal
+            if equal(current, 0) and equal(total, 3) and (counts[owner] >= 2) {
+        80  comparison   life.ai:87:10 in active_frontier
+            while dy <= 1 {
+        68  call         life.ai:126:34 in next_for_owner -> equal
+            if equal(current, 0) and equal(total, 3) and (counts[owner] >= 2) {
+        60  arithmetic   life.ai:88:14 in active_frontier
+            let dx = 0 - 1
+        60  arithmetic   life.ai:102:10 in active_frontier
+            dy = dy + 1
+        60  iteration    life.ai:87:18 in active_frontier
+            while dy <= 1 {
+        40  arithmetic   life.ai:52:13 in neighbor_counts
+            c1 = c1 + 1
+        40  arithmetic   life.ai:55:13 in neighbor_counts
+            c2 = c2 + 1
+        40  arithmetic   life.ai:58:13 in neighbor_counts
+            c3 = c3 + 1
+        40  arithmetic   life.ai:61:13 in neighbor_counts
+            c4 = c4 + 1
+        27  call         <prelude>:104:8 in is_error -> <builtin: _equal>
+            _equal(_shape(val), :error)
+        27  call         <prelude>:104:15 in is_error -> <builtin: _shape>
+            _equal(_shape(val), :error)
+        20  arithmetic   life.ai:84:21 in active_frontier
+            let y = truncate(i / width)
+        20  arithmetic   life.ai:86:13 in active_frontier
+            let dy = 0 - 1
+        20  call         life.ai:84:20 in active_frontier -> truncate
+            let y = truncate(i / width)
+        20  call         life.ai:85:15 in active_frontier -> mod
+            let x = mod(i, width)
+        12  call         <prelude>:108:9 in to_str -> <builtin: _to_str>
+            _to_str(val)
+        11  call         /home/wsenn/forge/dev/aiki/lib/list/list.ai:161:18 in _sort_drop -> length
+            while i < length(list) {
+        11  call         /home/wsenn/forge/dev/aiki/lib/list/list.ai:189:19 in _sort_merge -> length
+            while ri < length(right) {
+        11  comparison   /home/wsenn/forge/dev/aiki/lib/list/list.ai:161:8 in _sort_drop
+            while i < length(list) {
+        11  comparison   /home/wsenn/forge/dev/aiki/lib/list/list.ai:189:8 in _sort_merge
+            while ri < length(right) {
+         9  call         /home/wsenn/forge/dev/aiki/lib/list/list.ai:172:20 in _sort_merge -> length
+            while (li < length(left)) and (ri < length(right)) {
+         9  call         /home/wsenn/forge/dev/aiki/lib/list/list.ai:197:11 in _sort_merge_sort -> length
+            if length(list) < 2 {
+         9  comparison   /home/wsenn/forge/dev/aiki/lib/list/list.ai:151:8 in _sort_take
+            while i < count {
+         9  comparison   /home/wsenn/forge/dev/aiki/lib/list/list.ai:172:9 in _sort_merge
+            while (li < length(left)) and (ri < length(right)) {
+         9  comparison   /home/wsenn/forge/dev/aiki/lib/list/list.ai:197:5 in _sort_merge_sort
+            if length(list) < 2 {
+         8  comparison   life.ai:126:50 in next_for_owner
+            if equal(current, 0) and equal(total, 3) and (counts[owner] >= 2) {
+         8  index        life.ai:126:56 in next_for_owner
+            if equal(current, 0) and equal(total, 3) and (counts[owner] >= 2) {
+         7  arithmetic   /home/wsenn/forge/dev/aiki/lib/list/list.ai:163:7 in _sort_drop
+            i = i + 1
+         7  arithmetic   /home/wsenn/forge/dev/aiki/lib/list/list.ai:191:8 in _sort_merge
+            ri = ri + 1
+         7  call         /home/wsenn/forge/dev/aiki/lib/list/list.ai:162:18 in _sort_drop -> append
+            result = append(result, list[i])
+         7  call         /home/wsenn/forge/dev/aiki/lib/list/list.ai:190:18 in _sort_merge -> append
+            result = append(result, right[ri])
+         7  call         <prelude>:116:12 in to_number -> <builtin: _to_number>
+            _to_number(s)
+         7  call         protocol.ai:20:18 in _positions_text -> length
+            while i < length(positions) {
+         7  comparison   protocol.ai:20:8 in _positions_text
+            while i < length(positions) {
+         7  index        /home/wsenn/forge/dev/aiki/lib/list/list.ai:162:31 in _sort_drop
+            result = append(result, list[i])
+         7  index        /home/wsenn/forge/dev/aiki/lib/list/list.ai:190:32 in _sort_merge
+            result = append(result, right[ri])
+         7  iteration    /home/wsenn/forge/dev/aiki/lib/list/list.ai:161:25 in _sort_drop
+            while i < length(list) {
+         7  iteration    /home/wsenn/forge/dev/aiki/lib/list/list.ai:189:27 in _sort_merge
+            while ri < length(right) {
+         6  arithmetic   protocol.ai:22:7 in _positions_text
+            i = i + 1
+         6  call         /home/wsenn/forge/dev/aiki/lib/list/list.ai:111:18 in any -> length
+            while i < length(list) {
+         6  call         /home/wsenn/forge/dev/aiki/lib/store/store.ai:27:37 in snapshot -> first
+            return _store_snapshot(store, first(args))
+         6  call         <prelude>:55:8 in first -> <builtin: _first>
+            _first(list)
+         6  call         <prelude>:75:8 in empty -> <builtin: _empty>
+            _empty(list)
+         6  call         protocol.ai:21:18 in _positions_text -> append
+            fields = append(fields, to_str(positions[i]))
+         6  call         protocol.ai:21:33 in _positions_text -> to_str
+            fields = append(fields, to_str(positions[i]))
+         6  comparison   /home/wsenn/forge/dev/aiki/lib/list/list.ai:111:8 in any
+            while i < length(list) {
+         6  index        protocol.ai:21:43 in _positions_text
+            fields = append(fields, to_str(positions[i]))
+         6  iteration    protocol.ai:20:30 in _positions_text
+            while i < length(positions) {
+         5  arithmetic   .profile-worker.ai:67:12 in owned_positions
+            count = count + 1
+         5  arithmetic   .profile-worker.ai:221:7 in <main>
+            "ENGINE " + worker_label(owner) + " gen=" + to_str(generation) + " live=" + to_str(length(positions))
+         5  arithmetic   /home/wsenn/forge/dev/aiki/lib/list/list.ai:115:7 in any
+            i = i + 1
+         5  arithmetic   /home/wsenn/forge/dev/aiki/lib/list/list.ai:153:7 in _sort_take
+            i = i + 1
+         5  arithmetic   /home/wsenn/forge/dev/aiki/lib/list/list.ai:182:9 in _sort_merge
+            li = li + 1
+         5  arithmetic   life.ai:132:21 in next_for_owner
+            position_count = position_count + 1
+         5  arithmetic   protocol.ai:28:9 in encode_done
+            return "DONE|" + to_str(owner) + "|" + to_str(generation) + "|" + _positions_text(positions)
+         5  call         .profile-worker.ai:56:8 in <anonymous> -> equal
+            equal(x, value)
+         5  call         .profile-worker.ai:66:13 in owned_positions -> set
+            store.set(buffer, count, i)
+         5  call         /home/wsenn/forge/dev/aiki/lib/list/list.ai:112:7 in any -> <fn>
+            if f(list[i]) {
+         5  call         /home/wsenn/forge/dev/aiki/lib/list/list.ai:138:19 in _sort_less -> less
+            let result = less(a, b)
+         5  call         /home/wsenn/forge/dev/aiki/lib/list/list.ai:139:13 in _sort_less -> is_error
+            if is_error(result) {
+         5  call         /home/wsenn/forge/dev/aiki/lib/list/list.ai:142:14 in _sort_less -> equal
+            if not equal(type(result), :boolean) {
+         5  call         /home/wsenn/forge/dev/aiki/lib/list/list.ai:142:19 in _sort_less -> type
+            if not equal(type(result), :boolean) {
+         5  call         /home/wsenn/forge/dev/aiki/lib/list/list.ai:152:18 in _sort_take -> append
+            result = append(result, list[i])
+         5  call         /home/wsenn/forge/dev/aiki/lib/list/list.ai:172:44 in _sort_merge -> length
+            while (li < length(left)) and (ri < length(right)) {
+         5  call         /home/wsenn/forge/dev/aiki/lib/list/list.ai:173:31 in _sort_merge -> _sort_less
+            let right_first = _sort_less(less, right[ri], left[li])
+         5  call         /home/wsenn/forge/dev/aiki/lib/list/list.ai:174:14 in _sort_merge -> is_error
+            if is_error(right_first) {
+         5  call         /home/wsenn/forge/dev/aiki/lib/list/list.ai:181:19 in _sort_merge -> append
+            result = append(result, left[li])
+         5  call         <prelude>:80:7 in type -> <builtin: _type>
+            _type(val)
+         5  call         life.ai:124:22 in next_for_owner -> equal
+            alive_next = equal(total, 2) or equal(total, 3)
+         5  call         life.ai:131:13 in next_for_owner -> set
+            store.set(position_buffer, position_count, i)
+         5  comparison   /home/wsenn/forge/dev/aiki/lib/list/list.ai:172:33 in _sort_merge
+            while (li < length(left)) and (ri < length(right)) {
+         5  comparison   /home/wsenn/forge/dev/aiki/lib/list/list.ai:221:3 in less
+            a < b
+         5  index        /home/wsenn/forge/dev/aiki/lib/list/list.ai:112:12 in any
+            if f(list[i]) {
+         5  index        /home/wsenn/forge/dev/aiki/lib/list/list.ai:152:31 in _sort_take
+            result = append(result, list[i])
+         5  index        /home/wsenn/forge/dev/aiki/lib/list/list.ai:173:43 in _sort_merge
+            let right_first = _sort_less(less, right[ri], left[li])
+         5  index        /home/wsenn/forge/dev/aiki/lib/list/list.ai:173:53 in _sort_merge
+            let right_first = _sort_less(less, right[ri], left[li])
+         5  index        /home/wsenn/forge/dev/aiki/lib/list/list.ai:181:32 in _sort_merge
+            result = append(result, left[li])
+         5  iteration    /home/wsenn/forge/dev/aiki/lib/list/list.ai:111:25 in any
+            while i < length(list) {
+         5  iteration    /home/wsenn/forge/dev/aiki/lib/list/list.ai:151:18 in _sort_take
+            while i < count {
+         5  iteration    /home/wsenn/forge/dev/aiki/lib/list/list.ai:172:53 in _sort_merge
+            while (li < length(left)) and (ri < length(right)) {
+         4  arithmetic   /home/wsenn/forge/dev/aiki/lib/list/list.ai:200:24 in _sort_merge_sort
+            let middle = truncate(length(list) / 2)
+         4  call         .profile-worker.ai:24:10 in worker_label -> equal
+            if equal(owner, 1) {
+         4  call         /home/wsenn/forge/dev/aiki/lib/list/list.ai:185:19 in _sort_merge -> length
+            while li < length(left) {
+         4  call         /home/wsenn/forge/dev/aiki/lib/list/list.ai:200:23 in _sort_merge_sort -> truncate
+            let middle = truncate(length(list) / 2)
+         4  call         /home/wsenn/forge/dev/aiki/lib/list/list.ai:200:30 in _sort_merge_sort -> length
+            let middle = truncate(length(list) / 2)
+         4  call         /home/wsenn/forge/dev/aiki/lib/list/list.ai:201:29 in _sort_merge_sort -> _sort_merge_sort
+            let left = _sort_merge_sort(_sort_take(list, middle), less)
+         4  call         /home/wsenn/forge/dev/aiki/lib/list/list.ai:201:40 in _sort_merge_sort -> _sort_take
+            let left = _sort_merge_sort(_sort_take(list, middle), less)
+         4  call         /home/wsenn/forge/dev/aiki/lib/list/list.ai:202:13 in _sort_merge_sort -> is_error
+            if is_error(left) {
+         4  call         /home/wsenn/forge/dev/aiki/lib/list/list.ai:205:30 in _sort_merge_sort -> _sort_merge_sort
+            let right = _sort_merge_sort(_sort_drop(list, middle), less)
+         4  call         /home/wsenn/forge/dev/aiki/lib/list/list.ai:205:41 in _sort_merge_sort -> _sort_drop
+            let right = _sort_merge_sort(_sort_drop(list, middle), less)
+         4  call         /home/wsenn/forge/dev/aiki/lib/list/list.ai:206:13 in _sort_merge_sort -> is_error
+            if is_error(right) {
+         4  call         /home/wsenn/forge/dev/aiki/lib/list/list.ai:209:20 in _sort_merge_sort -> _sort_merge
+            return _sort_merge(left, right, less)
+         4  call         /home/wsenn/forge/dev/aiki/lib/store/store.ai:5:12 in new -> <builtin: _store_new>
+            _store_new(size)
+         4  call         <prelude>:100:8 in shape -> <builtin: _shape>
+            _shape(val)
+         4  call         life.ai:124:41 in next_for_owner -> equal
+            alive_next = equal(total, 2) or equal(total, 3)
+         4  comparison   /home/wsenn/forge/dev/aiki/lib/list/list.ai:185:8 in _sort_merge
+            while li < length(left) {
+         4  comparison   /home/wsenn/forge/dev/aiki/lib/string/string.ai:15:8 in substring
+            while i < end {
+         3  arithmetic   .profile-worker.ai:51:2 in mod
+            a - (truncate(a / b) * b)
+         3  arithmetic   .profile-worker.ai:51:7 in mod
+            a - (truncate(a / b) * b)
+         3  arithmetic   .profile-worker.ai:51:16 in mod
+            a - (truncate(a / b) * b)
+         3  arithmetic   .profile-worker.ai:187:22 in <main>
+            showcase_log(owner, "ENGINE " + worker_label(owner) + " START pid-domain=" + worker_label(owner))
+         3  call         .profile-worker.ai:37:13 in showcase_log -> is_error
+            if is_error(showcase_dir) {
+         3  call         .profile-worker.ai:51:15 in mod -> truncate
+            a - (truncate(a / b) * b)
+         3  call         /home/wsenn/forge/dev/aiki/lib/store/store.ai:21:10 in snapshot -> empty
+            if empty(args) {
+         3  call         /home/wsenn/forge/dev/aiki/lib/store/store.ai:24:14 in snapshot -> empty
+            if not empty(rest(args)) {
+         3  call         /home/wsenn/forge/dev/aiki/lib/store/store.ai:24:19 in snapshot -> rest
+            if not empty(rest(args)) {
+         3  call         /home/wsenn/forge/dev/aiki/lib/store/store.ai:27:24 in snapshot -> <builtin: _store_snapshot>
+            return _store_snapshot(store, first(args))
+         3  call         /home/wsenn/forge/dev/aiki/lib/string/ffi.ai:18:15 in split -> <builtin: _string_split>
+            _string_split(s, delim)
+         3  call         <prelude>:59:7 in rest -> <builtin: _rest>
+            _rest(list)
+         2  arithmetic   .profile-worker.ai:231:35 in <main>
+            showcase_log(to_number(args[0]), "ENGINE " + worker_label(to_number(args[0])) + " STOP")
+         2  arithmetic   /home/wsenn/forge/dev/aiki/lib/path/path.ai:32:9 in join
+            return left + sep + right
+         2  arithmetic   /home/wsenn/forge/dev/aiki/lib/string/string.ai:17:13 in substring
+            result = result + to_str(s[i])
+         2  arithmetic   /home/wsenn/forge/dev/aiki/lib/string/string.ai:19:7 in substring
+            i = i + 1
+         2  call         .profile-worker.ai:190:26 in <main> -> read_line
+            let line = io.read_line(:stdin)
+         2  call         .profile-worker.ai:191:11 in <main> -> equal
+            if equal(shape(line), :end) {
+         2  call         .profile-worker.ai:191:17 in <main> -> shape
+            if equal(shape(line), :end) {
+         2  call         .profile-worker.ai:194:12 in <main> -> equal
+            if equal(line, "STOP") {
+         2  call         /home/wsenn/forge/dev/aiki/lib/file/file.ai:5:12 in open -> <builtin: _file_open>
+            _file_open(path, mode)
+         2  call         /home/wsenn/forge/dev/aiki/lib/file/file.ai:29:13 in close -> <builtin: _file_close>
+            _file_close(file)
+         2  call         /home/wsenn/forge/dev/aiki/lib/io/io.ai:9:15 in read_line -> <builtin: _io_read_line>
+            _io_read_line(source)
+         2  call         /home/wsenn/forge/dev/aiki/lib/string/string.ai:16:16 in substring -> length
+            if i < length(s) {
+         2  call         /home/wsenn/forge/dev/aiki/lib/string/string.ai:17:28 in substring -> to_str
+            result = result + to_str(s[i])
+         2  comparison   /home/wsenn/forge/dev/aiki/lib/string/string.ai:16:6 in substring
+            if i < length(s) {
+         2  index        /home/wsenn/forge/dev/aiki/lib/string/string.ai:17:30 in substring
+            result = result + to_str(s[i])
+         2  iteration    .profile-worker.ai:189:16 in <main>
+            while running {
+         2  iteration    /home/wsenn/forge/dev/aiki/lib/string/string.ai:15:16 in substring
+            while i < end {
+         1  arithmetic   .profile-worker.ai:98:17 in engine_a
+            let selector = bytes.bytes_length(raw) + info[0]
+         1  arithmetic   .profile-worker.ai:101:14 in engine_a
+            selector = selector + to_number(values[mod(generation, length(values))])
+         1  arithmetic   .profile-worker.ai:223:24 in <main>
+            io.write(:stdout, protocol.encode_done(owner, generation, positions) + "\n")
+         1  arithmetic   /home/wsenn/forge/dev/aiki/lib/string/string.ai:116:21 in ends_with
+            equal(substring(s, slen - suflen, slen), suffix)
+         1  call         .profile-worker.ai:1:20 in <main> -> <builtin: _import>
+            let system = import("system")
+         1  call         .profile-worker.ai:2:16 in <main> -> <builtin: _import>
+            let io = import("io")
+         1  call         .profile-worker.ai:3:18 in <main> -> <builtin: _import>
+            let file = import("file")
+         1  call         .profile-worker.ai:4:18 in <main> -> <builtin: _import>
+            let path = import("path")
+         1  call         .profile-worker.ai:5:20 in <main> -> <builtin: _import>
+            let string = import("string/ffi")
+         1  call         .profile-worker.ai:6:19 in <main> -> <builtin: _import>
+            let bytes = import("bytes/ffi")
+         1  call         .profile-worker.ai:7:18 in <main> -> <builtin: _import>
+            let time = import("time")
+         1  call         .profile-worker.ai:8:18 in <main> -> <builtin: _import>
+            let hash = import("hash")
+         1  call         .profile-worker.ai:9:20 in <main> -> <builtin: _import>
+            let random = import("random")
+         1  call         .profile-worker.ai:10:21 in <main> -> <builtin: _import>
+            let process = import("process")
+         1  call         .profile-worker.ai:11:19 in <main> -> <builtin: _import>
+            let regex = import("regex/ffi")
+         1  call         .profile-worker.ai:12:20 in <main> -> <builtin: _import>
+            let number = import("number")
+         1  call         .profile-worker.ai:13:18 in <main> -> <builtin: _import>
+            let list = import("list")
+         1  call         .profile-worker.ai:14:19 in <main> -> <builtin: _import>
+            let store = import("store")
+         1  call         .profile-worker.ai:15:18 in <main> -> <builtin: _import>
+            let math = import("math/native")
+         1  call         .profile-worker.ai:16:18 in <main> -> <builtin: _import>
+            let life = import("./life")
+         1  call         .profile-worker.ai:17:22 in <main> -> <builtin: _import>
+            let protocol = import("./protocol")
+         1  call         .profile-worker.ai:21:30 in <main> -> env
+            let showcase_dir = system.env("FWL_SHOWCASE_DIR")
+         1  call         .profile-worker.ai:55:17 in contains -> any
+            return list.any(xs, (x) {
+         1  call         .profile-worker.ai:61:24 in owned_positions -> new
+            let buffer = store.new(length(grid))
+         1  call         .profile-worker.ai:61:31 in owned_positions -> length
+            let buffer = store.new(length(grid))
+         1  call         .profile-worker.ai:71:23 in owned_positions -> snapshot
+            return store.snapshot(buffer, count)
+         1  call         .profile-worker.ai:75:29 in protect -> owned_positions
+            let owned = owned_positions(grid, owner)
+         1  call         .profile-worker.ai:76:10 in protect -> equal
+            if equal(length(owned), 0) {
+         1  call         .profile-worker.ai:76:17 in protect -> length
+            if equal(length(owned), 0) {
+         1  call         .profile-worker.ai:79:22 in protect -> mod
+            let pick = owned[mod(abs(selector), length(owned))]
+         1  call         .profile-worker.ai:79:26 in protect -> abs
+            let pick = owned[mod(abs(selector), length(owned))]
+         1  call         .profile-worker.ai:79:44 in protect -> length
+            let pick = owned[mod(abs(selector), length(owned))]
+         1  call         .profile-worker.ai:80:17 in protect -> contains
+            if not contains(positions, pick) {
+         1  call         .profile-worker.ai:81:16 in protect -> append
+            return append(positions, pick)
+         1  call         .profile-worker.ai:87:14 in engine_a -> equal
+            if not equal(mod(generation, 3), 0) {
+         1  call         .profile-worker.ai:87:18 in engine_a -> mod
+            if not equal(mod(generation, 3), 0) {
+         1  call         .profile-worker.ai:90:30 in engine_a -> join
+            let pattern_path = path.join(path.cwd(), "data/engine-a.pattern")
+         1  call         .profile-worker.ai:90:39 in engine_a -> cwd
+            let pattern_path = path.join(path.cwd(), "data/engine-a.pattern")
+         1  call         .profile-worker.ai:91:22 in engine_a -> stat
+            let info = file.stat(pattern_path)
+         1  call         .profile-worker.ai:92:10 in engine_a -> equal
+            if equal(shape(info), :error) {
+         1  call         .profile-worker.ai:92:16 in engine_a -> shape
+            if equal(shape(info), :error) {
+         1  call         .profile-worker.ai:95:26 in engine_a -> read_all
+            let text = file.read_all(pattern_path) |> string.trim()
+         1  call         .profile-worker.ai:95:44 in engine_a -> trim
+            let text = file.read_all(pattern_path) |> string.trim()
+         1  call         .profile-worker.ai:96:31 in engine_a -> read_all_bytes
+            let raw = file.read_all_bytes(pattern_path)
+         1  call         .profile-worker.ai:97:23 in engine_a -> split
+            let fields = text |> string.split("|")
+         1  call         .profile-worker.ai:98:35 in engine_a -> bytes_length
+            let selector = bytes.bytes_length(raw) + info[0]
+         1  call         .profile-worker.ai:99:11 in engine_a -> length
+            if length(fields) > 2 {
+         1  call         .profile-worker.ai:100:29 in engine_a -> split
+            let values = fields[2] |> string.split(",")
+         1  call         .profile-worker.ai:101:34 in engine_a -> to_number
+            selector = selector + to_number(values[mod(generation, length(values))])
+         1  call         .profile-worker.ai:101:45 in engine_a -> mod
+            selector = selector + to_number(values[mod(generation, length(values))])
+         1  call         .profile-worker.ai:101:64 in engine_a -> length
+            selector = selector + to_number(values[mod(generation, length(values))])
+         1  call         .profile-worker.ai:103:16 in engine_a -> protect
+            return protect(grid, positions, owner, selector)
+         1  call         .profile-worker.ai:183:10 in <main> -> length
+            if length(args) < 1 {
+         1  call         .profile-worker.ai:186:23 in <main> -> to_number
+            let owner = to_number(args[0])
+         1  call         .profile-worker.ai:187:14 in <main> -> showcase_log
+            showcase_log(owner, "ENGINE " + worker_label(owner) + " START pid-domain=" + worker_label(owner))
+         1  call         .profile-worker.ai:187:46 in <main> -> worker_label
+            showcase_log(owner, "ENGINE " + worker_label(owner) + " START pid-domain=" + worker_label(owner))
+         1  call         .profile-worker.ai:187:91 in <main> -> worker_label
+            showcase_log(owner, "ENGINE " + worker_label(owner) + " START pid-domain=" + worker_label(owner))
+         1  call         .profile-worker.ai:197:36 in <main> -> decode_gen
+            let frame = protocol.decode_gen(line)
+         1  call         .profile-worker.ai:198:13 in <main> -> equal
+            if equal(shape(frame), :error) {
+         1  call         .profile-worker.ai:198:19 in <main> -> shape
+            if equal(shape(frame), :error) {
+         1  call         .profile-worker.ai:205:36 in <main> -> grid_from_text
+            let grid = life.grid_from_text(frame[3])
+         1  call         .profile-worker.ai:206:41 in <main> -> next_for_owner
+            let positions = life.next_for_owner(grid, width, height, owner)
+         1  call         .profile-worker.ai:207:14 in <main> -> equal
+            if equal(owner, 1) {
+         1  call         .profile-worker.ai:208:27 in <main> -> engine_a
+            positions = engine_a(generation, grid, owner, positions)
+         1  call         .profile-worker.ai:210:14 in <main> -> equal
+            if equal(owner, 2) {
+         1  call         .profile-worker.ai:213:14 in <main> -> equal
+            if equal(owner, 3) {
+         1  call         .profile-worker.ai:216:14 in <main> -> equal
+            if equal(owner, 4) {
+         1  call         .profile-worker.ai:219:18 in <main> -> showcase_log
+            showcase_log(
+         1  call         .profile-worker.ai:221:31 in <main> -> worker_label
+            "ENGINE " + worker_label(owner) + " gen=" + to_str(generation) + " live=" + to_str(length(positions))
+         1  call         .profile-worker.ai:221:57 in <main> -> to_str
+            "ENGINE " + worker_label(owner) + " gen=" + to_str(generation) + " live=" + to_str(length(positions))
+         1  call         .profile-worker.ai:221:89 in <main> -> to_str
+            "ENGINE " + worker_label(owner) + " gen=" + to_str(generation) + " live=" + to_str(length(positions))
+         1  call         .profile-worker.ai:221:96 in <main> -> length
+            "ENGINE " + worker_label(owner) + " gen=" + to_str(generation) + " live=" + to_str(length(positions))
+         1  call         .profile-worker.ai:223:14 in <main> -> write
+            io.write(:stdout, protocol.encode_done(owner, generation, positions) + "\n")
+         1  call         .profile-worker.ai:223:44 in <main> -> encode_done
+            io.write(:stdout, protocol.encode_done(owner, generation, positions) + "\n")
+         1  call         .profile-worker.ai:230:10 in <main> -> length
+            if length(args) > 0 {
+         1  call         .profile-worker.ai:231:14 in <main> -> showcase_log
+            showcase_log(to_number(args[0]), "ENGINE " + worker_label(to_number(args[0])) + " STOP")
+         1  call         .profile-worker.ai:231:24 in <main> -> to_number
+            showcase_log(to_number(args[0]), "ENGINE " + worker_label(to_number(args[0])) + " STOP")
+         1  call         .profile-worker.ai:231:59 in <main> -> worker_label
+            showcase_log(to_number(args[0]), "ENGINE " + worker_label(to_number(args[0])) + " STOP")
+         1  call         .profile-worker.ai:231:69 in <main> -> to_number
+            showcase_log(to_number(args[0]), "ENGINE " + worker_label(to_number(args[0])) + " STOP")
+         1  call         /home/wsenn/forge/dev/aiki/lib/bytes/ffi.ai:28:15 in bytes_length -> <builtin: _bytes_length>
+            _bytes_length(bytes)
+         1  call         /home/wsenn/forge/dev/aiki/lib/file/file.ai:9:17 in read_text -> <builtin: _file_read_text>
+            _file_read_text(file)
+         1  call         /home/wsenn/forge/dev/aiki/lib/file/file.ai:13:18 in read_bytes -> <builtin: _file_read_bytes>
+            _file_read_bytes(file)
+         1  call         /home/wsenn/forge/dev/aiki/lib/file/file.ai:33:17 in read_all -> open
+            let file = open(path, :read)
+         1  call         /home/wsenn/forge/dev/aiki/lib/file/file.ai:34:13 in read_all -> is_error
+            if is_error(file) {
+         1  call         /home/wsenn/forge/dev/aiki/lib/file/file.ai:37:24 in read_all -> read_text
+            let result = read_text(file)
+         1  call         /home/wsenn/forge/dev/aiki/lib/file/file.ai:38:20 in read_all -> close
+            let closed = close(file)
+         1  call         /home/wsenn/forge/dev/aiki/lib/file/file.ai:39:13 in read_all -> is_error
+            if is_error(result) {
+         1  call         /home/wsenn/forge/dev/aiki/lib/file/file.ai:42:13 in read_all -> is_error
+            if is_error(closed) {
+         1  call         /home/wsenn/forge/dev/aiki/lib/file/file.ai:65:17 in read_all_bytes -> open
+            let file = open(path, :read)
+         1  call         /home/wsenn/forge/dev/aiki/lib/file/file.ai:66:13 in read_all_bytes -> is_error
+            if is_error(file) {
+         1  call         /home/wsenn/forge/dev/aiki/lib/file/file.ai:69:25 in read_all_bytes -> read_bytes
+            let result = read_bytes(file)
+         1  call         /home/wsenn/forge/dev/aiki/lib/file/file.ai:70:20 in read_all_bytes -> close
+            let closed = close(file)
+         1  call         /home/wsenn/forge/dev/aiki/lib/file/file.ai:71:13 in read_all_bytes -> is_error
+            if is_error(result) {
+         1  call         /home/wsenn/forge/dev/aiki/lib/file/file.ai:74:13 in read_all_bytes -> is_error
+            if is_error(closed) {
+         1  call         /home/wsenn/forge/dev/aiki/lib/file/file.ai:117:12 in stat -> <builtin: _file_stat>
+            _file_stat(path)
+         1  call         /home/wsenn/forge/dev/aiki/lib/io/io.ai:13:11 in write -> <builtin: _io_write>
+            _io_write(destination, data)
+         1  call         /home/wsenn/forge/dev/aiki/lib/list/list.ai:213:25 in _sort_impl -> _sort_merge_sort
+            return _sort_merge_sort(list, less)
+         1  call         /home/wsenn/forge/dev/aiki/lib/list/list.ai:217:11 in sort -> length
+            if length(rest) > 1 {
+         1  call         /home/wsenn/forge/dev/aiki/lib/list/list.ai:223:11 in sort -> length
+            if length(rest) > 0 {
+         1  call         /home/wsenn/forge/dev/aiki/lib/list/list.ai:229:19 in sort -> _sort_impl
+            return _sort_impl(list, less)
+         1  call         /home/wsenn/forge/dev/aiki/lib/path/path.ai:9:17 in separator -> <builtin: _path_separator>
+            _path_separator()
+         1  call         /home/wsenn/forge/dev/aiki/lib/path/path.ai:13:13 in cwd -> cwd
+            _system.cwd()
+         1  call         /home/wsenn/forge/dev/aiki/lib/path/path.ai:17:21 in join -> separator
+            let sep = separator()
+         1  call         /home/wsenn/forge/dev/aiki/lib/path/path.ai:18:10 in join -> equal
+            if equal(left, "") {
+         1  call         /home/wsenn/forge/dev/aiki/lib/path/path.ai:21:10 in join -> equal
+            if equal(right, "") {
+         1  call         /home/wsenn/forge/dev/aiki/lib/path/path.ai:24:34 in join -> ends_with
+            let left_sep = _string.ends_with(left, sep)
+         1  call         /home/wsenn/forge/dev/aiki/lib/path/path.ai:25:37 in join -> starts_with
+            let right_sep = _string.starts_with(right, sep)
+         1  call         /home/wsenn/forge/dev/aiki/lib/string/ffi.ai:14:14 in join -> <builtin: _string_join>
+            _string_join(list, delim)
+         1  call         /home/wsenn/forge/dev/aiki/lib/string/ffi.ai:78:14 in trim -> <builtin: _string_trim>
+            _string_trim(s)
+         1  call         /home/wsenn/forge/dev/aiki/lib/string/string.ai:103:11 in starts_with -> length
+            if length(prefix) > length(s) {
+         1  call         /home/wsenn/forge/dev/aiki/lib/string/string.ai:103:28 in starts_with -> length
+            if length(prefix) > length(s) {
+         1  call         /home/wsenn/forge/dev/aiki/lib/string/string.ai:106:7 in starts_with -> equal
+            equal(substring(s, 0, length(prefix)), prefix)
+         1  call         /home/wsenn/forge/dev/aiki/lib/string/string.ai:106:17 in starts_with -> substring
+            equal(substring(s, 0, length(prefix)), prefix)
+         1  call         /home/wsenn/forge/dev/aiki/lib/string/string.ai:106:30 in starts_with -> length
+            equal(substring(s, 0, length(prefix)), prefix)
+         1  call         /home/wsenn/forge/dev/aiki/lib/string/string.ai:111:19 in ends_with -> length
+            let slen = length(s)
+         1  call         /home/wsenn/forge/dev/aiki/lib/string/string.ai:112:21 in ends_with -> length
+            let suflen = length(suffix)
+         1  call         /home/wsenn/forge/dev/aiki/lib/string/string.ai:116:7 in ends_with -> equal
+            equal(substring(s, slen - suflen, slen), suffix)
+         1  call         /home/wsenn/forge/dev/aiki/lib/string/string.ai:116:17 in ends_with -> substring
+            equal(substring(s, slen - suflen, slen), suffix)
+         1  call         /home/wsenn/forge/dev/aiki/lib/system/system.ai:13:13 in env -> <builtin: _system_env>
+            _system_env(name)
+         1  call         /home/wsenn/forge/dev/aiki/lib/system/system.ai:29:13 in cwd -> <builtin: _system_cwd>
+            _system_cwd()
+         1  call         life.ai:78:23 in active_frontier -> new
+            let marks = store.new(length(grid))
+         1  call         life.ai:78:30 in active_frontier -> length
+            let marks = store.new(length(grid))
+         1  call         life.ai:79:34 in active_frontier -> new
+            let candidate_buffer = store.new(length(grid))
+         1  call         life.ai:79:41 in active_frontier -> length
+            let candidate_buffer = store.new(length(grid))
+         1  call         life.ai:107:23 in active_frontier -> snapshot
+            return store.snapshot(candidate_buffer, candidate_count)
+         1  call         life.ai:111:34 in next_for_owner -> active_frontier
+            let candidates = active_frontier(grid, width, height)
+         1  call         life.ai:112:33 in next_for_owner -> new
+            let position_buffer = store.new(length(candidates))
+         1  call         life.ai:112:40 in next_for_owner -> length
+            let position_buffer = store.new(length(candidates))
+         1  call         life.ai:138:18 in next_for_owner -> sort
+            return list.sort(store.snapshot(position_buffer, position_count))
+         1  call         life.ai:138:33 in next_for_owner -> snapshot
+            return list.sort(store.snapshot(position_buffer, position_count))
+         1  call         protocol.ai:10:26 in decode_gen -> split
+            let parts = string.split(line, "|")
+         1  call         protocol.ai:11:14 in decode_gen -> equal
+            if not equal(length(parts), 5) or not equal(parts[0], "GEN") {
+         1  call         protocol.ai:11:21 in decode_gen -> length
+            if not equal(length(parts), 5) or not equal(parts[0], "GEN") {
+         1  call         protocol.ai:11:45 in decode_gen -> equal
+            if not equal(length(parts), 5) or not equal(parts[0], "GEN") {
+         1  call         protocol.ai:14:25 in decode_gen -> to_number
+            return [@gen, to_number(parts[1]), to_number(parts[2]), to_number(parts[3]), parts[4]]
+         1  call         protocol.ai:14:46 in decode_gen -> to_number
+            return [@gen, to_number(parts[1]), to_number(parts[2]), to_number(parts[3]), parts[4]]
+         1  call         protocol.ai:14:67 in decode_gen -> to_number
+            return [@gen, to_number(parts[1]), to_number(parts[2]), to_number(parts[3]), parts[4]]
+         1  call         protocol.ai:24:20 in _positions_text -> join
+            return string.join(fields, ",")
+         1  call         protocol.ai:28:25 in encode_done -> to_str
+            return "DONE|" + to_str(owner) + "|" + to_str(generation) + "|" + _positions_text(positions)
+         1  call         protocol.ai:28:47 in encode_done -> to_str
+            return "DONE|" + to_str(owner) + "|" + to_str(generation) + "|" + _positions_text(positions)
+         1  call         protocol.ai:28:83 in encode_done -> _positions_text
+            return "DONE|" + to_str(owner) + "|" + to_str(generation) + "|" + _positions_text(positions)
+         1  comparison   .profile-worker.ai:99:5 in engine_a
+            if length(fields) > 2 {
+         1  comparison   .profile-worker.ai:183:4 in <main>
+            if length(args) < 1 {
+         1  comparison   .profile-worker.ai:230:4 in <main>
+            if length(args) > 0 {
+         1  comparison   /home/wsenn/forge/dev/aiki/lib/list/list.ai:217:5 in sort
+            if length(rest) > 1 {
+         1  comparison   /home/wsenn/forge/dev/aiki/lib/list/list.ai:223:5 in sort
+            if length(rest) > 0 {
+         1  comparison   /home/wsenn/forge/dev/aiki/lib/string/string.ai:103:5 in starts_with
+            if length(prefix) > length(s) {
+         1  comparison   /home/wsenn/forge/dev/aiki/lib/string/string.ai:113:5 in ends_with
+            if suflen > slen {
+         1  comparison   <prelude>:141:5 in abs
+            if x < 0 {
+         1  index        .profile-worker.ai:79:18 in protect
+            let pick = owned[mod(abs(selector), length(owned))]
+         1  index        .profile-worker.ai:98:47 in engine_a
+            let selector = bytes.bytes_length(raw) + info[0]
+         1  index        .profile-worker.ai:100:22 in engine_a
+            let values = fields[2] |> string.split(",")
+         1  index        .profile-worker.ai:101:41 in engine_a
+            selector = selector + to_number(values[mod(generation, length(values))])
+         1  index        .profile-worker.ai:186:28 in <main>
+            let owner = to_number(args[0])
+         1  index        .profile-worker.ai:202:28 in <main>
+            let generation = frame[0]
+         1  index        .profile-worker.ai:203:23 in <main>
+            let width = frame[1]
+         1  index        .profile-worker.ai:204:24 in <main>
+            let height = frame[2]
+         1  index        .profile-worker.ai:205:42 in <main>
+            let grid = life.grid_from_text(frame[3])
+         1  index        .profile-worker.ai:231:29 in <main>
+            showcase_log(to_number(args[0]), "ENGINE " + worker_label(to_number(args[0])) + " STOP")
+         1  index        .profile-worker.ai:231:74 in <main>
+            showcase_log(to_number(args[0]), "ENGINE " + worker_label(to_number(args[0])) + " STOP")
+         1  index        protocol.ai:11:51 in decode_gen
+            if not equal(length(parts), 5) or not equal(parts[0], "GEN") {
+         1  index        protocol.ai:14:31 in decode_gen
+            return [@gen, to_number(parts[1]), to_number(parts[2]), to_number(parts[3]), parts[4]]
+         1  index        protocol.ai:14:52 in decode_gen
+            return [@gen, to_number(parts[1]), to_number(parts[2]), to_number(parts[3]), parts[4]]
+         1  index        protocol.ai:14:73 in decode_gen
+            return [@gen, to_number(parts[1]), to_number(parts[2]), to_number(parts[3]), parts[4]]
+         1  index        protocol.ai:14:84 in decode_gen
+            return [@gen, to_number(parts[1]), to_number(parts[2]), to_number(parts[3]), parts[4]]
+
+Go substrate realization
+  elapsed      134.299703ms
+  alloc_bytes  146156672
+  mallocs      1297282
+  gc_cycles    23
+  cpu profile  ../analyses/hotpath/worker-1-60x40.cpu.pprof (labels: aiki_layer, aiki_function, aiki_file, aiki_line, aiki_primitive)

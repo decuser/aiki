@@ -1,0 +1,528 @@
+FOUR-WAY-LIFE seed=42 size=60x40
+GEN 0 58056740
+GEN 1 246356098
+GEN 2 900815250
+GEN 3 741936154
+GEN 4 706005086
+GEN 5 365350840
+PASS
+Aiki semantic work
+  arithmetic   266850
+  comparison   72514
+  call         412090
+  iteration    72357
+  index        31652
+  send         0
+  receive      0
+  store_read   26520
+  store_write  14520
+
+Aiki source attribution
+     48914  call         <prelude>:88:8 in equal -> <builtin: _equal>
+            _equal(a, b)
+     31538  call         <prelude>:63:9 in length -> <builtin: _length>
+            _length(list)
+     26520  call         /home/wsenn/forge/dev/aiki/lib/store/store.ai:9:12 in get -> <builtin: _store_get>
+            _store_get(store, index)
+     26520  store_read   /home/wsenn/forge/dev/aiki/lib/store/store.ai:9:12 in get
+            _store_get(store, index)
+     26435  call         <prelude>:108:9 in to_str -> <builtin: _to_str>
+            _to_str(val)
+     26411  arithmetic   .profile-coordinator.ai:139:14 in grid_text
+            while j < (width * height) {
+     26411  comparison   .profile-coordinator.ai:139:9 in grid_text
+            while j < (width * height) {
+     26400  arithmetic   .profile-coordinator.ai:140:11 in grid_text
+            text = text + to_str(store.get(grid, j))
+     26400  arithmetic   .profile-coordinator.ai:141:8 in grid_text
+            j = j + 1
+     26400  call         .profile-coordinator.ai:140:24 in grid_text -> to_str
+            text = text + to_str(store.get(grid, j))
+     26400  call         .profile-coordinator.ai:140:34 in grid_text -> get
+            text = text + to_str(store.get(grid, j))
+     26400  iteration    .profile-coordinator.ai:139:30 in grid_text
+            while j < (width * height) {
+     16952  call         <prelude>:71:9 in append -> <builtin: _append>
+            _append(list, val)
+     14520  call         /home/wsenn/forge/dev/aiki/lib/store/store.ai:13:12 in set -> <builtin: _store_set>
+            _store_set(store, index, value)
+     14520  store_write  /home/wsenn/forge/dev/aiki/lib/store/store.ai:13:12 in set
+            _store_set(store, index, value)
+     14406  call         life.ai:17:18 in grid_from_text -> length
+            while i < length(text) {
+     14406  call         life.ai:191:18 in checksum -> length
+            while i < length(grid) {
+     14406  comparison   life.ai:17:8 in grid_from_text
+            while i < length(text) {
+     14406  comparison   life.ai:191:8 in checksum
+            while i < length(grid) {
+     14405  call         <prelude>:149:11 in truncate -> <builtin: _truncate>
+            _truncate(x)
+     14401  arithmetic   life.ai:7:9 in mod
+            return a - (truncate(a / b) * b)
+     14401  arithmetic   life.ai:7:14 in mod
+            return a - (truncate(a / b) * b)
+     14401  arithmetic   life.ai:7:23 in mod
+            return a - (truncate(a / b) * b)
+     14401  call         life.ai:7:22 in mod -> truncate
+            return a - (truncate(a / b) * b)
+     14400  arithmetic   life.ai:18:23 in grid_from_text
+            grid = append(grid, ord(text[i]) - 48)
+     14400  arithmetic   life.ai:19:7 in grid_from_text
+            i = i + 1
+     14400  arithmetic   life.ai:192:15 in checksum
+            value = mod(((value * 131) + grid[i]) + i, 1000000007)
+     14400  arithmetic   life.ai:192:16 in checksum
+            value = mod(((value * 131) + grid[i]) + i, 1000000007)
+     14400  arithmetic   life.ai:192:17 in checksum
+            value = mod(((value * 131) + grid[i]) + i, 1000000007)
+     14400  arithmetic   life.ai:193:7 in checksum
+            i = i + 1
+     14400  call         <prelude>:92:6 in ord -> <builtin: _ord>
+            _ord(r)
+     14400  call         life.ai:18:16 in grid_from_text -> append
+            grid = append(grid, ord(text[i]) - 48)
+     14400  call         life.ai:18:26 in grid_from_text -> ord
+            grid = append(grid, ord(text[i]) - 48)
+     14400  call         life.ai:192:14 in checksum -> mod
+            value = mod(((value * 131) + grid[i]) + i, 1000000007)
+     14400  index        life.ai:18:31 in grid_from_text
+            grid = append(grid, ord(text[i]) - 48)
+     14400  index        life.ai:192:36 in checksum
+            value = mod(((value * 131) + grid[i]) + i, 1000000007)
+     14400  iteration    life.ai:17:25 in grid_from_text
+            while i < length(text) {
+     14400  iteration    life.ai:191:25 in checksum
+            while i < length(grid) {
+     12005  arithmetic   .profile-coordinator.ai:262:14 in <main>
+            while i < (width * height) {
+     12005  comparison   .profile-coordinator.ai:262:9 in <main>
+            while i < (width * height) {
+     12000  arithmetic   .profile-coordinator.ai:264:8 in <main>
+            i = i + 1
+     12000  call         .profile-coordinator.ai:263:13 in <main> -> set
+            store.set(grid, i, 0)
+     12000  iteration    .profile-coordinator.ai:262:30 in <main>
+            while i < (width * height) {
+      9600  arithmetic   life.ai:142:11 in _glider_at
+            let dx = x - base_x
+      9600  arithmetic   life.ai:143:11 in _glider_at
+            let dy = y - base_y
+      9600  call         life.ai:150:15 in _glider_at -> equal
+            return (equal(dx, 0) and equal(dy, 1)) or (equal(dx, 1) and equal(dy, 2)) or (equal(dx, 2) and equal(dy, 0)) or (equal(dx, 2) and equal(dy, 1)) or (equal(dx, 2) and equal(dy, 2))
+      9596  call         life.ai:150:50 in _glider_at -> equal
+            return (equal(dx, 0) and equal(dy, 1)) or (equal(dx, 1) and equal(dy, 2)) or (equal(dx, 2) and equal(dy, 0)) or (equal(dx, 2) and equal(dy, 1)) or (equal(dx, 2) and equal(dy, 2))
+      9592  call         life.ai:150:85 in _glider_at -> equal
+            return (equal(dx, 0) and equal(dy, 1)) or (equal(dx, 1) and equal(dy, 2)) or (equal(dx, 2) and equal(dy, 0)) or (equal(dx, 2) and equal(dy, 1)) or (equal(dx, 2) and equal(dy, 2))
+      9588  call         life.ai:150:120 in _glider_at -> equal
+            return (equal(dx, 0) and equal(dy, 1)) or (equal(dx, 1) and equal(dy, 2)) or (equal(dx, 2) and equal(dy, 0)) or (equal(dx, 2) and equal(dy, 1)) or (equal(dx, 2) and equal(dy, 2))
+      9584  call         life.ai:150:155 in _glider_at -> equal
+            return (equal(dx, 0) and equal(dy, 1)) or (equal(dx, 1) and equal(dy, 2)) or (equal(dx, 2) and equal(dy, 0)) or (equal(dx, 2) and equal(dy, 1)) or (equal(dx, 2) and equal(dy, 2))
+      4800  arithmetic   life.ai:145:8 in _glider_at
+            dx = 2 - dx
+      4800  arithmetic   life.ai:148:8 in _glider_at
+            dy = 2 - dy
+      2440  comparison   life.ai:163:9 in seed_grid
+            while x < width {
+      2401  call         .profile-coordinator.ai:50:18 in <main> -> length
+            while i < length(seeded) {
+      2401  comparison   .profile-coordinator.ai:50:8 in <main>
+            while i < length(seeded) {
+      2400  arithmetic   .profile-coordinator.ai:52:7 in <main>
+            i = i + 1
+      2400  arithmetic   life.ai:181:8 in seed_grid
+            x = x + 1
+      2400  call         .profile-coordinator.ai:51:12 in <main> -> set
+            store.set(grid, i, seeded[i])
+      2400  call         life.ai:168:17 in seed_grid -> _glider_at
+            if _glider_at(x, y, left_x, top_y, false, false) {
+      2400  call         life.ai:171:17 in seed_grid -> _glider_at
+            if _glider_at(x, y, right_x, top_y, true, false) {
+      2400  call         life.ai:174:17 in seed_grid -> _glider_at
+            if _glider_at(x, y, left_x, bottom_y, false, true) {
+      2400  call         life.ai:177:17 in seed_grid -> _glider_at
+            if _glider_at(x, y, right_x, bottom_y, true, true) {
+      2400  call         life.ai:180:17 in seed_grid -> append
+            grid = append(grid, owner)
+      2400  index        .profile-coordinator.ai:51:28 in <main>
+            store.set(grid, i, seeded[i])
+      2400  iteration    .profile-coordinator.ai:50:27 in <main>
+            while i < length(seeded) {
+      2400  iteration    life.ai:163:19 in seed_grid
+            while x < width {
+       160  call         <prelude>:116:12 in to_number -> <builtin: _to_number>
+            _to_number(s)
+       160  call         life.ai:150:32 in _glider_at -> equal
+            return (equal(dx, 0) and equal(dy, 1)) or (equal(dx, 1) and equal(dy, 2)) or (equal(dx, 2) and equal(dy, 0)) or (equal(dx, 2) and equal(dy, 1)) or (equal(dx, 2) and equal(dy, 2))
+       160  call         life.ai:150:67 in _glider_at -> equal
+            return (equal(dx, 0) and equal(dy, 1)) or (equal(dx, 1) and equal(dy, 2)) or (equal(dx, 2) and equal(dy, 0)) or (equal(dx, 2) and equal(dy, 1)) or (equal(dx, 2) and equal(dy, 2))
+       160  call         life.ai:150:102 in _glider_at -> equal
+            return (equal(dx, 0) and equal(dy, 1)) or (equal(dx, 1) and equal(dy, 2)) or (equal(dx, 2) and equal(dy, 0)) or (equal(dx, 2) and equal(dy, 1)) or (equal(dx, 2) and equal(dy, 2))
+       156  call         life.ai:150:137 in _glider_at -> equal
+            return (equal(dx, 0) and equal(dy, 1)) or (equal(dx, 1) and equal(dy, 2)) or (equal(dx, 2) and equal(dy, 0)) or (equal(dx, 2) and equal(dy, 1)) or (equal(dx, 2) and equal(dy, 2))
+       152  call         life.ai:150:172 in _glider_at -> equal
+            return (equal(dx, 0) and equal(dy, 1)) or (equal(dx, 1) and equal(dy, 2)) or (equal(dx, 2) and equal(dy, 0)) or (equal(dx, 2) and equal(dy, 1)) or (equal(dx, 2) and equal(dy, 2))
+       140  call         .profile-coordinator.ai:272:20 in <main> -> length
+            while k < length(positions) {
+       140  call         protocol.ai:40:19 in decode_done -> length
+            while i < length(raw) {
+       140  comparison   .profile-coordinator.ai:272:10 in <main>
+            while k < length(positions) {
+       140  comparison   protocol.ai:40:9 in decode_done
+            while i < length(raw) {
+       120  arithmetic   .profile-coordinator.ai:278:9 in <main>
+            k = k + 1
+       120  arithmetic   protocol.ai:42:8 in decode_done
+            i = i + 1
+       120  call         .profile-coordinator.ai:274:17 in <main> -> equal
+            if not equal(store.get(grid, pos), 0) {
+       120  call         .profile-coordinator.ai:274:27 in <main> -> get
+            if not equal(store.get(grid, pos), 0) {
+       120  call         .profile-coordinator.ai:277:14 in <main> -> set
+            store.set(grid, pos, reply_owner)
+       120  call         protocol.ai:41:22 in decode_done -> append
+            positions = append(positions, to_number(raw[i]))
+       120  call         protocol.ai:41:43 in decode_done -> to_number
+            positions = append(positions, to_number(raw[i]))
+       120  index        .profile-coordinator.ai:273:24 in <main>
+            let pos = positions[k]
+       120  index        protocol.ai:41:47 in decode_done
+            positions = append(positions, to_number(raw[i]))
+       120  iteration    .profile-coordinator.ai:272:32 in <main>
+            while k < length(positions) {
+       120  iteration    protocol.ai:40:25 in decode_done
+            while i < length(raw) {
+        41  comparison   life.ai:161:8 in seed_grid
+            while y < height {
+        40  arithmetic   life.ai:183:7 in seed_grid
+            y = y + 1
+        40  call         /home/wsenn/forge/dev/aiki/lib/string/ffi.ai:18:15 in split -> <builtin: _string_split>
+            _string_split(s, delim)
+        40  iteration    life.ai:161:19 in seed_grid
+            while y < height {
+        35  arithmetic   protocol.ai:6:9 in encode_gen
+            return "GEN|" + to_str(generation) + "|" + to_str(width) + "|" + to_str(height) + "|" + grid_text
+        25  comparison   .profile-coordinator.ai:235:9 in <main>
+            while w < 4 {
+        25  comparison   .profile-coordinator.ai:241:9 in <main>
+            while w < 4 {
+        25  comparison   .profile-coordinator.ai:267:9 in <main>
+            while w < 4 {
+        24  call         /home/wsenn/forge/dev/aiki/lib/io/io.ai:13:11 in write -> <builtin: _io_write>
+            _io_write(destination, data)
+        20  arithmetic   .profile-coordinator.ai:237:8 in <main>
+            w = w + 1
+        20  arithmetic   .profile-coordinator.ai:259:8 in <main>
+            w = w + 1
+        20  arithmetic   .profile-coordinator.ai:280:8 in <main>
+            w = w + 1
+        20  call         .profile-coordinator.ai:236:12 in <main> -> write
+            io.write(inputs[w], frame)
+        20  call         .profile-coordinator.ai:242:27 in <main> -> read_line
+            let line = io.read_line(outputs[w])
+        20  call         .profile-coordinator.ai:243:36 in <main> -> decode_done
+            let reply = protocol.decode_done(line)
+        20  call         .profile-coordinator.ai:244:15 in <main> -> is_error
+            if is_error(reply) {
+        20  call         .profile-coordinator.ai:258:20 in <main> -> append
+            replies = append(replies, reply)
+        20  call         /home/wsenn/forge/dev/aiki/lib/io/io.ai:9:15 in read_line -> <builtin: _io_read_line>
+            _io_read_line(source)
+        20  call         <prelude>:104:8 in is_error -> <builtin: _equal>
+            _equal(_shape(val), :error)
+        20  call         <prelude>:104:15 in is_error -> <builtin: _shape>
+            _equal(_shape(val), :error)
+        20  call         protocol.ai:32:26 in decode_done -> split
+            let parts = string.split(line, "|")
+        20  call         protocol.ai:33:14 in decode_done -> equal
+            if not equal(length(parts), 4) or not equal(parts[0], "DONE") {
+        20  call         protocol.ai:33:21 in decode_done -> length
+            if not equal(length(parts), 4) or not equal(parts[0], "DONE") {
+        20  call         protocol.ai:33:45 in decode_done -> equal
+            if not equal(length(parts), 4) or not equal(parts[0], "DONE") {
+        20  call         protocol.ai:37:11 in decode_done -> length
+            if length(parts[3]) > 0 {
+        20  call         protocol.ai:38:25 in decode_done -> split
+            let raw = string.split(parts[3], ",")
+        20  call         protocol.ai:45:26 in decode_done -> to_number
+            return [@done, to_number(parts[1]), to_number(parts[2]), positions]
+        20  call         protocol.ai:45:47 in decode_done -> to_number
+            return [@done, to_number(parts[1]), to_number(parts[2]), positions]
+        20  comparison   protocol.ai:37:5 in decode_done
+            if length(parts[3]) > 0 {
+        20  index        .profile-coordinator.ai:236:19 in <main>
+            io.write(inputs[w], frame)
+        20  index        .profile-coordinator.ai:242:35 in <main>
+            let line = io.read_line(outputs[w])
+        20  index        .profile-coordinator.ai:268:23 in <main>
+            let reply = replies[w]
+        20  index        .profile-coordinator.ai:269:27 in <main>
+            let reply_owner = reply[0]
+        20  index        .profile-coordinator.ai:270:25 in <main>
+            let positions = reply[2]
+        20  index        protocol.ai:33:51 in decode_done
+            if not equal(length(parts), 4) or not equal(parts[0], "DONE") {
+        20  index        protocol.ai:37:17 in decode_done
+            if length(parts[3]) > 0 {
+        20  index        protocol.ai:38:31 in decode_done
+            let raw = string.split(parts[3], ",")
+        20  index        protocol.ai:45:32 in decode_done
+            return [@done, to_number(parts[1]), to_number(parts[2]), positions]
+        20  index        protocol.ai:45:53 in decode_done
+            return [@done, to_number(parts[1]), to_number(parts[2]), positions]
+        20  iteration    .profile-coordinator.ai:235:15 in <main>
+            while w < 4 {
+        20  iteration    .profile-coordinator.ai:241:15 in <main>
+            while w < 4 {
+        20  iteration    .profile-coordinator.ai:267:15 in <main>
+            while w < 4 {
+        15  arithmetic   .profile-coordinator.ai:284:21 in <main>
+            let status_text = "GEN " + to_str(generation) + " " + to_str(life.checksum(committed))
+         8  call         <prelude>:7:8 in apply -> <builtin: _apply>
+            _apply(fn, args)
+         8  call         <prelude>:41:7 in println -> apply
+            apply(_print, args)
+         8  call         <prelude>:42:8 in println -> <builtin: _print>
+            _print("\n")
+         6  comparison   .profile-coordinator.ai:232:9 in <main>
+            while (generation < generations) and running {
+         5  arithmetic   .profile-coordinator.ai:225:10 in <main>
+            println("FOUR-WAY-LIFE seed=" + to_str(seed) + " size=" + to_str(width) + "x" + to_str(height))
+         5  arithmetic   .profile-coordinator.ai:233:15 in <main>
+            let frame = protocol.encode_gen(generation, width, height, grid_text()) + "\n"
+         5  arithmetic   .profile-coordinator.ai:282:16 in <main>
+            generation = generation + 1
+         5  call         .profile-coordinator.ai:233:34 in <main> -> encode_gen
+            let frame = protocol.encode_gen(generation, width, height, grid_text()) + "\n"
+         5  call         .profile-coordinator.ai:233:71 in <main> -> grid_text
+            let frame = protocol.encode_gen(generation, width, height, grid_text()) + "\n"
+         5  call         .profile-coordinator.ai:283:38 in <main> -> grid_from_text
+            let committed = life.grid_from_text(grid_text())
+         5  call         .profile-coordinator.ai:283:48 in <main> -> grid_text
+            let committed = life.grid_from_text(grid_text())
+         5  call         .profile-coordinator.ai:284:36 in <main> -> to_str
+            let status_text = "GEN " + to_str(generation) + " " + to_str(life.checksum(committed))
+         5  call         .profile-coordinator.ai:284:63 in <main> -> to_str
+            let status_text = "GEN " + to_str(generation) + " " + to_str(life.checksum(committed))
+         5  call         .profile-coordinator.ai:284:77 in <main> -> checksum
+            let status_text = "GEN " + to_str(generation) + " " + to_str(life.checksum(committed))
+         5  call         .profile-coordinator.ai:285:10 in <main> -> println
+            println(status_text)
+         5  call         .profile-coordinator.ai:286:13 in <main> -> log_status
+            log_status(status_text)
+         5  call         .profile-coordinator.ai:287:18 in <main> -> accept_observer
+            accept_observer()
+         5  call         .profile-coordinator.ai:288:18 in <main> -> terminal_status
+            terminal_status(generation)
+         5  call         .profile-coordinator.ai:289:19 in <main> -> render
+            running = render()
+         5  call         .profile-coordinator.ai:291:22 in <main> -> signal_received
+            if signal_received() {
+         5  call         protocol.ai:6:24 in encode_gen -> to_str
+            return "GEN|" + to_str(generation) + "|" + to_str(width) + "|" + to_str(height) + "|" + grid_text
+         5  call         protocol.ai:6:51 in encode_gen -> to_str
+            return "GEN|" + to_str(generation) + "|" + to_str(width) + "|" + to_str(height) + "|" + grid_text
+         5  call         protocol.ai:6:73 in encode_gen -> to_str
+            return "GEN|" + to_str(generation) + "|" + to_str(width) + "|" + to_str(height) + "|" + grid_text
+         5  comparison   .profile-coordinator.ai:58:8 in <main>
+            while owner <= 4 {
+         5  comparison   .profile-coordinator.ai:302:8 in <main>
+            while w < 4 {
+         5  comparison   .profile-coordinator.ai:308:8 in <main>
+            while w < 4 {
+         5  iteration    .profile-coordinator.ai:232:47 in <main>
+            while (generation < generations) and running {
+         4  arithmetic   .profile-coordinator.ai:63:11 in <main>
+            owner = owner + 1
+         4  arithmetic   .profile-coordinator.ai:305:7 in <main>
+            w = w + 1
+         4  arithmetic   .profile-coordinator.ai:313:7 in <main>
+            w = w + 1
+         4  call         .profile-coordinator.ai:59:24 in <main> -> start
+            let p = process.start("aiki", ["worker.ai", to_str(owner)])
+         4  call         .profile-coordinator.ai:59:53 in <main> -> to_str
+            let p = process.start("aiki", ["worker.ai", to_str(owner)])
+         4  call         .profile-coordinator.ai:60:17 in <main> -> append
+            procs = append(procs, p)
+         4  call         .profile-coordinator.ai:61:18 in <main> -> append
+            inputs = append(inputs, process.stdin(p))
+         4  call         .profile-coordinator.ai:61:40 in <main> -> stdin
+            inputs = append(inputs, process.stdin(p))
+         4  call         .profile-coordinator.ai:62:19 in <main> -> append
+            outputs = append(outputs, process.stdout(p))
+         4  call         .profile-coordinator.ai:62:43 in <main> -> stdout
+            outputs = append(outputs, process.stdout(p))
+         4  call         .profile-coordinator.ai:303:11 in <main> -> write
+            io.write(inputs[w], "STOP\n")
+         4  call         .profile-coordinator.ai:304:11 in <main> -> close
+            io.close(inputs[w])
+         4  call         .profile-coordinator.ai:309:28 in <main> -> wait
+            let status = process.wait(procs[w])
+         4  call         .profile-coordinator.ai:310:15 in <main> -> equal
+            if not equal(status, 0) {
+         4  call         /home/wsenn/forge/dev/aiki/lib/io/io.ai:17:11 in close -> <builtin: _io_close>
+            _io_close(endpoint)
+         4  call         /home/wsenn/forge/dev/aiki/lib/process/process.ai:4:16 in start -> <builtin: _process_start>
+            _process_start(command, args)
+         4  call         /home/wsenn/forge/dev/aiki/lib/process/process.ai:8:16 in stdin -> <builtin: _process_stdin>
+            _process_stdin(process)
+         4  call         /home/wsenn/forge/dev/aiki/lib/process/process.ai:12:17 in stdout -> <builtin: _process_stdout>
+            _process_stdout(process)
+         4  call         /home/wsenn/forge/dev/aiki/lib/process/process.ai:20:15 in wait -> <builtin: _process_wait>
+            _process_wait(process)
+         4  index        .profile-coordinator.ai:303:18 in <main>
+            io.write(inputs[w], "STOP\n")
+         4  index        .profile-coordinator.ai:304:18 in <main>
+            io.close(inputs[w])
+         4  index        .profile-coordinator.ai:309:34 in <main>
+            let status = process.wait(procs[w])
+         4  iteration    .profile-coordinator.ai:58:19 in <main>
+            while owner <= 4 {
+         4  iteration    .profile-coordinator.ai:302:14 in <main>
+            while w < 4 {
+         4  iteration    .profile-coordinator.ai:308:14 in <main>
+            while w < 4 {
+         3  arithmetic   .profile-coordinator.ai:226:23 in <main>
+            let initial_status = "GEN " + to_str(generation) + " " + to_str(life.checksum(life.grid_from_text(grid_text())))
+         2  arithmetic   life.ai:157:17 in seed_grid
+            let right_x = (width - truncate(width / 3) - 3) - shift
+         2  arithmetic   life.ai:159:17 in seed_grid
+            let bottom_y = height - truncate(height / 3) - 3
+         2  call         /home/wsenn/forge/dev/aiki/lib/system/system.ai:21:17 in set_env -> <builtin: _system_set_env>
+            _system_set_env(name, value)
+         1  arithmetic   .profile-coordinator.ai:47:23 in <main>
+            let grid = store.new(width * height)
+         1  arithmetic   life.ai:156:15 in seed_grid
+            let left_x = truncate(width / 3) + shift
+         1  arithmetic   life.ai:156:24 in seed_grid
+            let left_x = truncate(width / 3) + shift
+         1  arithmetic   life.ai:157:16 in seed_grid
+            let right_x = (width - truncate(width / 3) - 3) - shift
+         1  arithmetic   life.ai:157:34 in seed_grid
+            let right_x = (width - truncate(width / 3) - 3) - shift
+         1  arithmetic   life.ai:158:23 in seed_grid
+            let top_y = truncate(height / 3)
+         1  arithmetic   life.ai:159:35 in seed_grid
+            let bottom_y = height - truncate(height / 3) - 3
+         1  call         .profile-coordinator.ai:1:20 in <main> -> <builtin: _import>
+            let system = import("system")
+         1  call         .profile-coordinator.ai:2:21 in <main> -> <builtin: _import>
+            let process = import("process")
+         1  call         .profile-coordinator.ai:3:16 in <main> -> <builtin: _import>
+            let io = import("io")
+         1  call         .profile-coordinator.ai:4:19 in <main> -> <builtin: _import>
+            let store = import("store")
+         1  call         .profile-coordinator.ai:5:20 in <main> -> <builtin: _import>
+            let canvas = import("canvas")
+         1  call         .profile-coordinator.ai:6:18 in <main> -> <builtin: _import>
+            let time = import("time")
+         1  call         .profile-coordinator.ai:7:18 in <main> -> <builtin: _import>
+            let file = import("file")
+         1  call         .profile-coordinator.ai:8:17 in <main> -> <builtin: _import>
+            let net = import("net")
+         1  call         .profile-coordinator.ai:9:20 in <main> -> <builtin: _import>
+            let signal = import("signal")
+         1  call         .profile-coordinator.ai:10:18 in <main> -> <builtin: _import>
+            let term = import("term")
+         1  call         .profile-coordinator.ai:11:18 in <main> -> <builtin: _import>
+            let life = import("./life")
+         1  call         .profile-coordinator.ai:12:22 in <main> -> <builtin: _import>
+            let protocol = import("./protocol")
+         1  call         .profile-coordinator.ai:14:23 in <main> -> args
+            let args = system.args()
+         1  call         .profile-coordinator.ai:20:10 in <main> -> length
+            if length(args) > 0 {
+         1  call         .profile-coordinator.ai:24:10 in <main> -> length
+            if length(args) > 1 {
+         1  call         .profile-coordinator.ai:28:10 in <main> -> length
+            if length(args) > 2 {
+         1  call         .profile-coordinator.ai:32:10 in <main> -> length
+            if length(args) > 3 {
+         1  call         .profile-coordinator.ai:36:10 in <main> -> length
+            if length(args) > 4 {
+         1  call         .profile-coordinator.ai:45:16 in <main> -> set_env
+            system.set_env("FWL_SEED", to_str(seed))
+         1  call         .profile-coordinator.ai:45:35 in <main> -> to_str
+            system.set_env("FWL_SEED", to_str(seed))
+         1  call         .profile-coordinator.ai:46:16 in <main> -> set_env
+            system.set_env("FWL_MUTATION_RATE", "2")
+         1  call         .profile-coordinator.ai:47:22 in <main> -> new
+            let grid = store.new(width * height)
+         1  call         .profile-coordinator.ai:48:29 in <main> -> seed_grid
+            let seeded = life.seed_grid(width, height, seed)
+         1  call         .profile-coordinator.ai:65:18 in <main> -> equal
+            let draw = equal(mode, "canvas")
+         1  call         .profile-coordinator.ai:66:29 in <main> -> equal
+            let systems = draw or equal(mode, "systems")
+         1  call         .profile-coordinator.ai:71:27 in <main> -> channel
+            let observer_ch = channel()
+         1  call         .profile-coordinator.ai:225:9 in <main> -> println
+            println("FOUR-WAY-LIFE seed=" + to_str(seed) + " size=" + to_str(width) + "x" + to_str(height))
+         1  call         .profile-coordinator.ai:225:40 in <main> -> to_str
+            println("FOUR-WAY-LIFE seed=" + to_str(seed) + " size=" + to_str(width) + "x" + to_str(height))
+         1  call         .profile-coordinator.ai:225:66 in <main> -> to_str
+            println("FOUR-WAY-LIFE seed=" + to_str(seed) + " size=" + to_str(width) + "x" + to_str(height))
+         1  call         .profile-coordinator.ai:225:88 in <main> -> to_str
+            println("FOUR-WAY-LIFE seed=" + to_str(seed) + " size=" + to_str(width) + "x" + to_str(height))
+         1  call         .profile-coordinator.ai:226:38 in <main> -> to_str
+            let initial_status = "GEN " + to_str(generation) + " " + to_str(life.checksum(life.grid_from_text(grid_text())))
+         1  call         .profile-coordinator.ai:226:65 in <main> -> to_str
+            let initial_status = "GEN " + to_str(generation) + " " + to_str(life.checksum(life.grid_from_text(grid_text())))
+         1  call         .profile-coordinator.ai:226:79 in <main> -> checksum
+            let initial_status = "GEN " + to_str(generation) + " " + to_str(life.checksum(life.grid_from_text(grid_text())))
+         1  call         .profile-coordinator.ai:226:99 in <main> -> grid_from_text
+            let initial_status = "GEN " + to_str(generation) + " " + to_str(life.checksum(life.grid_from_text(grid_text())))
+         1  call         .profile-coordinator.ai:226:109 in <main> -> grid_text
+            let initial_status = "GEN " + to_str(generation) + " " + to_str(life.checksum(life.grid_from_text(grid_text())))
+         1  call         .profile-coordinator.ai:227:9 in <main> -> println
+            println(initial_status)
+         1  call         .profile-coordinator.ai:228:22 in <main> -> render
+            let running = render()
+         1  call         .profile-coordinator.ai:229:12 in <main> -> log_status
+            log_status(initial_status)
+         1  call         .profile-coordinator.ai:230:17 in <main> -> accept_observer
+            accept_observer()
+         1  call         .profile-coordinator.ai:231:17 in <main> -> terminal_status
+            terminal_status(generation)
+         1  call         .profile-coordinator.ai:342:10 in <main> -> println
+            println("PASS")
+         1  call         /home/wsenn/forge/dev/aiki/lib/store/store.ai:5:12 in new -> <builtin: _store_new>
+            _store_new(size)
+         1  call         /home/wsenn/forge/dev/aiki/lib/system/system.ai:5:14 in args -> <builtin: _system_args>
+            _system_args()
+         1  call         <prelude>:24:10 in channel -> <builtin: _channel>
+            _channel()
+         1  call         life.ai:155:17 in seed_grid -> mod
+            let shift = mod(abs(seed), 3)
+         1  call         life.ai:155:21 in seed_grid -> abs
+            let shift = mod(abs(seed), 3)
+         1  call         life.ai:156:23 in seed_grid -> truncate
+            let left_x = truncate(width / 3) + shift
+         1  call         life.ai:157:33 in seed_grid -> truncate
+            let right_x = (width - truncate(width / 3) - 3) - shift
+         1  call         life.ai:158:22 in seed_grid -> truncate
+            let top_y = truncate(height / 3)
+         1  call         life.ai:159:34 in seed_grid -> truncate
+            let bottom_y = height - truncate(height / 3) - 3
+         1  comparison   .profile-coordinator.ai:20:4 in <main>
+            if length(args) > 0 {
+         1  comparison   .profile-coordinator.ai:24:4 in <main>
+            if length(args) > 1 {
+         1  comparison   .profile-coordinator.ai:28:4 in <main>
+            if length(args) > 2 {
+         1  comparison   .profile-coordinator.ai:32:4 in <main>
+            if length(args) > 3 {
+         1  comparison   .profile-coordinator.ai:36:4 in <main>
+            if length(args) > 4 {
+         1  comparison   .profile-coordinator.ai:40:5 in <main>
+            if (width < 12) or (height < 12) {
+         1  comparison   .profile-coordinator.ai:40:21 in <main>
+            if (width < 12) or (height < 12) {
+         1  comparison   <prelude>:141:5 in abs
+            if x < 0 {
+
+Go substrate realization
+  elapsed      1.785927999s
+  alloc_bytes  896313648
+  mallocs      8659774
+  gc_cycles    151

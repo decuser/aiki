@@ -17,4 +17,14 @@ let length = (store) {
 	_store_length(store)
 }
 
-export(:new, :get, :set, :length)
+let snapshot = (store, ...args) {
+	if empty(args) {
+		return _store_snapshot(store)
+	}
+	if not empty(rest(args)) {
+		return [@error, :arity, "snapshot expects store and optional count"]
+	}
+	return _store_snapshot(store, first(args))
+}
+
+export(:new, :get, :set, :length, :snapshot)

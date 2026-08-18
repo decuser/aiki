@@ -1,0 +1,147 @@
+File: aiki
+Build ID: 60bda1ecd351fc174c6858828f8bb9acca67ed15
+Type: cpu
+Time: 2026-08-17 21:50:27 CDT
+Duration: 145.03ms, Total samples = 320ms (220.65%)
+Showing nodes accounting for 320ms, 100% of 320ms total
+      flat  flat%   sum%        cum   cum%
+      30ms  9.38%  9.38%       30ms  9.38%  aeshashbody
+      30ms  9.38% 18.75%       30ms  9.38%  runtime.memclrNoHeapPointers
+      20ms  6.25% 25.00%       20ms  6.25%  runtime.findObject
+      20ms  6.25% 31.25%       20ms  6.25%  runtime.futex
+      20ms  6.25% 37.50%      150ms 46.88%  runtime.gcDrain
+      20ms  6.25% 43.75%       20ms  6.25%  runtime.heapArenaOf (inline)
+      20ms  6.25% 50.00%       50ms 15.62%  runtime.scanObjectsSmall
+      20ms  6.25% 56.25%       50ms 15.62%  runtime.tryDeferToSpanScan
+      10ms  3.12% 59.38%      100ms 31.25%  aiki/engine/semantics/evaluator.(*Evaluator).evalExpr
+      10ms  3.12% 62.50%       10ms  3.12%  aiki/engine/semantics/value.CompareNatural
+      10ms  3.12% 65.62%       30ms  9.38%  aiki/engine/syntax.(*Parser).parseTerminal
+      10ms  3.12% 68.75%       10ms  3.12%  runtime.(*pallocBits).summarize
+      10ms  3.12% 71.88%       10ms  3.12%  runtime.(*spanSPMC).empty (inline)
+      10ms  3.12% 75.00%       10ms  3.12%  runtime.cheaprand (inline)
+      10ms  3.12% 78.12%       10ms  3.12%  runtime.findRunnable
+      10ms  3.12% 81.25%       20ms  6.25%  runtime.mapaccess2_faststr
+      10ms  3.12% 84.38%       10ms  3.12%  runtime.nextFreeFast (inline)
+      10ms  3.12% 87.50%       10ms  3.12%  runtime.pageIndexOf (inline)
+      10ms  3.12% 90.62%       50ms 15.62%  runtime.scanObject
+      10ms  3.12% 93.75%       20ms  6.25%  runtime.scanObjectSmall
+      10ms  3.12% 96.88%       80ms 25.00%  runtime.scanSpan
+      10ms  3.12%   100%       10ms  3.12%  runtime.spanHeapBitsRange (inline)
+         0     0%   100%       10ms  3.12%  aiki/cmd/subcommands/tools/profile.Run
+         0     0%   100%       10ms  3.12%  aiki/engine/runner.RunProfileDetailed
+         0     0%   100%       10ms  3.12%  aiki/engine/runner.RunProfileDetailed.func1
+         0     0%   100%       20ms  6.25%  aiki/engine/runtime/hal/substrate.(*Builtin).CallWithContext
+         0     0%   100%      100ms 31.25%  aiki/engine/runtime/hal/substrate.(*GoRuntime).WithProfileLabels
+         0     0%   100%       10ms  3.12%  aiki/engine/runtime/hal/substrate.(*GoRuntime).halImport
+         0     0%   100%       10ms  3.12%  aiki/engine/runtime/hal/substrate.(*GoRuntime).loadModule
+         0     0%   100%       20ms  6.25%  aiki/engine/runtime/hal/substrate.(*GoRuntime).profileContext
+         0     0%   100%       10ms  3.12%  aiki/engine/runtime/hal/substrate.halEqual
+         0     0%   100%       10ms  3.12%  aiki/engine/runtime/hal/substrate.valuesEqual
+         0     0%   100%      100ms 31.25%  aiki/engine/semantics/evaluator.(*Evaluator).Eval
+         0     0%   100%      100ms 31.25%  aiki/engine/semantics/evaluator.(*Evaluator).applyFunction
+         0     0%   100%       20ms  6.25%  aiki/engine/semantics/evaluator.(*Evaluator).applyFunction.func2
+         0     0%   100%       10ms  3.12%  aiki/engine/semantics/evaluator.(*Evaluator).applyOperator
+         0     0%   100%       90ms 28.12%  aiki/engine/semantics/evaluator.(*Evaluator).applyUserFunction
+         0     0%   100%       90ms 28.12%  aiki/engine/semantics/evaluator.(*Evaluator).applyUserFunction.func1
+         0     0%   100%       10ms  3.12%  aiki/engine/semantics/evaluator.(*Evaluator).compareNatural
+         0     0%   100%       30ms  9.38%  aiki/engine/semantics/evaluator.(*Evaluator).evalAssign
+         0     0%   100%       70ms 21.88%  aiki/engine/semantics/evaluator.(*Evaluator).evalBlock
+         0     0%   100%       90ms 28.12%  aiki/engine/semantics/evaluator.(*Evaluator).evalBlockTail
+         0     0%   100%       20ms  6.25%  aiki/engine/semantics/evaluator.(*Evaluator).evalCallArgs
+         0     0%   100%       40ms 12.50%  aiki/engine/semantics/evaluator.(*Evaluator).evalExprStmt
+         0     0%   100%       40ms 12.50%  aiki/engine/semantics/evaluator.(*Evaluator).evalIf
+         0     0%   100%      100ms 31.25%  aiki/engine/semantics/evaluator.(*Evaluator).evalInfix
+         0     0%   100%       40ms 12.50%  aiki/engine/semantics/evaluator.(*Evaluator).evalLet
+         0     0%   100%       10ms  3.12%  aiki/engine/semantics/evaluator.(*Evaluator).evalNumber
+         0     0%   100%      100ms 31.25%  aiki/engine/semantics/evaluator.(*Evaluator).evalPipe
+         0     0%   100%      100ms 31.25%  aiki/engine/semantics/evaluator.(*Evaluator).evalPostfix
+         0     0%   100%       20ms  6.25%  aiki/engine/semantics/evaluator.(*Evaluator).evalPrimary
+         0     0%   100%       10ms  3.12%  aiki/engine/semantics/evaluator.(*Evaluator).evalProgram
+         0     0%   100%      100ms 31.25%  aiki/engine/semantics/evaluator.(*Evaluator).evalStatement
+         0     0%   100%       90ms 28.12%  aiki/engine/semantics/evaluator.(*Evaluator).evalTail
+         0     0%   100%      100ms 31.25%  aiki/engine/semantics/evaluator.(*Evaluator).evalUnary
+         0     0%   100%       90ms 28.12%  aiki/engine/semantics/evaluator.(*Evaluator).evalWhile
+         0     0%   100%       10ms  3.12%  aiki/engine/semantics/evaluator.(*Evaluator).opGte
+         0     0%   100%      100ms 31.25%  aiki/engine/semantics/evaluator.(*Evaluator).withProfileLabels
+         0     0%   100%       10ms  3.12%  aiki/engine/semantics/value.NewNumberFromString
+         0     0%   100%       10ms  3.12%  aiki/engine/syntax.(*Lexer).Next
+         0     0%   100%       10ms  3.12%  aiki/engine/syntax.(*Lexer).Tokenize
+         0     0%   100%       30ms  9.38%  aiki/engine/syntax.(*Parser).parseAlternative
+         0     0%   100%       30ms  9.38%  aiki/engine/syntax.(*Parser).parseExpr
+         0     0%   100%       20ms  6.25%  aiki/engine/syntax.(*Parser).parseOption
+         0     0%   100%       30ms  9.38%  aiki/engine/syntax.(*Parser).parseProduction
+         0     0%   100%       30ms  9.38%  aiki/engine/syntax.(*Parser).parseReference (inline)
+         0     0%   100%       30ms  9.38%  aiki/engine/syntax.(*Parser).parseRepetition
+         0     0%   100%       30ms  9.38%  aiki/engine/syntax.(*Parser).parseSequence
+         0     0%   100%       10ms  3.12%  aiki/engine/syntax.(*Parser).recordFailure (inline)
+         0     0%   100%       20ms  6.25%  internal/sync.(*HashTrieMap[go.shape.interface {},go.shape.interface {}]).Load
+         0     0%   100%       10ms  3.12%  main.main
+         0     0%   100%       10ms  3.12%  math/big.(*Int).Set (inline)
+         0     0%   100%       10ms  3.12%  math/big.(*Int).lehmerGCD
+         0     0%   100%       10ms  3.12%  math/big.(*Int).scaleDenom
+         0     0%   100%       10ms  3.12%  math/big.(*Rat).Cmp
+         0     0%   100%       10ms  3.12%  math/big.(*Rat).SetString
+         0     0%   100%       10ms  3.12%  math/big.(*Rat).norm
+         0     0%   100%       20ms  6.25%  math/big.nat.make (inline)
+         0     0%   100%       10ms  3.12%  math/big.nat.mul
+         0     0%   100%       10ms  3.12%  math/big.nat.mulAddWW
+         0     0%   100%       10ms  3.12%  math/big.nat.set (inline)
+         0     0%   100%       10ms  3.12%  regexp.(*Regexp).FindString
+         0     0%   100%       10ms  3.12%  regexp.(*Regexp).backtrack
+         0     0%   100%       10ms  3.12%  regexp.(*Regexp).doExecute
+         0     0%   100%       10ms  3.12%  regexp.(*bitState).reset
+         0     0%   100%       10ms  3.12%  runtime.(*mcache).nextFree
+         0     0%   100%       10ms  3.12%  runtime.(*mcache).refill
+         0     0%   100%       10ms  3.12%  runtime.(*mcentral).cacheSpan
+         0     0%   100%       10ms  3.12%  runtime.(*mcentral).grow
+         0     0%   100%       10ms  3.12%  runtime.(*mheap).freeSpan (inline)
+         0     0%   100%       10ms  3.12%  runtime.(*mheap).freeSpanLocked
+         0     0%   100%       10ms  3.12%  runtime.(*mspan).heapBitsSmallForAddr
+         0     0%   100%       10ms  3.12%  runtime.(*mspan).initHeapBits
+         0     0%   100%       10ms  3.12%  runtime.(*mspan).typePointersOfUnchecked
+         0     0%   100%       10ms  3.12%  runtime.(*pageAlloc).free
+         0     0%   100%       10ms  3.12%  runtime.(*pageAlloc).update
+         0     0%   100%       10ms  3.12%  runtime.(*spanQueue).chainEmpty (inline)
+         0     0%   100%       10ms  3.12%  runtime.(*spanQueue).put
+         0     0%   100%       10ms  3.12%  runtime.(*sweepLocked).sweep
+         0     0%   100%       10ms  3.12%  runtime.(*sweepLocked).sweep.(*mheap).freeSpan.func2
+         0     0%   100%       10ms  3.12%  runtime.bgsweep
+         0     0%   100%       10ms  3.12%  runtime.convTstring
+         0     0%   100%       10ms  3.12%  runtime.forEachP (inline)
+         0     0%   100%       10ms  3.12%  runtime.forEachPInternal
+         0     0%   100%       20ms  6.25%  runtime.futexwakeup
+         0     0%   100%      160ms 50.00%  runtime.gcBgMarkWorker
+         0     0%   100%      150ms 46.88%  runtime.gcBgMarkWorker.func2
+         0     0%   100%       90ms 28.12%  runtime.gcDrainMarkWorkerDedicated (inline)
+         0     0%   100%       60ms 18.75%  runtime.gcDrainMarkWorkerIdle (inline)
+         0     0%   100%       10ms  3.12%  runtime.gcMarkDone
+         0     0%   100%       10ms  3.12%  runtime.gcMarkTermination
+         0     0%   100%       10ms  3.12%  runtime.gcMarkTermination.forEachP.func7
+         0     0%   100%       10ms  3.12%  runtime.gcmarknewobject
+         0     0%   100%       10ms  3.12%  runtime.gopreempt_m (inline)
+         0     0%   100%       10ms  3.12%  runtime.goschedImpl
+         0     0%   100%       10ms  3.12%  runtime.interfaceSwitch
+         0     0%   100%       10ms  3.12%  runtime.main
+         0     0%   100%       30ms  9.38%  runtime.makeslice
+         0     0%   100%       40ms 12.50%  runtime.mallocgc
+         0     0%   100%       10ms  3.12%  runtime.mallocgcSmallNoscan
+         0     0%   100%       20ms  6.25%  runtime.mallocgcSmallScanNoHeader
+         0     0%   100%       10ms  3.12%  runtime.mallocgcTiny
+         0     0%   100%       10ms  3.12%  runtime.mcall
+         0     0%   100%       10ms  3.12%  runtime.morestack
+         0     0%   100%       10ms  3.12%  runtime.newstack
+         0     0%   100%       20ms  6.25%  runtime.nilinterhash
+         0     0%   100%       10ms  3.12%  runtime.notewakeup
+         0     0%   100%       10ms  3.12%  runtime.park_m
+         0     0%   100%       10ms  3.12%  runtime.schedule
+         0     0%   100%       10ms  3.12%  runtime.semawakeup (inline)
+         0     0%   100%       10ms  3.12%  runtime.startm
+         0     0%   100%       10ms  3.12%  runtime.sweepone
+         0     0%   100%      170ms 53.12%  runtime.systemstack
+         0     0%   100%       20ms  6.25%  runtime.typehash
+         0     0%   100%       10ms  3.12%  runtime.unlock (inline)
+         0     0%   100%       10ms  3.12%  runtime.unlock2
+         0     0%   100%       10ms  3.12%  runtime.unlock2Wake
+         0     0%   100%       10ms  3.12%  runtime.unlockWithRank (inline)
+         0     0%   100%       10ms  3.12%  runtime.wakep
+         0     0%   100%       20ms  6.25%  sync.(*Map).Load (inline)

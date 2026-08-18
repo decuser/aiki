@@ -38,3 +38,17 @@ length(store)
 
 let memory = store.new(36)
 store.length(memory)    # 36
+
+===
+snapshot
+Returns an immutable Aiki list containing a point-in-time copy of the store.
+With an optional count, only the first count cells are copied. This is useful
+when Store is used as an explicit mutable accumulation buffer and an immutable
+list is required at the boundary.
+
+snapshot(store, ...args)
+
+let memory = store.new(4)
+let ignored0 = store.set(memory, 0, 10)
+let ignored1 = store.set(memory, 1, 20)
+store.snapshot(memory, 2)    # [10, 20]

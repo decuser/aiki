@@ -1,0 +1,304 @@
+@preamble use("string/ffi")
+substring
+Returns the portion of s beginning at start and ending before end.
+Positions are measured in runes.
+
+substring(s, start, end)
+
+substring("hello", 1, 4)    # "ell"
+===
+split
+Divides s at occurrences of delim and returns the parts as a list.
+The delimiter is not included in the parts.
+
+split(s, delim)
+
+split("a,b,c", ",")    # ["a", "b", "c"]
+===
+chars
+Returns the runes of s in order as a list.
+
+chars(s)
+
+chars("abc")    # ['a', 'b', 'c']
+===
+lines
+Divides s at newline characters and returns the lines as a list.
+
+lines(s)
+
+lines("one\ntwo")    # ["one", "two"]
+===
+words
+Trims s, divides the remainder at spaces, and discards empty parts.
+
+words(s)
+
+words("  one two  ")    # ["one", "two"]
+===
+index_of
+Returns the rune index of the first occurrence of sub in s.
+Returns [@error, :lookup, "not found"] if sub does not occur.
+
+index_of(s, sub)
+
+index_of("hello", "ll")    # 2
+index_of("hello", "z")     # [@error, :lookup, "not found"]
+===
+last_index_of
+Returns the rune index of the last occurrence of sub in s.
+Returns [@error, :lookup, "not found"] if sub does not occur.
+
+last_index_of(s, sub)
+
+last_index_of("hello", "l")    # 3
+===
+contains
+Returns true if sub occurs anywhere in s.
+
+contains(s, sub)
+
+contains("hello", "ell")    # true
+===
+starts_with
+Returns true if s begins with prefix.
+
+starts_with(s, prefix)
+
+starts_with("hello", "he")    # true
+===
+ends_with
+Returns true if s ends with suffix.
+
+ends_with(s, suffix)
+
+ends_with("hello", "lo")    # true
+===
+occurrences
+Returns the number of occurrences of sub in s.
+
+occurrences(s, sub)
+
+occurrences("banana", "an")    # 2
+===
+compare
+Compares two strings lexicographically by rune value.
+Returns -1 if a precedes b, 0 if they are equal, and 1 if a follows b.
+
+compare(a, b)
+
+compare("abc", "abd")    # -1
+compare("abc", "abc")    # 0
+===
+equal_ignore_case
+Returns the result of comparing a and b with case ignored.
+
+equal_ignore_case(a, b)
+
+equal_ignore_case("Hello", "hELLO")    # true
+===
+join
+Concatenates the strings in list, placing delim between successive elements.
+Returns "" for an empty list.
+
+join(list, delim)
+
+join(["a", "b", "c"], "-")    # "a-b-c"
+===
+replace
+Returns a string in which every occurrence of old has been replaced by new.
+
+replace(s, old, new)
+
+replace("hello", "l", "L")    # "heLLo"
+===
+replace_first
+Replaces only the first occurrence of old.
+If old does not occur, s is returned unchanged.
+
+replace_first(s, old, new)
+
+replace_first("hello", "l", "L")    # "heLlo"
+===
+repeat
+Returns a string consisting of n successive copies of s.
+
+repeat(s, n)
+
+repeat("ab", 3)    # "ababab"
+===
+reverse_string
+Returns the runes of s in reverse order.
+
+reverse_string(s)
+
+reverse_string("abc")    # "cba"
+===
+insert
+Returns a string with sub inserted at rune position pos.
+
+insert(s, pos, sub)
+
+insert("hello", 2, "XY")    # "heXYllo"
+===
+remove
+Returns a string with the runes beginning at start and ending before end removed.
+
+remove(s, start, end)
+
+remove("hello", 1, 3)    # "hlo"
+===
+trim
+Removes leading and trailing whitespace from s.
+
+trim(s)
+
+trim("  hi  ")    # "hi"
+===
+trim_start
+Removes leading whitespace from s.
+
+trim_start(s)
+
+trim_start("  hi  ")    # "hi  "
+===
+trim_end
+Removes trailing whitespace from s.
+
+trim_end(s)
+
+trim_end("  hi  ")    # "  hi"
+===
+pad_start
+Extends s to at least len runes by adding char at the beginning.
+If s is already that long, it is returned unchanged.
+
+pad_start(s, len, char)
+
+pad_start("7", 3, "0")    # "007"
+===
+pad_end
+Extends s to at least len runes by adding char at the end.
+If s is already that long, it is returned unchanged.
+
+pad_end(s, len, char)
+
+pad_end("7", 3, "0")    # "700"
+===
+center
+Pads both sides of s with char to reach len runes.
+If an unequal amount of padding is required, the extra padding is placed on the right.
+
+center(s, len, char)
+
+center("hi", 6, "-")    # "--hi--"
+===
+truncate
+Returns at most the first len runes of s.
+If s is no longer than len, it is returned unchanged.
+
+truncate(s, len)
+
+truncate("hello", 3)    # "hel"
+===
+is_digit
+Returns true if rune r is one of the ASCII decimal digits 0 through 9.
+
+is_digit(r)
+
+is_digit('7')    # true
+===
+is_alpha
+Returns true if rune r is one of the ASCII letters A through Z or a through z.
+
+is_alpha(r)
+
+is_alpha('a')    # true
+===
+is_alnum
+Returns true if rune r satisfies either is_alpha or is_digit.
+
+is_alnum(r)
+
+is_alnum('_')    # false
+===
+is_upper
+Returns true if rune r is an ASCII upper-case letter.
+
+is_upper(r)
+
+is_upper('A')    # true
+===
+is_lower
+Returns true if rune r is an ASCII lower-case letter.
+
+is_lower(r)
+
+is_lower('A')    # false
+===
+is_whitespace
+Returns true if rune r is a space, tab, newline, or carriage return.
+
+is_whitespace(r)
+
+is_whitespace(' ')    # true
+===
+is_numeric
+Returns true if s is nonempty and every rune in it is an ASCII decimal digit.
+The empty string is not numeric.
+
+is_numeric(s)
+
+is_numeric("123")    # true
+is_numeric("12a")    # false
+===
+is_alphabetic
+Returns true if s is nonempty and every rune in it is an ASCII letter.
+The empty string is not alphabetic.
+
+is_alphabetic(s)
+
+is_alphabetic("abc")    # true
+===
+upper
+Returns s converted to upper case according to Unicode case-conversion rules.
+
+upper(s)
+
+upper("hello")    # "HELLO"
+===
+lower
+Returns s converted to lower case according to Unicode case-conversion rules.
+
+lower(s)
+
+lower("HELLO")    # "hello"
+===
+upper_rune
+Returns the Unicode upper-case form of rune r.
+
+upper_rune(r)
+
+upper_rune('a')    # 'A'
+===
+lower_rune
+Returns the Unicode lower-case form of rune r.
+
+lower_rune(r)
+
+lower_rune('A')    # 'a'
+===
+capitalize
+Converts the first rune of s to upper case and the remainder to lower case.
+The empty string is returned unchanged.
+
+capitalize(s)
+
+capitalize("hELLO")    # "Hello"
+===
+title
+Divides s into words, capitalizes each, and joins them with single spaces.
+
+title(s)
+
+title("hello wide world")    # "Hello Wide World"

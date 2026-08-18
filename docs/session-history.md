@@ -486,3 +486,18 @@ The Go substrate owns signal subscriptions and tears them down with other runtim
   causes all four worker-view terminals to stop and close.
 - Final showcase architecture and lifecycle reconciled into experiment docs and
   proposal.
+
+## 2026-08-17 — string/ffi from Four-Way Life profiling
+
+- Four-Way Life hot-path attribution identified pure-Aiki `string.split`/`substring`
+  and string indexing as a substantial generic allocation/iteration cost during
+  line-protocol decoding.
+- Added explicit `string/ffi` provider-accelerated sibling while preserving bare
+  `string` as the pure/reference implementation.
+- Accelerated coarse string operations through RoleProvider primitives; no HAL
+  capability or authority surface was added.
+- Provider implementations preserve Aiki rune-index semantics and ASCII-only
+  whitespace behavior.
+- Added native-vs-FFI parity tests with multibyte text.
+- Four-Way Life explicitly opts into `string/ffi` in worker/protocol code so the
+  optimization can be measured before considering any default-module change.

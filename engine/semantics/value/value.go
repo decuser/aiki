@@ -221,6 +221,16 @@ func (s *Store) StoreSet(i int, v Value) {
 	s.Cells[i] = v
 }
 
+// StoreSnapshot returns an immutable copy of the first count cells.
+// The caller must validate count against StoreLen before calling.
+func (s *Store) StoreSnapshot(count int) []Value {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	out := make([]Value, count)
+	copy(out, s.Cells[:count])
+	return out
+}
+
 // Channel for concurrency.
 type Channel struct {
 	C        chan Value

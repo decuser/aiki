@@ -109,8 +109,8 @@ func (g *GoRuntime) registerHAL() {
 		"_shape": halShape, "_make_shaped_list": halMakeShapedList, "_to_str": halToStr,
 		"_to_decimal": halToDecimal, "_to_number": halToNumber, "_to_symbol": halToSymbol,
 		"_store_new": halStoreNew, "_store_get": halStoreGet, "_store_set": halStoreSet,
-		"_store_length": halStoreLength,
-		"_bits_and":     halBitsAnd, "_bits_or": halBitsOr, "_bits_xor": halBitsXor,
+		"_store_length": halStoreLength, "_store_snapshot": halStoreSnapshot,
+		"_bits_and": halBitsAnd, "_bits_or": halBitsOr, "_bits_xor": halBitsXor,
 		"_bits_not": halBitsNot, "_bits_shl": halBitsShl, "_bits_shr": halBitsShr,
 	} {
 		g.registerPrimitive(name, fn)
@@ -121,6 +121,14 @@ func (g *GoRuntime) registerHAL() {
 	for name, fn := range map[string]BuiltinFunc{
 		"_sqrt_inexact": halSqrt, "_cos_inexact": halCos, "_sin_inexact": halSin,
 		"_upper": halUpper, "_lower": halLower, "_chars": halChars,
+		"_string_substring": halStringSubstring, "_string_split": halStringSplit,
+		"_string_index_of": halStringIndexOf, "_string_last_index_of": halStringLastIndexOf,
+		"_string_contains": halStringContains, "_string_starts_with": halStringStartsWith,
+		"_string_ends_with": halStringEndsWith, "_string_join": halStringJoin,
+		"_string_replace": halStringReplace, "_string_replace_first": halStringReplaceFirst,
+		"_string_repeat": halStringRepeat, "_string_reverse": halStringReverse,
+		"_string_trim": halStringTrim, "_string_trim_start": halStringTrimStart,
+		"_string_trim_end": halStringTrimEnd, "_string_compare": halStringCompare,
 		"_upper_rune": halUpperRune, "_lower_rune": halLowerRune,
 		"_regex_match": halRegexMatch, "_regex_find": halRegexFind,
 		"_regex_find_all": halRegexFindAll, "_regex_replace": halRegexReplace,
