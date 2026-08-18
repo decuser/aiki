@@ -1,0 +1,19 @@
+package "term"
+
+let is = (endpoint) {
+	_term_is(endpoint)
+}
+
+let size = (endpoint) {
+	_term_size(endpoint)
+}
+
+let raw = (endpoint) {
+	_term_raw(endpoint)
+}
+
+let restore = (state) {
+	_term_restore(state)
+}
+
+export(:is, :size, :raw, :restore)

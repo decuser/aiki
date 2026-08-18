@@ -12,10 +12,14 @@ func (g *GoRuntime) registerHAL() {
 	g.registerHost(goHostOperation("_io_read"), g.halIORead)
 	g.registerHost(goHostOperation("_io_read_line"), g.halIOReadLine)
 	g.registerHost(goHostOperation("_io_write"), g.halIOWrite)
+	g.registerHost(goHostOperation("_io_close"), g.halIOClose)
 	g.registerHost(goHostOperation("_sleep"), halSleep)
 	g.registerHost(goHostOperation("_after"), halAfter)
 	g.registerHost(goHostOperation("_system_args"), g.halSystemArgs)
 	g.registerHost(goHostOperation("_system_env"), g.halSystemEnv)
+	g.registerHost(goHostOperation("_system_environ"), g.halSystemEnviron)
+	g.registerHost(goHostOperation("_system_set_env"), g.halSystemSetEnv)
+	g.registerHost(goHostOperation("_system_unset_env"), g.halSystemUnsetEnv)
 	g.registerHost(goHostOperation("_file_open"), g.halFileOpenPath)
 	g.registerHost(goHostOperation("_file_read_text"), halFileReadText)
 	g.registerHost(goHostOperation("_file_read_bytes"), halFileReadBytes)
@@ -40,12 +44,37 @@ func (g *GoRuntime) registerHAL() {
 	g.registerHost(goHostOperation("_file_walk"), g.halFileWalkPath)
 	g.registerHost(goHostOperation("_file_symlink"), g.halFileSymlinkPath)
 	g.registerHost(goHostOperation("_file_read_link"), g.halFileReadLinkPath)
+	g.registerHost(goHostOperation("_file_lock"), g.halFileLock)
+	g.registerHost(goHostOperation("_file_try_lock"), g.halFileTryLock)
+	g.registerHost(goHostOperation("_file_unlock"), g.halFileUnlock)
 	g.registerHost(goHostOperation("_file_permissions"), g.halFilePermissionsPath)
 	g.registerHost(goHostOperation("_file_chmod"), g.halFileChmodPath)
 	g.registerHost(goHostOperation("_time_now"), halTimeNow)
 	g.registerHost(goHostOperation("_system_cwd"), g.halSystemCwd)
 	g.registerHost(goHostOperation("_system_chdir"), g.halSystemChdir)
+	g.registerHost(goHostOperation("_term_is"), g.halTermIs)
+	g.registerHost(goHostOperation("_term_size"), g.halTermSize)
+	g.registerHost(goHostOperation("_term_raw"), g.halTermRaw)
+	g.registerHost(goHostOperation("_term_restore"), g.halTermRestore)
 	g.registerHost(goHostOperation("_system_exec"), g.halSystemExec)
+	g.registerHost(goHostOperation("_process_start"), g.halProcessStart)
+	g.registerHost(goHostOperation("_process_stdin"), g.halProcessStdin)
+	g.registerHost(goHostOperation("_process_stdout"), g.halProcessStdout)
+	g.registerHost(goHostOperation("_process_stderr"), g.halProcessStderr)
+	g.registerHost(goHostOperation("_process_wait"), g.halProcessWait)
+	g.registerHost(goHostOperation("_process_terminate"), g.halProcessTerminate)
+	g.registerHost(goHostOperation("_net_connect"), g.halNetConnect)
+	g.registerHost(goHostOperation("_net_listen"), g.halNetListen)
+	g.registerHost(goHostOperation("_net_accept"), g.halNetAccept)
+	g.registerHost(goHostOperation("_net_local"), g.halNetLocal)
+	g.registerHost(goHostOperation("_net_remote"), g.halNetRemote)
+	g.registerHost(goHostOperation("_net_close"), g.halNetClose)
+	g.registerHost(goHostOperation("_net_udp_bind"), g.halNetUDPBind)
+	g.registerHost(goHostOperation("_net_udp_send"), g.halNetUDPSend)
+	g.registerHost(goHostOperation("_net_udp_recv"), g.halNetUDPRecv)
+	g.registerHost(goHostOperation("_signal_watch"), g.halSignalWatch)
+	g.registerHost(goHostOperation("_signal_stop"), g.halSignalStop)
+	g.registerHost(goHostOperation("_signal_send"), g.halSignalSend)
 	g.registerHost(goHostOperation("_path_separator"), halPathSeparator)
 	g.registerHost(goHostOperation("_seed"), g.halSeed)
 	g.registerHost(goHostOperation("_random"), g.halRandom)
@@ -77,11 +106,14 @@ func (g *GoRuntime) registerHAL() {
 		"_bytes_new": halBytesNew, "_bytes_length": halBytesLength, "_bytes_get": halBytesGet,
 		"_bytes_slice": halBytesSlice, "_str_to_bytes": halStrToBytes,
 		"_bytes_to_str": halBytesToStr, "_bytes_to_str_pure": halBytesToStrPure,
+		"_bytes_digits_from_text": halBytesDigitsFromText, "_bytes_digits_to_text": halBytesDigitsToText,
 		"_shape": halShape, "_make_shaped_list": halMakeShapedList, "_to_str": halToStr,
 		"_to_decimal": halToDecimal, "_to_number": halToNumber, "_to_symbol": halToSymbol,
 		"_store_new": halStoreNew, "_store_get": halStoreGet, "_store_set": halStoreSet,
-		"_store_length": halStoreLength,
-		"_bits_and":     halBitsAnd, "_bits_or": halBitsOr, "_bits_xor": halBitsXor,
+		"_store_length": halStoreLength, "_store_snapshot": halStoreSnapshot,
+		"_store_digits_to_text": halStoreDigitsToText,
+		"_store_checksum":       halStoreChecksum,
+		"_bits_and":             halBitsAnd, "_bits_or": halBitsOr, "_bits_xor": halBitsXor,
 		"_bits_not": halBitsNot, "_bits_shl": halBitsShl, "_bits_shr": halBitsShr,
 	} {
 		g.registerPrimitive(name, fn)
@@ -92,6 +124,14 @@ func (g *GoRuntime) registerHAL() {
 	for name, fn := range map[string]BuiltinFunc{
 		"_sqrt_inexact": halSqrt, "_cos_inexact": halCos, "_sin_inexact": halSin,
 		"_upper": halUpper, "_lower": halLower, "_chars": halChars,
+		"_string_substring": halStringSubstring, "_string_split": halStringSplit,
+		"_string_index_of": halStringIndexOf, "_string_last_index_of": halStringLastIndexOf,
+		"_string_contains": halStringContains, "_string_starts_with": halStringStartsWith,
+		"_string_ends_with": halStringEndsWith, "_string_join": halStringJoin,
+		"_string_replace": halStringReplace, "_string_replace_first": halStringReplaceFirst,
+		"_string_repeat": halStringRepeat, "_string_reverse": halStringReverse,
+		"_string_trim": halStringTrim, "_string_trim_start": halStringTrimStart,
+		"_string_trim_end": halStringTrimEnd, "_string_compare": halStringCompare,
 		"_upper_rune": halUpperRune, "_lower_rune": halLowerRune,
 		"_regex_match": halRegexMatch, "_regex_find": halRegexFind,
 		"_regex_find_all": halRegexFindAll, "_regex_replace": halRegexReplace,
@@ -103,6 +143,7 @@ func (g *GoRuntime) registerHAL() {
 	// Runtime/tooling/session services.
 	for name, fn := range map[string]BuiltinFunc{
 		"_module_roots":   g.halModuleRoots,
+		"_system_exit":    g.halSystemExit,
 		"_system_has":     g.halSystemHas,
 		"_system_require": g.halSystemRequire,
 		"_profile_counts": halProfileCounts, "_profile_measure": halProfileMeasure,

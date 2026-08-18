@@ -17,3 +17,12 @@ run("io reads lines and writes through file handles", () {
 	is_true(file.close(input))
 	is_true(file.delete(path))
 })
+
+
+run("io.close closes file handles", () {
+	let file = import("file")
+	let p = file.temp()
+	let f = file.open(p, :write)
+	is_true(io.close(f))
+	is_true(file.delete(p))
+})

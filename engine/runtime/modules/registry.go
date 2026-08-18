@@ -157,10 +157,15 @@ func (r *ModuleRegistry) scanDir(dir string, g *grammar.Grammar) error {
 	for _, entry := range entries {
 		path := filepath.Join(dir, entry.Name())
 
-		// Get absolute path to detect duplicates
+		// Get a canonical path to detect duplicate scans across symlinked
+		// distribution roots, such as conformance temp distributions that link
+		// back to the development tree.
 		absPath, err := filepath.Abs(path)
 		if err != nil {
 			absPath = path
+		}
+		if realPath, err := filepath.EvalSymlinks(absPath); err == nil {
+			absPath = realPath
 		}
 
 		if r.seen[absPath] {

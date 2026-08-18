@@ -5,8 +5,24 @@ let args = () {
 	_system_args()
 }
 
+let exit = (code) {
+	_system_exit(code)
+}
+
 let env = (name) {
 	_system_env(name)
+}
+
+let environ = () {
+	_system_environ()
+}
+
+let set_env = (name, value) {
+	_system_set_env(name, value)
+}
+
+let unset_env = (name) {
+	_system_unset_env(name)
 }
 
 let cwd = () {
@@ -29,4 +45,4 @@ let require = (capability) {
 	_system_require(capability)
 }
 
-export(:args, :env, :cwd, :chdir, :exec, :has, :require)
+export(:args, :exit, :env, :environ, :set_env, :unset_env, :cwd, :chdir, :exec, :has, :require)

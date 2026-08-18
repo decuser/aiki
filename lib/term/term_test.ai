@@ -1,0 +1,11 @@
+let test = import("test")
+let term = import("term")
+
+test.run("non-terminal file is not a terminal", () {
+	let file = import("file")
+	let p = file.temp()
+	let f = file.open(p, :read)
+	test.equal(term.is(f), false)
+	file.close(f)
+	file.delete(p)
+})

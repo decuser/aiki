@@ -13,4 +13,8 @@ let write = (destination, data) {
 	_io_write(destination, data)
 }
 
-export(:read, :read_line, :write)
+let close = (endpoint) {
+	_io_close(endpoint)
+}
+
+export(:read, :read_line, :write, :close)

@@ -1,0 +1,238 @@
+package "string/ffi"
+
+# string/ffi - provider-accelerated string operations with Aiki rune semantics.
+# Bare import("string") remains the pure/reference implementation.
+let _native = import("string")
+let _list = import("list")
+let _math = import("math/ffi")
+
+let substring = (s, start, end) {
+	_string_substring(s, start, end)
+}
+
+let join = (list, delim) {
+	_string_join(list, delim)
+}
+
+let split = (s, delim) {
+	_string_split(s, delim)
+}
+
+let index_of = (s, sub) {
+	_string_index_of(s, sub)
+}
+
+let last_index_of = (s, sub) {
+	_string_last_index_of(s, sub)
+}
+
+let contains = (s, sub) {
+	_string_contains(s, sub)
+}
+
+let starts_with = (s, prefix) {
+	_string_starts_with(s, prefix)
+}
+
+let ends_with = (s, suffix) {
+	_string_ends_with(s, suffix)
+}
+
+let occurrences = (s, sub) {
+	length(split(s, sub)) - 1
+}
+
+let replace = (s, old, new) {
+	_string_replace(s, old, new)
+}
+
+let replace_first = (s, old, new) {
+	_string_replace_first(s, old, new)
+}
+
+let repeat = (s, n) {
+	_string_repeat(s, n)
+}
+
+let reverse_string = (s) {
+	_string_reverse(s)
+}
+
+let insert = (s, pos, sub) {
+	substring(s, 0, pos) + sub + substring(s, pos, length(s))
+}
+
+let remove = (s, start, end) {
+	substring(s, 0, start) + substring(s, end, length(s))
+}
+
+let trim_start = (s) {
+	_string_trim_start(s)
+}
+
+let trim_end = (s) {
+	_string_trim_end(s)
+}
+
+let trim = (s) {
+	_string_trim(s)
+}
+
+let is_whitespace = (r) {
+	_native.is_whitespace(r)
+}
+
+let is_digit = (r) {
+	_native.is_digit(r)
+}
+
+let is_alpha = (r) {
+	_native.is_alpha(r)
+}
+
+let is_upper = (r) {
+	_native.is_upper(r)
+}
+
+let is_lower = (r) {
+	_native.is_lower(r)
+}
+
+let is_alnum = (r) {
+	_native.is_alnum(r)
+}
+
+let is_numeric = (s) {
+	_native.is_numeric(s)
+}
+
+let is_alphabetic = (s) {
+	_native.is_alphabetic(s)
+}
+
+let pad_start = (s, len, char) {
+	let slen = length(s)
+	if slen >= len {
+		return s
+	}
+	return repeat(to_str(char), len - slen) + s
+}
+
+let pad_end = (s, len, char) {
+	let slen = length(s)
+	if slen >= len {
+		return s
+	}
+	return s + repeat(to_str(char), len - slen)
+}
+
+let center = (s, len, char) {
+	let slen = length(s)
+	if slen >= len {
+		return s
+	}
+	let total = len - slen
+	let left = _math.floor(total / 2)
+	let right = total - left
+	return repeat(to_str(char), left) + s + repeat(to_str(char), right)
+}
+
+let truncate = (s, len) {
+	if length(s) <= len {
+		return s
+	}
+	return substring(s, 0, len)
+}
+
+let chars = (s) {
+	_chars(s)
+}
+
+let lines = (s) {
+	split(s, "\n")
+}
+
+let words = (s) {
+	return _list.filter(split(trim(s), " "), (w) {
+		not equal(w, "")
+	})
+}
+
+let compare = (a, b) {
+	_string_compare(a, b)
+}
+
+let upper = (s) {
+	_upper(s)
+}
+
+let lower = (s) {
+	_lower(s)
+}
+
+let upper_rune = (r) {
+	_upper_rune(r)
+}
+
+let lower_rune = (r) {
+	_lower_rune(r)
+}
+
+let capitalize = (s) {
+	if equal(length(s), 0) {
+		return s
+	}
+	return to_str(upper_rune(s[0])) + lower(substring(s, 1, length(s)))
+}
+
+let title = (s) {
+	join(_list.map(words(s), capitalize), " ")
+}
+
+let equal_ignore_case = (a, b) {
+	equal(lower(a), lower(b))
+}
+
+export(
+	:substring,
+	:join,
+	:split,
+	:index_of,
+	:last_index_of,
+	:contains,
+	:starts_with,
+	:ends_with,
+	:occurrences,
+	:replace,
+	:replace_first,
+	:repeat,
+	:reverse_string,
+	:insert,
+	:remove,
+	:is_whitespace,
+	:trim_start,
+	:trim_end,
+	:trim,
+	:pad_start,
+	:pad_end,
+	:center,
+	:truncate,
+	:chars,
+	:lines,
+	:words,
+	:is_digit,
+	:is_alpha,
+	:is_upper,
+	:is_lower,
+	:is_alnum,
+	:is_numeric,
+	:is_alphabetic,
+	:compare,
+	:upper,
+	:lower,
+	:upper_rune,
+	:lower_rune,
+	:capitalize,
+	:title,
+	:equal_ignore_case
+)

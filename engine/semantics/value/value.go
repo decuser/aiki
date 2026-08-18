@@ -13,21 +13,27 @@ import (
 type Type string
 
 const (
-	NumberType   Type = "number"
-	BooleanType  Type = "boolean"
-	RuneType     Type = "rune"
-	StringType   Type = "string"
-	BytesType    Type = "bytes"
-	SymbolType   Type = "symbol"
-	ListType     Type = "list"
-	FunctionType Type = "function"
-	FaultType    Type = "fault"
-	ReturnType   Type = "return"
-	FileType     Type = "file"
-	ChannelType  Type = "channel"
-	ModuleType   Type = "module"
-	CanvasType   Type = "canvas"
-	StoreType    Type = "store"
+	NumberType        Type = "number"
+	BooleanType       Type = "boolean"
+	RuneType          Type = "rune"
+	StringType        Type = "string"
+	BytesType         Type = "bytes"
+	SymbolType        Type = "symbol"
+	ListType          Type = "list"
+	FunctionType      Type = "function"
+	FaultType         Type = "fault"
+	ReturnType        Type = "return"
+	FileType          Type = "file"
+	FileLockType      Type = "file_lock"
+	ChannelType       Type = "channel"
+	ModuleType        Type = "module"
+	CanvasType        Type = "canvas"
+	StoreType         Type = "store"
+	ProcessType       Type = "process"
+	EndpointType      Type = "endpoint"
+	ListenerType      Type = "listener"
+	DatagramType      Type = "datagram"
+	TerminalStateType Type = "terminal_state"
 )
 
 // Value is the interface all Aiki values implement.
@@ -215,6 +221,16 @@ func (s *Store) StoreSet(i int, v Value) {
 	s.Cells[i] = v
 }
 
+// StoreSnapshot returns an immutable copy of the first count cells.
+// The caller must validate count against StoreLen before calling.
+func (s *Store) StoreSnapshot(count int) []Value {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	out := make([]Value, count)
+	copy(out, s.Cells[:count])
+	return out
+}
+
 // Channel for concurrency.
 type Channel struct {
 	C        chan Value
@@ -267,6 +283,16 @@ func (e *ExitSignal) Type() Type      { return "exit" }
 func (e *ExitSignal) Inspect() string { return "" }
 
 var EXIT = &ExitSignal{}
+
+// ProgramExitSignal requests immediate termination of the current Aiki program
+// with a portable process exit status. It is evaluator control flow, not an
+// ordinary Aiki value.
+type ProgramExitSignal struct {
+	Code int
+}
+
+func (e *ProgramExitSignal) Type() Type      { return "program_exit" }
+func (e *ProgramExitSignal) Inspect() string { return fmt.Sprintf("<exit:%d>", e.Code) }
 
 // ResetSignal signals REPL to reset environment.
 type ResetSignal struct{}

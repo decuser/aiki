@@ -1,0 +1,23 @@
+let term = import("term")
+let io = import("io")
+let time = import("time")
+let system = import("system")
+
+if term.is(:stdin) {
+	let state = term.raw(:stdin)
+	if is_error(state) {
+		io.write(:stderr, "TERMINAL RAW FAIL " + inspect(state) + "\n")
+		system.exit(1)
+	} else {
+		time.sleep(50)
+		let restored = term.restore(state)
+		if is_error(restored) {
+			io.write(:stderr, "TERMINAL RESTORE FAIL " + inspect(restored) + "\n")
+			system.exit(1)
+		} else {
+			println("TERMINAL RESTORE PASS")
+		}
+	}
+} else {
+	println("TERMINAL SKIP")
+}

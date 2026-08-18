@@ -1,0 +1,19 @@
+let test = import("test")
+let protocol = import("./protocol")
+
+test.run("generation frame round trip", () {
+	let decoded = protocol.decode_gen(protocol.encode_gen(7, 24, 18, "01234"))
+	test.equal(decoded, [@gen, 7, 24, 18, "01234"])
+})
+
+
+test.run("completion frame round trip", () {
+	let decoded = protocol.decode_done(protocol.encode_done(3, 9, [1, 8, 15]))
+	test.equal(decoded, [@done, 3, 9, [1, 8, 15]])
+})
+
+
+test.run("empty completion positions round trip", () {
+	let decoded = protocol.decode_done(protocol.encode_done(2, 4, []))
+	test.equal(decoded, [@done, 2, 4, []])
+})

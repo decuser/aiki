@@ -1,0 +1,42 @@
+is
+Reports whether an I/O endpoint is attached to a terminal.
+
+is(endpoint)
+
+let term = import("term")
+let file = import("file")
+let p = file.temp()
+let f = file.open(p, :read)
+term.is(f)    # false
+file.close(f)    # true
+file.delete(p)    # true
+===
+size
+Returns the visible terminal size as [@terminal_size, columns, rows].
+
+size(endpoint)
+
+@unchecked
+let term = import("term")
+term.size(:stdout)
+===
+raw
+Places a terminal endpoint in raw mode and returns an opaque restore token.
+The runtime restores outstanding terminal states during teardown.
+
+raw(endpoint)
+
+@unchecked
+let term = import("term")
+term.raw(:stdin)
+===
+restore
+Restores a terminal state returned by raw. Repeated restore is harmless.
+
+restore(state)
+
+@unchecked
+let term = import("term")
+let state = term.raw(:stdin)
+term.restore(state)
+===

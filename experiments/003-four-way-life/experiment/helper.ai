@@ -1,0 +1,17 @@
+let system = import("system")
+let number = import("number")
+let args = system.args()
+let fail = system.env("FWL_HELPER_FAIL")
+if not is_error(fail) {
+	if equal(fail, "1") {
+		system.exit(7)
+	}
+}
+
+let generation = 0
+if length(args) > 0 {
+	generation = to_number(args[0])
+}
+
+let value = ((generation + 1) * 37) + 11
+println("VALUE|" + number.to_base(value, 16))

@@ -1,0 +1,13 @@
+let file = import("file")
+
+let lock = file.try_lock("../results/four-way-life.lock")
+if equal(lock, false) {
+	println("LOCKED")
+} else {
+	if is_error(lock) {
+		println("ERROR " + inspect(lock))
+	} else {
+		file.unlock(lock)
+		println("FREE")
+	}
+}

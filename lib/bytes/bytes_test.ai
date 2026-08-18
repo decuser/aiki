@@ -87,3 +87,21 @@ run("bytes_length matches string byte count", () {
 	equal(bytes_length(str_to_bytes("hello")), 5)
 	equal(bytes_length(str_to_bytes("")), 0)
 })
+
+
+run("digit text round trip", () {
+	let b = digits_from_text("01234")
+	equal(bytes_length(b), 5)
+	equal(bytes_get(b, 3), 3)
+	equal(digits_to_text(b), "01234")
+})
+
+
+run("digit text rejects nondigits", () {
+	faults(() {
+		digits_from_text("01x")
+	})
+	faults(() {
+		digits_to_text(bytes_new([0, 10]))
+	})
+})

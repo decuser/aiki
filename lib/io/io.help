@@ -2,12 +2,17 @@
 
 @func read
 @template "read(source, count)"
-@help "Reads up to count bytes from :stdin or an open file."
+@help "Reads up to count bytes from :stdin, an open file, or a readable runtime endpoint."
 
 @func read_line
 @template "read_line(source)"
-@help "Reads one line from :stdin or an open file."
+@help "Reads one line from :stdin, an open file, or a readable runtime endpoint."
 
 @func write
 @template "write(destination, data)"
-@help "Writes a string or bytes to :stdout, :stderr, or an open file."
+@help "Writes a string or bytes to :stdout, :stderr, an open file, or a writable runtime endpoint."
+
+
+@func close
+@template "close(endpoint)"
+@help "Closes an open file or runtime-owned I/O endpoint."

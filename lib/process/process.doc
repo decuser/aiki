@@ -1,0 +1,36 @@
+@preamble let process = import("process")
+start
+@unchecked
+Starts command with a list of string arguments. The child uses the Aiki runtime's current working directory and receives attached stdin, stdout, and stderr endpoints.
+
+start(command, args)
+===
+stdin
+@unchecked
+Returns the process's writable stdin endpoint. Use io.write and io.close on it.
+
+stdin(process)
+===
+stdout
+@unchecked
+Returns the process's readable stdout endpoint. Use io.read or io.read_line on it.
+
+stdout(process)
+===
+stderr
+@unchecked
+Returns the process's readable stderr endpoint. Use io.read or io.read_line on it.
+
+stderr(process)
+===
+wait
+@unchecked
+Waits for completion and returns the process exit code. Repeated waits return the same result.
+
+wait(process)
+===
+terminate
+@unchecked
+Forcibly terminates a running child process. Portable graceful signaling is introduced separately by the signals phase.
+
+terminate(process)

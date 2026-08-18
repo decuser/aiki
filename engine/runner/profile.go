@@ -56,7 +56,7 @@ func RunProfileDetailed(filename string, opts ProfileOptions) (ProfileRun, error
 		return out, fmt.Errorf("loading grammar: %w", err)
 	}
 	rt := substrate.NewGoRuntime()
-	defer rt.CloseAllCanvases()
+	defer rt.CloseAllResources()
 	if err := initModuleRegistry(g, rt); err != nil {
 		return out, fmt.Errorf("initializing registry: %w", err)
 	}
@@ -133,8 +133,8 @@ func RunProfileDetailed(filename string, opts ProfileOptions) (ProfileRun, error
 	out.Substrate.Mallocs = after.Mallocs - before.Mallocs
 	out.Substrate.GCs = after.NumGC - before.NumGC
 
-	if fault, ok := result.(*value.Fault); ok {
-		return out, fmt.Errorf("%s", fault.Inspect())
+	if err := executionResultError(result); err != nil {
+		return out, err
 	}
 	return out, nil
 }

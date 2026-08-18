@@ -14,7 +14,7 @@ import (
 
 var ambientOSNames = map[string]bool{
 	"Stdin": true, "Stdout": true, "Stderr": true, "Args": true,
-	"Getenv": true, "LookupEnv": true, "Getwd": true, "Chdir": true,
+	"Getenv": true, "LookupEnv": true, "Environ": true, "Setenv": true, "Unsetenv": true, "Getwd": true, "Chdir": true,
 }
 
 func TestAikiFacingIOAndSystemUseRuntimeOwnedState(t *testing.T) {
@@ -40,6 +40,10 @@ func loadRuntimeOwnedSurface(t *testing.T) map[string]string {
 		"engine/runtime/hal/substrate/builtins_system.go",
 		"engine/runtime/hal/substrate/builtins_workdir.go",
 		"engine/runtime/hal/substrate/builtins_intrinsic.go",
+		"engine/runtime/hal/substrate/builtins_process.go",
+		"engine/runtime/hal/substrate/builtins_signal.go",
+		"engine/runtime/hal/substrate/builtins_network.go",
+		"engine/runtime/hal/substrate/builtins_terminal.go",
 	}
 	out := map[string]string{}
 	for _, pattern := range patterns {

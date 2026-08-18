@@ -14,7 +14,7 @@ const DefaultRuntimeProfile = "desktop"
 var runtimeProfiles = map[string]RuntimeProfile{
 	"desktop": {
 		Name:         "desktop",
-		Capabilities: []string{"basic-io", "filesystem", "process", "time", "random"},
+		Capabilities: []string{"basic-io", "filesystem", "file_lock", "process", "signals", "network", "terminal", "time", "random"},
 	},
 	// minimal is intentionally empty. It exists to exercise the profile gate and
 	// to provide a foundation for restricted/embedded runtimes without defining

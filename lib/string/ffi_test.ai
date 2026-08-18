@@ -1,0 +1,40 @@
+let test = import("test")
+let native = import("string")
+let ffi = import("string/ffi")
+
+let same = (name, a, b) {
+	test.run(name, () {
+		test.equal(a, b)
+	})
+}
+
+same("ffi substring ascii", ffi.substring("hello", 1, 4), native.substring("hello", 1, 4))
+same("ffi substring runes", ffi.substring("aé猫z", 1, 3), native.substring("aé猫z", 1, 3))
+same("ffi split ascii", ffi.split("a,b,c", ","), native.split("a,b,c", ","))
+same("ffi split multibyte", ffi.split("café猫latte猫fin", "猫"), native.split("café猫latte猫fin", "猫"))
+same(
+	"ffi index rune position",
+	ffi.index_of("café latte", "latte"),
+	native.index_of("café latte", "latte")
+)
+
+
+same(
+	"ffi last index rune position",
+	ffi.last_index_of("éaéa", "a"),
+	native.last_index_of("éaéa", "a")
+)
+
+
+same("ffi contains", ffi.contains("hello world", "world"), native.contains("hello world", "world"))
+same("ffi prefix", ffi.starts_with("éclair", "é"), native.starts_with("éclair", "é"))
+same("ffi suffix", ffi.ends_with("café", "fé"), native.ends_with("café", "fé"))
+same("ffi join", ffi.join(["a", "é", "猫"], "|"), native.join(["a", "é", "猫"], "|"))
+same("ffi replace", ffi.replace("é-é-é", "é", "猫"), native.replace("é-é-é", "é", "猫"))
+same("ffi replace first", ffi.replace_first("aaa", "a", "b"), native.replace_first("aaa", "a", "b"))
+same("ffi repeat", ffi.repeat("é", 3), native.repeat("é", 3))
+same("ffi reverse runes", ffi.reverse_string("aé猫"), native.reverse_string("aé猫"))
+same("ffi trim ascii whitespace", ffi.trim(" \tfoo\r\n"), native.trim(" \tfoo\r\n"))
+same("ffi compare runes", ffi.compare("é", "猫"), native.compare("é", "猫"))
+same("ffi words", ffi.words("  one  two "), native.words("  one  two "))
+same("ffi title", ffi.title("hello world"), native.title("hello world"))

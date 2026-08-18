@@ -282,3 +282,44 @@ write_all_bytes(p, bytes.str_to_bytes("XYZ"))    # true
 bytes.bytes_to_str(read_all_bytes(p))    # "XYZ"
 delete(p)    # true
 ===
+
+lock
+Acquires an exclusive interprocess lock associated with path, waiting until it
+is available. Returns an opaque runtime-owned lock token.
+
+lock(path)
+
+@unchecked
+let file = import("file")
+let p = file.temp()
+let l = file.lock(p)
+file.unlock(l)
+file.delete(p)
+===
+try_lock
+Attempts an exclusive interprocess lock without waiting. Returns an opaque lock
+token when acquired, false when the lock is held elsewhere, or a shaped :lock
+error.
+
+try_lock(path)
+
+@unchecked
+let file = import("file")
+let p = file.temp()
+let l = file.try_lock(p)
+file.unlock(l)
+file.delete(p)
+===
+unlock
+Releases a lock returned by lock or try_lock. Outstanding locks are released
+automatically during runtime teardown.
+
+unlock(lock)
+
+@unchecked
+let file = import("file")
+let p = file.temp()
+let l = file.lock(p)
+file.unlock(l)
+file.delete(p)
+===

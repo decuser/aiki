@@ -33,4 +33,23 @@ let bytes_slice = (bytes, start, end) {
 	_bytes_slice(bytes, start, end)
 }
 
-export(:str_to_bytes, :bytes_to_str, :bytes_new, :bytes_get, :bytes_length, :bytes_slice)
+# Decode ASCII decimal digits into raw byte values 0-9.
+let digits_from_text = (text) {
+	_bytes_digits_from_text(text)
+}
+
+# Encode raw byte values 0-9 as ASCII decimal digits.
+let digits_to_text = (bytes) {
+	_bytes_digits_to_text(bytes)
+}
+
+export(
+	:str_to_bytes,
+	:bytes_to_str,
+	:bytes_new,
+	:bytes_get,
+	:bytes_length,
+	:bytes_slice,
+	:digits_from_text,
+	:digits_to_text
+)

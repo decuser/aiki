@@ -15,3 +15,18 @@
 @func length
 @template "length(store)"
 @help "Returns the number of cells in a store."
+
+
+@func snapshot
+@template "snapshot(store, ...args)"
+@help "Returns an immutable list snapshot of all cells or the first count cells."
+
+
+@func digits_to_text
+@template "digits_to_text(store, ...args)"
+@help "Encodes all cells or the first count cells as ASCII decimal digits."
+
+
+@func checksum
+@template "checksum(store, ...args)"
+@help "Computes the standard dense-store checksum for all cells or the first count cells."

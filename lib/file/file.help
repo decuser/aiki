@@ -120,3 +120,15 @@
 @func write_all_bytes
 @template "write_all_bytes(path, bytes)"
 @help "Creates or replaces a file with bytes and closes it."
+
+@func lock
+@template "lock(path)"
+@help "Acquire an exclusive interprocess file lock, waiting until available."
+
+@func try_lock
+@template "try_lock(path)"
+@help "Try an exclusive interprocess file lock without waiting; return a lock token or false."
+
+@func unlock
+@template "unlock(lock_value)"
+@help "Release an exclusive interprocess file lock."

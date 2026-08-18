@@ -29,8 +29,23 @@ func (g *GoRuntime) ioReader(endpoint value.Value) (io.Reader, string, *value.Li
 		}
 		g.mu.Unlock()
 		return reader, v.Path, nil
+	case *value.Endpoint:
+		resource, ok := g.endpointResource(v)
+		if !ok {
+			return nil, "", value.NewShapedError("io", "endpoint does not belong to this runtime")
+		}
+		if resource.isClosed() {
+			return nil, "", value.NewShapedError("io", "endpoint is closed")
+		}
+		if resource.Reader == nil {
+			return nil, "", value.NewShapedError("io", "%s is not readable", v.Inspect())
+		}
+		if resource.Buffered != nil {
+			return resource.Buffered, v.Label, nil
+		}
+		return resource.Reader, v.Label, nil
 	default:
-		return nil, "", value.NewShapedError("io", "expected :stdin or file, got %s", endpoint.Type())
+		return nil, "", value.NewShapedError("io", "expected :stdin, file, or endpoint, got %s", endpoint.Type())
 	}
 }
 
@@ -52,7 +67,19 @@ func (g *GoRuntime) ioWriter(endpoint value.Value) (io.Writer, string, *value.Li
 			return nil, "", value.NewShapedError("io", "file is closed")
 		}
 		return v.F, v.Path, nil
+	case *value.Endpoint:
+		resource, ok := g.endpointResource(v)
+		if !ok {
+			return nil, "", value.NewShapedError("io", "endpoint does not belong to this runtime")
+		}
+		if resource.isClosed() {
+			return nil, "", value.NewShapedError("io", "endpoint is closed")
+		}
+		if resource.Writer == nil {
+			return nil, "", value.NewShapedError("io", "%s is not writable", v.Inspect())
+		}
+		return resource.Writer, v.Label, nil
 	default:
-		return nil, "", value.NewShapedError("io", "expected :stdout, :stderr, or file, got %s", endpoint.Type())
+		return nil, "", value.NewShapedError("io", "expected :stdout, :stderr, file, or endpoint, got %s", endpoint.Type())
 	}
 }

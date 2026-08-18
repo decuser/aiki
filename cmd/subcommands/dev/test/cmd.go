@@ -77,7 +77,7 @@ func Run(args []string) int {
 		}
 
 		if runErr != nil {
-			rt.CloseAllCanvases()
+			rt.CloseAllResources()
 			fmt.Fprintf(os.Stderr, "FAIL %s\n    %v\n", f, runErr)
 			anyFailed = true
 			totalFailed++
@@ -85,7 +85,7 @@ func Run(args []string) int {
 		}
 
 		passed, failed, failures := rt.TestResults()
-		rt.CloseAllCanvases()
+		rt.CloseAllResources()
 		totalPassed += passed
 		totalFailed += failed
 

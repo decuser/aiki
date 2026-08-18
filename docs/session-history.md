@@ -367,3 +367,137 @@ Sessions covered: 2026-08-14 through 2026-08-16.
 - Help, full docs, executable examples/tests, list tests, number tests, and file behavior smoke coverage were added with each surface.
 - Sandbox limitation: authoritative Aiki execution is unavailable because the source-only baseline requires Go 1.24 and toolchain download is blocked.
 - Exact next action: apply the project delta locally, rebuild, run `make invariant`, then `make validate`; treat any gate failure as project work before commit.
+
+## Portable systems completeness (2026-08-17)
+
+- Authoritative working baseline: `v0.4.0-alpha-30`, commit `c9769d6`, with the byte-boundary normalization refinement carried forward in this working tree.
+- Project branch: `portable-systems`.
+- Proposal: `proposals/portable-systems-completeness.md`.
+- Goal: eliminate the remaining material gaps for portable Go-like systems programming while keeping policy/composition in Aiki and HAL limited to irreducible host mechanisms.
+- Governing additions: sufficient portability rather than host-union completeness; every new byte-oriented host resource must first be tested against the existing `io` endpoint abstraction.
+- Phase order: process lifecycle/pipes -> signals -> TCP/UDP networking -> terminal/TTY -> portable file locking -> final completeness audit.
+- Exact next action: inventory current process HAL operations, `system.exec`, runtime resource ownership, and `io` endpoint dispatch; define the smallest Phase 1 contract before changing behavior.
+
+### Portable systems Phase 1 implementation state (2026-08-17)
+
+- Process lifecycle surface added as `lib/process`: `start`, `stdin`, `stdout`, `stderr`, `wait`, and `terminate`.
+- Added opaque runtime-owned `process` and `endpoint` values. Process pipes are generic endpoints consumed by existing `io.read`, `io.read_line`, and `io.write`; no process-specific read/write API was introduced.
+- Added `io.close` because closing child stdin is required to deliver EOF and complete pipeline/interactive process semantics. It also accepts file handles, preserving I/O convergence.
+- Added canonical HAL operations, Go provenance, authority grants, capability membership, host registrations, and runtime-owned process/endpoint resource maps.
+- Runtime teardown is generalized through `CloseAllResources`, which terminates/reaps child processes before closing canvases; existing canvas-only cleanup remains available for focused tests.
+- `process.wait` is idempotent and returns the exit code, including nonzero codes; start failures remain shaped `:process` errors. `process.terminate` is the portable forceful termination primitive; graceful signaling remains Phase 2.
+- Focused Go tests cover attached stdin/stdout/stderr, EOF by closing stdin, nonzero exit status, repeated wait, and cross-runtime handle rejection.
+- Runtime-ownership invariant now includes process implementation. HAL metadata/role/binding invariants derive the new operations automatically.
+- Sandbox probe confirms `engine/semantics/value` and `engine/runtime/hal` compile after the change; full substrate tests remain blocked by uncached Ebiten/Go 1.24 dependencies.
+- Exact next action: apply Phase 1 on local `portable-systems`, rebuild, run `make invariant`, then `make validate`; any gate failure is Phase 1 work before Signals begins.
+
+### 2026-08-17 — Portable Systems Completeness, Phase 2
+
+Phase 1 process lifecycle/process I/O passed `make invariant` and `make validate` on the authoritative development tree.
+
+Phase 2 adds portable signals without introducing a parallel event model. `signal.watch(...signals)` returns a receive-only Aiki channel carrying semantic signal symbols, `signal.stop(source)` releases the runtime-owned subscription, and `signal.send(process, signal)` targets the opaque process handle introduced in Phase 1. The portable vocabulary begins with `:interrupt` and `:terminate`; individual host mappings may return shaped `:unsupported` when a semantic signal cannot be represented faithfully. Signal receipt is edge-like and may coalesce rather than acting as a lossless queue.
+
+The Go substrate owns signal subscriptions and tears them down with other runtime resources. The `:signals` capability is required by the desktop profile. Higher-level shutdown, cleanup, forwarding, and supervision remain Aiki policy.
+
+## 2026-08-17 — Portable systems Phase 3: networking
+
+- Added TCP connect/listen/accept using the existing generic I/O endpoint abstraction.
+- Added network address inspection for local/remote TCP endpoints and bound resources.
+- Added message-oriented UDP bind/send/receive with datagram boundaries preserved.
+- Added runtime-owned listener/datagram resources and cleanup.
+- Added `:network` HAL capability and desktop-profile requirement.
+- No parallel TCP read/write API was introduced; TCP uses `io.*`.
+
+## 2026-08-17 — Portable systems Phase 4: terminal/TTY
+
+- Added minimal terminal HAL: detect, size, raw, restore.
+- Terminal operations reuse existing I/O endpoints; no parallel terminal stream type.
+- Raw-mode restoration is represented by an opaque runtime-owned token and is restored at teardown.
+- ANSI rendering remains Aiki/library policy, not HAL.
+- Go substrate uses the already-shipped `github.com/chzyer/readline` terminal primitives, avoiding a new dependency.
+
+## 2026-08-17 — Portable systems Phase 5: file locking
+
+- Added exclusive interprocess locking as the sufficient portable contract.
+- `file.lock(path)` blocks until acquired; `file.try_lock(path)` is nonblocking; `file.unlock(lock)` releases.
+- Locks are opaque runtime-owned resources and are released during runtime teardown.
+- Shared locking is intentionally excluded from the portable contract.
+- Go substrate uses `github.com/gofrs/flock` v0.12.1; Aiki remains responsible for locking policy and composition.
+
+
+## 2026-08-17 — Portable systems Phase 6 audit remediation: runtime environment
+
+- Completeness audit found the system environment was read-only despite the proposal requiring inspect/modify semantics.
+- Added runtime-owned environ/set_env/unset_env; neither mutates the embedding process environment.
+- system.exec and process.start now inherit a snapshot of the Aiki runtime environment.
+- This closes the only material irreducible capability gap found by the Phase 6 source audit.
+## 2026-08-17 — Portable systems final reconciliation
+
+- Reconciled the validated Phase 6 implementation line-by-line against `proposals/portable-systems-completeness.md`.
+- Confirmed public surfaces, canonical HAL operations, capability/profile membership, authority grants, Go provenance/registration, runtime ownership, and module docs/tests for process, signals, networking, terminal control, file locking, and runtime environment.
+- Representative-program pressure check found no additional irreducible host capability: pipeline forwarding and supervisor coordination compose from existing process endpoints, spawn arguments, channels, signals, timers, and select.
+- AF-022 found/resolved: common `io` help/docs lagged endpoint convergence and now explicitly describe process pipes and TCP connections as runtime endpoints.
+- No material proposal/implementation contradiction remains. Portable-systems completeness is reconciled; showcase work is intentionally separate.
+
+
+## 2026-08-17 — Experiment 003 Four-Way Life begins
+
+- Baseline: `e09cf60` (`v0.4.0-alpha-30-2-ge09cf60`), branch/workstream `four-way-life`.
+- Four-Way Life is experiment `003`, following the repository experiment layout.
+- Governing proposal saved as `proposals/four-way-life.md`.
+- Gate 1 implementation started as a true five-process design: coordinator + four `aiki worker.ai` children.
+- Store is coordinator-only. Workers receive immutable newline-delimited generation frames and return color-specific next-generation proposals.
+- Headless acceptance runs the same seed twice and requires identical committed-generation transcripts; canvas mode is optional and renders only committed generations.
+
+## 2026-08-17 — Four-Way Life Gate 2 worker domains
+
+- Gate 1 validated as five real OS processes with deterministic headless transcripts.
+- Gate 2 keeps the protocol/barrier unchanged and makes worker domains load-bearing by protecting existing owner cells only, preventing new cross-owner proposal conflicts.
+- Engine A: recurring file/path/string/bytes pattern input.
+- Engine B: runtime env + deterministic random/hash; wall time is fallback seed only when explicit seed is absent.
+- Engine C: project-controlled Aiki helper subprocess + process pipe + regex + base conversion.
+- Engine D: pure list/sort/map/filter/reduce + pipeline + shape/match + exact math path.
+
+
+## 2026-08-17 — Four-Way Life Gate 4
+
+- Gate 3 systems acceptance passed: lock held/released, signal shutdown,
+  generation logging, and terminal raw/restore.
+- Added Gate 4 hardening acceptance with no new public capability.
+- `helper.ai` supports deliberate `FWL_HELPER_FAIL=1` status-7 failure so
+  Worker C's local subprocess-failure contract is exercised end to end.
+- `terminal_probe.ai` now exits nonzero on actual raw/restore failure; non-TTY
+  execution remains an explicit skip.
+- `gate4.sh` composes deterministic five-process acceptance, failure recovery,
+  and Gate 3 systems acceptance.
+- Final completion requires `gate4.sh` plus repository `make validate`.
+
+
+## 2026-08-17 — Four-Way Life final showcase reconciliation
+
+- `showcase.sh` now launches the intended interactive presentation: coordinator
+  in the current terminal, canvas window, and four worker-status terminal
+  windows.
+- Worker-status terminals display log views from the actual coordinator-owned
+  A/B/C/D processes; they do not replace or duplicate the worker protocol pipes.
+- Debian `x-terminal-emulator` compatibility was verified against
+  `gnome-terminal.wrapper`; the launcher uses the working `-e` form.
+- Canvas closure now terminates the coordinator run, stops/reaps workers, and
+  causes all four worker-view terminals to stop and close.
+- Final showcase architecture and lifecycle reconciled into experiment docs and
+  proposal.
+
+## 2026-08-17 — string/ffi from Four-Way Life profiling
+
+- Four-Way Life hot-path attribution identified pure-Aiki `string.split`/`substring`
+  and string indexing as a substantial generic allocation/iteration cost during
+  line-protocol decoding.
+- Added explicit `string/ffi` provider-accelerated sibling while preserving bare
+  `string` as the pure/reference implementation.
+- Accelerated coarse string operations through RoleProvider primitives; no HAL
+  capability or authority surface was added.
+- Provider implementations preserve Aiki rune-index semantics and ASCII-only
+  whitespace behavior.
+- Added native-vs-FFI parity tests with multibyte text.
+- Four-Way Life explicitly opts into `string/ffi` in worker/protocol code so the
+  optimization can be measured before considering any default-module change.

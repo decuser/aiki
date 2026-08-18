@@ -1,0 +1,172 @@
+# string/ffi - provider-accelerated string operations
+# string - string operations
+
+# Substrings and decomposition
+@func substring
+@template "substring(s, start, end)"
+@help "Returns the runes of s from start up to end."
+
+@func split
+@template "split(s, delim)"
+@help "Splits s at occurrences of delim into a list of strings."
+
+@func chars
+@template "chars(s)"
+@help "Returns the runes of s as a list."
+
+@func lines
+@template "lines(s)"
+@help "Splits s at newlines into a list of strings."
+
+@func words
+@template "words(s)"
+@help "Splits trimmed s at spaces, discarding empty parts."
+
+# Searching and comparison
+@func index_of
+@template "index_of(s, sub)"
+@help "Returns the rune index of the first sub in s, or [@error, :lookup, msg]."
+
+@func last_index_of
+@template "last_index_of(s, sub)"
+@help "Returns the rune index of the last sub in s, or [@error, :lookup, msg]."
+
+@func contains
+@template "contains(s, sub)"
+@help "Returns true if sub occurs in s."
+
+@func starts_with
+@template "starts_with(s, prefix)"
+@help "Returns true if s begins with prefix."
+
+@func ends_with
+@template "ends_with(s, suffix)"
+@help "Returns true if s ends with suffix."
+
+@func occurrences
+@template "occurrences(s, sub)"
+@help "Returns the number of occurrences of sub in s."
+
+@func compare
+@template "compare(a, b)"
+@help "Returns -1, 0, or 1 as a precedes, equals, or follows b."
+
+@func equal_ignore_case
+@template "equal_ignore_case(a, b)"
+@help "Returns true if a and b are equal ignoring case."
+
+# Replacement and construction
+@func join
+@template "join(list, delim)"
+@help "Concatenates the strings in list, separated by delim."
+
+@func replace
+@template "replace(s, old, new)"
+@help "Replaces every occurrence of old in s with new."
+
+@func replace_first
+@template "replace_first(s, old, new)"
+@help "Replaces the first occurrence of old in s with new."
+
+@func repeat
+@template "repeat(s, n)"
+@help "Returns n successive copies of s."
+
+@func reverse_string
+@template "reverse_string(s)"
+@help "Returns the runes of s in reverse order."
+
+@func insert
+@template "insert(s, pos, sub)"
+@help "Returns s with sub inserted at rune position pos."
+
+@func remove
+@template "remove(s, start, end)"
+@help "Returns s with the runes from start up to end removed."
+
+# Whitespace and padding
+@func trim
+@template "trim(s)"
+@help "Removes leading and trailing whitespace from s."
+
+@func trim_start
+@template "trim_start(s)"
+@help "Removes leading whitespace from s."
+
+@func trim_end
+@template "trim_end(s)"
+@help "Removes trailing whitespace from s."
+
+@func pad_start
+@template "pad_start(s, len, char)"
+@help "Extends s to at least len runes by adding char at the beginning."
+
+@func pad_end
+@template "pad_end(s, len, char)"
+@help "Extends s to at least len runes by adding char at the end."
+
+@func center
+@template "center(s, len, char)"
+@help "Pads both sides of s with char to reach len runes."
+
+@func truncate
+@template "truncate(s, len)"
+@help "Returns at most the first len runes of s."
+
+# Rune and string classification
+@func is_digit
+@template "is_digit(r)"
+@help "Returns true if rune r is an ASCII decimal digit."
+
+@func is_alpha
+@template "is_alpha(r)"
+@help "Returns true if rune r is an ASCII letter."
+
+@func is_alnum
+@template "is_alnum(r)"
+@help "Returns true if rune r is an ASCII letter or digit."
+
+@func is_upper
+@template "is_upper(r)"
+@help "Returns true if rune r is an ASCII upper-case letter."
+
+@func is_lower
+@template "is_lower(r)"
+@help "Returns true if rune r is an ASCII lower-case letter."
+
+@func is_whitespace
+@template "is_whitespace(r)"
+@help "Returns true if rune r is a space, tab, newline, or carriage return."
+
+@func is_numeric
+@template "is_numeric(s)"
+@help "Returns true if s is nonempty and every rune is an ASCII digit."
+
+@func is_alphabetic
+@template "is_alphabetic(s)"
+@help "Returns true if s is nonempty and every rune is an ASCII letter."
+
+# Case conversion
+@func upper
+@template "upper(s)"
+@help "Returns s converted to upper case."
+
+@func lower
+@template "lower(s)"
+@help "Returns s converted to lower case."
+
+@func upper_rune
+@template "upper_rune(r)"
+@help "Returns the upper-case form of rune r."
+
+@func lower_rune
+@template "lower_rune(r)"
+@help "Returns the lower-case form of rune r."
+
+@func capitalize
+@template "capitalize(s)"
+@help "Upper-cases the first rune of s and lower-cases the rest."
+
+@func title
+@template "title(s)"
+@help "Capitalizes each word of s and joins them with single spaces."

@@ -1,0 +1,48 @@
+package "four_way_protocol"
+
+let string = import("string/ffi")
+
+let encode_gen = (generation, width, height, grid_text) {
+	return "GEN|" + to_str(generation) + "|" + to_str(width) + "|" + to_str(height) + "|" + grid_text
+}
+
+let decode_gen = (line) {
+	let parts = string.split(line, "|")
+	if not equal(length(parts), 5) or not equal(parts[0], "GEN") {
+		return [@error, :protocol, "invalid generation frame"]
+	}
+	return [@gen, to_number(parts[1]), to_number(parts[2]), to_number(parts[3]), parts[4]]
+}
+
+let _positions_text = (positions) {
+	let fields = []
+	let i = 0
+	while i < length(positions) {
+		fields = append(fields, to_str(positions[i]))
+		i = i + 1
+	}
+	return string.join(fields, ",")
+}
+
+let encode_done = (owner, generation, positions) {
+	return "DONE|" + to_str(owner) + "|" + to_str(generation) + "|" + _positions_text(positions)
+}
+
+let decode_done = (line) {
+	let parts = string.split(line, "|")
+	if not equal(length(parts), 4) or not equal(parts[0], "DONE") {
+		return [@error, :protocol, "invalid completion frame"]
+	}
+	let positions = []
+	if length(parts[3]) > 0 {
+		let raw = string.split(parts[3], ",")
+		let i = 0
+		while i < length(raw) {
+			positions = append(positions, to_number(raw[i]))
+			i = i + 1
+		}
+	}
+	return [@done, to_number(parts[1]), to_number(parts[2]), positions]
+}
+
+export(:encode_gen, :decode_gen, :encode_done, :decode_done)

@@ -1,0 +1,549 @@
+FOUR-WAY-LIFE seed=42 size=60x40
+GEN 0 497593190
+GEN 1 772008918
+GEN 2 65433240
+GEN 3 346268567
+GEN 4 99309836
+GEN 5 332457275
+PASS
+Aiki semantic work
+  arithmetic   281880
+  comparison   78304
+  call         427195
+  iteration    74651
+  index        33791
+  send         0
+  receive      0
+  store_read   26515
+  store_write  14515
+
+Aiki source attribution
+     50060  call         <prelude>:88:8 in equal -> <builtin: _equal>
+            _equal(a, b)
+     35064  call         <prelude>:63:9 in length -> <builtin: _length>
+            _length(list)
+     28584  call         <prelude>:108:9 in to_str -> <builtin: _to_str>
+            _to_str(val)
+     26515  call         /home/wsenn/forge/dev/aiki/lib/store/store.ai:9:12 in get -> <builtin: _store_get>
+            _store_get(store, index)
+     26515  store_read   /home/wsenn/forge/dev/aiki/lib/store/store.ai:9:12 in get
+            _store_get(store, index)
+     26411  arithmetic   coordinator.ai:73:14 in grid_text
+            while j < (width * height) {
+     26411  comparison   coordinator.ai:73:9 in grid_text
+            while j < (width * height) {
+     26400  arithmetic   coordinator.ai:74:11 in grid_text
+            text = text + to_str(store.get(grid, j))
+     26400  arithmetic   coordinator.ai:75:8 in grid_text
+            j = j + 1
+     26400  call         coordinator.ai:74:24 in grid_text -> to_str
+            text = text + to_str(store.get(grid, j))
+     26400  call         coordinator.ai:74:34 in grid_text -> get
+            text = text + to_str(store.get(grid, j))
+     26400  iteration    coordinator.ai:73:30 in grid_text
+            while j < (width * height) {
+     17142  call         <prelude>:71:9 in append -> <builtin: _append>
+            _append(list, val)
+     14515  call         /home/wsenn/forge/dev/aiki/lib/store/store.ai:13:12 in set -> <builtin: _store_set>
+            _store_set(store, index, value)
+     14515  store_write  /home/wsenn/forge/dev/aiki/lib/store/store.ai:13:12 in set
+            _store_set(store, index, value)
+     14406  call         life.ai:17:18 in grid_from_text -> length
+            while i < length(text) {
+     14406  call         life.ai:158:18 in checksum -> length
+            while i < length(grid) {
+     14406  comparison   life.ai:17:8 in grid_from_text
+            while i < length(text) {
+     14406  comparison   life.ai:158:8 in checksum
+            while i < length(grid) {
+     14401  arithmetic   life.ai:7:9 in mod
+            return a - (truncate(a / b) * b)
+     14401  arithmetic   life.ai:7:14 in mod
+            return a - (truncate(a / b) * b)
+     14401  arithmetic   life.ai:7:23 in mod
+            return a - (truncate(a / b) * b)
+     14401  call         <prelude>:149:11 in truncate -> <builtin: _truncate>
+            _truncate(x)
+     14401  call         life.ai:7:22 in mod -> truncate
+            return a - (truncate(a / b) * b)
+     14400  arithmetic   life.ai:18:23 in grid_from_text
+            grid = append(grid, ord(text[i]) - 48)
+     14400  arithmetic   life.ai:19:7 in grid_from_text
+            i = i + 1
+     14400  arithmetic   life.ai:159:15 in checksum
+            value = mod(((value * 131) + grid[i]) + i, 1000000007)
+     14400  arithmetic   life.ai:159:16 in checksum
+            value = mod(((value * 131) + grid[i]) + i, 1000000007)
+     14400  arithmetic   life.ai:159:17 in checksum
+            value = mod(((value * 131) + grid[i]) + i, 1000000007)
+     14400  arithmetic   life.ai:160:7 in checksum
+            i = i + 1
+     14400  call         <prelude>:92:6 in ord -> <builtin: _ord>
+            _ord(r)
+     14400  call         life.ai:18:16 in grid_from_text -> append
+            grid = append(grid, ord(text[i]) - 48)
+     14400  call         life.ai:18:26 in grid_from_text -> ord
+            grid = append(grid, ord(text[i]) - 48)
+     14400  call         life.ai:159:14 in checksum -> mod
+            value = mod(((value * 131) + grid[i]) + i, 1000000007)
+     14400  index        life.ai:18:31 in grid_from_text
+            grid = append(grid, ord(text[i]) - 48)
+     14400  index        life.ai:159:36 in checksum
+            value = mod(((value * 131) + grid[i]) + i, 1000000007)
+     14400  iteration    life.ai:17:25 in grid_from_text
+            while i < length(text) {
+     14400  iteration    life.ai:158:25 in checksum
+            while i < length(grid) {
+     12005  arithmetic   coordinator.ai:132:14 in <main>
+            while i < (width * height) {
+     12005  comparison   coordinator.ai:132:9 in <main>
+            while i < (width * height) {
+     12000  arithmetic   coordinator.ai:134:8 in <main>
+            i = i + 1
+     12000  call         coordinator.ai:133:13 in <main> -> set
+            store.set(grid, i, 0)
+     12000  iteration    coordinator.ai:132:30 in <main>
+            while i < (width * height) {
+      9600  arithmetic   life.ai:130:11 in _glider_at
+            let dx = x - base_x
+      9600  arithmetic   life.ai:131:11 in _glider_at
+            let dy = y - base_y
+      9600  call         life.ai:132:15 in _glider_at -> equal
+            return (equal(dx, 0) and equal(dy, 1)) or (equal(dx, 1) and equal(dy, 2)) or (equal(dx, 2) and equal(dy, 0)) or (equal(dx, 2) and equal(dy, 1)) or (equal(dx, 2) and equal(dy, 2))
+      9596  call         life.ai:132:50 in _glider_at -> equal
+            return (equal(dx, 0) and equal(dy, 1)) or (equal(dx, 1) and equal(dy, 2)) or (equal(dx, 2) and equal(dy, 0)) or (equal(dx, 2) and equal(dy, 1)) or (equal(dx, 2) and equal(dy, 2))
+      9592  call         life.ai:132:85 in _glider_at -> equal
+            return (equal(dx, 0) and equal(dy, 1)) or (equal(dx, 1) and equal(dy, 2)) or (equal(dx, 2) and equal(dy, 0)) or (equal(dx, 2) and equal(dy, 1)) or (equal(dx, 2) and equal(dy, 2))
+      9588  call         life.ai:132:120 in _glider_at -> equal
+            return (equal(dx, 0) and equal(dy, 1)) or (equal(dx, 1) and equal(dy, 2)) or (equal(dx, 2) and equal(dy, 0)) or (equal(dx, 2) and equal(dy, 1)) or (equal(dx, 2) and equal(dy, 2))
+      9584  call         life.ai:132:155 in _glider_at -> equal
+            return (equal(dx, 0) and equal(dy, 1)) or (equal(dx, 1) and equal(dy, 2)) or (equal(dx, 2) and equal(dy, 0)) or (equal(dx, 2) and equal(dy, 1)) or (equal(dx, 2) and equal(dy, 2))
+      4800  arithmetic   life.ai:144:24 in seed_grid
+            if _glider_at(x, y, width - 6 - shift, 2) { owner = 2 }
+      4800  arithmetic   life.ai:145:27 in seed_grid
+            if _glider_at(x, y, 2, height - 6 - shift) { owner = 3 }
+      4800  arithmetic   life.ai:146:35 in seed_grid
+            if _glider_at(x, y, width - 6, height - 6 - shift) { owner = 4 }
+      2440  comparison   life.ai:141:9 in seed_grid
+            while x < width {
+      2401  call         coordinator.ai:45:18 in <main> -> length
+            while i < length(seeded) {
+      2401  comparison   coordinator.ai:45:8 in <main>
+            while i < length(seeded) {
+      2400  arithmetic   coordinator.ai:47:7 in <main>
+            i = i + 1
+      2400  arithmetic   life.ai:143:24 in seed_grid
+            if _glider_at(x, y, 2 + shift, 2) { owner = 1 }
+      2400  arithmetic   life.ai:146:24 in seed_grid
+            if _glider_at(x, y, width - 6, height - 6 - shift) { owner = 4 }
+      2400  arithmetic   life.ai:148:8 in seed_grid
+            x = x + 1
+      2400  call         coordinator.ai:46:12 in <main> -> set
+            store.set(grid, i, seeded[i])
+      2400  call         life.ai:143:17 in seed_grid -> _glider_at
+            if _glider_at(x, y, 2 + shift, 2) { owner = 1 }
+      2400  call         life.ai:144:17 in seed_grid -> _glider_at
+            if _glider_at(x, y, width - 6 - shift, 2) { owner = 2 }
+      2400  call         life.ai:145:17 in seed_grid -> _glider_at
+            if _glider_at(x, y, 2, height - 6 - shift) { owner = 3 }
+      2400  call         life.ai:146:17 in seed_grid -> _glider_at
+            if _glider_at(x, y, width - 6, height - 6 - shift) { owner = 4 }
+      2400  call         life.ai:147:17 in seed_grid -> append
+            grid = append(grid, owner)
+      2400  index        coordinator.ai:46:28 in <main>
+            store.set(grid, i, seeded[i])
+      2400  iteration    coordinator.ai:45:27 in <main>
+            while i < length(seeded) {
+      2400  iteration    life.ai:141:19 in seed_grid
+            while x < width {
+      2304  comparison   /home/wsenn/forge/dev/aiki/lib/string/string.ai:15:8 in substring
+            while i < end {
+      1192  call         /home/wsenn/forge/dev/aiki/lib/string/string.ai:40:18 in split -> length
+            while i < length(s) {
+      1192  comparison   /home/wsenn/forge/dev/aiki/lib/string/string.ai:40:8 in split
+            while i < length(s) {
+      1152  arithmetic   /home/wsenn/forge/dev/aiki/lib/string/string.ai:17:13 in substring
+            result = result + to_str(s[i])
+      1152  arithmetic   /home/wsenn/forge/dev/aiki/lib/string/string.ai:19:7 in substring
+            i = i + 1
+      1152  arithmetic   /home/wsenn/forge/dev/aiki/lib/string/string.ai:41:15 in split
+            let limit = i + dlen
+      1152  call         /home/wsenn/forge/dev/aiki/lib/string/string.ai:16:16 in substring -> length
+            if i < length(s) {
+      1152  call         /home/wsenn/forge/dev/aiki/lib/string/string.ai:17:28 in substring -> to_str
+            result = result + to_str(s[i])
+      1152  call         /home/wsenn/forge/dev/aiki/lib/string/string.ai:42:21 in split -> length
+            if limit <= length(s) {
+      1152  call         /home/wsenn/forge/dev/aiki/lib/string/string.ai:43:12 in split -> equal
+            if equal(substring(s, i, limit), delim) {
+      1152  call         /home/wsenn/forge/dev/aiki/lib/string/string.ai:43:22 in split -> substring
+            if equal(substring(s, i, limit), delim) {
+      1152  comparison   /home/wsenn/forge/dev/aiki/lib/string/string.ai:16:6 in substring
+            if i < length(s) {
+      1152  comparison   /home/wsenn/forge/dev/aiki/lib/string/string.ai:42:6 in split
+            if limit <= length(s) {
+      1152  index        /home/wsenn/forge/dev/aiki/lib/string/string.ai:17:30 in substring
+            result = result + to_str(s[i])
+      1152  iteration    /home/wsenn/forge/dev/aiki/lib/string/string.ai:15:16 in substring
+            while i < end {
+      1152  iteration    /home/wsenn/forge/dev/aiki/lib/string/string.ai:40:22 in split
+            while i < length(s) {
+       997  arithmetic   /home/wsenn/forge/dev/aiki/lib/string/string.ai:48:15 in split
+            current = current + to_str(s[i])
+       997  arithmetic   /home/wsenn/forge/dev/aiki/lib/string/string.ai:49:9 in split
+            i = i + 1
+       997  call         /home/wsenn/forge/dev/aiki/lib/string/string.ai:48:31 in split -> to_str
+            current = current + to_str(s[i])
+       997  index        /home/wsenn/forge/dev/aiki/lib/string/string.ai:48:33 in split
+            current = current + to_str(s[i])
+       160  call         life.ai:132:32 in _glider_at -> equal
+            return (equal(dx, 0) and equal(dy, 1)) or (equal(dx, 1) and equal(dy, 2)) or (equal(dx, 2) and equal(dy, 0)) or (equal(dx, 2) and equal(dy, 1)) or (equal(dx, 2) and equal(dy, 2))
+       160  call         life.ai:132:67 in _glider_at -> equal
+            return (equal(dx, 0) and equal(dy, 1)) or (equal(dx, 1) and equal(dy, 2)) or (equal(dx, 2) and equal(dy, 0)) or (equal(dx, 2) and equal(dy, 1)) or (equal(dx, 2) and equal(dy, 2))
+       160  call         life.ai:132:102 in _glider_at -> equal
+            return (equal(dx, 0) and equal(dy, 1)) or (equal(dx, 1) and equal(dy, 2)) or (equal(dx, 2) and equal(dy, 0)) or (equal(dx, 2) and equal(dy, 1)) or (equal(dx, 2) and equal(dy, 2))
+       159  call         <prelude>:116:12 in to_number -> <builtin: _to_number>
+            _to_number(s)
+       156  call         life.ai:132:137 in _glider_at -> equal
+            return (equal(dx, 0) and equal(dy, 1)) or (equal(dx, 1) and equal(dy, 2)) or (equal(dx, 2) and equal(dy, 0)) or (equal(dx, 2) and equal(dy, 1)) or (equal(dx, 2) and equal(dy, 2))
+       155  call         /home/wsenn/forge/dev/aiki/lib/string/string.ai:44:20 in split -> append
+            result = append(result, current)
+       152  call         life.ai:132:172 in _glider_at -> equal
+            return (equal(dx, 0) and equal(dy, 1)) or (equal(dx, 1) and equal(dy, 2)) or (equal(dx, 2) and equal(dy, 0)) or (equal(dx, 2) and equal(dy, 1)) or (equal(dx, 2) and equal(dy, 2))
+       135  call         coordinator.ai:143:20 in <main> -> length
+            while k < length(positions) {
+       135  call         protocol.ai:40:19 in decode_done -> length
+            while i < length(raw) {
+       135  comparison   coordinator.ai:143:10 in <main>
+            while k < length(positions) {
+       135  comparison   protocol.ai:40:9 in decode_done
+            while i < length(raw) {
+       115  arithmetic   coordinator.ai:149:9 in <main>
+            k = k + 1
+       115  arithmetic   protocol.ai:42:8 in decode_done
+            i = i + 1
+       115  call         coordinator.ai:145:17 in <main> -> equal
+            if not equal(store.get(grid, pos), 0) {
+       115  call         coordinator.ai:145:27 in <main> -> get
+            if not equal(store.get(grid, pos), 0) {
+       115  call         coordinator.ai:148:14 in <main> -> set
+            store.set(grid, pos, reply_owner)
+       115  call         protocol.ai:41:22 in decode_done -> append
+            positions = append(positions, to_number(raw[i]))
+       115  call         protocol.ai:41:43 in decode_done -> to_number
+            positions = append(positions, to_number(raw[i]))
+       115  index        coordinator.ai:144:24 in <main>
+            let pos = positions[k]
+       115  index        protocol.ai:41:47 in decode_done
+            positions = append(positions, to_number(raw[i]))
+       115  iteration    coordinator.ai:143:32 in <main>
+            while k < length(positions) {
+       115  iteration    protocol.ai:40:25 in decode_done
+            while i < length(raw) {
+        41  comparison   life.ai:139:8 in seed_grid
+            while y < height {
+        40  arithmetic   life.ai:150:7 in seed_grid
+            y = y + 1
+        40  call         /home/wsenn/forge/dev/aiki/lib/string/string.ai:39:19 in split -> length
+            let dlen = length(delim)
+        40  call         /home/wsenn/forge/dev/aiki/lib/string/string.ai:56:15 in split -> append
+            return append(result, current)
+        40  iteration    life.ai:139:19 in seed_grid
+            while y < height {
+        35  arithmetic   protocol.ai:6:9 in encode_gen
+            return "GEN|" + to_str(generation) + "|" + to_str(width) + "|" + to_str(height) + "|" + grid_text
+        25  call         <prelude>:104:8 in is_error -> <builtin: _equal>
+            _equal(_shape(val), :error)
+        25  call         <prelude>:104:15 in is_error -> <builtin: _shape>
+            _equal(_shape(val), :error)
+        25  comparison   coordinator.ai:106:9 in <main>
+            while w < 4 {
+        25  comparison   coordinator.ai:113:9 in <main>
+            while w < 4 {
+        25  comparison   coordinator.ai:138:9 in <main>
+            while w < 4 {
+        24  call         /home/wsenn/forge/dev/aiki/lib/io/io.ai:13:11 in write -> <builtin: _io_write>
+            _io_write(destination, data)
+        20  arithmetic   coordinator.ai:108:8 in <main>
+            w = w + 1
+        20  arithmetic   coordinator.ai:128:8 in <main>
+            w = w + 1
+        20  arithmetic   coordinator.ai:151:8 in <main>
+            w = w + 1
+        20  call         /home/wsenn/forge/dev/aiki/lib/io/io.ai:9:15 in read_line -> <builtin: _io_read_line>
+            _io_read_line(source)
+        20  call         coordinator.ai:107:12 in <main> -> write
+            io.write(inputs[w], frame)
+        20  call         coordinator.ai:114:27 in <main> -> read_line
+            let line = io.read_line(outputs[w])
+        20  call         coordinator.ai:115:36 in <main> -> decode_done
+            let reply = protocol.decode_done(line)
+        20  call         coordinator.ai:116:15 in <main> -> is_error
+            if is_error(reply) {
+        20  call         coordinator.ai:127:20 in <main> -> append
+            replies = append(replies, reply)
+        20  call         protocol.ai:32:26 in decode_done -> split
+            let parts = string.split(line, "|")
+        20  call         protocol.ai:33:14 in decode_done -> equal
+            if not equal(length(parts), 4) or not equal(parts[0], "DONE") {
+        20  call         protocol.ai:33:21 in decode_done -> length
+            if not equal(length(parts), 4) or not equal(parts[0], "DONE") {
+        20  call         protocol.ai:33:45 in decode_done -> equal
+            if not equal(length(parts), 4) or not equal(parts[0], "DONE") {
+        20  call         protocol.ai:37:11 in decode_done -> length
+            if length(parts[3]) > 0 {
+        20  call         protocol.ai:38:25 in decode_done -> split
+            let raw = string.split(parts[3], ",")
+        20  call         protocol.ai:45:26 in decode_done -> to_number
+            return [@done, to_number(parts[1]), to_number(parts[2]), positions]
+        20  call         protocol.ai:45:47 in decode_done -> to_number
+            return [@done, to_number(parts[1]), to_number(parts[2]), positions]
+        20  comparison   protocol.ai:37:5 in decode_done
+            if length(parts[3]) > 0 {
+        20  index        coordinator.ai:107:19 in <main>
+            io.write(inputs[w], frame)
+        20  index        coordinator.ai:114:35 in <main>
+            let line = io.read_line(outputs[w])
+        20  index        coordinator.ai:139:23 in <main>
+            let reply = replies[w]
+        20  index        coordinator.ai:140:27 in <main>
+            let reply_owner = reply[0]
+        20  index        coordinator.ai:141:25 in <main>
+            let positions = reply[2]
+        20  index        protocol.ai:33:51 in decode_done
+            if not equal(length(parts), 4) or not equal(parts[0], "DONE") {
+        20  index        protocol.ai:37:17 in decode_done
+            if length(parts[3]) > 0 {
+        20  index        protocol.ai:38:31 in decode_done
+            let raw = string.split(parts[3], ",")
+        20  index        protocol.ai:45:32 in decode_done
+            return [@done, to_number(parts[1]), to_number(parts[2]), positions]
+        20  index        protocol.ai:45:53 in decode_done
+            return [@done, to_number(parts[1]), to_number(parts[2]), positions]
+        20  iteration    coordinator.ai:106:15 in <main>
+            while w < 4 {
+        20  iteration    coordinator.ai:113:15 in <main>
+            while w < 4 {
+        20  iteration    coordinator.ai:138:15 in <main>
+            while w < 4 {
+        15  arithmetic   coordinator.ai:156:11 in <main>
+            println("GEN " + to_str(generation) + " " + to_str(life.checksum(committed)))
+         8  call         <prelude>:7:8 in apply -> <builtin: _apply>
+            _apply(fn, args)
+         8  call         <prelude>:41:7 in println -> apply
+            apply(_print, args)
+         8  call         <prelude>:42:8 in println -> <builtin: _print>
+            _print("\n")
+         6  comparison   coordinator.ai:103:8 in <main>
+            while generation < generations {
+         5  arithmetic   coordinator.ai:99:10 in <main>
+            println("FOUR-WAY-LIFE seed=" + to_str(seed) + " size=" + to_str(width) + "x" + to_str(height))
+         5  arithmetic   coordinator.ai:104:15 in <main>
+            let frame = protocol.encode_gen(generation, width, height, grid_text()) + "\n"
+         5  arithmetic   coordinator.ai:154:16 in <main>
+            generation = generation + 1
+         5  call         /home/wsenn/forge/dev/aiki/lib/system/system.ai:13:13 in env -> <builtin: _system_env>
+            _system_env(name)
+         5  call         coordinator.ai:104:34 in <main> -> encode_gen
+            let frame = protocol.encode_gen(generation, width, height, grid_text()) + "\n"
+         5  call         coordinator.ai:104:71 in <main> -> grid_text
+            let frame = protocol.encode_gen(generation, width, height, grid_text()) + "\n"
+         5  call         coordinator.ai:155:38 in <main> -> grid_from_text
+            let committed = life.grid_from_text(grid_text())
+         5  call         coordinator.ai:155:48 in <main> -> grid_text
+            let committed = life.grid_from_text(grid_text())
+         5  call         coordinator.ai:156:10 in <main> -> println
+            println("GEN " + to_str(generation) + " " + to_str(life.checksum(committed)))
+         5  call         coordinator.ai:156:26 in <main> -> to_str
+            println("GEN " + to_str(generation) + " " + to_str(life.checksum(committed)))
+         5  call         coordinator.ai:156:53 in <main> -> to_str
+            println("GEN " + to_str(generation) + " " + to_str(life.checksum(committed)))
+         5  call         coordinator.ai:156:67 in <main> -> checksum
+            println("GEN " + to_str(generation) + " " + to_str(life.checksum(committed)))
+         5  call         coordinator.ai:157:9 in <main> -> render
+            render()
+         5  call         protocol.ai:6:24 in encode_gen -> to_str
+            return "GEN|" + to_str(generation) + "|" + to_str(width) + "|" + to_str(height) + "|" + grid_text
+         5  call         protocol.ai:6:51 in encode_gen -> to_str
+            return "GEN|" + to_str(generation) + "|" + to_str(width) + "|" + to_str(height) + "|" + grid_text
+         5  call         protocol.ai:6:73 in encode_gen -> to_str
+            return "GEN|" + to_str(generation) + "|" + to_str(width) + "|" + to_str(height) + "|" + grid_text
+         5  comparison   coordinator.ai:54:8 in <main>
+            while owner <= 4 {
+         5  comparison   coordinator.ai:164:8 in <main>
+            while w < 4 {
+         5  comparison   coordinator.ai:170:8 in <main>
+            while w < 4 {
+         5  iteration    coordinator.ai:103:33 in <main>
+            while generation < generations {
+         4  arithmetic   coordinator.ai:59:11 in <main>
+            owner = owner + 1
+         4  arithmetic   coordinator.ai:167:7 in <main>
+            w = w + 1
+         4  arithmetic   coordinator.ai:175:7 in <main>
+            w = w + 1
+         4  call         /home/wsenn/forge/dev/aiki/lib/io/io.ai:17:11 in close -> <builtin: _io_close>
+            _io_close(endpoint)
+         4  call         /home/wsenn/forge/dev/aiki/lib/process/process.ai:4:16 in start -> <builtin: _process_start>
+            _process_start(command, args)
+         4  call         /home/wsenn/forge/dev/aiki/lib/process/process.ai:8:16 in stdin -> <builtin: _process_stdin>
+            _process_stdin(process)
+         4  call         /home/wsenn/forge/dev/aiki/lib/process/process.ai:12:17 in stdout -> <builtin: _process_stdout>
+            _process_stdout(process)
+         4  call         /home/wsenn/forge/dev/aiki/lib/process/process.ai:20:15 in wait -> <builtin: _process_wait>
+            _process_wait(process)
+         4  call         coordinator.ai:19:20 in env_number -> env
+            let v = system.env(name)
+         4  call         coordinator.ai:20:13 in env_number -> is_error
+            if is_error(v) { return fallback }
+         4  call         coordinator.ai:21:18 in env_number -> to_number
+            return to_number(v)
+         4  call         coordinator.ai:55:24 in <main> -> start
+            let p = process.start("aiki", ["worker.ai", to_str(owner)])
+         4  call         coordinator.ai:55:53 in <main> -> to_str
+            let p = process.start("aiki", ["worker.ai", to_str(owner)])
+         4  call         coordinator.ai:56:17 in <main> -> append
+            procs = append(procs, p)
+         4  call         coordinator.ai:57:18 in <main> -> append
+            inputs = append(inputs, process.stdin(p))
+         4  call         coordinator.ai:57:40 in <main> -> stdin
+            inputs = append(inputs, process.stdin(p))
+         4  call         coordinator.ai:58:19 in <main> -> append
+            outputs = append(outputs, process.stdout(p))
+         4  call         coordinator.ai:58:43 in <main> -> stdout
+            outputs = append(outputs, process.stdout(p))
+         4  call         coordinator.ai:165:11 in <main> -> write
+            io.write(inputs[w], "STOP\n")
+         4  call         coordinator.ai:166:11 in <main> -> close
+            io.close(inputs[w])
+         4  call         coordinator.ai:171:28 in <main> -> wait
+            let status = process.wait(procs[w])
+         4  call         coordinator.ai:172:15 in <main> -> equal
+            if not equal(status, 0) {
+         4  index        coordinator.ai:165:18 in <main>
+            io.write(inputs[w], "STOP\n")
+         4  index        coordinator.ai:166:18 in <main>
+            io.close(inputs[w])
+         4  index        coordinator.ai:171:34 in <main>
+            let status = process.wait(procs[w])
+         4  iteration    coordinator.ai:54:19 in <main>
+            while owner <= 4 {
+         4  iteration    coordinator.ai:164:14 in <main>
+            while w < 4 {
+         4  iteration    coordinator.ai:170:14 in <main>
+            while w < 4 {
+         3  arithmetic   coordinator.ai:100:10 in <main>
+            println("GEN " + to_str(generation) + " " + to_str(life.checksum(life.grid_from_text(grid_text()))))
+         2  call         /home/wsenn/forge/dev/aiki/lib/system/system.ai:21:17 in set_env -> <builtin: _system_set_env>
+            _system_set_env(name, value)
+         1  arithmetic   coordinator.ai:42:23 in <main>
+            let grid = store.new(width * height)
+         1  call         /home/wsenn/forge/dev/aiki/lib/store/store.ai:5:12 in new -> <builtin: _store_new>
+            _store_new(size)
+         1  call         /home/wsenn/forge/dev/aiki/lib/system/system.ai:5:14 in args -> <builtin: _system_args>
+            _system_args()
+         1  call         coordinator.ai:1:20 in <main> -> <builtin: _import>
+            let system = import("system")
+         1  call         coordinator.ai:2:21 in <main> -> <builtin: _import>
+            let process = import("process")
+         1  call         coordinator.ai:3:16 in <main> -> <builtin: _import>
+            let io = import("io")
+         1  call         coordinator.ai:4:19 in <main> -> <builtin: _import>
+            let store = import("store")
+         1  call         coordinator.ai:5:20 in <main> -> <builtin: _import>
+            let canvas = import("canvas")
+         1  call         coordinator.ai:6:18 in <main> -> <builtin: _import>
+            let time = import("time")
+         1  call         coordinator.ai:7:18 in <main> -> <builtin: _import>
+            let life = import("./life")
+         1  call         coordinator.ai:8:22 in <main> -> <builtin: _import>
+            let protocol = import("./protocol")
+         1  call         coordinator.ai:10:23 in <main> -> args
+            let args = system.args()
+         1  call         coordinator.ai:13:20 in env_text -> env
+            let v = system.env(name)
+         1  call         coordinator.ai:14:13 in env_text -> is_error
+            if is_error(v) { return fallback }
+         1  call         coordinator.ai:24:20 in <main> -> env_text
+            let mode = env_text("FWL_MODE", "headless")
+         1  call         coordinator.ai:25:29 in <main> -> env_number
+            let generations = env_number("FWL_GENERATIONS", 12)
+         1  call         coordinator.ai:26:23 in <main> -> env_number
+            let width = env_number("FWL_WIDTH", 24)
+         1  call         coordinator.ai:27:24 in <main> -> env_number
+            let height = env_number("FWL_HEIGHT", 18)
+         1  call         coordinator.ai:28:22 in <main> -> env_number
+            let seed = env_number("FWL_SEED", 42)
+         1  call         coordinator.ai:29:10 in <main> -> length
+            if length(args) > 0 { mode = args[0] }
+         1  call         coordinator.ai:30:10 in <main> -> length
+            if length(args) > 1 { generations = to_number(args[1]) }
+         1  call         coordinator.ai:31:10 in <main> -> length
+            if length(args) > 2 { width = to_number(args[2]) }
+         1  call         coordinator.ai:32:10 in <main> -> length
+            if length(args) > 3 { height = to_number(args[3]) }
+         1  call         coordinator.ai:33:10 in <main> -> length
+            if length(args) > 4 { seed = to_number(args[4]) }
+         1  call         coordinator.ai:40:16 in <main> -> set_env
+            system.set_env("FWL_SEED", to_str(seed))
+         1  call         coordinator.ai:40:35 in <main> -> to_str
+            system.set_env("FWL_SEED", to_str(seed))
+         1  call         coordinator.ai:41:16 in <main> -> set_env
+            system.set_env("FWL_MUTATION_RATE", "2")
+         1  call         coordinator.ai:42:22 in <main> -> new
+            let grid = store.new(width * height)
+         1  call         coordinator.ai:43:29 in <main> -> seed_grid
+            let seeded = life.seed_grid(width, height, seed)
+         1  call         coordinator.ai:62:18 in <main> -> equal
+            let draw = equal(mode, "canvas")
+         1  call         coordinator.ai:99:9 in <main> -> println
+            println("FOUR-WAY-LIFE seed=" + to_str(seed) + " size=" + to_str(width) + "x" + to_str(height))
+         1  call         coordinator.ai:99:40 in <main> -> to_str
+            println("FOUR-WAY-LIFE seed=" + to_str(seed) + " size=" + to_str(width) + "x" + to_str(height))
+         1  call         coordinator.ai:99:66 in <main> -> to_str
+            println("FOUR-WAY-LIFE seed=" + to_str(seed) + " size=" + to_str(width) + "x" + to_str(height))
+         1  call         coordinator.ai:99:88 in <main> -> to_str
+            println("FOUR-WAY-LIFE seed=" + to_str(seed) + " size=" + to_str(width) + "x" + to_str(height))
+         1  call         coordinator.ai:100:9 in <main> -> println
+            println("GEN " + to_str(generation) + " " + to_str(life.checksum(life.grid_from_text(grid_text()))))
+         1  call         coordinator.ai:100:25 in <main> -> to_str
+            println("GEN " + to_str(generation) + " " + to_str(life.checksum(life.grid_from_text(grid_text()))))
+         1  call         coordinator.ai:100:52 in <main> -> to_str
+            println("GEN " + to_str(generation) + " " + to_str(life.checksum(life.grid_from_text(grid_text()))))
+         1  call         coordinator.ai:100:66 in <main> -> checksum
+            println("GEN " + to_str(generation) + " " + to_str(life.checksum(life.grid_from_text(grid_text()))))
+         1  call         coordinator.ai:100:86 in <main> -> grid_from_text
+            println("GEN " + to_str(generation) + " " + to_str(life.checksum(life.grid_from_text(grid_text()))))
+         1  call         coordinator.ai:100:96 in <main> -> grid_text
+            println("GEN " + to_str(generation) + " " + to_str(life.checksum(life.grid_from_text(grid_text()))))
+         1  call         coordinator.ai:101:8 in <main> -> render
+            render()
+         1  call         coordinator.ai:180:9 in <main> -> println
+            println("PASS")
+         1  call         life.ai:137:17 in seed_grid -> mod
+            let shift = mod(abs(seed), 3)
+         1  call         life.ai:137:21 in seed_grid -> abs
+            let shift = mod(abs(seed), 3)
+         1  comparison   <prelude>:141:5 in abs
+            if x < 0 {
+         1  comparison   coordinator.ai:29:4 in <main>
+            if length(args) > 0 { mode = args[0] }
+         1  comparison   coordinator.ai:30:4 in <main>
+            if length(args) > 1 { generations = to_number(args[1]) }
+         1  comparison   coordinator.ai:31:4 in <main>
+            if length(args) > 2 { width = to_number(args[2]) }
+         1  comparison   coordinator.ai:32:4 in <main>
+            if length(args) > 3 { height = to_number(args[3]) }
+         1  comparison   coordinator.ai:33:4 in <main>
+            if length(args) > 4 { seed = to_number(args[4]) }
+         1  comparison   coordinator.ai:35:5 in <main>
+            if (width < 12) or (height < 12) {
+         1  comparison   coordinator.ai:35:21 in <main>
+            if (width < 12) or (height < 12) {
+
+Go substrate realization
+  elapsed      2.168934718s
+  alloc_bytes  894854968
+  mallocs      8882972
+  gc_cycles    142
+  cpu profile  ../analyses/profile/coordinator-5gen.cpu.pprof (labels: aiki_layer, aiki_function, aiki_file, aiki_line, aiki_primitive)

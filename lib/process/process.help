@@ -1,0 +1,25 @@
+# process - lifecycle and attached process I/O
+
+@func start
+@template "start(command, args)"
+@help "Starts a child process and returns an opaque process handle or shaped :process error."
+
+@func stdin
+@template "stdin(process)"
+@help "Returns the writable stdin endpoint for a started process."
+
+@func stdout
+@template "stdout(process)"
+@help "Returns the readable stdout endpoint for a started process."
+
+@func stderr
+@template "stderr(process)"
+@help "Returns the readable stderr endpoint for a started process."
+
+@func wait
+@template "wait(process)"
+@help "Waits for process completion and returns its exit code."
+
+@func terminate
+@template "terminate(process)"
+@help "Forcibly terminates a running process."

@@ -12,3 +12,25 @@ run("system args returns a list", () {
 run("missing environment variable is recoverable error", () {
 	is_true(is_error(system.env("AIKI_TEST_ENVIRONMENT_VARIABLE_SHOULD_NOT_EXIST_7094")))
 })
+
+
+test.run("runtime environment mutation", () {
+	system.set_env("AIKI_TEST_RUNTIME_ENV", "alpha")
+	test.equal(system.env("AIKI_TEST_RUNTIME_ENV"), "alpha")
+	test.equal(type(system.environ()), :list)
+	system.unset_env("AIKI_TEST_RUNTIME_ENV")
+	test.error(system.env("AIKI_TEST_RUNTIME_ENV"))
+})
+
+
+test.run("system exit validates status", () {
+	test.faults(() {
+		system.exit(-1)
+	})
+	test.faults(() {
+		system.exit(256)
+	})
+	test.faults(() {
+		system.exit(1 / 2)
+	})
+})

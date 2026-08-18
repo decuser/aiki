@@ -12,6 +12,10 @@
 @template "height(c)"
 @help "Returns the canvas height in pixels."
 
+@func alive
+@template "alive(c)"
+@help "Reports whether the canvas window is still open."
+
 @func dot
 @template "dot(c, x, y)"
 @help "Draws a dot at (x, y)."

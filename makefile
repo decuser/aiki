@@ -1,4 +1,4 @@
-.PHONY: build clean dist distcheck baseline run test fmt lint treecheck check bless validate smoke smokegold visual aikitest runsamples enginesmoke enginesmokegold enginecoverage rigorous fuzz hooks profilesweep install-xed-plugin uninstall-xed-plugin install-vscode-plugin uninstall-vscode-plugin
+.PHONY: build clean dist distcheck baseline run test fmt lint treecheck check bless validate smoke smokegold visual aikitest runsamples enginesmoke enginesmokegold enginecoverage conformance selfhost rigorous fuzz hooks profilesweep install-xed-plugin uninstall-xed-plugin install-vscode-plugin uninstall-vscode-plugin
 
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 LDFLAGS := -ldflags "-X main.Version=$(VERSION)"
@@ -96,7 +96,7 @@ run: build
 # separately by `make invariant` and composed back into `make check`.
 test:
 	@set -e; \
-	pkgs="$$(go list ./... | grep -Ev '/test/(invariant|boundary)$$')"; \
+	pkgs="$$(go list ./... | grep -Ev '/test/(invariant|boundary|conformance)$$')"; \
 	go test $$pkgs
 
 # Fast architectural contract checks. Keep this target free of fuzzing, gold
@@ -158,11 +158,17 @@ validate: check
 	./aiki smoke test/behavior/
 	./aiki enginesmoke --stage all --check test/structure/engine
 
+conformance: build
+	go test ./test/conformance
+
+selfhost: build
+	go test -tags rigorous ./test/conformance -run Selfhost
+
 fuzz:
 	go test -fuzz=FuzzLexer ./test/fuzz/ -fuzztime=30s
 	go test -fuzz=FuzzParser ./test/fuzz/ -fuzztime=30s
 
-rigorous: validate fuzz
+rigorous: validate conformance selfhost fuzz
 
 hooks:
 	cp hooks/pre-commit .git/hooks/pre-commit

@@ -169,6 +169,18 @@ let chmod = (path, mode) {
 	_file_chmod(path, mode)
 }
 
+let lock = (path) {
+	_file_lock(path)
+}
+
+let try_lock = (path) {
+	_file_try_lock(path)
+}
+
+let unlock = (lock_value) {
+	_file_unlock(lock_value)
+}
+
 export(
 	:open,
 	:read_text,
@@ -199,5 +211,8 @@ export(
 	:symlink,
 	:read_link,
 	:permissions,
-	:chmod
+	:chmod,
+	:lock,
+	:try_lock,
+	:unlock
 )

@@ -1,0 +1,6 @@
+let test = import("test")
+let process = import("process")
+
+test.run("missing process command is recoverable", () {
+	test.is_true(is_error(process.start("aiki-command-that-does-not-exist-7094", [])))
+})
