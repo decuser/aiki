@@ -14,6 +14,7 @@ type FunctionInfo struct {
 	Name       string
 	Parameters []string
 	Rest       string
+	Calls      []string
 }
 
 // SourceInfo is structural module metadata derived from parsed Aiki source.
@@ -21,6 +22,7 @@ type FunctionInfo struct {
 type SourceInfo struct {
 	Package   string
 	Exports   []string
+	Imports   []string
 	Functions map[string]FunctionInfo
 }
 
@@ -40,6 +42,7 @@ func AnalyzeSource(g *grammar.Grammar, file, source string) (SourceInfo, error) 
 
 	info := SourceInfo{Functions: make(map[string]FunctionInfo)}
 	walkSource(root, &info)
+	info.Imports = importCalls(root)
 	return info, nil
 }
 
@@ -73,6 +76,40 @@ func walkSource(node *syntax.Node, info *SourceInfo) {
 	}
 }
 
+func importCalls(root *syntax.Node) []string {
+	seen := make(map[string]bool)
+	var out []string
+	var walk func(*syntax.Node)
+	walk = func(node *syntax.Node) {
+		if node == nil {
+			return
+		}
+		if node.Type == "postfix_expr" && len(node.Children) > 0 {
+			name := findFirst(node.Children[0], "NAME")
+			if name != nil && (name.Value == "import" || name.Value == "use") {
+				for _, child := range node.Children[1:] {
+					if child.Type != "call" {
+						continue
+					}
+					if literal := findFirst(child, "STRING"); literal != nil {
+						module := unquoteAikiString(literal.Value)
+						if module != "" && !seen[module] {
+							seen[module] = true
+							out = append(out, module)
+						}
+					}
+					break
+				}
+			}
+		}
+		for _, child := range node.Children {
+			walk(child)
+		}
+	}
+	walk(root)
+	return out
+}
+
 func functionBinding(node *syntax.Node) (FunctionInfo, bool) {
 	var name string
 	var valueNode *syntax.Node
@@ -95,10 +132,43 @@ func functionBinding(node *syntax.Node) (FunctionInfo, bool) {
 	out := FunctionInfo{Name: name}
 	params := findFirst(fn, "params")
 	if params == nil {
+		out.Calls = functionCalls(fn)
 		return out, true
 	}
 	collectParameters(params, &out)
+	out.Calls = functionCalls(fn)
 	return out, true
+}
+
+func functionCalls(fn *syntax.Node) []string {
+	seen := make(map[string]bool)
+	var out []string
+	var walk func(*syntax.Node)
+	walk = func(node *syntax.Node) {
+		if node == nil {
+			return
+		}
+		if node.Type == "postfix_expr" && len(node.Children) > 0 {
+			hasCall := false
+			for _, child := range node.Children[1:] {
+				if child.Type == "call" {
+					hasCall = true
+					break
+				}
+			}
+			if hasCall {
+				if name := findFirst(node.Children[0], "NAME"); name != nil && !seen[name.Value] {
+					seen[name.Value] = true
+					out = append(out, name.Value)
+				}
+			}
+		}
+		for _, child := range node.Children {
+			walk(child)
+		}
+	}
+	walk(fn)
+	return out
 }
 
 func collectParameters(node *syntax.Node, out *FunctionInfo) {

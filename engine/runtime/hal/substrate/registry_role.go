@@ -6,8 +6,8 @@ func (g *GoRuntime) registryFor(role primitives.Role) map[string]*Builtin {
 	switch role {
 	case primitives.RoleIntrinsic:
 		return g.intrinsics
-	case primitives.RoleNative:
-		return g.natives
+	case primitives.RoleRuntime:
+		return g.runtimePrimitives
 	case primitives.RoleProvider:
 		return g.providers
 	case primitives.RoleHost:
@@ -22,7 +22,7 @@ func (g *GoRuntime) registryFor(role primitives.Role) map[string]*Builtin {
 func (g *GoRuntime) registries() []map[string]*Builtin {
 	return []map[string]*Builtin{
 		g.intrinsics,
-		g.natives,
+		g.runtimePrimitives,
 		g.providers,
 		g.hostRegistry,
 		g.services,
@@ -61,7 +61,7 @@ func (g *GoRuntime) PrimitiveRegistrations() map[string]primitives.Role {
 	out := map[string]primitives.Role{}
 	for _, role := range []primitives.Role{
 		primitives.RoleIntrinsic,
-		primitives.RoleNative,
+		primitives.RoleRuntime,
 		primitives.RoleProvider,
 		primitives.RoleHost,
 		primitives.RoleService,

@@ -1,4 +1,4 @@
-@preamble let bits = import("bits")
+@preamble let bits = import("bits/ffi")
 bit_and
 Returns the bitwise AND of two non-negative integral numbers.
 

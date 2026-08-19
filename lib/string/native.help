@@ -1,4 +1,4 @@
-# string - string operations
+# string/native - string operations
 
 # Substrings and decomposition
 @func substring

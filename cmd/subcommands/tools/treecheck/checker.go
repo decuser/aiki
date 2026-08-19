@@ -208,6 +208,8 @@ func (c *Checker) seedBuiltins() {
 			c.mark(p, "smoke-test specimen")
 		case strings.HasPrefix(p, "test/structure/engine/") && strings.HasSuffix(p, "_engine.ai"):
 			c.mark(p, "engine structural specimen")
+		case strings.HasPrefix(p, "test/nativeffi/") && strings.HasSuffix(p, "_contract.ai"):
+			c.mark(p, "native/FFI semantic conformance specimen")
 		case strings.HasPrefix(p, "extra/samples/") && strings.HasSuffix(p, ".ai"):
 			c.mark(p, "sample program discovered by runsamples")
 		case strings.HasPrefix(p, "extra/profiling/") && matchedProfileDriver(p):

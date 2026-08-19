@@ -417,3 +417,132 @@ func halStringCompare(args []value.Value, ctx *hal.EvalContext) value.Value {
 	}
 	return value.NewNumber(0, 1)
 }
+
+func stringRuneArg(args []value.Value, at int, name string) (rune, *value.Fault) {
+	if at >= len(args) {
+		return 0, value.NewFault("%s: missing argument", name)
+	}
+	switch v := args[at].(type) {
+	case *value.Rune:
+		return v.Val, nil
+	case *value.String:
+		runes := []rune(v.Val)
+		if len(runes) == 0 {
+			return 0, nil
+		}
+		return runes[0], nil
+	default:
+		return 0, value.NewFault("%s: expected rune or string, got %s", name, args[at].Type())
+	}
+}
+
+func halStringIsWhitespace(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 1 {
+		return value.NewFault("string_is_whitespace: want 1 argument, got %d", len(args))
+	}
+	r, fault := stringRuneArg(args, 0, "string_is_whitespace")
+	if fault != nil {
+		return fault
+	}
+	return valueBool(r == ' ' || r == '\t' || r == '\n' || r == '\r')
+}
+
+func halStringIsDigit(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 1 {
+		return value.NewFault("string_is_digit: want 1 argument, got %d", len(args))
+	}
+	r, fault := stringRuneArg(args, 0, "string_is_digit")
+	if fault != nil {
+		return fault
+	}
+	return valueBool(r >= '0' && r <= '9')
+}
+
+func halStringIsAlpha(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 1 {
+		return value.NewFault("string_is_alpha: want 1 argument, got %d", len(args))
+	}
+	r, fault := stringRuneArg(args, 0, "string_is_alpha")
+	if fault != nil {
+		return fault
+	}
+	return valueBool((r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z'))
+}
+
+func halStringIsUpper(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 1 {
+		return value.NewFault("string_is_upper: want 1 argument, got %d", len(args))
+	}
+	r, fault := stringRuneArg(args, 0, "string_is_upper")
+	if fault != nil {
+		return fault
+	}
+	return valueBool(r >= 'A' && r <= 'Z')
+}
+
+func halStringIsLower(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 1 {
+		return value.NewFault("string_is_lower: want 1 argument, got %d", len(args))
+	}
+	r, fault := stringRuneArg(args, 0, "string_is_lower")
+	if fault != nil {
+		return fault
+	}
+	return valueBool(r >= 'a' && r <= 'z')
+}
+
+func halStringIsAlnum(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 1 {
+		return value.NewFault("string_is_alnum: want 1 argument, got %d", len(args))
+	}
+	r, fault := stringRuneArg(args, 0, "string_is_alnum")
+	if fault != nil {
+		return fault
+	}
+	return valueBool((r >= '0' && r <= '9') || (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z'))
+}
+
+func halStringIsNumeric(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 1 {
+		return value.NewFault("string_is_numeric: want 1 argument, got %d", len(args))
+	}
+	s, fault := stringArg(args, 0, "string_is_numeric")
+	if fault != nil {
+		return fault
+	}
+	if len(s.Val) == 0 {
+		return value.FALSE
+	}
+	for _, r := range s.Val {
+		if r < '0' || r > '9' {
+			return value.FALSE
+		}
+	}
+	return value.TRUE
+}
+
+func halStringIsAlphabetic(args []value.Value, ctx *hal.EvalContext) value.Value {
+	if len(args) != 1 {
+		return value.NewFault("string_is_alphabetic: want 1 argument, got %d", len(args))
+	}
+	s, fault := stringArg(args, 0, "string_is_alphabetic")
+	if fault != nil {
+		return fault
+	}
+	if len(s.Val) == 0 {
+		return value.FALSE
+	}
+	for _, r := range s.Val {
+		if !((r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z')) {
+			return value.FALSE
+		}
+	}
+	return value.TRUE
+}
+
+func valueBool(ok bool) value.Value {
+	if ok {
+		return value.TRUE
+	}
+	return value.FALSE
+}

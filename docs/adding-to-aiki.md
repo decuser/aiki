@@ -287,85 +287,76 @@ go build ./cmd/aiki
 
 ## Adding a Library Package
 
-Example: creating a `string` package.
+Before adding a package, decide what semantic role it has and record that role in
+`engine/runtime/modules/stdlib_policy.go`.
 
-### 1. Create Package File
+Portable semantics and host/runtime capabilities are different contracts:
 
-Create `lib/string/string.ai`:
+- a portable `X/native` module implements the public library semantics in Aiki;
+- an optional `X/ffi` module is provider-backed and must preserve the native
+  export, signature, help/doc, and behavior contract;
+- host/runtime capabilities and deliberate provider interop do not require fake
+  native twins, but their role must be declared honestly;
+- bare `X` resolves to `X/native` when a native module is present and no explicit
+  bare package overrides that default.
+
+### 1. Add the Native Semantic Authority
+
+For a portable package, create `lib/example/native.ai`:
 
 ```
-package "string"
+package "example/native"
 
-let upper = (s) { _str_upper(s) }
-let lower = (s) { _str_lower(s) }
-let split = (s, delim) { _str_split(s, delim) }
-let join = (list, delim) { _str_join(list, delim) }
-
-export(:upper, :lower, :split, :join)
-```
-
-### 2. HAL Support (if needed)
-
-If functions need Go implementation, add to `engine/runtime/hal/substrate/`:
-
-```go
-// builtins_string.go
-func halStrUpper(args []value.Value, ctx *hal.EvalContext) value.Value {
-    // ...
+let twice = (n) {
+    n + n
 }
+
+export(:twice)
 ```
 
-Register in `register.go`.
+A `/native` package may use constitutive Aiki runtime atoms exposed by the
+prelude, but it must not import `/ffi` modules or call provider-role primitives
+to implement its library algorithm.
 
-### 3. Help File
+Add matching `native.help` and `native.doc` files and tests against the bare
+`example` import so the default path exercises the native implementation.
 
-Create `lib/string/string.help`:
+### 2. Add an FFI Acceleration Only if Needed
 
-```
-@func upper
-@template "upper(s)"
-@help "Returns string in uppercase."
-
-@func lower
-@template "lower(s)"
-@help "Returns string in lowercase."
-```
-
-### 4. Doc File
-
-Create `lib/string/string.doc`:
+If a coarse provider boundary materially helps, add `lib/example/ffi.ai`:
 
 ```
-upper
-Returns a new string with all characters in uppercase.
+package "example/ffi"
 
-upper(s)
+let twice = (n) {
+    _example_twice(n)
+}
 
-upper("hello")    # "HELLO"
-upper("Hi There") # "HI THERE"
-===
-lower
-Returns a new string with all characters in lowercase.
-
-lower(s)
-
-lower("HELLO")    # "hello"
-===
+export(:twice)
 ```
 
-### 5. Usage
+Register `_example_twice` as a provider primitive and grant it only to the FFI
+source through HAL authority policy. Declare `example/ffi` as portable/ffi with
+`example/native` as its semantic authority.
 
-```
-import("strings", :upper, :lower)
-print(upper("hello"))
-```
+The acceleration must expose the same public function names and callable shapes
+as native. Help/doc surface must match, and the same behavior contract should be
+run against both realizations. Provider-specific semantics belong in an `interop`
+module instead of being disguised as acceleration.
 
-Or with module:
+### 3. Add a Capability or Interop Module Honestly
 
-```
-let str = import("strings")
-print(str.upper("hello"))
-```
+If the behavior intrinsically depends on a host resource (files, processes,
+terminal state, clocks, etc.), classify it as a host/runtime capability and use
+HAL authority directly as needed. If the purpose is to expose a provider's own
+semantics, classify it as interop. Neither case needs a fake pure-Aiki twin.
+
+### 4. Verify
+
+Run the relevant focused tests while cutting the change, then the repository
+validation gate. The stdlib policy invariants check declaration completeness,
+truthful `/native` and `/ffi` naming, native-path purity, acceleration surface
+parity, and help/doc parity.
 
 ## Validation
 
@@ -397,8 +388,8 @@ engine/
       prelude.doc      # Full documentation
 lib/
   math/
-    exact.ai           # Exact math package
-    inexact.ai         # Float math package
+    native.ai          # Portable Aiki semantic authority
+    ffi.ai             # Provider-backed interop/acceleration where declared
 tests/
   smoke/               # Smoke tests
 ```

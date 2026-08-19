@@ -54,7 +54,7 @@ var _ hal.ContextCallable = (*Builtin)(nil)
 // operations populate hostBindings. User-visible names are defined in Aiki.
 type GoRuntime struct {
 	intrinsics        map[string]*Builtin
-	natives           map[string]*Builtin
+	runtimePrimitives map[string]*Builtin
 	providers         map[string]*Builtin
 	hostRegistry      map[string]*Builtin
 	services          map[string]*Builtin
@@ -109,7 +109,7 @@ func NewGoRuntime() *GoRuntime {
 	}
 	rt := &GoRuntime{
 		intrinsics:        make(map[string]*Builtin),
-		natives:           make(map[string]*Builtin),
+		runtimePrimitives: make(map[string]*Builtin),
 		providers:         make(map[string]*Builtin),
 		hostRegistry:      make(map[string]*Builtin),
 		services:          make(map[string]*Builtin),

@@ -1,9 +1,7 @@
 package "string/ffi"
 
 # string/ffi - provider-accelerated string operations with Aiki rune semantics.
-# Bare import("string") remains the pure/reference implementation.
-let _native = import("string")
-let _list = import("list")
+# Bare import("string/native") remains the pure/reference implementation.
 let _math = import("math/ffi")
 
 let substring = (s, start, end) {
@@ -79,35 +77,35 @@ let trim = (s) {
 }
 
 let is_whitespace = (r) {
-	_native.is_whitespace(r)
+	_string_is_whitespace(r)
 }
 
 let is_digit = (r) {
-	_native.is_digit(r)
+	_string_is_digit(r)
 }
 
 let is_alpha = (r) {
-	_native.is_alpha(r)
+	_string_is_alpha(r)
 }
 
 let is_upper = (r) {
-	_native.is_upper(r)
+	_string_is_upper(r)
 }
 
 let is_lower = (r) {
-	_native.is_lower(r)
+	_string_is_lower(r)
 }
 
 let is_alnum = (r) {
-	_native.is_alnum(r)
+	_string_is_alnum(r)
 }
 
 let is_numeric = (s) {
-	_native.is_numeric(s)
+	_string_is_numeric(s)
 }
 
 let is_alphabetic = (s) {
-	_native.is_alphabetic(s)
+	_string_is_alphabetic(s)
 }
 
 let pad_start = (s, len, char) {
@@ -153,9 +151,16 @@ let lines = (s) {
 }
 
 let words = (s) {
-	return _list.filter(split(trim(s), " "), (w) {
-		not equal(w, "")
-	})
+	let parts = split(trim(s), " ")
+	let result = []
+	let i = 0
+	while i < length(parts) {
+		if not equal(parts[i], "") {
+			result = append(result, parts[i])
+		}
+		i = i + 1
+	}
+	return result
 }
 
 let compare = (a, b) {
@@ -186,7 +191,14 @@ let capitalize = (s) {
 }
 
 let title = (s) {
-	join(_list.map(words(s), capitalize), " ")
+	let parts = words(s)
+	let result = []
+	let i = 0
+	while i < length(parts) {
+		result = append(result, capitalize(parts[i]))
+		i = i + 1
+	}
+	return join(result, " ")
 }
 
 let equal_ignore_case = (a, b) {

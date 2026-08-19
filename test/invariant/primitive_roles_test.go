@@ -25,9 +25,9 @@ func TestPrimitiveRoleInvariantRejectsMissingHALPrimitive(t *testing.T) {
 
 func TestPrimitiveRoleInvariantRejectsWrongHALRole(t *testing.T) {
 	defs := primitives.Definitions()
-	defs["_file_stat"] = primitives.RoleNative
+	defs["_file_stat"] = primitives.RoleRuntime
 	err := primitives.ValidateDefinitions(defs, hal.OperationDefinitions())
-	if err == nil || !strings.Contains(err.Error(), "HAL primitive _file_stat has role native, want host") {
+	if err == nil || !strings.Contains(err.Error(), "HAL primitive _file_stat has role runtime, want host") {
 		t.Fatalf("expected wrong HAL role failure, got %v", err)
 	}
 }

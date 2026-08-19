@@ -14,7 +14,7 @@ import (
 func ValidateDefinitions(definitions map[string]Role, operations map[string]hal.HostOperation) error {
 	validRoles := map[Role]bool{
 		RoleIntrinsic: true,
-		RoleNative:    true,
+		RoleRuntime:   true,
 		RoleProvider:  true,
 		RoleHost:      true,
 		RoleService:   true,

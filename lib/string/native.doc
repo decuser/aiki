@@ -1,4 +1,4 @@
-@preamble use("string")
+@preamble use("string/native")
 substring
 Returns the portion of s beginning at start and ending before end.
 Positions are measured in runes.

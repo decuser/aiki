@@ -2,6 +2,7 @@ let system = import("system")
 let process = import("process")
 let io = import("io")
 let store = import("store")
+let bytes = import("bytes/ffi")
 let canvas = import("canvas")
 let time = import("time")
 let file = import("file")
@@ -134,7 +135,7 @@ if (width < 12) or (height < 12) {
 		canvas.set_bg(c, :black)
 	}
 	let grid_text = () {
-		return store.digits_to_text(grid, width * height)
+		return bytes.digits_to_text(bytes.bytes_new(store.snapshot(grid, width * height)))
 	}
 	let render = () {
 		if draw {
@@ -217,7 +218,7 @@ if (width < 12) or (height < 12) {
 	}
 	let generation = 0
 	println("FOUR-WAY-LIFE seed=" + to_str(seed) + " size=" + to_str(width) + "x" + to_str(height))
-	let initial_status = "GEN " + to_str(generation) + " " + to_str(store.checksum(grid, width * height))
+	let initial_status = "GEN " + to_str(generation) + " " + to_str(life.store_checksum(grid, width * height))
 	println(initial_status)
 	let running = render()
 	log_status(initial_status)
@@ -274,7 +275,7 @@ if (width < 12) or (height < 12) {
 			w = w + 1
 		}
 		generation = generation + 1
-		let status_text = "GEN " + to_str(generation) + " " + to_str(store.checksum(grid, width * height))
+		let status_text = "GEN " + to_str(generation) + " " + to_str(life.store_checksum(grid, width * height))
 		println(status_text)
 		log_status(status_text)
 		accept_observer()

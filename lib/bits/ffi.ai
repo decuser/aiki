@@ -1,6 +1,6 @@
-package "bits"
+package "bits/ffi"
 
-# bits - bit operations over non-negative integral numbers
+# bits/ffi - provider-backed bit operations over non-negative integral numbers.
 let bit_and = (a, b) {
 	_bits_and(a, b)
 }

@@ -17,6 +17,7 @@ import (
 	aikienginesmoke "aiki/cmd/subcommands/dev/enginesmoke"
 	aikismoke "aiki/cmd/subcommands/dev/smoke"
 	aikitest "aiki/cmd/subcommands/dev/test"
+	aikicheck "aiki/cmd/subcommands/tools/check"
 	aikidistfmt "aiki/cmd/subcommands/tools/distfmt"
 	aikiexperiment "aiki/cmd/subcommands/tools/experiment"
 	aikifmt "aiki/cmd/subcommands/tools/fmt"
@@ -36,6 +37,8 @@ func main() {
 		case "version":
 			fmt.Println(Version)
 			return
+		case "check":
+			os.Exit(aikicheck.Run(os.Args[2:]))
 		case "experiment":
 			os.Exit(aikiexperiment.Run(os.Args[2:]))
 		case "fmt":

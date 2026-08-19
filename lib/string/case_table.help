@@ -1,0 +1,9 @@
+# string/case_table - internal native Unicode simple-case mapping
+
+@func upper_rune
+@template "upper_rune(r)"
+@help "Returns the Unicode simple upper-case mapping for rune r."
+
+@func lower_rune
+@template "lower_rune(r)"
+@help "Returns the Unicode simple lower-case mapping for rune r."

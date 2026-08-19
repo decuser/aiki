@@ -1,5 +1,17 @@
 # math/native - pure Aiki math functions using Taylor series
 
+@func floor
+@template "floor(x)"
+@help "Returns the largest integer less than or equal to x."
+
+@func ceil
+@template "ceil(x)"
+@help "Returns the smallest integer greater than or equal to x."
+
+@func modulo
+@template "modulo(a, b)"
+@help "Returns the Euclidean remainder of a divided by b."
+
 @func sin
 @template "sin(x, terms)"
 @help "Returns sine using a finite Taylor series; terms bounds work, not error."

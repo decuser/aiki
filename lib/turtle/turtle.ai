@@ -1,4 +1,5 @@
 package "turtle"
+let _math = import("math/native")
 
 # turtle - Logo-style turtle graphics
 #
@@ -60,6 +61,34 @@ let _screen_y = (t, ty) {
 
 # deg->rad constant
 let _deg_to_rad = 3.141592653589793 / 180
+let _trig_terms = 30
+
+# Turtle headings are expressed in degrees. Cardinal headings have exact
+# direction vectors; preserve those exactly instead of routing them through
+# an approximation of pi. Other headings use the native Aiki trig path.
+let _direction = (angle) {
+	let h = angle
+	while h < 0 {
+		h = h + 360
+	}
+	while h >= 360 {
+		h = h - 360
+	}
+	if equal(h, 0) {
+		return [0, 1]
+	}
+	if equal(h, 90) {
+		return [1, 0]
+	}
+	if equal(h, 180) {
+		return [0, -1]
+	}
+	if equal(h, 270) {
+		return [-1, 0]
+	}
+	let rad = h * _deg_to_rad
+	[_math.sin(rad, _trig_terms), _math.cos(rad, _trig_terms)]
+}
 
 # inspection (returns logical coordinates)
 let position = (t) {
@@ -74,9 +103,9 @@ let heading = (t) {
 let forward = (t, distance) {
 	# heading 0 = north, clockwise positive
 	# north means dy positive, so: dx = sin(h), dy = cos(h)
-	let rad = _heading(t) * _deg_to_rad
-	let dx = distance * _sin_inexact(rad)
-	let dy = distance * _cos_inexact(rad)
+	let direction = _direction(_heading(t))
+	let dx = distance * direction[0]
+	let dy = distance * direction[1]
 	let tx0 = _tx(t)
 	let ty0 = _ty(t)
 	let tx1 = tx0 + dx

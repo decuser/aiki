@@ -1,0 +1,32 @@
+let test = import("test")
+let native = import("bytes/native")
+let ffi = import("bytes/ffi")
+
+let texts = ["", "ASCII", "café", "猫", "aé猫z", "line\nfeed"]
+
+test.run("bytes native and ffi agree on text conversion", () {
+	let i = 0
+	while i < length(texts) {
+		let s = texts[i]
+		let nb = native.str_to_bytes(s)
+		let fb = ffi.str_to_bytes(s)
+		test.equal(native.bytes_length(nb), ffi.bytes_length(fb))
+		test.equal(native.bytes_to_str(nb), ffi.bytes_to_str(fb))
+		test.equal(native.bytes_to_str(nb), s)
+		i = i + 1
+	}
+})
+
+
+test.run("bytes native and ffi agree on digit payloads", () {
+	let texts = ["", "0", "0123456789", "999000111222"]
+	let i = 0
+	while i < length(texts) {
+		let s = texts[i]
+		test.equal(
+			native.digits_to_text(native.digits_from_text(s)),
+			ffi.digits_to_text(ffi.digits_from_text(s))
+		)
+		i = i + 1
+	}
+})
