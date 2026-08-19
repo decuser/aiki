@@ -1,5 +1,4 @@
-# string/ffi - provider-accelerated string operations
-# string - string operations
+# string/ffi - provider-backed acceleration of string/native
 
 # Substrings and decomposition
 @func substring

@@ -16,7 +16,8 @@ ceil(3.2)     # 4
 ceil(-2.7)    # -2
 ===
 modulo
-Returns the remainder of a divided by b.
+Returns the Euclidean remainder of integral a divided by non-zero integral b.
+This provider operation faults for non-integral operands or division by zero.
 
 modulo(a, b)
 
@@ -24,7 +25,9 @@ modulo(10, 3)    # 1
 modulo(7, 2)     # 1
 ===
 sin
-Returns the sine of x, where x is in radians.
+Returns the sine of x, where x is in radians, using host float64 mathematics.
+The returned float value crosses back into Aiki as an ordinary exact rational
+representation of that float result.
 
 sin(x)
 
@@ -32,7 +35,9 @@ sin(0)           # 0
 sin(3.14159/2)   # approximately 1
 ===
 cos
-Returns the cosine of x, where x is in radians.
+Returns the cosine of x, where x is in radians, using host float64 mathematics.
+The returned float value crosses back into Aiki as an ordinary exact rational
+representation of that float result.
 
 cos(x)
 
@@ -40,7 +45,9 @@ cos(0)           # 1
 cos(3.14159)     # approximately -1
 ===
 sqrt
-Returns the square root of x.
+Returns the square root of x using host float64 mathematics. Negative inputs
+fault. The returned float value crosses back into Aiki as an ordinary exact
+rational representation of that float result.
 Faults on negative input.
 
 sqrt(x)

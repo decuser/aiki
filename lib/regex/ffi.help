@@ -1,4 +1,4 @@
-# regex/ffi - regular expression operations
+# regex/ffi - provider interop using Go/RE2-style regular expressions
 
 @func matches
 @template "matches(s, pattern)"

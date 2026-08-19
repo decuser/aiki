@@ -1,4 +1,4 @@
-# process - lifecycle and attached process I/O
+# process - Aiki process lifecycle over host process capability
 
 @func start
 @template "start(command, args)"

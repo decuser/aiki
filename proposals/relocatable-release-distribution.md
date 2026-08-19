@@ -1,6 +1,6 @@
 # Proposal: Relocatable Aiki Release Distribution
 
-Status: ACTIVE
+Status: COMPLETE — implemented and retained in Alpha 2 (`make dist`, `make distcheck`, executable-relative distribution roots).
 
 ## Problem
 

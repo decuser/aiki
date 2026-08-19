@@ -1,5 +1,9 @@
 # Proposal: Systems Programmer Convenience Refinements
 
+## Status
+
+COMPLETE — list ordering, number base conversion, and whole-file convenience surfaces are implemented in Alpha 2.
+
 ## Purpose
 
 Close the small remaining gaps that repeatedly force systems-oriented Aiki programs to reimplement common algorithms or resource-management patterns.

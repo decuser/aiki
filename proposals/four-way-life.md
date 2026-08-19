@@ -1,5 +1,9 @@
 # Proposal: Four-Way Life
 
+## Status
+
+COMPLETE — Gates 1–4, systems acceptance, and final showcase reconciliation are implemented and retained as Experiment 003.
+
 ## Purpose
 
 Four-Way Life is the representative completion program for Aiki's portable-systems work. Four independent Aiki worker processes compute competing Life populations while a fifth Aiki coordinator owns the world, communication, rendering, and systems effects. The visible simulation is the demonstration; the five-process architecture underneath is the completeness proof.

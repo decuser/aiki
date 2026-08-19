@@ -1,4 +1,4 @@
-# file - file I/O operations
+# file - Aiki file semantics over the host filesystem capability
 
 @func open
 @template "open(path, mode)"
@@ -99,7 +99,7 @@
 
 @func permissions
 @template "permissions(path)"
-@help "Returns the host permission bits represented by Aiki's Go-backed permission contract."
+@help "Returns host permission bits using Aiki's portable permission contract."
 
 @func chmod
 @template "chmod(path, mode)"

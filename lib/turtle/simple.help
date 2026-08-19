@@ -1,4 +1,4 @@
-# turtle/simple - Logo-style turtle graphics with implicit state
+# turtle/simple - Aiki-native stateful turtle facade over canvas
 
 @func new
 @template "new(dim)"

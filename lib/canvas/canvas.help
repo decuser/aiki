@@ -1,4 +1,4 @@
-# canvas - graphics primitives
+# canvas - Aiki graphics surface over a host canvas capability
 
 @func canvas
 @template "canvas(width, height)"

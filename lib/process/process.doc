@@ -31,6 +31,7 @@ wait(process)
 ===
 terminate
 @unchecked
-Forcibly terminates a running child process. Portable graceful signaling is introduced separately by the signals phase.
+Forcibly terminates a running child process. For portable semantic signals such
+as :interrupt or :terminate, use the separate signal module.
 
 terminate(process)

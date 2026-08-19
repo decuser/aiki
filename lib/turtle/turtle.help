@@ -1,4 +1,4 @@
-# turtle - Logo-style turtle graphics
+# turtle - Aiki-native turtle semantics over the canvas capability
 
 @func turtle
 @template "turtle(canvas)"

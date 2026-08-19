@@ -1,4 +1,4 @@
-# math/ffi - HAL-accelerated math functions
+# math/ffi - provider-backed host floating-point math interop
 
 @func floor
 @template "floor(x)"
@@ -10,16 +10,16 @@
 
 @func modulo
 @template "modulo(a, b)"
-@help "Returns remainder of a divided by b."
+@help "Returns Euclidean remainder for integral a and non-zero integral b."
 
 @func sin
 @template "sin(x)"
-@help "Returns sine of x (radians)."
+@help "Returns host-float sine of x in radians as an Aiki number."
 
 @func cos
 @template "cos(x)"
-@help "Returns cosine of x (radians)."
+@help "Returns host-float cosine of x in radians as an Aiki number."
 
 @func sqrt
 @template "sqrt(x)"
-@help "Returns square root of x."
+@help "Returns host-float square root of x as an Aiki number."

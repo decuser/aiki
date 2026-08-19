@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented on `grammar/analysis-authority`; final full-tree validation pending.
+COMPLETE — implemented, integrated, and retained by the current full validation surface.
 
 ## Thesis
 

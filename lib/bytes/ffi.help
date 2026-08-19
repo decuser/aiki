@@ -1,4 +1,4 @@
-# bytes/ffi - HAL-accelerated byte operations
+# bytes/ffi - provider-backed acceleration of bytes/native
 
 @func str_to_bytes
 @template "str_to_bytes(s)"

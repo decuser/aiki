@@ -2,7 +2,7 @@
 
 ## Status
 
-Active. Clean implementation pass begun 2026-08-18 from baseline ffe3622. Existing behavioral witnesses are frozen and must remain unchanged through the baseline-preservation phase.
+COMPLETE — clean-pass preservation evidence, final native/FFI separation, Store cleanup, diagnostics, and integrated validation are retained in Alpha 2.
 
 ## Motivation
 

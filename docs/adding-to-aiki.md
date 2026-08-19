@@ -360,15 +360,20 @@ parity, and help/doc parity.
 
 ## Validation
 
-The system enforces consistency:
+The system enforces consistency through executable couplings rather than relying
+on this document as authority. Among them:
 
-1. **Grammar ↔ Evaluator**: Every production must have a handler. Startup panics if missing.
+1. grammar productions ↔ evaluator handlers and structural engine coverage;
+2. grammar/prelude/library exports ↔ help and documentation surfaces;
+3. formatted source ↔ parsed structure;
+4. shipped modules ↔ registry discovery and distribution-tree relationships;
+5. behavior ↔ blessed smoke transcripts;
+6. HAL identities ↔ substrate registration, provenance, and exact authority;
+7. stdlib semantic policy ↔ truthful `/native`, `/ffi`, capability, interop, and
+   bare-default behavior.
 
-2. **Grammar ↔ grammar.help**: Every production/token must have a help entry. Load fails if mismatch.
-
-3. **Prelude ↔ prelude.help**: Every exported function must have help. Load fails if mismatch.
-
-4. **Package ↔ export**: Imports only see exported names. Import fails if name not exported.
+Use focused checks while cutting a change, then `make validate` for the normal
+repository gate. Use `make rigorous` when the work warrants the stronger gate.
 
 ## File Locations
 
@@ -389,8 +394,8 @@ engine/
 lib/
   math/
     native.ai          # Portable Aiki semantic authority
-    ffi.ai             # Provider-backed interop/acceleration where declared
-tests/
-  smoke/               # Smoke tests
+    ffi.ai             # Provider-backed realization where declared
+test/
+  behavior/            # Behavior smoke specimens and golds
 ```
 

@@ -1,5 +1,9 @@
 # Proposal: Gate 3 — Invariant System Overhaul
 
+## Status
+
+COMPLETE — the dedicated invariant gate, negative assurance, HAL/engine authority checks, and representation guardrails are integrated into validation.
+
 ## Purpose
 
 Separate architectural invariants from ordinary behavioral tests and make them a first-class validation system.

@@ -1,7 +1,7 @@
 # Host Abstraction Layer
 
 Aiki's HAL is the explicit boundary between language/library meaning and the
-host substrate. It is intentionally smaller than the native runtime registry:
+host substrate. It is intentionally smaller than the runtime primitive registry:
 being implemented in Go does not make an operation a host capability.
 
 ## Three names
@@ -31,20 +31,47 @@ A useful systems-programmer operation does not necessarily cross the HAL. The
 normalization in Aiki; only host facts such as the path separator require a host
 contract.
 
-## Runtime roles
+## Runtime and library roles
 
-The runtime separates five kinds of native machinery rather than treating one
-registry as the HAL:
+The runtime primitive registry and the standard-library semantic policy answer
+different questions. Runtime primitive roles distinguish constitutive/runtime
+atoms from provider implementations and canonical host operations. Library
+policy, in `engine/runtime/modules/stdlib_policy.go`, separately classifies
+shipped modules as portable semantics, runtime capabilities, host capabilities,
+provider interop, or internal support, and records whether each realization is
+native, FFI, intrinsic, or intentionally mixed.
 
-- evaluator/language intrinsics;
-- language/value primitives;
-- native/FFI library providers;
-- canonical host HAL operations;
-- runtime/tooling/session services.
+This separation matters: a Go implementation is not automatically a host
+capability, and an FFI realization is not automatically interop. Portable
+`X/native` modules remain Aiki implementations transitively; portable `X/ffi`
+modules are provider-backed realizations of an explicit native semantic
+authority. Host/runtime capabilities do not require fake native twins.
 
 Only irreducible host relationships receive canonical `HAL.<domain>.<operation>`
 identities. The compatibility lookup machinery is an implementation detail, not
 the architecture.
+
+## Relation to native and FFI modules
+
+HAL authority governs **which trusted source may cross a runtime/host boundary**.
+The standard-library policy governs **what semantic realization the programmer
+selected**. The two locks are intentionally independent:
+
+```text
+portable semantic capability
+    -> native Aiki realization (required)
+    -> optional provider-backed /ffi realization
+
+runtime/host capability
+    -> Aiki-facing contract
+    -> HAL authority where irreducible
+```
+
+A `/native` module may use constitutive runtime atoms, but it may not implement
+its library algorithm by reaching an FFI/provider path. Conversely, a portable
+`/ffi` module must actually reach provider primitives and may not fall back to
+its native semantic authority. Capability modules may cross HAL directly because
+the crossing is part of the capability rather than an acceleration choice.
 
 ## Authority
 
@@ -71,8 +98,7 @@ runtimes therefore do not share those relationships accidentally.
 Host resources are explicit Aiki values but their concrete state is owned below
 the semantic value layer. A Canvas value, for example, is an opaque handle; the
 owning runtime maps it to a substrate `CanvasResource` containing process/session
-state, queues, drawing state, and cleanup. `Store` remains a language-native
-mutable capability rather than a host resource.
+state, queues, drawing state, and cleanup. `Store` remains an Aiki-defined runtime mutable capability rather than a host resource.
 
 ## Canvas pressure case
 

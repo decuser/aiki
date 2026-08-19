@@ -8,7 +8,7 @@ Development notes and project updates: [https://decuser.github.io](https://decus
 
 ## Status
 
-Aiki is currently an alpha release. The language is real, usable, and extensively validated, but syntax, libraries, tooling, and interfaces may continue to change as the design is refined.
+Aiki is currently at its **Alpha 2** milestone. The language is real, usable, and extensively validated, but syntax, libraries, tooling, and interfaces may continue to change as the design is refined. See the [Alpha 2 release notes](docs/releases/alpha-2.md) for the milestone changes since Alpha 1.
 
 Aiki is developed and tested on Linux. Linux is the supported target for the alpha. Prebuilt macOS and Windows binaries may also be provided, but those platforms are not currently targeted or tested. They are intended for advanced users willing to diagnose platform-specific issues; your mileage may vary.
 

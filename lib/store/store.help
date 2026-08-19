@@ -1,4 +1,4 @@
-# store - explicit mutable indexed storage
+# store - Aiki-defined runtime mutable indexed storage
 
 @func new
 @template "new(size)"

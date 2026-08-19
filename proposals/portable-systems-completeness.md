@@ -1,5 +1,9 @@
 # Proposal: Portable Systems Completeness
 
+## Status
+
+COMPLETE — all six phases and final completeness reconciliation are implemented in Alpha 2.
+
 ## Purpose
 
 Bring Aiki to the point where it has no material capability gaps for portable systems programming at its intended level of abstraction.

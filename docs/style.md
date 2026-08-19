@@ -29,7 +29,7 @@ Current rules:
 Example Go policy entry:
 
 ```go
-"lib/bits/bits.ai": {
+"lib/bits/ffi.ai": {
     "_bits_and",
     "_bits_not",
     "_bits_or",

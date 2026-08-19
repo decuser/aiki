@@ -1,4 +1,4 @@
-# math/native - pure Aiki math functions using Taylor series
+# math/native - Aiki exact/explicit-work math semantics
 
 @func floor
 @template "floor(x)"

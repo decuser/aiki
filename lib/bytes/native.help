@@ -1,4 +1,4 @@
-# bytes/native - pure Aiki byte operations
+# bytes/native - Aiki-native byte operations
 
 @func str_to_bytes
 @template "str_to_bytes(s)"

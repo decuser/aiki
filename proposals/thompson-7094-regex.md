@@ -1,5 +1,9 @@
 # Thompson 7094 Regex Reconstruction Proposal
 
+## Status
+
+COMPLETE — machine, runtime, compiler, monitor, and end-to-end reconstruction are retained as Experiment 002.
+
 ## Purpose
 
 Reconstruct Ken Thompson's 1968 regular-expression search implementation by

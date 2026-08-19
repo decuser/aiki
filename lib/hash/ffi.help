@@ -1,4 +1,4 @@
-# hash/ffi - HAL-accelerated hash map
+# hash/ffi - provider-backed acceleration of hash/native
 
 @func hash_code
 @template "hash_code(val)"

@@ -216,7 +216,8 @@ composites do not need an invented total order merely to make them sortable.
 Natural ordering is centralized below the evaluator so comparison operators and
 future optimized sorting implementations consume one semantic contract. The
 current list implementation remains a stable, non-mutating pure-Aiki merge sort
-behind a private implementation seam; a native or FFI implementation may replace
-that algorithm later without changing the public ordering contract.
+behind a private implementation seam. A future provider-backed sibling may
+accelerate that contract if profiling justifies it, but the portable native path
+remains the semantic authority and bare default.
 
 **Disposition:** Accepted semantic refinement. No syntax change and no HAL change.

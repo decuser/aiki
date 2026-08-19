@@ -1,8 +1,9 @@
 package "math/ffi"
 
-# math/ffi - fast hardware-backed math functions
-# These use host floats internally, returning rational approximations.
-# Use when speed matters more than explicit precision control.
+# math/ffi - provider-backed host floating-point math interop
+# Transcendental operations use host float64 computation and cross back into
+# Aiki as exact rational representations of the returned float values. This is
+# an explicit provider semantic surface, not the acceleration twin of math/native.
 let floor = (x) {
 	_floor(x)
 }

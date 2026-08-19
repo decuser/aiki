@@ -1,8 +1,9 @@
 package "math/native"
 
-# math/native - pure aiki math functions
-# These use Taylor series with rational arithmetic.
-# User controls precision via 'terms' or 'iterations' parameter.
+# math/native - Aiki math semantics
+# floor/ceil/modulo use exact Aiki arithmetic. Transcendental operations use
+# explicit finite Taylor/Newton work over rational arithmetic; the caller
+# controls work with terms or iterations.
 # Pure even check - subtract 2 until < 2, check if 0
 let _is_even = (n) {
 	let r = n

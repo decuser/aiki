@@ -1,4 +1,4 @@
-# system - host program environment
+# system - Aiki runtime environment and host-system capability
 
 @func args
 @template "args()"

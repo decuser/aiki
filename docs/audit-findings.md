@@ -40,6 +40,13 @@ Status vocabulary:
 
 | AF-023 | Portable systems completeness lacked deliberate program termination with an exit status; `quit()` is REPL control and does not provide script/process status semantics. | RESOLVED | Added `system.exit(code)` as evaluator control flow with portable 0..255 status, runner/CLI propagation, and cleanup-before-return regression coverage. |
 
+| AF-024 | Current-facing docs retained pre-native/FFI terminology and deleted module paths after Alpha 2 integration. | RESOLVED | Alpha 2 documentation reconciliation: README/HAL/style/contributor/help surfaces aligned to stdlib policy and current paths. |
+| AF-025 | `process.terminate` documentation still described portable signaling as a future phase after the signal module shipped. | RESOLVED | Alpha 2 documentation reconciliation: point to the current `signal` module. |
+| AF-026 | `This Is Aiki` retained `commit XXX`, Alpha 1 release labeling, and a pre-systems/pre-native-FFI supplied-module inventory. | RESOLVED | Alpha 2 documentation reconciliation: guide scoped to `v0.4.0-alpha-34` / `8a33879`; RA1 explicitly retains Alpha 1 reference-implementation scope. |
+| AF-027 | Several completed project proposals still reported ACTIVE or pending-validation states after their work had been integrated and validated. | RESOLVED | Alpha 2 documentation reconciliation: reconcile only proposals with durable completion evidence; proposed/deferred work remains unchanged. |
+| AF-028 | `docs/debug.md` omitted the shipped `debug -stage fmt` formatter view. | RESOLVED | Alpha 2 documentation reconciliation: usage, flags, and formatter example now match the CLI. |
+| AF-029 | `This Is Aiki` still described two direct external Go libraries after file locking added `github.com/gofrs/flock`. | RESOLVED | Alpha 2 documentation reconciliation: Alpha 2 guide now names all three direct host-facing dependencies and their roles. |
+
 ## Current disposition
 
 `proposals/post-grammar-hardening.md` resolved AF-001, AF-005, AF-006, AF-007,

@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented — Phase I GATED; Phase II GATED/COMPLETE; Phase III Cuts III.0–III.5 GATED and Cut III.6 locally complete pending the final authoritative validation gate.
+COMPLETE — all three phases are integrated; self-interpretation and editor/language-service surfaces are retained in Alpha 2.
 
 ## Baseline
 

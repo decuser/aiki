@@ -101,7 +101,7 @@ A gold is an oracle for future regression detection; generating one does not pro
 
 `aiki treecheck` checks that every file in the current source tree has a recognized distribution relationship or an explicit standalone disposition. It is part of `make check` and therefore `make validate`.
 
-The checker infers ordinary relationships such as standard-library `.ai`/`.help`/`.doc` sets, Aiki-native tests, smoke specimens and golds, engine specimens and stage golds, grammar/prelude artifacts, samples, profiling drivers, Go implementation files, and direct references from already-justified text files. It also detects structural contradictions such as a gold without its source specimen or a module companion without an owning `.ai` file.
+The checker infers ordinary relationships such as standard-library `.ai`/`.help`/`.doc` sets, Aiki-native tests, smoke specimens and golds, engine specimens and stage golds, grammar/prelude artifacts, samples, profiling drivers, native/FFI conformance specimens, Go implementation files, and direct references from already-justified text files. It also detects structural contradictions such as a gold without its source specimen or a module companion without an owning `.ai` file.
 
 Intentional standalone artifacts are listed in the small root file `treecheck.allow`. That file is an exception list, not a manifest of the repository. Directory entries end in `/`; other entries use `filepath.Match`-style patterns. Add an exception only when a file is intentionally standalone and no stronger structural relationship describes it.
 

@@ -1,4 +1,4 @@
-# hash/native - pure Aiki hash map
+# hash/native - Aiki-native hash map
 
 @func hash_code
 @template "hash_code(val)"

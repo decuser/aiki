@@ -553,3 +553,22 @@ The Go substrate owns signal subscriptions and tears them down with other runtim
 - Final witness delta is exactly six allowlisted baseline files: three directly obsolete/updated Store/Four-Way witnesses and three invariant tests updated for the explicit `runtime` role name. No unapproved frozen witness changed.
 - Disposable Go 1.23 compatibility harness passes `go test ./engine/runtime/modules ./engine/runtime/primitives ./cmd/subcommands/tools/check ./test/nativeffi`; authoritative Go 1.24 substrate/full gates remain unrun in the sandbox because required external modules are not cached and network access is unavailable.
 - Later runtime validation has two distinct checkpoints: run `make rigorous` at `native-ffi-preservation-candidate` to establish behavioral preservation against untouched witnesses, then run `make rigorous` at final branch head to validate the intentional Store/API and role-terminology cleanup.
+
+## 2026-08-18 — Alpha 2 documentation reconciliation begins
+
+- Authoritative baseline: `v0.4.0-alpha-34` / `8a33879`.
+- Branch: `alpha2-doc-reconciliation`.
+- Governing proposal: `proposals/alpha2-doc-reconciliation.md`.
+- Scope: repo-wide README, help/doc, architecture/developer docs, examples, proposals, and durable internal records; remove leftover current-facing cruft while preserving explicitly historical evidence.
+- Validation principle: implementation and current executable behavior remain authority; documentation is reconciled to code rather than code changed to match stale prose.
+
+## 2026-08-18 — Alpha 2 documentation reconciliation, pre-validation closeout
+
+- Audited README, all current Markdown docs, shipped library `.help`/`.doc` companions, project proposal statuses, repository READMEs, and both ODT language documents against `v0.4.0-alpha-34` / `8a33879`.
+- Current-facing architecture now consistently separates stdlib semantic realization (`native`, `ffi`, capability, interop) from HAL authority/runtime boundaries; deleted paths and stale Store-helper/future-signal wording were removed from current instructions while historical evidence was preserved.
+- `This Is Aiki` is the living Alpha 2 guide; RA1 remains the Aiki 1 report with its reference-implementation observations explicitly scoped to Alpha 1 (`v0.4.0-alpha` / `678aeea`).
+- Reconciled CLI/tooling documentation including `debug -stage fmt`; replaced brittle release file counts with durable validation categories; corrected direct host-facing Go dependency count to readline, flock, and Ebiten.
+- Static evidence: all current Markdown local links resolve; all shipped non-test library sources have `.doc` and `.help` companions; export/help/doc surface audit reports zero gaps; stale-term sweep has no unexplained current-facing hits; `git diff --check` passes.
+- ODT evidence: both documents render successfully through LibreOffice as letter-size PDFs (`This Is Aiki` 54 pages; RA1 57 pages), with Alpha 2 title/provenance and Alpha 1 scope visually/textually verified.
+- No disposable scratch/build cruft was found in the authoritative baseline. Historical experiment analyses, session history, and `ai/evidence` were deliberately retained.
+- Remaining critical gate: apply the reconciliation drop to current Alpha 34 master and run `make validate` (or stronger) without blessing golds.

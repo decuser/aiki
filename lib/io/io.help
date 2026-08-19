@@ -1,4 +1,4 @@
-# io - common sequential I/O
+# io - Aiki runtime I/O endpoint capability
 
 @func read
 @template "read(source, count)"

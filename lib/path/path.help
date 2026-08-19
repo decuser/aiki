@@ -1,4 +1,4 @@
-# path - portable path manipulation
+# path - Aiki path semantics with explicit host/runtime facts
 
 @func separator
 @template "separator()"

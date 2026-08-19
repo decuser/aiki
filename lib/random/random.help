@@ -1,4 +1,4 @@
-# random - pseudo-random number generation
+# random - runtime-owned pseudo-random capability
 
 @func seed
 @template "seed(n)"

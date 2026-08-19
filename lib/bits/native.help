@@ -1,4 +1,4 @@
-# bits/native - bit operations over non-negative integral numbers
+# bits/native - Aiki-native bit operations over non-negative integral numbers
 
 @func bit_and
 @template "bit_and(a, b)"

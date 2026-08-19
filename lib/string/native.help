@@ -1,4 +1,4 @@
-# string/native - string operations
+# string/native - Aiki-native string operations
 
 # Substrings and decomposition
 @func substring

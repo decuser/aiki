@@ -1,18 +1,18 @@
 # aiki debug
 
-The `debug` subcommand provides visibility into the lexer, parser, and evaluator stages.
+The `debug` subcommand provides visibility into the lexer, parser, formatter, and evaluator stages.
 
 ## Usage
 
 ```
-aiki debug [-stage lex|parse|eval|all] [-trace] [-prelude] <filename>
+aiki debug [-stage lex|parse|eval|fmt|all] [-trace] [-prelude] <filename>
 ```
 
 ## Flags
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `-stage` | `all` | Which stage to show: `lex`, `parse`, `eval`, or `all` |
+| `-stage` | `all` | Which stage to show: `lex`, `parse`, `eval`, `fmt`, or `all` |
 | `-trace` | off | Enable observer output (detailed step-by-step) |
 | `-prelude` | off | Include prelude in trace (requires `-trace`) |
 
@@ -27,6 +27,7 @@ let x = 1 + 2; println(x)
 ./aiki debug -stage lex test.ai      # show tokens
 ./aiki debug -stage parse test.ai    # show AST
 ./aiki debug -stage eval test.ai     # run and show result
+./aiki debug -stage fmt test.ai      # show canonical formatting
 ./aiki debug test.ai                 # all (default)
 ./aiki debug -trace test.ai          # with observer output
 ./aiki debug -trace -prelude test.ai   # include prelude
@@ -91,6 +92,18 @@ $ ./aiki debug -stage eval test.ai
 3
 => []
 ```
+
+### Show canonical formatting
+
+```
+$ ./aiki debug -stage fmt test.ai
+==== Format ====
+==== Formatted Output ====
+let x = 1 + 2
+println(x)
+```
+
+The `fmt` stage parses and formats the source using the same formatter as `aiki fmt`, but prints the result without rewriting the file.
 
 ### All stages (default)
 

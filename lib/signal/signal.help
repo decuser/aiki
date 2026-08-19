@@ -1,4 +1,4 @@
-# signal - portable process/runtime signals
+# signal - Aiki signal semantics over host signal capability
 
 @func watch
 @template "watch(...signals)"
