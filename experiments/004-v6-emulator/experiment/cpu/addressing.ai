@@ -1,0 +1,180 @@
+package "aiki_pdp_addressing"
+
+let machine = import("../machine/machine")
+let decode = import("./decode")
+let fetch = import("./fetch")
+let width = import("../machine/width")
+
+let @operand [mode, register, kind, address]
+
+let WORD = :word
+let BYTE = :byte
+let REGISTER = :register
+let MEMORY = :memory
+
+let signed_word = (value) {
+	let word = width.wrap(value, 16)
+	if word >= 32768 {
+		return word - 65536
+	}
+	return word
+}
+
+# Auto increment/decrement is byte-sized only for R0-R5. SP and PC remain
+# word-aligned and therefore move by two even for byte operands. Deferred modes
+# always move by two because the register addresses a 16-bit pointer.
+let direct_delta = (register, size) {
+	if equal(size, WORD) {
+		return 2
+	}
+	if register >= 6 {
+		return 2
+	}
+	return 1
+}
+
+let fetch_extension = (m) {
+	return fetch.word(m)
+}
+
+let resolve = (m, specification, size) {
+	let mode = decode.operand_mode(specification)
+	let register = decode.operand_register(specification)
+	let base = machine.get_register(m, register)
+
+	match mode {
+		0 {
+			return [@operand, mode, register, REGISTER, register]
+		}
+		1 {
+			return [@operand, mode, register, MEMORY, base]
+		}
+		2 {
+			let address = base
+			machine.set_register(m, register, base + direct_delta(register, size))
+			return [@operand, mode, register, MEMORY, address]
+		}
+		3 {
+			let pointer = machine.read_word(m, base)
+			if equal(shape(pointer), :pdp_fault) {
+				return pointer
+			}
+			machine.set_register(m, register, base + 2)
+			return [@operand, mode, register, MEMORY, pointer]
+		}
+		4 {
+			let address = width.wrap(base - direct_delta(register, size), 16)
+			machine.set_register(m, register, address)
+			return [@operand, mode, register, MEMORY, address]
+		}
+		5 {
+			let pointer_address = width.wrap(base - 2, 16)
+			machine.set_register(m, register, pointer_address)
+			let pointer = machine.read_word(m, pointer_address)
+			if equal(shape(pointer), :pdp_fault) {
+				return pointer
+			}
+			return [@operand, mode, register, MEMORY, pointer]
+		}
+		6 {
+			let displacement = fetch_extension(m)
+			if equal(shape(displacement), :pdp_fault) {
+				return displacement
+			}
+			# For PC-relative addressing the base is the PC after the extension
+			# word has been consumed. Other registers retain their original base.
+			let index_base = base
+			if equal(register, 7) {
+				index_base = machine.pc(m)
+			}
+			let address = width.wrap(index_base + signed_word(displacement), 16)
+			return [@operand, mode, register, MEMORY, address]
+		}
+		7 {
+			let displacement = fetch_extension(m)
+			if equal(shape(displacement), :pdp_fault) {
+				return displacement
+			}
+			let index_base = base
+			if equal(register, 7) {
+				index_base = machine.pc(m)
+			}
+			let pointer_address = width.wrap(index_base + signed_word(displacement), 16)
+			let pointer = machine.read_word(m, pointer_address)
+			if equal(shape(pointer), :pdp_fault) {
+				return pointer
+			}
+			return [@operand, mode, register, MEMORY, pointer]
+		}
+		_ {
+			return [@error, :addressing, "PDP-11 addressing mode out of range"]
+		}
+	}
+}
+
+let operand_kind = (operand) {
+	return operand.kind
+}
+
+let operand_register = (operand) {
+	return operand.register
+}
+
+let operand_address = (operand) {
+	return operand.address
+}
+
+let read_operand = (m, operand, size) {
+	if equal(operand.kind, REGISTER) {
+		let value = machine.get_register(m, operand.register)
+		if equal(size, BYTE) {
+			return width.wrap(value, 8)
+		}
+		return value
+	}
+	if equal(size, BYTE) {
+		return machine.read_byte(m, operand.address)
+	}
+	return machine.read_word(m, operand.address)
+}
+
+let write_operand = (m, operand, size, value) {
+	if equal(operand.kind, REGISTER) {
+		if equal(size, WORD) {
+			return machine.set_register(m, operand.register, value)
+		}
+		let old = machine.get_register(m, operand.register)
+		let high = width.wrap(old, 16) - width.wrap(old, 8)
+		return machine.set_register(m, operand.register, high + width.wrap(value, 8))
+	}
+	if equal(size, BYTE) {
+		return machine.write_byte(m, operand.address, value)
+	}
+	return machine.write_word(m, operand.address, value)
+}
+
+let write_movb = (m, operand, value) {
+	let byte = width.wrap(value, 8)
+	if equal(operand.kind, REGISTER) {
+		if byte >= 128 {
+			return machine.set_register(m, operand.register, byte + 65280)
+		}
+		return machine.set_register(m, operand.register, byte)
+	}
+	return machine.write_byte(m, operand.address, byte)
+}
+
+export(
+	:WORD,
+	:BYTE,
+	:REGISTER,
+	:MEMORY,
+	:direct_delta,
+	:resolve,
+	:operand_kind,
+	:operand_register,
+	:operand_address,
+	:read_operand,
+	:write_operand,
+	:write_movb
+)

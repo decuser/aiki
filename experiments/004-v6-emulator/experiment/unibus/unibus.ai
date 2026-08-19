@@ -1,0 +1,52 @@
+package "aiki_pdp_unibus"
+
+let memory = import("../memory/memory")
+
+# Gate 1 has no devices. The bus already owns the CPU-to-memory access path so
+# later device-register selection, DMA, interrupts, and INIT can be added here
+# without changing CPU authority boundaries.
+let new = () {
+	return [memory.new()]
+}
+
+let physical_memory = (bus) {
+	return bus[0]
+}
+
+let read_byte = (bus, address) {
+	return memory.read_byte(physical_memory(bus), address)
+}
+
+let write_byte = (bus, address, value) {
+	return memory.write_byte(physical_memory(bus), address, value)
+}
+
+let read_word = (bus, address) {
+	return memory.read_word(physical_memory(bus), address)
+}
+
+let write_word = (bus, address, value) {
+	return memory.write_word(physical_memory(bus), address, value)
+}
+
+let reset_bus = (bus) {
+	# No devices are attached yet. This is the architectural UNIBUS INIT seam
+	# used by RESET and machine reset; device reset propagation joins here.
+	return true
+}
+
+# Logical time is deliberately a no-op in Gate 1. This function is the sole
+# advancement seam for future bus-visible devices.
+let advance = (bus, elapsed) {
+	return true
+}
+
+export(
+	:new,
+	:read_byte,
+	:write_byte,
+	:read_word,
+	:write_word,
+	:reset_bus,
+	:advance
+)

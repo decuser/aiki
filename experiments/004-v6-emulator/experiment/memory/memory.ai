@@ -1,0 +1,82 @@
+package "aiki_pdp_memory"
+
+let bits = import("bits/native")
+let store = import("store")
+let width = import("../machine/width")
+
+# PDP-11/40 physical addressing is 18-bit and byte addressed. The actual Lions
+# machine will use less than the full physical space for installed core; keeping
+# the architectural address width explicit here prevents later device/MMU work
+# from being forced through a 16-bit backing-store assumption.
+let ADDRESS_BITS = 18
+let PHYSICAL_BYTES = bits.shl(1, ADDRESS_BITS)
+let BYTE_BITS = 8
+let WORD_BITS = 16
+
+let @pdp_fault [kind, address]
+
+let new = () {
+	return store.new(PHYSICAL_BYTES)
+}
+
+let size = (memory) {
+	return store.length(memory)
+}
+
+let physical_address = (value) {
+	return width.wrap(value, ADDRESS_BITS)
+}
+
+let byte = (value) {
+	return width.wrap(value, BYTE_BITS)
+}
+
+let word = (value) {
+	return width.wrap(value, WORD_BITS)
+}
+
+let read_byte = (memory, address) {
+	return store.get(memory, physical_address(address))
+}
+
+let write_byte = (memory, address, value) {
+	store.set(memory, physical_address(address), byte(value))
+	return true
+}
+
+let read_word = (memory, address) {
+	let p = physical_address(address)
+	if not equal(bits.bit_and(p, 1), 0) {
+		return [@pdp_fault, :odd_address, p]
+	}
+	let low = store.get(memory, p)
+	let high = store.get(memory, physical_address(p + 1))
+	return low + bits.shl(high, 8)
+}
+
+let write_word = (memory, address, value) {
+	let p = physical_address(address)
+	if not equal(bits.bit_and(p, 1), 0) {
+		return [@pdp_fault, :odd_address, p]
+	}
+	let w = word(value)
+	store.set(memory, p, bits.low(w, 8))
+	store.set(memory, physical_address(p + 1), bits.extract(w, 8, 8))
+	return true
+}
+
+export(
+	:ADDRESS_BITS,
+	:PHYSICAL_BYTES,
+	:BYTE_BITS,
+	:WORD_BITS,
+	:new,
+	:size,
+	:physical_address,
+	:byte,
+	:word,
+	:read_byte,
+	:write_byte,
+	:read_word,
+	:write_word
+)

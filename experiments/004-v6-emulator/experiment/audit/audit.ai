@@ -1,0 +1,179 @@
+package "aiki_pdp_audit"
+
+let bits = import("bits/native")
+let store = import("store")
+
+# Instruction vocabulary required by Lions' PDP-11/40 machine-language assist.
+# This is a factual workload manifest, not a claim that other PDP-11 instructions
+# do not exist.
+let INSTRUCTIONS = [
+	:adc, :adcb, :add, :ash, :ashc, :asl, :aslb, :asr, :asrb,
+	:beq, :bge, :bgt, :bhi, :bhis, :bic, :bicb, :bis, :bisb, :bit, :bitb,
+	:ble, :blo, :blos, :blt, :bmi, :bne, :bpl, :br, :bvc, :bvs,
+	:clc, :clr, :clrb, :cmp, :cmpb, :dec, :div, :halt, :inc, :incb,
+	:jmp, :jsr, :mfpi, :mov, :movb, :mtpi, :mul, :nop,
+	:reset, :ror, :rorb, :rts, :rtt, :sbc, :sbcb, :sob, :sub, :swab,
+	:tst, :tstb, :wait, :condition_code
+]
+
+let AUDIT_INSTRUCTIONS = 0
+let AUDIT_SOURCE_MODES = 1
+let AUDIT_DESTINATION_MODES = 2
+let AUDIT_PSW_CHANGES = 3
+let AUDIT_LAST_PSW = 4
+
+let LAST_KIND = 0
+let LAST_BEFORE = 1
+let LAST_AFTER = 2
+let LAST_MASK = 3
+
+let new = () {
+	let last = store.new(4)
+	store.set(last, LAST_KIND, :none)
+	store.set(last, LAST_BEFORE, 0)
+	store.set(last, LAST_AFTER, 0)
+	store.set(last, LAST_MASK, 0)
+	return [store.new(length(INSTRUCTIONS)), store.new(8), store.new(8), store.new(16), last]
+}
+
+let instruction_index = (kind) {
+	let i = 0
+	while i < length(INSTRUCTIONS) {
+		if equal(INSTRUCTIONS[i], kind) {
+			return i
+		}
+		i = i + 1
+	}
+	return -1
+}
+
+let increment = (counter_store, index) {
+	store.set(counter_store, index, store.get(counter_store, index) + 1)
+	return true
+}
+
+let record_instruction = (audit, kind) {
+	let i = instruction_index(kind)
+	if i < 0 {
+		return [@error, :audit, "instruction is outside the Lions m40 workload manifest"]
+	}
+	return increment(audit[AUDIT_INSTRUCTIONS], i)
+}
+
+let record_mode = (audit, role, mode) {
+	if mode < 0 or mode > 7 {
+		return [@error, :audit, "PDP-11 addressing mode out of range"]
+	}
+	if equal(role, :source) {
+		return increment(audit[AUDIT_SOURCE_MODES], mode)
+	}
+	if equal(role, :destination) {
+		return increment(audit[AUDIT_DESTINATION_MODES], mode)
+	}
+	return [@error, :audit, "operand role must be source or destination"]
+}
+
+let instruction_count = (audit, kind) {
+	let i = instruction_index(kind)
+	if i < 0 {
+		return 0
+	}
+	return store.get(audit[AUDIT_INSTRUCTIONS], i)
+}
+
+let mode_count = (audit, role, mode) {
+	if mode < 0 or mode > 7 {
+		return 0
+	}
+	if equal(role, :source) {
+		return store.get(audit[AUDIT_SOURCE_MODES], mode)
+	}
+	if equal(role, :destination) {
+		return store.get(audit[AUDIT_DESTINATION_MODES], mode)
+	}
+	return 0
+}
+
+
+let record_psw_transition = (audit, kind, before, after) {
+	let mask = bits.bit_xor(before, after)
+	let bit = 0
+	while bit < 16 {
+		if equal(bits.extract(mask, bit, 1), 1) {
+			increment(audit[AUDIT_PSW_CHANGES], bit)
+		}
+		bit = bit + 1
+	}
+	let last = audit[AUDIT_LAST_PSW]
+	store.set(last, LAST_KIND, kind)
+	store.set(last, LAST_BEFORE, before)
+	store.set(last, LAST_AFTER, after)
+	store.set(last, LAST_MASK, mask)
+	return true
+}
+
+let psw_change_count = (audit, bit) {
+	if bit < 0 or bit > 15 {
+		return 0
+	}
+	return store.get(audit[AUDIT_PSW_CHANGES], bit)
+}
+
+let last_psw_transition = (audit) {
+	let last = audit[AUDIT_LAST_PSW]
+	return [
+		store.get(last, LAST_KIND),
+		store.get(last, LAST_BEFORE),
+		store.get(last, LAST_AFTER),
+		store.get(last, LAST_MASK)
+	]
+}
+
+let instruction_counts = (audit) {
+	let result = []
+	let i = 0
+	while i < length(INSTRUCTIONS) {
+		result = append(result, [INSTRUCTIONS[i], store.get(audit[AUDIT_INSTRUCTIONS], i)])
+		i = i + 1
+	}
+	return result
+}
+
+let reset_audit = (audit) {
+	let i = 0
+	while i < length(INSTRUCTIONS) {
+		store.set(audit[AUDIT_INSTRUCTIONS], i, 0)
+		i = i + 1
+	}
+	i = 0
+	while i < 8 {
+		store.set(audit[AUDIT_SOURCE_MODES], i, 0)
+		store.set(audit[AUDIT_DESTINATION_MODES], i, 0)
+		i = i + 1
+	}
+	i = 0
+	while i < 16 {
+		store.set(audit[AUDIT_PSW_CHANGES], i, 0)
+		i = i + 1
+	}
+	let last = audit[AUDIT_LAST_PSW]
+	store.set(last, LAST_KIND, :none)
+	store.set(last, LAST_BEFORE, 0)
+	store.set(last, LAST_AFTER, 0)
+	store.set(last, LAST_MASK, 0)
+	return true
+}
+
+export(
+	:INSTRUCTIONS,
+	:new,
+	:record_instruction,
+	:record_mode,
+	:instruction_count,
+	:mode_count,
+	:instruction_counts,
+	:record_psw_transition,
+	:psw_change_count,
+	:last_psw_transition,
+	:reset_audit
+)

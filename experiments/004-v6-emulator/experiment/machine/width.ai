@@ -1,0 +1,25 @@
+package "aiki_pdp_width"
+
+let bits = import("bits/native")
+
+# Reduce an exact integer to an unsigned machine bit-pattern width. Aiki numbers
+# are unbounded exact rationals, so negative host values need explicit modulo
+# reduction rather than relying on host integer representation.
+let wrap = (value, width) {
+	let integral = truncate(value)
+	if not equal(value, integral) {
+		return bits.low(value, width)
+	}
+	let modulus = bits.shl(1, width)
+	if integral >= 0 {
+		return bits.low(integral, width)
+	}
+	let quotient = truncate(integral / modulus)
+	let remainder = integral - (quotient * modulus)
+	if remainder < 0 {
+		return remainder + modulus
+	}
+	return remainder
+}
+
+export(:wrap)

@@ -1,0 +1,209 @@
+package "aiki_pdp_machine"
+
+let audit = import("../audit/audit")
+let state = import("./state")
+let unibus = import("../unibus/unibus")
+
+let MACHINE_STATE = 0
+let MACHINE_BUS = 1
+let MACHINE_AUDIT = 2
+
+let new = () {
+	return [state.new(), unibus.new(), audit.new()]
+}
+
+let processor_state = (machine) {
+	return machine[MACHINE_STATE]
+}
+
+let bus = (machine) {
+	return machine[MACHINE_BUS]
+}
+
+let execution_audit = (machine) {
+	return machine[MACHINE_AUDIT]
+}
+
+let reset_machine = (machine) {
+	# Gate 1 has no bus-visible devices to initialize yet. State reset is kept
+	# behind the machine boundary so UNIBUS INIT propagation can join it later.
+	state.reset_state(processor_state(machine))
+	unibus.reset_bus(bus(machine))
+	audit.reset_audit(execution_audit(machine))
+	return true
+}
+
+let get_register = (machine, index) {
+	return state.get_register(processor_state(machine), index)
+}
+
+let set_register = (machine, index, value) {
+	return state.set_register(processor_state(machine), index, value)
+}
+
+let pc = (machine) {
+	return state.pc(processor_state(machine))
+}
+
+let set_pc = (machine, value) {
+	return state.set_pc(processor_state(machine), value)
+}
+
+let sp = (machine) {
+	return state.sp(processor_state(machine))
+}
+
+let set_sp = (machine, value) {
+	return state.set_sp(processor_state(machine), value)
+}
+
+let psw = (machine) {
+	return state.psw(processor_state(machine))
+}
+
+let set_psw = (machine, value) {
+	return state.set_psw(processor_state(machine), value)
+}
+
+let running = (machine) {
+	return state.running(processor_state(machine))
+}
+
+let set_running = (machine, value) {
+	return state.set_running(processor_state(machine), value)
+}
+
+let waiting = (machine) {
+	return state.waiting(processor_state(machine))
+}
+
+let set_waiting = (machine, value) {
+	return state.set_waiting(processor_state(machine), value)
+}
+
+let steps = (machine) {
+	return state.steps(processor_state(machine))
+}
+
+let machine_time = (machine) {
+	return state.machine_time(processor_state(machine))
+}
+
+let snapshot = (machine) {
+	return state.snapshot(processor_state(machine))
+}
+
+let complete_instruction = (machine, elapsed) {
+	unibus.advance(bus(machine), elapsed)
+	return state.complete_instruction(processor_state(machine), elapsed)
+}
+
+let reset_bus = (machine) {
+	return unibus.reset_bus(bus(machine))
+}
+
+let audit_instruction = (machine, kind) {
+	return audit.record_instruction(execution_audit(machine), kind)
+}
+
+let audit_operand = (machine, role, mode) {
+	return audit.record_mode(execution_audit(machine), role, mode)
+}
+
+let audit_instruction_count = (machine, kind) {
+	return audit.instruction_count(execution_audit(machine), kind)
+}
+
+let audit_mode_count = (machine, role, mode) {
+	return audit.mode_count(execution_audit(machine), role, mode)
+}
+
+let audit_instruction_counts = (machine) {
+	return audit.instruction_counts(execution_audit(machine))
+}
+
+let audit_psw_transition = (machine, kind, before, after) {
+	return audit.record_psw_transition(execution_audit(machine), kind, before, after)
+}
+
+let audit_psw_change_count = (machine, bit) {
+	return audit.psw_change_count(execution_audit(machine), bit)
+}
+
+let audit_last_psw_transition = (machine) {
+	return audit.last_psw_transition(execution_audit(machine))
+}
+
+# Architectural CPU accesses use the same UNIBUS path as operator examine/deposit,
+# but have distinct names so later observation and protection policy can remain clear.
+let read_byte = (machine, address) {
+	return unibus.read_byte(bus(machine), address)
+}
+
+let write_byte = (machine, address, value) {
+	return unibus.write_byte(bus(machine), address, value)
+}
+
+let read_word = (machine, address) {
+	return unibus.read_word(bus(machine), address)
+}
+
+let write_word = (machine, address, value) {
+	return unibus.write_word(bus(machine), address, value)
+}
+
+# Operator/diagnostic memory access goes through the machine and UNIBUS rather
+# than reaching into backing memory.
+let examine_byte = (machine, address) {
+	return unibus.read_byte(bus(machine), address)
+}
+
+let deposit_byte = (machine, address, value) {
+	return unibus.write_byte(bus(machine), address, value)
+}
+
+let examine_word = (machine, address) {
+	return unibus.read_word(bus(machine), address)
+}
+
+let deposit_word = (machine, address, value) {
+	return unibus.write_word(bus(machine), address, value)
+}
+
+export(
+	:new,
+	:reset_machine,
+	:get_register,
+	:set_register,
+	:pc,
+	:set_pc,
+	:sp,
+	:set_sp,
+	:psw,
+	:set_psw,
+	:running,
+	:set_running,
+	:waiting,
+	:set_waiting,
+	:steps,
+	:machine_time,
+	:snapshot,
+	:complete_instruction,
+	:reset_bus,
+	:audit_instruction,
+	:audit_operand,
+	:audit_instruction_count,
+	:audit_mode_count,
+	:audit_instruction_counts,
+	:audit_psw_transition,
+	:audit_psw_change_count,
+	:audit_last_psw_transition,
+	:read_byte,
+	:write_byte,
+	:read_word,
+	:write_word,
+	:examine_byte,
+	:deposit_byte,
+	:examine_word,
+	:deposit_word
+)

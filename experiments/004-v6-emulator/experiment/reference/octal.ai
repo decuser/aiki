@@ -1,0 +1,68 @@
+package "aiki_pdp_octal"
+
+let str = import("string/native")
+
+let parse = (text) {
+	let s = str.trim(text)
+	if equal(s, "") {
+		return [@error, :octal, "expected octal number"]
+	}
+	let start = 0
+	if length(s) >= 2 {
+		match [ord(s[0]), ord(s[1])] {
+			[48, 111] { start = 2 }
+			[48, 79] { start = 2 }
+		}
+	}
+	if start >= length(s) {
+		return [@error, :octal, "expected octal digits"]
+	}
+	let value = 0
+	let i = start
+	while i < length(s) {
+		let d = ord(s[i]) - 48
+		if (d < 0) or (d > 7) {
+			return [@error, :octal, "invalid octal number"]
+		}
+		value = (value * 8) + d
+		i = i + 1
+	}
+	return value
+}
+
+let digit = (value) {
+	return to_str(value)
+}
+
+let unsigned = (value) {
+	let n = truncate(value)
+	if n < 0 {
+		return "-" + unsigned(-n)
+	}
+	if equal(n, 0) {
+		return "0"
+	}
+	let result = ""
+	while n > 0 {
+		let q = truncate(n / 8)
+		let r = n - (q * 8)
+		result = digit(r) + result
+		n = q
+	}
+	return result
+}
+
+let padded = (value, width) {
+	let result = unsigned(value)
+	while length(result) < width {
+		result = "0" + result
+	}
+	return result
+}
+
+let word = (value) { return padded(value, 6) }
+let address = (value) { return padded(value, 6) }
+let byte = (value) { return padded(value, 3) }
+let count = (value) { return unsigned(value) }
+
+export(:parse, :unsigned, :padded, :word, :address, :byte, :count)

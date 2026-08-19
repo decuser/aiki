@@ -1,0 +1,154 @@
+package "aiki_pdp_decode"
+
+let bits = import("bits/native")
+
+# Every PDP-11 operand specification is six bits: a three-bit addressing mode
+# followed by a three-bit general-register selector.
+let operand_mode = (specification) {
+	return bits.extract(specification, 3, 3)
+}
+
+let operand_register = (specification) {
+	return bits.extract(specification, 0, 3)
+}
+
+let source_spec = (instruction) {
+	return bits.extract(instruction, 6, 6)
+}
+
+let destination_spec = (instruction) {
+	return bits.extract(instruction, 0, 6)
+}
+
+let major_opcode = (instruction) {
+	return bits.extract(instruction, 12, 4)
+}
+
+let double_operand_kind = (instruction) {
+	match major_opcode(instruction) {
+		1 { return :mov }
+		2 { return :cmp }
+		3 { return :bit }
+		4 { return :bic }
+		5 { return :bis }
+		6 { return :add }
+		9 { return :movb }
+		10 { return :cmpb }
+		11 { return :bitb }
+		12 { return :bicb }
+		13 { return :bisb }
+		14 { return :sub }
+		_ { return :other }
+	}
+}
+
+let single_operand_kind = (instruction) {
+	let base = bits.bit_and(instruction, 65472) # 0177700
+	match base {
+		2560 { return :clr }    # 005000
+		2688 { return :inc }    # 005200
+		2752 { return :dec }    # 005300
+		2880 { return :adc }    # 005500
+		2944 { return :sbc }    # 005600
+		3008 { return :tst }    # 005700
+		3072 { return :ror }    # 006000
+		3200 { return :asr }    # 006200
+		3264 { return :asl }    # 006300
+		35328 { return :clrb }  # 105000
+		35456 { return :incb }  # 105200
+		35648 { return :adcb }  # 105500
+		35712 { return :sbcb }  # 105600
+		35776 { return :tstb }  # 105700
+		35840 { return :rorb }  # 106000
+		35968 { return :asrb }  # 106200
+		36032 { return :aslb }  # 106300
+		_ { return :other }
+	}
+}
+
+let branch_kind = (instruction) {
+	let base = bits.bit_and(instruction, 65280) # 0177400
+	match base {
+		256 { return :br }       # 000400
+		512 { return :bne }      # 001000
+		768 { return :beq }      # 001400
+		1024 { return :bge }     # 002000
+		1280 { return :blt }     # 002400
+		1536 { return :bgt }     # 003000
+		1792 { return :ble }     # 003400
+		32768 { return :bpl }    # 100000
+		33024 { return :bmi }    # 100400
+		33280 { return :bhi }    # 101000
+		33536 { return :blos }   # 101400
+		33792 { return :bvc }    # 102000
+		34048 { return :bvs }    # 102400
+		34304 { return :bhis }   # 103000 / BCC
+		34560 { return :blo }    # 103400 / BCS
+		_ { return :other }
+	}
+}
+
+let eis_kind = (instruction) {
+	let base = bits.bit_and(instruction, 65024) # 0177000
+	match base {
+		28672 { return :mul }   # 070000
+		29184 { return :div }   # 071000
+		29696 { return :ash }   # 072000
+		30208 { return :ashc }  # 073000
+		_ { return :other }
+	}
+}
+
+let instruction_kind = (instruction) {
+	let kind = double_operand_kind(instruction)
+	if not equal(kind, :other) {
+		return kind
+	}
+	kind = single_operand_kind(instruction)
+	if not equal(kind, :other) {
+		return kind
+	}
+	kind = branch_kind(instruction)
+	if not equal(kind, :other) {
+		return kind
+	}
+	kind = eis_kind(instruction)
+	if not equal(kind, :other) {
+		return kind
+	}
+
+	let single_base = bits.bit_and(instruction, 65472)
+	if equal(single_base, 192) { return :swab }  # 000300
+	if equal(single_base, 64) { return :jmp }    # 000100
+	if equal(single_base, 3392) { return :mfpi } # 006500
+	if equal(single_base, 3456) { return :mtpi } # 006600
+
+	if equal(bits.bit_and(instruction, 65024), 2048) { return :jsr } # 004000
+	if equal(bits.bit_and(instruction, 65024), 32256) { return :sob } # 077000
+	if equal(bits.bit_and(instruction, 65528), 128) { return :rts } # 000200
+
+	if equal(instruction, 0) { return :halt }
+	if equal(instruction, 1) { return :wait }
+	if equal(instruction, 5) { return :reset }
+	if equal(instruction, 6) { return :rtt }
+	if equal(instruction, 160) { return :nop }
+	if instruction >= 161 and instruction <= 191 {
+		# m40.s uses CLC; the executor supports the whole condition-code family.
+		if equal(instruction, 161) { return :clc }
+		return :condition_code
+	}
+	return :other
+}
+
+export(
+	:operand_mode,
+	:operand_register,
+	:source_spec,
+	:destination_spec,
+	:major_opcode,
+	:double_operand_kind,
+	:single_operand_kind,
+	:branch_kind,
+	:eis_kind,
+	:instruction_kind
+)

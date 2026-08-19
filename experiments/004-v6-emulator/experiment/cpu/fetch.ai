@@ -1,0 +1,19 @@
+package "aiki_pdp_fetch"
+
+let machine = import("../machine/machine")
+let width = import("../machine/width")
+
+# Instruction fetch is a word read at PC followed by the architectural PC+2
+# side effect. Gate 1 runs without memory management; address translation joins
+# the UNIBUS/MMU path in the later UNIX gate without changing this interface.
+let word = (m) {
+	let address = machine.pc(m)
+	let value = machine.read_word(m, address)
+	if equal(shape(value), :pdp_fault) {
+		return value
+	}
+	machine.set_pc(m, width.wrap(address + 2, 16))
+	return value
+}
+
+export(:word)

@@ -572,3 +572,86 @@ The Go substrate owns signal subscriptions and tears them down with other runtim
 - ODT evidence: both documents render successfully through LibreOffice as letter-size PDFs (`This Is Aiki` 54 pages; RA1 57 pages), with Alpha 2 title/provenance and Alpha 1 scope visually/textually verified.
 - No disposable scratch/build cruft was found in the authoritative baseline. Historical experiment analyses, session history, and `ai/evidence` were deliberately retained.
 - Remaining critical gate: apply the reconciliation drop to current Alpha 34 master and run `make validate` (or stronger) without blessing golds.
+
+## 2026-08-19 — Experiment 004 PDP-11/40 V6 emulator begins
+
+- Authoritative baseline: `v0.4.0-alpha-35` / `caade2f`, clean `master`.
+- Project branch: `v6-emulator`.
+- Governing proposal: `proposals/pdp11-40-v6-lions.md`.
+- Experiment: `experiments/004-v6-emulator/`; Experiment 002 Thompson 7094 is the structural/process precedent, not an implementation template to copy mechanically.
+- Target is the smallest architecturally faithful PDP-11/40 + UNIBUS machine required to construct and run the Lions V6 laboratory, not a general PDP-11 or all-V6 emulator.
+- First campaign gates: (1) deterministic PDP-11/40 core diagnostics; (2) tape bootstrap/bus interaction; (3) standalone installer `=` from original distribution tape; (4) one system disk constructed by V6 `tmrk`; (5) boot that constructed disk through `@rkunix` to V6 `#`.
+- Architectural decisions: one authoritative deterministic machine state; UNIBUS is the CPU/memory/device/DMA/interrupt coordination boundary; semantic folders enforce separation of concerns; observation/log/debug do not mutate or pace the machine; operator vocabulary is UNIX/V6 (`tape`, `disk`, `console`, etc.) while DEC controller names remain internal/deep-debug terminology; monitor identity/prompt is `aiki-pdp>`.
+- Host-control contract: CTRL-T status without state change; CTRL-E suspends guest execution and returns to `aiki-pdp>`; CTRL-C and CTRL-D retain normal foreground interrupt/EOF effects. Guest hangs must not make the emulator monitor unrecoverable.
+- Normative authorities supplied: 1972 PDP-11/40 Processor Handbook, 1979 UNIBUS Design Description, 1976 KT11-D manual, targeted peripheral manuals, Lions source/commentary, and the Lions laboratory setup guide.
+- Working method: follow `ai/README.md`; make small serial cuts, retain evidence, update this durable record, report progress during work, and stop for user validation/input at critical design points and between project gates.
+- Exact next action: implement Cut 1 in Gate 1 — machine state, byte/word memory, and declarative before/program/after diagnostic harness — without introducing peripheral behavior.
+
+### 2026-08-19 — V6 emulator Gate 1 Cut 1 implementation written, validation blocked
+
+- Added semantic experiment boundaries for `machine/`, `memory/`, `unibus/`, and `diagnostics/`; empty `cpu/`, `monitor/`, and `observe/` directories are not retained because Git does not track them and implementation has not begun there.
+- Physical backing memory is explicitly 18-bit byte-addressed (262,144 bytes). Word access is little-endian and odd-address word access returns a shaped guest architectural fault rather than an emulator/host failure.
+- Machine state contains eight 16-bit registers (R6/SP, R7/PC), 16-bit PSW, run state, deterministic step count, and logical machine time. Width reduction is centralized in `machine/width.ai`, including negative exact integers.
+- Gate-1 UNIBUS currently routes byte/word accesses only to physical memory and exposes the single future device-advancement seam; no device behavior exists yet.
+- Diagnostic harness establishes declarative before state, program words, bounded-step count, and expected after registers/PSW/memory. Cut 1 self-tests cover width wrapping, byte/word layout, odd-address fault classification, reset, machine/UNIBUS memory authority, and fixture comparison.
+- Static evidence: `git diff --check` passes; manual source review completed against current Aiki syntax/examples.
+- Validation limitation: no `aiki` executable is present in the supplied baseline or PATH. Building is blocked because `go.mod` requires Go 1.24 while the container has Go 1.23.2 and network access blocks toolchain download. Therefore Cut 1 remains ACTIVE, not GATED.
+- Exact next action: run `aiki test experiments/004-v6-emulator/experiment/diagnostics/cut1_test.ai` with an Alpha-35-compatible Aiki executable. Any failure is Cut 1 work. Do not begin Cut 2 until this focused gate passes.
+
+## 2026-08-19 — PDP-11/40 V6 emulator, Gate 1 Cut 1 gated / Cut 2 active
+
+- Authoritative branch is `v6-emulator`; experiment is `004-v6-emulator`.
+- User validation gated Cut 1: `aiki test experiments/004-v6-emulator/experiment/diagnostics/cut1_test.ai` -> 42 tests, 42 passed, 0 failed.
+- Cut 2 removes local `reset` shadowing, adds fetch/decode and a single operand-resolution authority for PDP-11/40 addressing modes 0-7, including PC special forms and byte-vs-word register side effects.
+- Added handbook-derived PDP-11 operator help for addressing, registers, PSW, instruction octal base codes, branches, traps, and selected mnemonics. Standalone `experiment/help.ai` is the current reader; the future `aiki-pdp>` monitor will use the same help authority.
+- Process correction: active Cut-2 edits were detected in a scratch extraction before commit and migrated into the authoritative `v6-emulator` tree at `7e2596d`; the scratch tree is not evidence.
+- Sandbox executable validation remains blocked by Go 1.23 vs repository Go 1.24 and no built `aiki`. Disposable Go-1.23 compatibility evidence passes `go test ./engine/syntax/...`, and every Cut-2 Aiki source lexes/parses under the authoritative grammar. Next evidence is user-run focused Cut-2 tests.
+
+### 2026-08-19 — PDP-11/40 V6 emulator, Cut 2 addressing gate repair
+
+- User validation kept Cut 1 green at 42/42 and gated PDP help at 16/16, but addressing returned 13/27 with 14 identical `unknown shape: operand` faults plus one `read` prelude-shadow warning.
+- Root cause is Aiki lexical shape vocabulary, not PDP-11 addressing semantics: the shaped `@operand` value crossed the module boundary, while field names declared in `cpu/addressing.ai` did not become known in the importing diagnostic environment.
+- Repair keeps `@operand` private to the addressing module and exports semantic accessors for kind/register/address; operand reading is renamed `read_operand` to remove the prelude shadow. No PDP-11 mode, side-effect, PC-relative, byte/word, or fetch semantics changed.
+- Cut 2 remains ACTIVE until the repaired focused addressing test passes under the user's Alpha-35 Aiki executable.
+
+### 2026-08-19 — PDP-11/40 V6 emulator, Cut 2 gated / Cut 3 execution core
+
+- User validated the repaired Cut 2 addressing suite successfully; Cut 2 is GATED. Cut 1 remains GATED at 42/42 and PDP help at 16/16.
+- Durable scope correction: KT11-D memory management is required before `rkunix`/V6 proper, but remains deliberately after tape bootstrap and standalone tape-to-disk construction. Proposal gates are now Gate 5 MMU, Gate 6 boot constructed disk into V6.
+- Cut 3 is ACTIVE: added PSW/NZVC authority, architectural operand writes including MOVB register sign extension, representative double/single operand execution, full conditional branch family, JMP, JSR/RTS, HALT/NOP/condition-code operators, deterministic per-instruction machine/UNIBUS advancement, and bounded run.
+- Execution distinguishes effective-address resolution from destination reading: MOV and CLR resolve destinations without performing an unnecessary read, preserving the correct future boundary for write-only or side-effecting device registers.
+- The declarative Gate-1 fixture now owns bounded execution as well as before/after comparison, preserving one diagnostic authority. Focused Cut-3 tests include exact register/PSW/control-flow/stack behavior and a bounded accumulator program ending in HALT.
+- Sandbox cannot run the Alpha-35 Aiki executable. Disposable Go-1.23 syntax evidence passes `go test ./engine/syntax/...`; all changed Cut-3 Aiki files lex and parse under the authoritative grammar. Next evidence: user runs `aiki test experiments/004-v6-emulator/experiment/diagnostics/cut3_execution_test.ai`.
+
+
+### 2026-08-19 — PDP-11/40 V6 emulator, Cut 3 expanded to m40.s contract
+
+- User directed Cut 3 to continue until it fulfills the actual Lions `m40.s` instruction workload rather than stop at a representative subset, and requested runtime audit of instruction and addressing-mode use.
+- Static cross-check of Lions' commentary against the supplied `m40.s` source identifies 45 instruction forms in the workload; the cross-check caught omissions in the earlier hand inventory (`mul`, `ror`, `wait`), so the source-backed manifest now governs Cut 3.
+- Cut 3 now includes execution support for the missing `m40.s` forms including ADC/SBC, SWAB, ROR/ASR/ASL, MUL/DIV/ASH/ASHC, SOB, MFPI/MTPI, RTT, WAIT, and RESET. Handbook review corrected the draft SBC carry rule before gating.
+- Runtime audit is attached to the machine and counts decoded instruction kinds plus source/destination addressing modes through the execution path. A readable audit renderer uses octal-first numeric presentation; machine values and audit counts are not rendered in decimal.
+- `MFPI`/`MTPI` are not claimed as full KT11-D behavior here: their instruction/stack-transfer boundary is exercised while previous-mode translation remains explicitly owned by Gate 5. Likewise WAIT/RESET/RTT establish the CPU/bus/control seams that later interrupt, device, and MMU gates complete.
+- Added `cut3_m40_test.ai`: requires a 45-form source-backed contract, decoder recognition of every form, semantic witnesses for the newly admitted instruction families, and audit/addressing-mode evidence.
+- Sandbox evidence: all Experiment 004 Aiki sources lex and parse under the authoritative grammar; `git diff --check` passes. Cut 3 remains ACTIVE pending user execution of both Cut-3 diagnostic files.
+
+### 2026-08-19 — PDP-11/40 V6 emulator, Cut 3 packaging repair
+
+- User validation reconfirmed Cut 2 addressing at 54/54. The supplied continued-Cut-3 drop then exposed a packaging defect rather than a new semantic defect: `cut3_execution_test.ai` was absent, and the user's tree still lacked the Cut-3 `write_operand` export from `cpu/addressing.ai`.
+- Root cause: the continued-Cut-3 tarball was built from only the later `56f75c2` delta, even though it was intended to be applied directly over the gated Cut-2 baseline. It therefore omitted files introduced by `b5afeaf`, including `cpu/addressing.ai`, `cpu/psw.ai`, `diagnostics/cut3_execution_test.ai`, and the updated fixture.
+- The observed `unknown shape: error` failures occurred downstream of this incomplete module surface and are not yet evidence against the PDP instruction semantics.
+- Repair policy: no CPU semantic changes. Reissue Cut 3 cumulatively from gated Cut 2 (`d802169`) through the current m40 completion, including every file required by both Cut-3 diagnostic suites. Cut 3 remains ACTIVE pending user execution of both suites against the cumulative drop.
+
+### 2026-08-19 — PDP-11/40 V6 emulator, Cut 3 semantic/grouping repair
+
+- User validation against the cumulative Cut 3 drop: `cut3_execution_test.ai` -> 62/64, with two `cannot compare boolean and number` faults in bounded execution/fixture execution; `cut3_m40_test.ai` -> 103/105, with one ROR PSW expectation mismatch (`expected 11, got 9`) and one `cannot subtract boolean and number` fault in audit rendering.
+- Handbook review confirms the ROR implementation was correct and the diagnostic expectation was wrong: ROR sets V to N xor C. For source `1` with incoming C=1, the result is `0100000`, N=1, C=1, V=0, hence NZVC value 011 octal (9 decimal).
+- The two runtime type faults are Aiki left-to-right grouping defects, not PDP semantics: `run_bounded` now groups `(count < limit)`, and the audit renderer groups `(length(groups) - 1)` before comparison.
+- No CPU instruction semantics changed in this repair. Cut 3 remains ACTIVE pending rerun of both focused suites.
+
+### 2026-08-19 — PDP-11/40 V6 emulator, Cut 3 audit/PSW repair
+
+- User validation: `cut3_execution_test.ai` is green at 73/73. `cut3_m40_test.ai` is 108/109; the only remaining failure is the audit-report assertion expecting an empty string while the renderer correctly returns the populated octal-first report.
+- Audit contract is extended without changing PDP instruction semantics: every completed instruction now records full 16-bit PSW before/after and a bitwise change mask. The audit retains the latest transition plus per-bit change counts, avoiding an unbounded per-instruction trace during a future V6 boot.
+- The report renders the latest PSW transition as octal `before`, `after`, and `delta`; condition-code changes are named `N Z V C` when present. Full masks are retained so later mode/priority changes from RTT/traps/interrupts are not discarded.
+- Added `reference/octal.parse` (using the proven Experiment 002 monitor pattern) so PDP-facing tests/configuration can state machine values in octal strings even though Aiki numeric literals themselves are decimal.
+- No CPU instruction semantics changed. Cut 3 remains ACTIVE pending the focused `cut3_m40_test.ai` rerun.

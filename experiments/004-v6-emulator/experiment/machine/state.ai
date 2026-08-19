@@ -1,0 +1,189 @@
+package "aiki_pdp_state"
+
+let store = import("store")
+let width = import("./width")
+
+let WORD_BITS = 16
+let REGISTER_COUNT = 8
+let SP = 6
+let PC = 7
+
+# Private mutable state layout.
+let STATE_REGISTERS = 0
+let STATE_CONTROL = 1
+
+let CONTROL_PSW = 0
+let CONTROL_RUNNING = 1
+let CONTROL_STEPS = 2
+let CONTROL_TIME = 3
+let CONTROL_WAITING = 4
+let CONTROL_WORDS = 5
+
+let new = () {
+	return [store.new(REGISTER_COUNT), store.new(CONTROL_WORDS)]
+}
+
+let registers = (state) {
+	return state[STATE_REGISTERS]
+}
+
+let control = (state) {
+	return state[STATE_CONTROL]
+}
+
+let register_index = (index) {
+	if (index < 0) or (index >= REGISTER_COUNT) {
+		return [@error, :register, "PDP-11 register index out of range"]
+	}
+	return index
+}
+
+let word = (value) {
+	return width.wrap(value, WORD_BITS)
+}
+
+let get_register = (state, index) {
+	let i = register_index(index)
+	if is_error(i) {
+		return i
+	}
+	return store.get(registers(state), i)
+}
+
+let set_register = (state, index, value) {
+	let i = register_index(index)
+	if is_error(i) {
+		return i
+	}
+	store.set(registers(state), i, word(value))
+	return true
+}
+
+let sp = (state) {
+	return get_register(state, SP)
+}
+
+let set_sp = (state, value) {
+	return set_register(state, SP, value)
+}
+
+let pc = (state) {
+	return get_register(state, PC)
+}
+
+let set_pc = (state, value) {
+	return set_register(state, PC, value)
+}
+
+let psw = (state) {
+	return store.get(control(state), CONTROL_PSW)
+}
+
+let set_psw = (state, value) {
+	store.set(control(state), CONTROL_PSW, word(value))
+	return true
+}
+
+let running = (state) {
+	return not equal(store.get(control(state), CONTROL_RUNNING), 0)
+}
+
+let set_running = (state, value) {
+	if value {
+		store.set(control(state), CONTROL_RUNNING, 1)
+	} else {
+		store.set(control(state), CONTROL_RUNNING, 0)
+	}
+	return true
+}
+
+let waiting = (state) {
+	return not equal(store.get(control(state), CONTROL_WAITING), 0)
+}
+
+let set_waiting = (state, value) {
+	if value {
+		store.set(control(state), CONTROL_WAITING, 1)
+	} else {
+		store.set(control(state), CONTROL_WAITING, 0)
+	}
+	return true
+}
+
+let steps = (state) {
+	return store.get(control(state), CONTROL_STEPS)
+}
+
+let set_steps = (state, value) {
+	store.set(control(state), CONTROL_STEPS, value)
+	return true
+}
+
+let machine_time = (state) {
+	return store.get(control(state), CONTROL_TIME)
+}
+
+let set_machine_time = (state, value) {
+	store.set(control(state), CONTROL_TIME, value)
+	return true
+}
+
+let complete_instruction = (state, elapsed) {
+	set_steps(state, steps(state) + 1)
+	set_machine_time(state, machine_time(state) + elapsed)
+	return true
+}
+
+let reset_state = (state) {
+	let i = 0
+	while i < REGISTER_COUNT {
+		store.set(registers(state), i, 0)
+		i = i + 1
+	}
+	set_psw(state, 0)
+	set_running(state, false)
+	set_waiting(state, false)
+	set_steps(state, 0)
+	set_machine_time(state, 0)
+	return true
+}
+
+let snapshot = (state) {
+	return [
+		@state,
+		store.snapshot(registers(state)),
+		psw(state),
+		running(state),
+		waiting(state),
+		steps(state),
+		machine_time(state)
+	]
+}
+
+export(
+	:WORD_BITS,
+	:REGISTER_COUNT,
+	:SP,
+	:PC,
+	:new,
+	:word,
+	:get_register,
+	:set_register,
+	:sp,
+	:set_sp,
+	:pc,
+	:set_pc,
+	:psw,
+	:set_psw,
+	:running,
+	:set_running,
+	:waiting,
+	:set_waiting,
+	:steps,
+	:set_steps,
+	:machine_time,
+	:set_machine_time,
+	:complete_instruction,
+	:reset_state,
+	:snapshot
+)

@@ -1,0 +1,105 @@
+use("test")
+let memory = import("../memory/memory")
+let width = import("../machine/width")
+let state = import("../machine/state")
+let machine = import("../machine/machine")
+let fixture = import("./fixture")
+
+run("machine-width wrapping is explicit for signed and unsigned values", () {
+	equal(width.wrap(65535, 16), 65535)
+	equal(width.wrap(65536, 16), 0)
+	equal(width.wrap(-1, 16), 65535)
+	equal(width.wrap(-2, 8), 254)
+})
+
+run("physical memory is 18-bit byte addressed", () {
+	let mem = memory.new()
+	equal(memory.ADDRESS_BITS, 18)
+	equal(memory.PHYSICAL_BYTES, 262144)
+	equal(memory.size(mem), 262144)
+})
+
+run("word storage is little endian and wraps to 16 bits", () {
+	let mem = memory.new()
+	equal(memory.write_word(mem, 1000, 65535), true)
+	equal(memory.read_byte(mem, 1000), 255)
+	equal(memory.read_byte(mem, 1001), 255)
+	equal(memory.read_word(mem, 1000), 65535)
+	equal(memory.write_word(mem, 1002, 65537), true)
+	equal(memory.read_word(mem, 1002), 1)
+})
+
+run("byte writes preserve the adjacent byte", () {
+	let mem = memory.new()
+	memory.write_word(mem, 2000, 4660)
+	memory.write_byte(mem, 2001, 171)
+	equal(memory.read_byte(mem, 2000), 52)
+	equal(memory.read_byte(mem, 2001), 171)
+	equal(memory.read_word(mem, 2000), 43828)
+})
+
+run("odd word accesses are guest architectural faults", () {
+	let mem = memory.new()
+	equal(shape(memory.read_word(mem, 1)), :pdp_fault)
+	equal(shape(memory.write_word(mem, 3, 1)), :pdp_fault)
+})
+
+run("processor state has eight 16-bit registers plus PSW", () {
+	let s = state.new()
+	equal(state.REGISTER_COUNT, 8)
+	state.set_register(s, 0, 65537)
+	state.set_sp(s, 4096)
+	state.set_pc(s, 8192)
+	state.set_psw(s, 65535)
+	equal(state.get_register(s, 0), 1)
+	equal(state.sp(s), 4096)
+	equal(state.pc(s), 8192)
+	equal(state.psw(s), 65535)
+})
+
+run("reset establishes deterministic zero control state", () {
+	let m = machine.new()
+	machine.set_register(m, 0, 7)
+	machine.set_sp(m, 1000)
+	machine.set_pc(m, 2000)
+	machine.set_psw(m, 15)
+	machine.set_running(m, true)
+	machine.reset_machine(m)
+	let i = 0
+	while i < 8 {
+		equal(machine.get_register(m, i), 0)
+		i = i + 1
+	}
+	equal(machine.psw(m), 0)
+	equal(machine.running(m), false)
+	equal(machine.steps(m), 0)
+	equal(machine.machine_time(m), 0)
+})
+
+run("operator memory access crosses the machine and UNIBUS boundary", () {
+	let m = machine.new()
+	equal(machine.deposit_word(m, 4000, 48879), true)
+	equal(machine.examine_word(m, 4000), 48879)
+	equal(machine.deposit_byte(m, 4001, 18), true)
+	equal(machine.examine_word(m, 4000), 4847)
+})
+
+run("diagnostic fixtures establish and compare before-after state", () {
+	let f = [
+		@fixture,
+		"harness self-test",
+		[1, 2, 3, 4, 5, 6, 4096, 8192],
+		15,
+		[[@memory_word, 1000, 4660], [@memory_byte, 1002, 86]],
+		[],
+		0,
+		[1, 2, 3, 4, 5, 6, 4096, 8192],
+		15,
+		[[@memory_word, 1000, 4660], [@memory_byte, 1002, 86]]
+	]
+	let m = fixture.prepare(f)
+	equal(shape(m), :list)
+	let result = fixture.compare_after(m, f)
+	equal(result[1], true)
+	equal(length(result[2]), 0)
+})
