@@ -1,0 +1,40 @@
+let test = import("test")
+let native = import("bits/native")
+let ffi = import("bits/ffi")
+
+let values = [0, 1, 2, 3, 7, 8, 15, 31, 63, 127, 255, 511, 1024, 65535]
+let widths = [0, 1, 2, 4, 8, 12, 16]
+
+test.run("bits native and ffi agree across generated integer pairs", () {
+	let i = 0
+	while i < length(values) {
+		let j = 0
+		while j < length(values) {
+			let a = values[i]
+			let b = values[j]
+			test.equal(native.bit_and(a, b), ffi.bit_and(a, b))
+			test.equal(native.bit_or(a, b), ffi.bit_or(a, b))
+			test.equal(native.bit_xor(a, b), ffi.bit_xor(a, b))
+			j = j + 1
+		}
+		i = i + 1
+	}
+})
+
+
+test.run("bits native and ffi agree across widths and shifts", () {
+	let i = 0
+	while i < length(values) {
+		let j = 0
+		while j < length(widths) {
+			let v = values[i]
+			let w = widths[j]
+			test.equal(native.bit_not(v, w), ffi.bit_not(v, w))
+			test.equal(native.shl(v, w), ffi.shl(v, w))
+			test.equal(native.shr(v, w), ffi.shr(v, w))
+			test.equal(native.low(v, w), ffi.low(v, w))
+			j = j + 1
+		}
+		i = i + 1
+	}
+})

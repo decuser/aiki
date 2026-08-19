@@ -1,0 +1,27 @@
+let test = import("test")
+let native = import("hash/native")
+let ffi = import("hash/ffi")
+
+let keys = ["a", "b", "猫", :symbol, 0, 42, true, false, [1, 2]]
+
+test.run("hash native and ffi preserve the same map semantics", () {
+	let n = native.new()
+	let f = ffi.new()
+	let i = 0
+	while i < length(keys) {
+		n = native.put(n, keys[i], i)
+		f = ffi.put(f, keys[i], i)
+		test.equal(native.has(n, keys[i]), ffi.has(f, keys[i]))
+		test.equal(native.get(n, keys[i]), ffi.get(f, keys[i]))
+		i = i + 1
+	}
+	test.equal(native.keys(n), ffi.keys(f))
+	test.equal(native.values(n), ffi.values(f))
+	i = 0
+	while i < length(keys) {
+		n = native.del(n, keys[i])
+		f = ffi.del(f, keys[i])
+		test.equal(native.has(n, keys[i]), ffi.has(f, keys[i]))
+		i = i + 1
+	}
+})

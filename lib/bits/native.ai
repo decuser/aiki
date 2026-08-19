@@ -1,0 +1,124 @@
+package "bits/native"
+
+# bits/native - bit operations implemented in Aiki over exact non-negative integers.
+let _require_non_negative_integer = (x) {
+	let whole = truncate(x)
+	if (not equal(x, whole)) or (x < 0) {
+		# Keep invalid bit operands as faults, matching the provider realization.
+		return 1 / 0
+	}
+	return whole
+}
+
+let _pow2 = (count) {
+	let n = _require_non_negative_integer(count)
+	let result = 1
+	let i = 0
+	while i < n {
+		result = result * 2
+		i = i + 1
+	}
+	return result
+}
+
+let _half = (n) {
+	truncate(n / 2)
+}
+
+let bit_and = (a, b) {
+	let left = _require_non_negative_integer(a)
+	let right = _require_non_negative_integer(b)
+	let place = 1
+	let result = 0
+	while (left > 0) or (right > 0) {
+		let lhalf = _half(left)
+		let rhalf = _half(right)
+		let lbit = left - (lhalf * 2)
+		let rbit = right - (rhalf * 2)
+		if equal(lbit, 1) and equal(rbit, 1) {
+			result = result + place
+		}
+		left = lhalf
+		right = rhalf
+		place = place * 2
+	}
+	return result
+}
+
+let bit_or = (a, b) {
+	let left = _require_non_negative_integer(a)
+	let right = _require_non_negative_integer(b)
+	let place = 1
+	let result = 0
+	while (left > 0) or (right > 0) {
+		let lhalf = _half(left)
+		let rhalf = _half(right)
+		let lbit = left - (lhalf * 2)
+		let rbit = right - (rhalf * 2)
+		if equal(lbit, 1) or equal(rbit, 1) {
+			result = result + place
+		}
+		left = lhalf
+		right = rhalf
+		place = place * 2
+	}
+	return result
+}
+
+let bit_xor = (a, b) {
+	let left = _require_non_negative_integer(a)
+	let right = _require_non_negative_integer(b)
+	let place = 1
+	let result = 0
+	while (left > 0) or (right > 0) {
+		let lhalf = _half(left)
+		let rhalf = _half(right)
+		let lbit = left - (lhalf * 2)
+		let rbit = right - (rhalf * 2)
+		if not equal(lbit, rbit) {
+			result = result + place
+		}
+		left = lhalf
+		right = rhalf
+		place = place * 2
+	}
+	return result
+}
+
+let shl = (a, count) {
+	let value = _require_non_negative_integer(a)
+	value * _pow2(count)
+}
+
+let shr = (a, count) {
+	let value = _require_non_negative_integer(a)
+	truncate(value / _pow2(count))
+}
+
+let mask = (width) {
+	_pow2(width) - 1
+}
+
+let low = (a, width) {
+	let value = _require_non_negative_integer(a)
+	let modulus = _pow2(width)
+	value - (truncate(value / modulus) * modulus)
+}
+
+let bit_not = (a, width) {
+	mask(width) - low(a, width)
+}
+
+let extract = (a, start, width) {
+	low(shr(a, start), width)
+}
+
+let replace = (a, start, width, value) {
+	let field_mask = shl(mask(width), start)
+	let selected = bit_and(a, field_mask)
+	let cleared = a - selected
+	let inserted = shl(low(value, width), start)
+	return bit_or(cleared, inserted)
+}
+
+export(:bit_and, :bit_or, :bit_xor, :bit_not, :shl, :shr, :mask, :low, :extract, :replace)

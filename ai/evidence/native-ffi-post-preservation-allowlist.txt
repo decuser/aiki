@@ -1,0 +1,8 @@
+# Frozen witnesses intentionally changed only after preservation checkpoint 1f4e906.
+# One path per line; reasons are recorded in docs/session-history.md.
+engine/runtime/hal/substrate/builtins_store_test.go
+experiments/003-four-way-life/experiment/coordinator.ai
+lib/store/store_test.ai
+engine/runtime/hal/substrate/registry_role_test.go
+test/invariant/hal_registration_test.go
+test/invariant/primitive_roles_test.go

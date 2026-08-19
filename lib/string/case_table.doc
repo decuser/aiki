@@ -1,0 +1,16 @@
+@preamble let cases = import("string/case_table")
+upper_rune
+Returns the Unicode simple upper-case mapping for rune r. This internal module
+backs string/native; ordinary programs should use string.upper_rune.
+
+upper_rune(r)
+
+cases.upper_rune('a')    # 'A'
+===
+lower_rune
+Returns the Unicode simple lower-case mapping for rune r. This internal module
+backs string/native; ordinary programs should use string.lower_rune.
+
+lower_rune(r)
+
+cases.lower_rune('A')    # 'a'

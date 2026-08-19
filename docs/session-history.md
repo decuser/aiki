@@ -501,3 +501,55 @@ The Go substrate owns signal subscriptions and tears them down with other runtim
 - Added native-vs-FFI parity tests with multibyte text.
 - Four-Way Life explicitly opts into `string/ffi` in worker/protocol code so the
   optimization can be measured before considering any default-module change.
+
+
+## 2026-08-18 — Native/FFI separation clean pass
+
+- Clean branch `native-ffi-separation-clean` created directly from supplied baseline `ffe3622` (`v0.4.0-alpha-31-dirty`).
+- Prototype branch/tree `native-ffi-separation` is reference-only and is not validation evidence. No prototype commit will be cherry-picked wholesale.
+- Preserved supplied baseline dirt exactly: modified Four-Way `results/four-way-life.log` and untracked `results/showcase-20260818-182659/`.
+- Froze 395 tracked pre-existing behavioral witness files by Git blob identity in `ai/evidence/native-ffi-baseline-witnesses.tsv`; manifest SHA-256 `f2e46ee66eea1c6fcc963b82974b456894f3c9c07ed802ab62817e99f023b154`.
+- Clean-pass rule: implementation and new architecture/conformance tests may change; frozen witnesses do not change until they have completed baseline-preservation validation. Intentional API removals such as misplaced Store helpers occur only afterward as separately identified semantic changes.
+- Exact next action: reapply semantic-role/module-policy authority and native/FFI truthfulness cuts without modifying any frozen witness.
+
+## 2026-08-18 — Native/FFI clean pass, preservation-phase evidence
+
+- Clean implementation Cut 1 committed as `f252cc9`: frozen witness manifest + revised semantic-role/module-policy authority.
+- Clean implementation Cut 2 committed as `355ca5a`: truthful native paths reconstructed for bits/bytes/math/string; hash/string FFI provider work reconstructed; turtle routed through `math/native`; source import graph support added. Existing behavioral witnesses were not edited.
+- Clean-pass reconstruction error found by new module-policy invariant: renamed `lib/bits/ffi.ai` initially still declared package `bits`; corrected to the actual `bits/ffi` provider source before validation claims.
+- Disposable Go 1.23 compatibility copy passes `go test ./engine/runtime/modules ./engine/runtime/primitives`. This is focused structural evidence only; authoritative Go 1.24/substrate/full validation remains local-user work because external modules are unavailable in the sandbox.
+- Substrate focused compile remains environment-blocked by uncached `github.com/chzyer/readline`, `github.com/gofrs/flock`, and `github.com/hajimehoshi/ebiten/v2`.
+- Frozen witness verifier continues to report all 395 baseline witness blobs unchanged.
+
+## 2026-08-18 — Native/FFI clean-pass mutation evidence
+
+- Added source-derived local call graph metadata and invariant requiring every exported function of a portable `/ffi` realization to reach a `RoleProvider` primitive directly or through local Aiki helpers.
+- Disposable mutation checks all fail as intended: native→FFI transitive leak, FFI→native fallback, bare-default hijack, provider primitive mislabeled non-provider, and turtle→`math/ffi`.
+- Mutation details retained at `ai/evidence/native-ffi-mutation-results.md`; mutations never touched the authoritative clean tree.
+- Focused disposable Go 1.23 compatibility check passes modules, primitives, and `cmd/subcommands/tools/check`.
+- Store legacy helpers remain intentionally present during the preservation phase; their pre-existing tests have not been edited or retired before a rebuilt baseline-witness run.
+- Anti-taint verifier mutation-tested independently: a disposable edit to frozen `lib/bits/bits_test.ai` is detected by blob mismatch.
+- Neutral `test/nativeffi/*_contract.ai` corpus parses cleanly under the authoritative grammar in the disposable Go 1.23 compatibility harness.
+- Proposal reconciled to the clean branch: Store helper removal is explicitly deferred until the untouched Store tests have completed the rebuilt preservation run.
+
+## 2026-08-18 — Native/FFI post-preservation Store cleanup
+
+- Preservation checkpoint fixed at `1f4e906` and tagged locally as `native-ffi-preservation-candidate`; that commit retains all 395 baseline witness blobs unchanged.
+- After that checkpoint, removed misplaced public `store.digits_to_text` and `store.checksum` semantics and their raw primitives/authority/registration.
+- Four-Way coordinator now composes `store.snapshot` with explicit `bytes/ffi` for digit-text conversion and uses its existing Aiki `life.store_checksum` logic.
+- Exactly three frozen witnesses change intentionally in this API cut: `engine/runtime/hal/substrate/builtins_store_test.go`, `lib/store/store_test.ai`, and `experiments/003-four-way-life/experiment/coordinator.ai`. Post-preservation witness verification allowlists only those files.
+
+## 2026-08-18 — Native/FFI post-preservation primitive-role terminology
+
+- After the preservation checkpoint, renamed the misleading primitive architecture role `native` to `runtime`; this role is reserved for constitutive language/value/runtime atoms, while library provider implementations remain `provider`.
+- Exactly three additional frozen invariant tests change intentionally to follow the architecture term: substrate registry-role test, HAL registration invariant test, and primitive-role invariant test.
+- Post-preservation witness verification now permits exactly six known witness changes total: three Store API cleanup witnesses and three role-terminology invariant witnesses.
+
+## 2026-08-18 — Native/FFI clean-pass final static reconciliation
+
+- Clean implementation branch is `native-ffi-separation-clean`; prototype `native-ffi-separation` remains reference-only and was never cherry-picked wholesale.
+- Regression-preservation checkpoint: `1f4e906`, local tag `native-ffi-preservation-candidate`; all 395 baseline witness blobs unchanged there.
+- Final post-preservation API/terminology cuts: `e5e4fe3` removes Store workload helpers; `f725af3` renames primitive role `native` to `runtime`.
+- Final witness delta is exactly six allowlisted baseline files: three directly obsolete/updated Store/Four-Way witnesses and three invariant tests updated for the explicit `runtime` role name. No unapproved frozen witness changed.
+- Disposable Go 1.23 compatibility harness passes `go test ./engine/runtime/modules ./engine/runtime/primitives ./cmd/subcommands/tools/check ./test/nativeffi`; authoritative Go 1.24 substrate/full gates remain unrun in the sandbox because required external modules are not cached and network access is unavailable.
+- Later runtime validation has two distinct checkpoints: run `make rigorous` at `native-ffi-preservation-candidate` to establish behavioral preservation against untouched witnesses, then run `make rigorous` at final branch head to validate the intentional Store/API and role-terminology cleanup.

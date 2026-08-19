@@ -1,0 +1,75 @@
+@preamble let bits = import("bits/native")
+bit_and
+Returns the bitwise AND of two non-negative integral numbers.
+
+bit_and(a, b)
+
+bits.bit_and(12, 10)    # 8
+===
+bit_or
+Returns the bitwise OR of two non-negative integral numbers.
+
+bit_or(a, b)
+
+bits.bit_or(12, 10)    # 14
+===
+bit_xor
+Returns the bitwise exclusive OR of two non-negative integral numbers.
+
+bit_xor(a, b)
+
+bits.bit_xor(12, 10)    # 6
+===
+bit_not
+Complements the low width bits of a. Bits above width are ignored. The width
+is explicit because Aiki numbers do not otherwise have a machine word width.
+
+bit_not(a, width)
+
+bits.bit_not(0, 8)      # 255
+bits.bit_not(15, 8)     # 240
+===
+shl
+Shifts a non-negative integral number left by count bits.
+
+shl(a, count)
+
+bits.shl(1, 8)    # 256
+===
+shr
+Logically shifts a non-negative integral number right by count bits. Negative
+inputs are rejected; arithmetic right shift is not part of this module.
+
+shr(a, count)
+
+bits.shr(256, 8)    # 1
+===
+mask
+Returns a number whose low width bits are 1.
+
+mask(width)
+
+bits.mask(8)     # 255
+bits.mask(36)    # 68719476735
+===
+low
+Returns the low width bits of a.
+
+low(a, width)
+
+bits.low(511, 8)    # 255
+===
+extract
+Extracts width bits beginning at zero-based bit position start.
+
+extract(a, start, width)
+
+bits.extract(240, 4, 4)    # 15
+===
+replace
+Returns a with width bits beginning at start replaced by the low width bits
+of value.
+
+replace(a, start, width, value)
+
+bits.replace(240, 4, 4, 3)    # 48

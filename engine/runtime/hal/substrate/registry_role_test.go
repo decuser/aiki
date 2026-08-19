@@ -19,7 +19,7 @@ func TestCompatibilityRegistrySeparatedByRole(t *testing.T) {
 	seen := make(map[string]primitives.Role)
 	for _, role := range []primitives.Role{
 		primitives.RoleIntrinsic,
-		primitives.RoleNative,
+		primitives.RoleRuntime,
 		primitives.RoleProvider,
 		primitives.RoleHost,
 		primitives.RoleService,

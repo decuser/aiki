@@ -32,6 +32,38 @@ let _pow = (x, n) {
 	return result
 }
 
+# floor(x) - largest integer <= x
+let floor = (x) {
+	let whole = truncate(x)
+	if x < 0 and not equal(x, whole) {
+		return whole - 1
+	}
+	return whole
+}
+
+# ceil(x) - smallest integer >= x
+let ceil = (x) {
+	let whole = truncate(x)
+	if x > 0 and not equal(x, whole) {
+		return whole + 1
+	}
+	return whole
+}
+
+# modulo(a, b) - Euclidean remainder with a non-negative result.
+let modulo = (a, b) {
+	if equal(b, 0) {
+		# Preserve division-by-zero as a language fault rather than inventing a
+		# module-specific recoverable error.
+		return a / b
+	}
+	let divisor = b
+	if divisor < 0 {
+		divisor = 0 - divisor
+	}
+	return a - (floor(a / divisor) * divisor)
+}
+
 # sin(x, terms) - Taylor series: x - x³/3! + x⁵/5! - ...
 let sin = (x, terms) {
 	let result = 0
@@ -83,4 +115,4 @@ let sqrt = (x, iterations) {
 	return guess
 }
 
-export(:sin, :cos, :sqrt)
+export(:floor, :ceil, :modulo, :sin, :cos, :sqrt)

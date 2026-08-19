@@ -1,0 +1,21 @@
+let test = import("test")
+let native = import("string/native")
+let ffi = import("string/ffi")
+
+let same = (a, b) {
+	test.equal(a, b)
+}
+
+test.run("string native and ffi agree on representative portable semantics", () {
+	same(native.substring("aé猫z", 1, 3), ffi.substring("aé猫z", 1, 3))
+	same(native.split("café猫latte猫fin", "猫"), ffi.split("café猫latte猫fin", "猫"))
+	same(native.join(["a", "é", "猫"], "|"), ffi.join(["a", "é", "猫"], "|"))
+	same(native.index_of("café latte", "latte"), ffi.index_of("café latte", "latte"))
+	same(native.last_index_of("éaéa", "a"), ffi.last_index_of("éaéa", "a"))
+	same(native.replace("é-é-é", "é", "猫"), ffi.replace("é-é-é", "é", "猫"))
+	same(native.reverse_string("aé猫"), ffi.reverse_string("aé猫"))
+	same(native.trim(" \tfoo\r\n"), ffi.trim(" \tfoo\r\n"))
+	same(native.upper("Straße café 猫"), ffi.upper("Straße café 猫"))
+	same(native.lower("ÄÉΩ猫"), ffi.lower("ÄÉΩ猫"))
+	same(native.title("hello world"), ffi.title("hello world"))
+})

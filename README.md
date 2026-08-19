@@ -100,6 +100,18 @@ extra/samples/face.ai
 extra/samples/turtle-star.ai
 ```
 
+Portable library semantics default to their Aiki-native implementation when a
+native module exists. Programs may opt into provider-backed `/ffi` modules
+explicitly and may freely mix native and FFI use. To inspect that dependency
+without executing a program:
+
+```sh
+aiki check --ffi-use program.ai
+```
+
+The diagnostic follows literal direct and transitive imports and reports the FFI
+modules reached, or `FFI imports: none`.
+
 ## Documentation
 
 The main language documents are:

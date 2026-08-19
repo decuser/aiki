@@ -30,9 +30,9 @@ func TestRuntimeRegistrationInvariantRejectsMissingPrimitive(t *testing.T) {
 func TestRuntimeRegistrationInvariantRejectsWrongRole(t *testing.T) {
 	rt := substrate.NewGoRuntime()
 	actual := rt.PrimitiveRegistrations()
-	actual["_file_stat"] = primitives.RoleNative
+	actual["_file_stat"] = primitives.RoleRuntime
 	err := validatePrimitiveRegistrations(primitives.Definitions(), actual)
-	if err == nil || !strings.Contains(err.Error(), "runtime primitive _file_stat registered as native, architecture requires host") {
+	if err == nil || !strings.Contains(err.Error(), "runtime primitive _file_stat registered as runtime, architecture requires host") {
 		t.Fatalf("expected wrong-role failure, got %v", err)
 	}
 }

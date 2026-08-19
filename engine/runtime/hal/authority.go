@@ -43,7 +43,7 @@ var authorityPolicy = map[string][]string{
 		"_truncate",
 		"_type",
 	},
-	"lib/bits/bits.ai": {
+	"lib/bits/ffi.ai": {
 		"_bits_and",
 		"_bits_not",
 		"_bits_or",
@@ -60,10 +60,6 @@ var authorityPolicy = map[string][]string{
 		"_bytes_slice",
 		"_bytes_to_str",
 		"_str_to_bytes",
-	},
-	"lib/bytes/native.ai": {
-		"_bytes_to_str_pure",
-		"_make_shaped_list",
 	},
 	"lib/canvas/canvas.ai": {
 		"_canvas",
@@ -105,7 +101,14 @@ var authorityPolicy = map[string][]string{
 		"_file_write_text",
 	},
 	"lib/hash/ffi.ai": {
-		"_modulo",
+		"_hash_code",
+		"_hash_new",
+		"_hash_get",
+		"_hash_put",
+		"_hash_has",
+		"_hash_del",
+		"_hash_keys",
+		"_hash_values",
 	},
 	"lib/path/path.ai": {
 		"_path_separator",
@@ -170,9 +173,9 @@ var authorityPolicy = map[string][]string{
 		"_ceil",
 		"_truncate",
 		"_modulo",
-		"_sqrt_inexact",
-		"_cos_inexact",
 		"_sin_inexact",
+		"_cos_inexact",
+		"_sqrt_inexact",
 		"_seed",
 		"_random",
 		"_upper",
@@ -261,15 +264,6 @@ var authorityPolicy = map[string][]string{
 		"_store_new",
 		"_store_set",
 		"_store_snapshot",
-		"_store_digits_to_text",
-		"_store_checksum",
-	},
-	"lib/string/string.ai": {
-		"_chars",
-		"_lower",
-		"_lower_rune",
-		"_upper",
-		"_upper_rune",
 	},
 	"lib/string/ffi.ai": {
 		"_chars",
@@ -293,6 +287,14 @@ var authorityPolicy = map[string][]string{
 		"_string_trim_start",
 		"_upper",
 		"_upper_rune",
+		"_string_is_whitespace",
+		"_string_is_digit",
+		"_string_is_alpha",
+		"_string_is_upper",
+		"_string_is_lower",
+		"_string_is_alnum",
+		"_string_is_numeric",
+		"_string_is_alphabetic",
 	},
 	"lib/system/system.ai": {
 		"_system_args",
@@ -333,17 +335,13 @@ var authorityPolicy = map[string][]string{
 		"_canvas_alive",
 		"_canvas_command",
 		"_canvas_width",
-		"_cos_inexact",
 		"_destroy",
-		"_sin_inexact",
 		"_truncate",
 	},
 	"lib/turtle/turtle.ai": {
 		"_canvas_command",
 		"_canvas_height",
 		"_canvas_width",
-		"_cos_inexact",
-		"_sin_inexact",
 	},
 }
 

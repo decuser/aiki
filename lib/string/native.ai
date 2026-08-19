@@ -1,8 +1,9 @@
-package "string"
+package "string/native"
 
 # Import dependencies from lib
 let _list = import("list")
-let _math = import("math/ffi")
+let _case = import("string/case_table")
+let _math = import("math/native")
 
 # String Functions
 # =============================================================================
@@ -242,7 +243,13 @@ let truncate = (s, len) {
 # -----------------------------------------------------------------------------
 # chars(s) - convert string to list of runes
 let chars = (s) {
-	_chars(s)
+	let result = []
+	let i = 0
+	while i < length(s) {
+		result = append(result, s[i])
+		i = i + 1
+	}
+	return result
 }
 
 # lines(s) - split string into lines
@@ -333,26 +340,38 @@ let compare = (a, b) {
 	return 0
 }
 
-# Case Conversion (HAL-backed)
+# Case Conversion (native Unicode simple-case mapping)
 # -----------------------------------------------------------------------------
 # upper(s) - convert string to uppercase
 let upper = (s) {
-	_upper(s)
+	let result = ""
+	let i = 0
+	while i < length(s) {
+		result = result + to_str(_case.upper_rune(s[i]))
+		i = i + 1
+	}
+	return result
 }
 
 # lower(s) - convert string to lowercase
 let lower = (s) {
-	_lower(s)
+	let result = ""
+	let i = 0
+	while i < length(s) {
+		result = result + to_str(_case.lower_rune(s[i]))
+		i = i + 1
+	}
+	return result
 }
 
 # upper_rune(r) - convert rune to uppercase
 let upper_rune = (r) {
-	_upper_rune(r)
+	_case.upper_rune(r)
 }
 
 # lower_rune(r) - convert rune to lowercase
 let lower_rune = (r) {
-	_lower_rune(r)
+	_case.lower_rune(r)
 }
 
 # capitalize(s) - uppercase first character, lowercase rest
