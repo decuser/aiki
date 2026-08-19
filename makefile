@@ -1,14 +1,17 @@
-.PHONY: build clean dist distcheck baseline run test fmt lint treecheck check bless validate smoke smokegold visual aikitest runsamples enginesmoke enginesmokegold enginecoverage conformance selfhost rigorous fuzz hooks profilesweep install-xed-plugin uninstall-xed-plugin install-vscode-plugin uninstall-vscode-plugin
+.PHONY: build clean dist dist-linux-amd64 dist-windows-amd64 distcheck baseline run test fmt lint treecheck check bless validate smoke smokegold visual aikitest runsamples enginesmoke enginesmokegold enginecoverage conformance selfhost rigorous fuzz hooks profilesweep install-xed-plugin uninstall-xed-plugin install-vscode-plugin uninstall-vscode-plugin
 
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 LDFLAGS := -ldflags "-X main.Version=$(VERSION)"
 
 DIST_PARENT ?= $(abspath ..)
-DIST_OS ?= $(shell go env GOOS)
-DIST_ARCH ?= $(shell go env GOARCH)
-DIST_NAME = aiki-$(VERSION)-$(DIST_OS)-$(DIST_ARCH)
-DIST_DIR = $(DIST_PARENT)/$(DIST_NAME)
-DIST_ARCHIVE = $(DIST_PARENT)/$(DIST_NAME).tar.gz
+
+LINUX_DIST_NAME := aiki-$(VERSION)-linux-amd64
+LINUX_DIST_DIR := $(DIST_PARENT)/$(LINUX_DIST_NAME)
+LINUX_DIST_ARCHIVE := $(DIST_PARENT)/$(LINUX_DIST_NAME).tar.gz
+
+WINDOWS_DIST_NAME := aiki-$(VERSION)-windows-amd64
+WINDOWS_DIST_DIR := $(DIST_PARENT)/$(WINDOWS_DIST_NAME)
+WINDOWS_DIST_ARCHIVE := $(DIST_PARENT)/$(WINDOWS_DIST_NAME).tar.gz
 
 SOURCE_DIR_NAME := $(notdir $(CURDIR))
 BASELINE_NAME := aiki-baseline-$(VERSION)
@@ -29,47 +32,73 @@ build:
 
 clean:
 	rm -f aiki
-	rm -rf "$(DIST_DIR)"
-	rm -f "$(DIST_ARCHIVE)"
+	rm -rf "$(LINUX_DIST_DIR)" "$(WINDOWS_DIST_DIR)"
+	rm -f "$(LINUX_DIST_ARCHIVE)" "$(WINDOWS_DIST_ARCHIVE)"
 	rm -f "$(BASELINE_ARCHIVE)"
 
-# Build a relocatable user distribution beside the source tree. The executable
-# lives at the distribution root so users can add that one directory to PATH.
-dist: build
-	@set -eu; \
-	rm -rf "$(DIST_DIR)"; \
-	rm -f "$(DIST_ARCHIVE)"; \
-	mkdir -p "$(DIST_DIR)"; \
-	cp aiki LICENSE README.md "$(DIST_DIR)/"; \
-	cp -R lib "$(DIST_DIR)/lib"; \
-	cp -R experiments "$(DIST_DIR)/experiments"; \
-	if [ -d vendor ]; then cp -R vendor "$(DIST_DIR)/vendor"; fi; \
-	tar -C "$(DIST_PARENT)" -czf "$(DIST_ARCHIVE)" "$(DIST_NAME)"; \
-	echo "$(DIST_DIR)"; \
-	echo "$(DIST_ARCHIVE)"
+# Build all supported Alpha distributions beside the source tree.
+# Linux and Windows receive the same library/experiment payload; only the
+# executable differs.
+dist: dist-linux-amd64 dist-windows-amd64
 
-# Prove the published archive is independent of both the source tree and the
-# sibling staging directory: unpack it under a temporary prefix, run from an
-# unrelated directory via PATH, ignore decoy packages beneath that directory,
-# and use a shipped library module.
+# Build the supported Linux amd64 distribution. The executable lives at the
+# distribution root so users can add that one directory to PATH.
+dist-linux-amd64:
+	@set -eu; \
+	rm -rf "$(LINUX_DIST_DIR)"; \
+	rm -f "$(LINUX_DIST_ARCHIVE)"; \
+	mkdir -p "$(LINUX_DIST_DIR)"; \
+	GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o "$(LINUX_DIST_DIR)/aiki" ./cmd/aiki; \
+	cp LICENSE README.md "$(LINUX_DIST_DIR)/"; \
+	cp -R lib "$(LINUX_DIST_DIR)/lib"; \
+	cp -R experiments "$(LINUX_DIST_DIR)/experiments"; \
+	if [ -d vendor ]; then cp -R vendor "$(LINUX_DIST_DIR)/vendor"; fi; \
+	tar -C "$(DIST_PARENT)" -czf "$(LINUX_DIST_ARCHIVE)" "$(LINUX_DIST_NAME)"; \
+	echo "$(LINUX_DIST_DIR)"; \
+	echo "$(LINUX_DIST_ARCHIVE)"
+
+# Build the supported Windows amd64 distribution. Keep tar.gz for both targets
+# so release packaging has no additional zip-tool dependency.
+dist-windows-amd64:
+	@set -eu; \
+	rm -rf "$(WINDOWS_DIST_DIR)"; \
+	rm -f "$(WINDOWS_DIST_ARCHIVE)"; \
+	mkdir -p "$(WINDOWS_DIST_DIR)"; \
+	GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o "$(WINDOWS_DIST_DIR)/aiki.exe" ./cmd/aiki; \
+	cp LICENSE README.md "$(WINDOWS_DIST_DIR)/"; \
+	cp -R lib "$(WINDOWS_DIST_DIR)/lib"; \
+	cp -R experiments "$(WINDOWS_DIST_DIR)/experiments"; \
+	if [ -d vendor ]; then cp -R vendor "$(WINDOWS_DIST_DIR)/vendor"; fi; \
+	tar -C "$(DIST_PARENT)" -czf "$(WINDOWS_DIST_ARCHIVE)" "$(WINDOWS_DIST_NAME)"; \
+	echo "$(WINDOWS_DIST_DIR)"; \
+	echo "$(WINDOWS_DIST_ARCHIVE)"
+
+# Prove the published Linux archive is independent of both the source tree and
+# the sibling staging directory. Building dist also proves the supported
+# Windows package cross-compiles and is structurally complete.
 distcheck: dist
 	@set -eu; \
 	tmp=$$(mktemp -d); \
 	trap 'rm -rf "$$tmp"' EXIT; \
-	tar -xzf "$(DIST_ARCHIVE)" -C "$$tmp"; \
-	test -f "$$tmp/$(DIST_NAME)/experiments/README.md" || { echo "distcheck: experiments collection missing from archive" >&2; exit 1; }; \
+	tar -xzf "$(LINUX_DIST_ARCHIVE)" -C "$$tmp"; \
+	test -f "$$tmp/$(LINUX_DIST_NAME)/experiments/README.md" || { echo "distcheck: experiments collection missing from Linux archive" >&2; exit 1; }; \
 	mkdir -p "$$tmp/work/one" "$$tmp/work/two"; \
 	printf '%s\n' 'package decoy' > "$$tmp/work/one/decoy.ai"; \
 	printf '%s\n' 'package decoy' > "$$tmp/work/two/decoy.ai"; \
 	printf '%s\n' 'use("list")' 'println(sum([1, 2, 3]))' > "$$tmp/work/check.ai"; \
 	cd "$$tmp/work"; \
-	PATH="$$tmp/$(DIST_NAME):$$PATH" aiki check.ai > output.txt; \
+	PATH="$$tmp/$(LINUX_DIST_NAME):$$PATH" aiki check.ai > output.txt; \
 	grep -qx '6' output.txt; \
-	created=$$(PATH="$$tmp/$(DIST_NAME):$$PATH" aiki experiment new "Distribution probe" | sed -n 's/^created //p'); \
+	created=$$(PATH="$$tmp/$(LINUX_DIST_NAME):$$PATH" aiki experiment new "Distribution probe" | sed -n 's/^created //p'); \
 	test -n "$$created"; \
 	test -f "$$created/README.md"; \
-	test -x "$$created/run.sh"; \
-	echo "distcheck ok: relocatable archive loads shipped modules and scaffolds out-of-tree experiments"
+	test -f "$$created/experiment/PROCEDURE.md"; \
+	test -x "$$created/experiment/run.sh"; \
+	test -d "$$created/results"; \
+	test -d "$$created/analyses"; \
+	tar -tzf "$(WINDOWS_DIST_ARCHIVE)" | grep -qx "$(WINDOWS_DIST_NAME)/aiki.exe" || { echo "distcheck: Windows archive missing aiki.exe" >&2; exit 1; }; \
+	tar -tzf "$(WINDOWS_DIST_ARCHIVE)" | grep -qx "$(WINDOWS_DIST_NAME)/lib/" || { echo "distcheck: Windows archive missing lib" >&2; exit 1; }; \
+	echo "distcheck ok: Linux archive is relocatable and Windows archive cross-builds with the shipped library"
 
 # Capture a portable development baseline beside the source tree. Unlike dist,
 # this is a repository snapshot: it intentionally includes .git so branch,
