@@ -31,8 +31,8 @@ in `analyses/`; executable reconstruction lives in `experiment/`.
 
 Project branch: `v6-emulator`
 
-Current gate: **Gate 1 — ACTIVE**
+Current gate: **Gate 2 — ACTIVE**
 
-Current serial cut: **Cut 3 — complete `m40.s` instruction-form execution contract and runtime audit**
+Current serial cut: **Cut 4 — raw V6 tape and six-word bootstrap**
 
-Cuts 1 and 2 are GATED. Cut 3 now targets all 45 instruction forms Lions identifies in `m40.s`, plus runtime instruction/addressing-mode audit. No tape, disk, console, clock, or memory-management implementation has begun.
+Cuts 1–3 are GATED. Cut 4 adds the raw TUHS V6 tape media contract, the UNIBUS I/O-page projection, and only the tape-controller behavior required by the historical six-word bootstrap. Disk, console, clock, and memory management remain unimplemented.

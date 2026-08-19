@@ -1,0 +1,142 @@
+package "aiki_pdp_v6_tape"
+
+let host_bytes = import("bytes/ffi")
+let native_bytes = import("bytes/native")
+let file = import("file")
+let math = import("math/native")
+let store = import("store")
+
+let RECORD_BYTES = 512
+let DISTRIBUTION_RECORDS = 12100
+let DISTRIBUTION_BYTES = RECORD_BYTES * DISTRIBUTION_RECORDS
+
+let SOURCE_KIND = 0
+let SOURCE_VALUE = 1
+let STATE = 2
+let STATE_RECORD = 0
+let STATE_TOTAL = 1
+
+let @record [data]
+let @tape_mark []
+
+let make = (kind, source, total_records) {
+	let state = store.new(2)
+	store.set(state, STATE_RECORD, 0)
+	store.set(state, STATE_TOTAL, total_records)
+	return [kind, source, state]
+}
+
+let open_raw = (path) {
+	let n = file.size(path)
+	if is_error(n) {
+		return n
+	}
+	if not equal(n, DISTRIBUTION_BYTES) {
+		return [@error, :tape, "V6 raw tape must be exactly 12100 records of 512 bytes"]
+	}
+	let f = file.open(path, :read)
+	if is_error(f) {
+		return f
+	}
+	return make(:file, f, DISTRIBUTION_RECORDS)
+}
+
+# Diagnostic constructor. Production V6 media is opened through open_raw.
+let from_bytes = (data) {
+	let n = native_bytes.bytes_length(data)
+	if is_error(n) {
+		return n
+	}
+	if not equal(math.modulo(n, RECORD_BYTES), 0) {
+		return [@error, :tape, "raw tape bytes must contain whole 512-byte records"]
+	}
+	return make(:bytes, data, truncate(n / RECORD_BYTES))
+}
+
+let state_of = (tape) {
+	return tape[STATE]
+}
+
+let position = (tape) {
+	return store.get(state_of(tape), STATE_RECORD)
+}
+
+let total_records = (tape) {
+	return store.get(state_of(tape), STATE_TOTAL)
+}
+
+let rewind = (tape) {
+	store.set(state_of(tape), STATE_RECORD, 0)
+	return true
+}
+
+let at_bot = (tape) {
+	return equal(position(tape), 0)
+}
+
+let at_tape_mark = (tape) {
+	return position(tape) >= total_records(tape)
+}
+
+let read_record_data = (tape, record_index) {
+	let start = record_index * RECORD_BYTES
+	let end = start + RECORD_BYTES
+	if equal(tape[SOURCE_KIND], :file) {
+		return file.read_at(tape[SOURCE_VALUE], start, RECORD_BYTES)
+	}
+	return native_bytes.bytes_slice(tape[SOURCE_VALUE], start, end)
+}
+
+let record_length = (tape, data) {
+	if equal(tape[SOURCE_KIND], :file) {
+		return host_bytes.bytes_length(data)
+	}
+	return native_bytes.bytes_length(data)
+}
+
+let record_get = (tape, data, index) {
+	if equal(tape[SOURCE_KIND], :file) {
+		return host_bytes.bytes_get(data, index)
+	}
+	return native_bytes.bytes_get(data, index)
+}
+
+let read_record = (tape) {
+	let record_index = position(tape)
+	if record_index >= total_records(tape) {
+		return [@tape_mark]
+	}
+	let data = read_record_data(tape, record_index)
+	if is_error(data) {
+		return data
+	}
+	if not equal(record_length(tape, data), RECORD_BYTES) {
+		return [@error, :tape, "short raw V6 tape record"]
+	}
+	store.set(state_of(tape), STATE_RECORD, record_index + 1)
+	return [@record, data]
+}
+
+let close = (tape) {
+	if equal(tape[SOURCE_KIND], :file) {
+		return file.close(tape[SOURCE_VALUE])
+	}
+	return true
+}
+
+export(
+	:RECORD_BYTES,
+	:DISTRIBUTION_RECORDS,
+	:DISTRIBUTION_BYTES,
+	:open_raw,
+	:from_bytes,
+	:position,
+	:total_records,
+	:rewind,
+	:at_bot,
+	:at_tape_mark,
+	:record_length,
+	:record_get,
+	:read_record,
+	:close
+)

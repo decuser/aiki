@@ -89,15 +89,22 @@ let execute_double = (m, instruction, kind) {
 		width_bits = 8
 	}
 
-	let operands = resolve_double(m, instruction, size)
-	if is_fault(operands) {
-		return operands
+	# PDP-11 double-operand ordering is architecturally visible when source and
+	# destination share a register. Capture the source value before destination
+	# addressing side effects (for example MOV R0,-(R0) in the V6 tape bootstrap).
+	audit_spec(m, :source, decode.source_spec(instruction))
+	audit_spec(m, :destination, decode.destination_spec(instruction))
+	let source_operand = addressing.resolve(m, decode.source_spec(instruction), size)
+	if is_fault(source_operand) {
+		return source_operand
 	}
-	let source_operand = operands[0]
-	let destination_operand = operands[1]
 	let source = operand_value(m, source_operand, size)
 	if is_fault(source) {
 		return source
+	}
+	let destination_operand = addressing.resolve(m, decode.destination_spec(instruction), size)
+	if is_fault(destination_operand) {
+		return destination_operand
 	}
 	if equal(kind, :mov) or equal(kind, :movb) {
 		let result = width.wrap(source, width_bits)

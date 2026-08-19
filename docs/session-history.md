@@ -655,3 +655,94 @@ The Go substrate owns signal subscriptions and tears them down with other runtim
 - The report renders the latest PSW transition as octal `before`, `after`, and `delta`; condition-code changes are named `N Z V C` when present. Full masks are retained so later mode/priority changes from RTT/traps/interrupts are not discarded.
 - Added `reference/octal.parse` (using the proven Experiment 002 monitor pattern) so PDP-facing tests/configuration can state machine values in octal strings even though Aiki numeric literals themselves are decimal.
 - No CPU instruction semantics changed. Cut 3 remains ACTIVE pending the focused `cut3_m40_test.ai` rerun.
+
+### 2026-08-19 — PDP-11/40 V6 emulator, Cut 3 gated / Cut 4 raw-tape bootstrap
+
+- User validation gated Cut 3: `cut3_execution_test.ai` passed 73/73 and `cut3_m40_test.ai` passed after the PSW-transition audit repair. Cuts 1–3 are now GATED.
+- User chose the bit-exact TUHS raw V6 tape artifact as the emulator media authority rather than OpenSIMH `enblock` framing. Uploaded `v6.tape.gz` expands to exactly 6,195,200 bytes = 12,100 fixed 512-byte records. Raw SHA-256 observed in the development environment: `18e3cff96933f7a2ced81050ca101507eed55a2d137d1fcfd7745ebaf1d4c2a5`.
+- Cut 4 is ACTIVE. Raw media is isolated under `media/v6_tape.ai`; it treats the V6 artifact as fixed records plus a synthetic terminal tape mark. The master media is read-only.
+- Gate-2 UNIBUS now owns the PDP-11/40 no-MMU I/O-page projection: CPU addresses `160000`–`177777` map to physical UNIBUS `760000`–`777777`. This is the first gate where that mapping is observable.
+- TM11 behavior is isolated under `devices/tape/tm11.ai`; UNIBUS supplies physical DMA writes during deterministic device advancement. Initial scope is only MTS/MTC/MTBRC/MTCMA and the READ operation used by the six-word bootstrap. Controller INIT does not rewind the attached tape.
+- Historical bootstrap execution exposed a CPU ordering defect not exercised by the earlier core fixtures: in `MOV R0,-(R0)`, the source value must be captured before destination autodecrement changes R0. Cut 4 corrects double-operand execution ordering rather than compensating in tape code.
+- Static evidence: `git diff --check` passes; disposable Go-1.23 `engine/syntax/...` tests pass; all Experiment 004 Aiki files lex/parse against the authoritative grammar. Full Aiki execution remains user-side because the development container cannot build the Go-1.24 executable without network access.
+- Exact next gate: run `cut4_tape_test.ai`, then run `tape_bootstrap.ai` against the uncompressed raw `v6.tape`. Gate 2 requires PC `100012`, tape position 1, MTCMA `001000`, and the known raw-record signature in memory. Do not begin console/standalone execution until user validates this gate.
+- Observation decision recorded during Cut 4: future UI uses a separate UNIBUS observer plus one read-only semantic window per device family (tape, disk, paper tape, printer, console, clock), with CPU/debug separate. UI work is deferred; device/UNIBUS semantics must expose observation without accepting mutation from observers.
+
+### 2026-08-19 — PDP-11/40 V6 emulator, Cut 4 observability repair
+
+- User validation gated the synthetic raw-tape/controller suite at 31/31 after correcting shaped-record payload indexing (`@record` payload is element 0).
+- Before real-media validation, the bootstrap runner now emits a concise octal-first execution narrative: each executed bootstrap instruction, the TM11 READ event, observed UNIBUS DMA range, TM11 byte-count transition/completion, final PC/device state, and known first-record memory signature.
+- The trace reads authoritative machine/device state before and after architectural steps; it does not create a second mutation path. This is the same read-only state seam intended for future UNIBUS and per-device observer windows.
+- No tape, CPU, or UNIBUS semantics changed for observability. Exact next gate remains real `v6.tape` bootstrap validation.
+
+### 2026-08-19 — PDP-11/40 V6 emulator, Cut 4 gated / Cut 5 monitor and observers
+
+- User real-media validation gates Cut 4: `tape_bootstrap.ai` against the TUHS `v6.tape` executed the historical six-word bootstrap, reported TM11 READ record 0 and UNIBUS DMA `000000..000777`, ended at PC `100012`, advanced tape to record `000001`, left MTCMA `001000` / byte count `173526`, loaded `000407 000654` at memory 0, and printed `TAPE BOOTSTRAP PASS`.
+- The tiny `cut4_trace_test.ai` harness repair (`use("test")` / direct `run` and `equal`) is reconciled into the authoritative tree; it had been delivered separately after the earlier invalid `test.new()` use.
+- Cut 5 is ACTIVE before Gate 3. Experiment 003 is the host-window/lifecycle precedent; Experiment 002 is the octal monitor-command precedent.
+- `aiki-pdp.ai` is the normal control surface. Terminal input is raw and read by an isolated input process, but the main monitor event loop remains the single writer/stepper of machine state. CTRL-T is status-only; CTRL-E suspends; CTRL-C interrupts the foreground run; CTRL-D at an empty halted prompt is EOF/quit.
+- Observer topology is one CPU/debug view, one UNIBUS view, and one view per implemented device family; Cut 5 currently instantiates CPU, UNIBUS, and tape. Future disk, paper-tape, printer, console, and clock views use the same contract.
+- Review caught and corrected an observation-path design violation before gating: synchronous TCP writes would allow a slow observer to pace execution. Each observer now has a host-backed latest-snapshot mailbox and independent sender process. The machine loop only replaces snapshots; slow views coalesce updates and cannot block guest stepping.
+- `showcase.sh`, following Experiment 003, owns terminal-emulator discovery and opens observer windows. Closing an observer drops only its read-only endpoint and does not alter machine state.
+- Exact next evidence: user runs `aiki test experiments/004-v6-emulator/experiment/diagnostics/cut5_monitor_test.ai`, then `experiments/004-v6-emulator/experiment/showcase.sh`; manually attach `v6.tape`, deposit the six bootstrap words, `run 100000`, exercise CTRL-T/CTRL-E, and confirm `examine 0 2` plus CPU/UNIBUS/tape windows. Do not begin KL11/standalone Gate 3 until this cut passes.
+
+### 2026-08-19 — PDP-11/40 V6 emulator, Cut 5 spawn-isolation repair
+
+- User manual showcase validation reached the `aiki-pdp>` prompt but the observer broker failed immediately in its spawned accept loop with `undefined: net`; startup also emitted prelude-shadow warnings for local names `input` and `help`.
+- Root cause is Aiki spawn isolation, not networking semantics: spawned computations do not capture module-local imports. Experiment 003 already demonstrates the correct pattern by importing `net` inside its spawned accept loop.
+- Repair applies that rule consistently to every Cut-5 spawned computation, not just the first symptom: broker `accept_loop` imports `io`/`net` locally; broker `sender` imports `io`/`store`/`time` locally; monitor input `reader` imports `bytes/ffi`/`io` locally.
+- Warning cleanup renames the main monitor module alias `input` to `monitor_input` and exported monitor function `help` to `help_text`; operator command remains `help`.
+- No PDP, tape, UNIBUS, monitor-command, or observer-topology semantics changed. Cut 5 remains ACTIVE pending rerun of `showcase.sh` and the manual attach/deposit/run/CTRL-T/CTRL-E/examine gate.
+
+### 2026-08-19 — V6 emulator Cut 5 observer spawn repair 2
+- Local showcase startup exposed `undefined: VIEW_ALIVE` in `observe/broker.ai` after the import-isolation repair.
+- Cause: spawned computations also do not capture module-level constants. `sender` still referenced `VIEW_VERSION`, `VIEW_TEXT`, and `VIEW_ALIVE` from its parent module.
+- Repair: localize the observer-state indices inside `sender`; all current `spawn(...)` sites were rescanned for outer lexical dependencies.
+- No PDP, UNIBUS, tape, monitor-command, or observer-topology semantics changed.
+
+
+### 2026-08-19 — V6 emulator Cut 5 observer usability/state repair
+
+- Manual bootstrap through `aiki-pdp>` is operational: real tape attach, six octal deposits, `run 100000`, repeated CTRL-T status while the terminal branch spins, CTRL-E return to the monitor, and `examine 000000 2` yielding `000407` / `000654`. CPU and tape observer windows display the corresponding machine/device state.
+- User observation exposed two presentation/state issues before Cut 5 gating: after CTRL-E the CPU observer reported `HALTED`, and continuous observer redraw made terminal mouse selection impractical while the guest was running.
+- Repair adds explicit machine `suspended` state. CTRL-E and foreground interruption set it; `run`/resume clears it. Observer and monitor status render `SUSPENDED` distinctly from guest architectural `HALTED`.
+- Observer publication remains outside guest semantics and is now bounded to 500 ms while running. The broker does not increment a view version for identical text. CPU step/time counters are omitted while RUNNING and appear once stopped/suspended, allowing stable loops such as `BR 100012` to stop repainting after their architectural snapshot settles. Tape/UNIBUS views likewise do not repaint unchanged snapshots.
+- Reconciled the prior ESC printable-key grouping repair: `(key >= 32) and (key <= 126)`. ESC at the main monitor is ignored and cannot terminate the monitor or observers.
+- Static evidence: `git diff --check` clean; all 35 Experiment 004 `.ai` files lex/parse under the authoritative grammar in the disposable Go-1.23 syntax harness; `go test ./engine/syntax/...` passes there. Cut 5 remains ACTIVE pending user rerun of `cut5_monitor_test.ai` and manual showcase confirmation of SUSPENDED labeling plus mouse-selectable stable observer windows.
+
+
+### 2026-08-19 — V6 emulator Cut 5 live observers, counters, restartable suspension, and tape boot
+
+- User preferred the original visibly-live observer feel, but optimized rather than per-instruction redraw. Cut 5 now publishes at a bounded 100 ms cadence while preserving latest-snapshot coalescing; observer I/O remains unable to pace machine execution.
+- CPU/debug again displays live step/time counters. Tape view adds selected unit plus cumulative reads, writes, bytes-in, and bytes-out; UNIBUS view adds cumulative DATI, DATO, DATOB, and NPR-write counters. Numeric presentation remains octal-first.
+- CTRL-E suspension is explicitly restartable with `continue`, which resumes at the current PC and clears SUSPENDED without resetting machine/device state. Bare `run` remains capable of running from the current PC as before.
+- Tape attachment is now unit-aware for TM11 units 0-7: `attach tape [UNIT] FILE`, with legacy `attach tape FILE` retaining unit-0 shorthand. TM11 media state is per unit under one controller.
+- Added `boot tape UNIT`. It deposits the six-word V6 TM bootstrap at `100000` and uses the controller's real bits 10-8 Unit Select field; unit 0 encodes command `060003`, unit 1 `060403`, etc., then starts execution at `100000`.
+- Focused diagnostics were extended to verify unit-select encoding, selected-unit raw-media transfer, tape/UNIBUS counters, and monitor help. Static evidence: `git diff --check` clean; all Experiment 004 Aiki sources lex/parse under the authoritative grammar; disposable `engine/syntax` tests pass. Runtime gate remains user-side.
+- Exact next evidence: run `cut5_monitor_test.ai`; start `showcase.sh`; `attach tape 0 /path/to/v6.tape`; `boot tape 0`; observe live CPU/tape/UNIBUS counters; CTRL-E -> SUSPENDED; `continue` -> RUNNING from the same PC; CTRL-E again; `examine 000000 2` must yield `000407` / `000654`.
+### 2026-08-19 — Cut 5 unit-aware tape test repair
+- Local validation of the live-observer/unit-aware tape update produced 39/43 passes; all four failures came from the same assertion in `cut5_monitor_test.ai`.
+- Cause: the diagnostic used `equal(shape(result), :pdp_fault)` while `equal` was the test assertion helper, and Aiki shaped lists retain base type `:list`; the main monitor also incorrectly used `shape(...)` to recognize `@pdp_fault`.
+- Repair: add `monitor.is_pdp_fault(...)` using shaped-pattern matching and use that predicate in both the interactive monitor and the focused diagnostic.
+- No PDP-11, TM11, UNIBUS, boot, or counter semantics changed. Cut 5 remains ACTIVE pending local rerun.
+
+### 2026-08-19 — Cut 5 gated
+- User reran `aiki test experiments/004-v6-emulator/experiment/diagnostics/cut5_monitor_test.ai` after the shaped-fault recognition repair and reported the gate passed.
+- Cut 5 is GATED. The accepted monitor contract includes `aiki-pdp>`, unit-aware tape attach and `boot tape N`, CTRL-T status, restartable CTRL-E suspension via `continue`, distinct SUSPENDED/HALTED states, live/coalesced CPU/UNIBUS/tape observers, and cumulative tape/UNIBUS activity counters.
+- Next cut is KL11 console support and execution of the real standalone image from address `0` to the first `=` prompt. Observer architecture expands with a separate console window; disk remains out of scope until the following gate.
+
+
+### 2026-08-19 — Cut 6 KL11 console begins
+- Cut 5 is GATED from user validation. Cut 6 is ACTIVE and targets the first real standalone `=` prompt from the V6 tape-loaded image before any RK11/RK05 work.
+- Added a KL11 console device at physical UNIBUS addresses `777560`/`777562`/`777564`/`777566`, corresponding to CPU-visible `177560`..`177566` while memory management is disabled. Transmitter READY is set after INIT; TPB writes clear READY, advance restores it and makes the character available to the host console; receiver injection sets DONE and reading TKB clears DONE.
+- Added a dedicated read-only KL11 observer window with register state, DONE/READY and interrupt-enable state, cumulative RX/TX counters, and last characters. Observer isolation is unchanged.
+- While the guest runs, CTRL-T and CTRL-E remain emulator-private. All other input bytes, including CTRL-C and CTRL-D, now enter the KL11 receiver; at `aiki-pdp>` CTRL-C/CTRL-D retain monitor-terminal behavior.
+- Added TM11 REWIND function `111`, required by the standalone startup path described by the Lions laboratory.
+- Static evidence: the complete Experiment 004 Aiki tree parses under the authoritative grammar. Runtime evidence remains user-side. Exact gate: `cut6_console_test.ai`, then real `boot tape 0`, suspend at `100012`, `run 0`, and observe the first standalone `=` through KL11.
+
+### Cut 6 repair — observer port allocation
+
+- Runtime validation found a stale prior broker could retain fixed port 41140 and prevent a new showcase session from starting.
+- `showcase.sh` no longer defaults to 41140. Unless `AIKI_PDP_PORT` is explicitly supplied, it selects a free localhost TCP port before launching the monitor and observer windows, then exports that single selected port to all participants.
+- Explicit `AIKI_PDP_PORT` remains supported for deterministic/manual runs.
+- No PDP-11, KL11, TM11, UNIBUS, or monitor-command semantics changed.

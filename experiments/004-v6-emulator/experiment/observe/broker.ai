@@ -1,0 +1,114 @@
+package "aiki_pdp_broker"
+
+let io = import("io")
+let net = import("net")
+let store = import("store")
+let time = import("time")
+
+let VIEW_VERSION = 0
+let VIEW_TEXT = 1
+let VIEW_ALIVE = 2
+let VIEW_WORDS = 3
+
+let accept_loop = (listener, accepted) {
+	let io = import("io")
+	let net = import("net")
+	let alive = true
+	while alive {
+		let endpoint = net.accept(listener)
+		if is_error(endpoint) {
+			alive = false
+		} else {
+			let kind = io.read_line(endpoint)
+			if is_error(kind) {
+				io.close(endpoint)
+			} else {
+				send(accepted, [kind, endpoint])
+			}
+		}
+	}
+}
+
+let sender = (endpoint, state) {
+	let io = import("io")
+	let store = import("store")
+	let time = import("time")
+	# Spawned computations are isolated: keep view-state indices local.
+	let view_version = 0
+	let view_text = 1
+	let view_alive = 2
+	let seen = -1
+	let alive = true
+	while alive {
+		if not store.get(state, view_alive) {
+			alive = false
+		} else {
+			let version = store.get(state, view_version)
+			if not equal(version, seen) {
+				let result = io.write(endpoint, store.get(state, view_text))
+				if is_error(result) {
+					store.set(state, view_alive, false)
+					alive = false
+				} else {
+					seen = version
+				}
+			} else {
+				time.sleep(10)
+			}
+		}
+	}
+	io.close(endpoint)
+}
+
+let start = (requested_port) {
+	let listener = net.listen("127.0.0.1", requested_port)
+	if is_error(listener) { return listener }
+	let accepted = channel()
+	spawn(accept_loop, listener, accepted)
+	return [listener, accepted]
+}
+
+let port = (broker) {
+	let address = net.local(broker[0])
+	return address[1]
+}
+
+let accepted = (broker) { return broker[1] }
+
+# A view is an observation-only mailbox. Execution replaces the latest text;
+# a separate sender performs potentially blocking host I/O. Intermediate views
+# may coalesce, but observer speed can never pace guest execution.
+let attach = (kind, endpoint, initial_text) {
+	let state = store.new(VIEW_WORDS)
+	store.set(state, VIEW_VERSION, 0)
+	store.set(state, VIEW_TEXT, initial_text)
+	store.set(state, VIEW_ALIVE, true)
+	spawn(sender, endpoint, state)
+	return [kind, state]
+}
+
+let kind = (view) { return view[0] }
+let alive = (view) { return store.get(view[1], VIEW_ALIVE) }
+
+let update = (view, text) {
+	if not alive(view) { return false }
+	# Stable instruments do not repaint unchanged snapshots. Besides reducing
+	# observation overhead, this preserves terminal selection while the guest
+	# spins in a stable state such as the V6 tape-bootstrap BR loop.
+	if equal(store.get(view[1], VIEW_TEXT), text) { return true }
+	store.set(view[1], VIEW_TEXT, text)
+	store.set(view[1], VIEW_VERSION, store.get(view[1], VIEW_VERSION) + 1)
+	return true
+}
+
+let stop_view = (view) {
+	store.set(view[1], VIEW_ALIVE, false)
+	return true
+}
+
+let close = (broker) {
+	net.close(broker[0])
+	return true
+}
+
+export(:start, :port, :accepted, :attach, :kind, :alive, :update, :stop_view, :close)

@@ -1,52 +1,187 @@
 package "aiki_pdp_unibus"
 
+let kl11 = import("../devices/console/kl11")
 let memory = import("../memory/memory")
+let octal = import("../reference/octal")
+let store = import("store")
+let tm11 = import("../devices/tape/tm11")
 
-# Gate 1 has no devices. The bus already owns the CPU-to-memory access path so
-# later device-register selection, DMA, interrupts, and INIT can be added here
-# without changing CPU authority boundaries.
+let BUS_MEMORY = 0
+let BUS_TAPE = 1
+let BUS_COUNTS = 2
+let BUS_CONSOLE = 3
+let DATI = 0
+let DATO = 1
+let DATOB = 2
+let NPR_WRITE = 3
+let COUNT_WORDS = 4
+
+let IO_PAGE_16 = octal.parse("160000")
+let IO_PAGE_OFFSET = octal.parse("600000")
+
 let new = () {
-	return [memory.new()]
+	let counts = store.new(COUNT_WORDS)
+	let i = 0
+	while i < COUNT_WORDS { store.set(counts, i, 0); i = i + 1 }
+	return [memory.new(), tm11.new(), counts, kl11.new()]
 }
 
-let physical_memory = (bus) {
-	return bus[0]
+let physical_memory = (bus) { return bus[BUS_MEMORY] }
+let tape = (bus) { return bus[BUS_TAPE] }
+let counts = (bus) { return bus[BUS_COUNTS] }
+let console = (bus) { return bus[BUS_CONSOLE] }
+let bump = (bus, index) {
+	store.set(counts(bus), index, store.get(counts(bus), index) + 1)
+	return true
 }
 
-let read_byte = (bus, address) {
+# With memory management disabled, the PDP-11/40 maps the upper 8K-byte
+# 16-bit CPU address range onto the 18-bit UNIBUS I/O page.
+let cpu_physical_address = (address) {
+	if (address >= IO_PAGE_16) and (address < octal.parse("200000")) {
+		return address + IO_PAGE_OFFSET
+	}
+	return address
+}
+
+let read_byte_physical = (bus, address) {
+	if tm11.handles(address) { return tm11.read_byte(tape(bus), address) }
+	if kl11.handles(address) { return kl11.read_byte(console(bus), address) }
 	return memory.read_byte(physical_memory(bus), address)
 }
 
-let write_byte = (bus, address, value) {
+let write_byte_physical = (bus, address, value) {
+	if tm11.handles(address) { return tm11.write_byte(tape(bus), address, value) }
+	if kl11.handles(address) { return kl11.write_byte(console(bus), address, value) }
 	return memory.write_byte(physical_memory(bus), address, value)
 }
 
-let read_word = (bus, address) {
+let read_word_physical = (bus, address) {
+	if tm11.handles(address) { return tm11.read_word(tape(bus), address) }
+	if kl11.handles(address) { return kl11.read_word(console(bus), address) }
 	return memory.read_word(physical_memory(bus), address)
 }
 
-let write_word = (bus, address, value) {
+let write_word_physical = (bus, address, value) {
+	if tm11.handles(address) { return tm11.write_word(tape(bus), address, value) }
+	if kl11.handles(address) { return kl11.write_word(console(bus), address, value) }
 	return memory.write_word(physical_memory(bus), address, value)
 }
 
+let read_byte = (bus, address) {
+	bump(bus, DATI)
+	return read_byte_physical(bus, cpu_physical_address(address))
+}
+
+let write_byte = (bus, address, value) {
+	bump(bus, DATOB)
+	return write_byte_physical(bus, cpu_physical_address(address), value)
+}
+
+let read_word = (bus, address) {
+	bump(bus, DATI)
+	return read_word_physical(bus, cpu_physical_address(address))
+}
+
+let write_word = (bus, address, value) {
+	bump(bus, DATO)
+	return write_word_physical(bus, cpu_physical_address(address), value)
+}
+
+let attach_tape_media = (bus, media) { return tm11.attach_media(tape(bus), media) }
+let attach_tape_media_unit = (bus, unit, media) { return tm11.attach_media_unit(tape(bus), unit, media) }
+let attach_tape_raw = (bus, path) { return tm11.attach_raw(tape(bus), path) }
+let attach_tape_raw_unit = (bus, unit, path) { return tm11.attach_raw_unit(tape(bus), unit, path) }
+
 let reset_bus = (bus) {
-	# No devices are attached yet. This is the architectural UNIBUS INIT seam
-	# used by RESET and machine reset; device reset propagation joins here.
+	tm11.reset_tape(tape(bus))
+	kl11.reset_console(console(bus))
 	return true
 }
 
-# Logical time is deliberately a no-op in Gate 1. This function is the sole
-# advancement seam for future bus-visible devices.
+# Device progress is serialized here. DMA uses physical UNIBUS addresses and
+# therefore bypasses the CPU's 16-bit I/O-page projection.
 let advance = (bus, elapsed) {
-	return true
+	let tape_result = tm11.advance(tape(bus), elapsed, (address, value) {
+		bump(bus, NPR_WRITE)
+		return memory.write_byte(physical_memory(bus), address, value)
+	})
+	if is_error(tape_result) { return tape_result }
+	return kl11.advance(console(bus), elapsed)
 }
+
+let tape_byte_count = (bus) { return tm11.byte_count(tape(bus)) }
+let tape_current_address = (bus) { return tm11.current_address(tape(bus)) }
+let tape_command = (bus) { return tm11.command(tape(bus)) }
+let tape_status = (bus) { return tm11.status(tape(bus)) }
+let tape_selected_unit = (bus) { return tm11.selected_unit(tape(bus)) }
+let tape_media_position = (bus) { return tm11.media_position(tape(bus)) }
+let tape_media_position_unit = (bus, unit) { return tm11.media_position_unit(tape(bus), unit) }
+let tape_read_count = (bus) { return tm11.read_count(tape(bus)) }
+let tape_write_count = (bus) { return tm11.write_count(tape(bus)) }
+let tape_bytes_in = (bus) { return tm11.bytes_in(tape(bus)) }
+let tape_bytes_out = (bus) { return tm11.bytes_out(tape(bus)) }
+
+let console_receive = (bus, value) { return kl11.receive(console(bus), value) }
+let console_take_output = (bus) { return kl11.take_output(console(bus)) }
+let console_receiver_status = (bus) { return kl11.receiver_status(console(bus)) }
+let console_receiver_buffer = (bus) { return kl11.receiver_buffer(console(bus)) }
+let console_transmitter_status = (bus) { return kl11.transmitter_status(console(bus)) }
+let console_transmitter_buffer = (bus) { return kl11.transmitter_buffer(console(bus)) }
+let console_rx_count = (bus) { return kl11.rx_count(console(bus)) }
+let console_tx_count = (bus) { return kl11.tx_count(console(bus)) }
+let console_last_rx = (bus) { return kl11.last_rx(console(bus)) }
+let console_last_tx = (bus) { return kl11.last_tx(console(bus)) }
+let console_receiver_done = (bus) { return kl11.receiver_done(console(bus)) }
+let console_transmitter_ready = (bus) { return kl11.transmitter_ready(console(bus)) }
+let console_receiver_interrupt_enabled = (bus) { return kl11.receiver_interrupt_enabled(console(bus)) }
+let console_transmitter_interrupt_enabled = (bus) { return kl11.transmitter_interrupt_enabled(console(bus)) }
+
+let dati_count = (bus) { return store.get(counts(bus), DATI) }
+let dato_count = (bus) { return store.get(counts(bus), DATO) }
+let datob_count = (bus) { return store.get(counts(bus), DATOB) }
+let npr_write_count = (bus) { return store.get(counts(bus), NPR_WRITE) }
 
 export(
+	:cpu_physical_address,
 	:new,
 	:read_byte,
 	:write_byte,
 	:read_word,
 	:write_word,
+	:attach_tape_media,
+	:attach_tape_media_unit,
+	:attach_tape_raw,
+	:attach_tape_raw_unit,
 	:reset_bus,
-	:advance
+	:advance,
+	:tape_byte_count,
+	:tape_current_address,
+	:tape_command,
+	:tape_status,
+	:tape_selected_unit,
+	:tape_media_position,
+	:tape_media_position_unit,
+	:tape_read_count,
+	:tape_write_count,
+	:tape_bytes_in,
+	:tape_bytes_out,
+	:dati_count,
+	:dato_count,
+	:datob_count,
+	:npr_write_count,
+	:console_receive,
+	:console_take_output,
+	:console_receiver_status,
+	:console_receiver_buffer,
+	:console_transmitter_status,
+	:console_transmitter_buffer,
+	:console_rx_count,
+	:console_tx_count,
+	:console_last_rx,
+	:console_last_tx,
+	:console_receiver_done,
+	:console_transmitter_ready,
+	:console_receiver_interrupt_enabled,
+	:console_transmitter_interrupt_enabled
 )

@@ -2,7 +2,7 @@
 
 ## Status
 
-ACTIVE — project branch `v6-emulator`; implementation begins with Gate 1 core diagnostics.
+ACTIVE — project branch `v6-emulator`; Gates 1-2 are gated and Cut 5 is establishing the normal monitor/observer surface before Gate 3 standalone execution.
 
 ## Purpose
 
@@ -186,9 +186,13 @@ observation  structured event log / debug-state projection
 Logging and debugging may observe machine events and snapshots but must not pace
 or alter guest execution.
 
-A later UI may open separate shared-log and live-debug windows. Their exact
-presentation is deferred; the observation interfaces must not depend on a
-particular UI technology.
+A later UI may open independent read-only observer windows. UNIBUS has its own
+transaction/arbitration/DMA view, and each configured device family has its own
+semantic view (tape, disk, paper tape, printer, console, clock). CPU/debug state
+remains separate. These windows consume structured events and snapshots; no
+observer window owns or mutates machine state. Their exact presentation is
+deferred and the observation interfaces must not depend on a particular UI
+technology.
 
 ### 8. Host terminal control contract
 
@@ -410,19 +414,53 @@ fixtures.
 
 ### Cut 3 — m40.s execution contract, PSW, control flow, stack, and audit
 
-Status: ACTIVE — expanded by user direction from a representative subset to the complete instruction-form workload named by Lions for `m40.s`; awaiting user-run Aiki execution gate.
+Status: GATED — user validation completed the execution and `m40.s` suites; instruction/addressing/PSW audit is active.
 
 Implement every instruction form exercised by Lions' `m40.s` workload, with semantic diagnostics rather than decode-only acceptance. Add runtime audit counters for instruction use and source/destination addressing modes so later V6 runs can be compared against Lions' static description and the source listing. Machine-facing numeric presentation is octal-first.
 
 `MFPI`/`MTPI` retain their instruction/stack-transfer contract here, but previous-space translation and full mode semantics remain explicitly owned by Gate 5 KT11-D memory management. `WAIT`, `RESET`, and `RTT` establish their current architectural seams; interrupts, attached-device INIT propagation, and complete mode/trap behavior are strengthened by their later owning gates.
 
-### Cut 4 — Gate 1 reconciliation and validation
+### Cut 4 — raw V6 tape and Gate 2 bootstrap
 
-Status: PLANNED.
+Status: GATED — synthetic/controller suite 31/31 and real TUHS raw-media bootstrap reached PC `100012` with the expected first-record signature and `TAPE BOOTSTRAP PASS`.
 
-Run the complete core diagnostic suite plus relevant repository validation,
-record evidence, reconcile the proposal, and stop for user review before any
-tape implementation begins.
+Use the TUHS raw `v6.tape` representation directly: exactly 12,100 fixed
+512-byte records with the known terminal tape mark synthesized by the media
+layer. Do not require OpenSIMH `enblock` framing. Add the PDP-11/40 16-bit to
+18-bit UNIBUS I/O-page projection, the narrow TM11 register/read/DMA behavior
+required by the six-word historical bootstrap, and a bit-exact real-media
+bootstrap witness.
+
+Gate: the six-word bootstrap executes from `100000`, transfers raw tape record
+0 into memory through UNIBUS DMA, advances the tape by one record, and remains
+in the loop at `100012`. Stop for user validation before adding console or
+executing the standalone installer.
+
+
+### Cut 5 — `aiki-pdp` monitor and read-only observer windows
+
+Status: GATED.
+
+Build the normal operator control surface before Gate 3 so the historical path is no longer dependent on a purpose-built bootstrap runner. The monitor owns command interpretation and remains the only writer of machine state. A raw-terminal input reader sends keystrokes to the monitor event loop; CTRL-T reports status without mutation, CTRL-E suspends execution and returns to `aiki-pdp>`, CTRL-C interrupts the foreground run, and CTRL-D at an empty prompt is EOF/quit.
+
+Add an observation broker inspired by Experiment 003 but stronger about execution isolation: one read-only CPU/debug view, one UNIBUS view, and one tape view for currently implemented components. Each observer has its own sender process and a latest-snapshot mailbox so blocked terminal/TCP output cannot pace guest execution. Later disk, paper-tape, printer, console, and clock windows use the same contract. Window creation remains host presentation in `showcase.sh`; closing an observer must not affect the machine. Observer refresh is presentation-only: while the guest runs it is rate-limited and latest-snapshot coalesced so observer speed cannot pace execution. CPU/debug remains visibly live; device and UNIBUS views expose cumulative octal activity counters. CTRL-E suspension is restartable with `continue`. The monitor also provides unit-aware `attach tape [UNIT] FILE` and `boot tape UNIT`; the latter deposits the six-word V6 TM bootstrap with the real TM11 Unit Select field and starts execution at `100000`.
+
+Monitor suspension is distinct from architectural HALT. CTRL-E (and foreground interruption) leaves the CPU `SUSPENDED`; only execution of the PDP-11 HALT instruction is reported as `HALTED`. Resuming clears the suspended state.
+
+Gate this cut with focused monitor/view diagnostics and a manual run that starts `showcase.sh`, attaches the real raw tape to unit 0, uses `boot tape 0`, verifies CTRL-T/CTRL-E/`continue`, examines memory 0, and confirms the three observer windows track CPU, UNIBUS, and tape state with live/coalesced refresh and cumulative counters. Gate 3 standalone execution does not begin until this control surface is validated.
+
+
+### Cut 6 — KL11 console and standalone `=`
+
+Status: ACTIVE.
+
+Add the console KL11 at the standard V6 addresses `777560` through `777566` (CPU-visible `177560` through `177566` with memory management disabled): receiver status/buffer and transmitter status/buffer. The main `aiki-pdp` terminal is the guest console while the machine runs. CTRL-T and CTRL-E remain emulator-private; all other bytes, including CTRL-C and CTRL-D, are delivered to the KL11 receiver. At the monitor prompt CTRL-C/CTRL-D retain their normal host-terminal behavior.
+
+Add a separate read-only KL11 observer window showing TKS/TKB/TPS/TPB, receiver DONE/transmitter READY and interrupt-enable states, cumulative RX/TX character counts, and last RX/TX values. The window follows the same isolated latest-snapshot observer contract as CPU, UNIBUS, and tape.
+
+Extend the narrow TM11 model with REWIND (function `111`), which the standalone startup path uses before presenting its prompt. Do not add disk behavior yet.
+
+Gate: focused KL11 diagnostics pass; then, using the real raw V6 tape, `boot tape 0`, CTRL-E at `100012`, and `run 0` must cause the real standalone image to drive the emulated KL11 and produce the first `=` prompt in the main terminal. The KL11 observer must show the corresponding transmitter activity. Stop at that prompt before implementing RK11/RK05.
 
 ## Validation discipline
 

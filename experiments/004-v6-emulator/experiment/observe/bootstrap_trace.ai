@@ -1,0 +1,25 @@
+package "aiki_pdp_bootstrap_trace"
+
+let octal = import("../reference/octal")
+
+let instruction_text = (pc, word) {
+	if equal(pc, octal.parse("100000")) { return "MOV #172526,R0" }
+	if equal(pc, octal.parse("100004")) { return "MOV R0,-(R0)" }
+	if equal(pc, octal.parse("100006")) { return "MOV #060003,-(R0)" }
+	if equal(pc, octal.parse("100012")) { return "BR 100012" }
+	return "instruction"
+}
+
+let instruction_line = (pc, word) {
+	return octal.address(pc) + "  " + octal.word(word) + "  " + instruction_text(pc, word)
+}
+
+let dma_line = (before_record, after_record, before_address, after_address) {
+	if after_record <= before_record {
+		return ""
+	}
+	let last = after_address - 1
+	return "UNIBUS   DMA " + octal.address(before_address) + ".." + octal.address(last)
+}
+
+export(:instruction_text, :instruction_line, :dma_line)

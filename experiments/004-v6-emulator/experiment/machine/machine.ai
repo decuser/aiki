@@ -81,6 +81,14 @@ let set_waiting = (machine, value) {
 	return state.set_waiting(processor_state(machine), value)
 }
 
+let suspended = (machine) {
+	return state.suspended(processor_state(machine))
+}
+
+let set_suspended = (machine, value) {
+	return state.set_suspended(processor_state(machine), value)
+}
+
 let steps = (machine) {
 	return state.steps(processor_state(machine))
 }
@@ -101,6 +109,43 @@ let complete_instruction = (machine, elapsed) {
 let reset_bus = (machine) {
 	return unibus.reset_bus(bus(machine))
 }
+
+let attach_tape_media = (machine, media) { return unibus.attach_tape_media(bus(machine), media) }
+let attach_tape_media_unit = (machine, unit, media) { return unibus.attach_tape_media_unit(bus(machine), unit, media) }
+
+let attach_tape_raw = (machine, path) { return unibus.attach_tape_raw(bus(machine), path) }
+let attach_tape_raw_unit = (machine, unit, path) { return unibus.attach_tape_raw_unit(bus(machine), unit, path) }
+
+let tape_byte_count = (machine) { return unibus.tape_byte_count(bus(machine)) }
+let tape_current_address = (machine) { return unibus.tape_current_address(bus(machine)) }
+let tape_command = (machine) { return unibus.tape_command(bus(machine)) }
+let tape_status = (machine) { return unibus.tape_status(bus(machine)) }
+let tape_selected_unit = (machine) { return unibus.tape_selected_unit(bus(machine)) }
+let tape_media_position = (machine) { return unibus.tape_media_position(bus(machine)) }
+let tape_media_position_unit = (machine, unit) { return unibus.tape_media_position_unit(bus(machine), unit) }
+let tape_read_count = (machine) { return unibus.tape_read_count(bus(machine)) }
+let tape_write_count = (machine) { return unibus.tape_write_count(bus(machine)) }
+let tape_bytes_in = (machine) { return unibus.tape_bytes_in(bus(machine)) }
+let tape_bytes_out = (machine) { return unibus.tape_bytes_out(bus(machine)) }
+let unibus_dati_count = (machine) { return unibus.dati_count(bus(machine)) }
+let unibus_dato_count = (machine) { return unibus.dato_count(bus(machine)) }
+let unibus_datob_count = (machine) { return unibus.datob_count(bus(machine)) }
+let unibus_npr_write_count = (machine) { return unibus.npr_write_count(bus(machine)) }
+
+let console_receive = (machine, value) { return unibus.console_receive(bus(machine), value) }
+let console_take_output = (machine) { return unibus.console_take_output(bus(machine)) }
+let console_receiver_status = (machine) { return unibus.console_receiver_status(bus(machine)) }
+let console_receiver_buffer = (machine) { return unibus.console_receiver_buffer(bus(machine)) }
+let console_transmitter_status = (machine) { return unibus.console_transmitter_status(bus(machine)) }
+let console_transmitter_buffer = (machine) { return unibus.console_transmitter_buffer(bus(machine)) }
+let console_rx_count = (machine) { return unibus.console_rx_count(bus(machine)) }
+let console_tx_count = (machine) { return unibus.console_tx_count(bus(machine)) }
+let console_last_rx = (machine) { return unibus.console_last_rx(bus(machine)) }
+let console_last_tx = (machine) { return unibus.console_last_tx(bus(machine)) }
+let console_receiver_done = (machine) { return unibus.console_receiver_done(bus(machine)) }
+let console_transmitter_ready = (machine) { return unibus.console_transmitter_ready(bus(machine)) }
+let console_receiver_interrupt_enabled = (machine) { return unibus.console_receiver_interrupt_enabled(bus(machine)) }
+let console_transmitter_interrupt_enabled = (machine) { return unibus.console_transmitter_interrupt_enabled(bus(machine)) }
 
 let audit_instruction = (machine, kind) {
 	return audit.record_instruction(execution_audit(machine), kind)
@@ -185,11 +230,46 @@ export(
 	:set_running,
 	:waiting,
 	:set_waiting,
+	:suspended,
+	:set_suspended,
 	:steps,
 	:machine_time,
 	:snapshot,
 	:complete_instruction,
 	:reset_bus,
+	:attach_tape_media,
+	:attach_tape_media_unit,
+	:attach_tape_raw,
+	:attach_tape_raw_unit,
+	:tape_byte_count,
+	:tape_current_address,
+	:tape_command,
+	:tape_status,
+	:tape_selected_unit,
+	:tape_media_position,
+	:tape_media_position_unit,
+	:tape_read_count,
+	:tape_write_count,
+	:tape_bytes_in,
+	:tape_bytes_out,
+	:unibus_dati_count,
+	:unibus_dato_count,
+	:unibus_datob_count,
+	:unibus_npr_write_count,
+	:console_receive,
+	:console_take_output,
+	:console_receiver_status,
+	:console_receiver_buffer,
+	:console_transmitter_status,
+	:console_transmitter_buffer,
+	:console_rx_count,
+	:console_tx_count,
+	:console_last_rx,
+	:console_last_tx,
+	:console_receiver_done,
+	:console_transmitter_ready,
+	:console_receiver_interrupt_enabled,
+	:console_transmitter_interrupt_enabled,
 	:audit_instruction,
 	:audit_operand,
 	:audit_instruction_count,

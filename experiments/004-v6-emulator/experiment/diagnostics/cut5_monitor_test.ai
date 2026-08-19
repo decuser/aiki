@@ -1,0 +1,120 @@
+use("test")
+
+let bytes = import("bytes/native")
+let machine = import("../machine/machine")
+let monitor = import("../monitor/monitor")
+let octal = import("../reference/octal")
+let v6_tape = import("../media/v6_tape")
+let views = import("../observe/views")
+let str = import("string/native")
+
+run("monitor deposits and examines octal words through the machine boundary", () {
+	let m = monitor.new()
+	monitor.deposit(m, octal.parse("100000"), octal.parse("012700"))
+	equal(monitor.examine(m, octal.parse("100000"), 1), "100000  012700")
+})
+
+run("monitor can reproduce the six-word V6 tape bootstrap setup", () {
+	let m = monitor.new()
+	let base = octal.parse("100000")
+	let words = ["012700", "172526", "010040", "012740", "060003", "000777"]
+	let i = 0
+	while i < length(words) {
+		monitor.deposit(m, base + (i * 2), octal.parse(words[i]))
+		i = i + 1
+	}
+	monitor.set_pc(m, base)
+	equal(machine.pc(m), base)
+	equal(machine.examine_word(m, base + 10), octal.parse("000777"))
+})
+
+run("observer views are read-only projections of one machine", () {
+	let m = monitor.new()
+	monitor.deposit(m, octal.parse("100000"), octal.parse("012700"))
+	monitor.set_pc(m, octal.parse("100000"))
+	let cpu = views.cpu(m)
+	let tape = views.tape(m)
+	let bus = views.unibus(m, "none")
+	is_true(str.starts_with(cpu, "Aiki PDP-11/40"))
+	is_true(str.starts_with(tape, "Aiki PDP-11/40"))
+	is_true(str.starts_with(bus, "Aiki PDP-11/40"))
+	equal(machine.pc(m), octal.parse("100000"))
+})
+
+run("monitor step executes one architectural instruction", () {
+	let m = monitor.new()
+	monitor.deposit(m, octal.parse("001000"), octal.parse("000240"))
+	monitor.set_pc(m, octal.parse("001000"))
+	monitor.step(m)
+	equal(machine.pc(m), octal.parse("001002"))
+	equal(machine.steps(m), 1)
+})
+
+run("monitor help exposes control-key contract", () {
+	let text = monitor.help_text("monitor")
+	is_true(str.contains(text, "CTRL-T"))
+	is_true(str.contains(text, "CTRL-E"))
+})
+
+
+run("suspension is distinct from architectural HALT in status and CPU view", () {
+	let m = monitor.new()
+	machine.set_running(m, true)
+	machine.set_running(m, false)
+	machine.set_suspended(m, true)
+	is_true(str.contains(monitor.status(m), "CPU suspended"))
+	is_true(str.contains(views.cpu(m), "state SUSPENDED"))
+})
+
+run("resuming clears the suspended state", () {
+	let m = monitor.new()
+	machine.set_suspended(m, true)
+	machine.set_running(m, true)
+	is_false(machine.suspended(m))
+	is_true(machine.running(m))
+})
+
+
+run("boot tape unit encodes the TM11 unit select field and starts at 100000", () {
+	let m = monitor.new()
+	equal(monitor.boot_tape(m, 0), true)
+	equal(machine.examine_word(m, octal.parse("100010")), octal.parse("060003"))
+	equal(machine.pc(m), octal.parse("100000"))
+	is_true(machine.running(m))
+
+	machine.set_running(m, false)
+	equal(monitor.boot_tape(m, 1), true)
+	equal(machine.examine_word(m, octal.parse("100010")), octal.parse("060403"))
+	equal(machine.pc(m), octal.parse("100000"))
+})
+
+run("unit-aware tape bootstrap reads from the selected transport and counts activity", () {
+	let m = monitor.new()
+	let values = []
+	let i = 0
+	while i < 512 { values = append(values, i - (truncate(i / 256) * 256)); i = i + 1 }
+	let media = v6_tape.from_bytes(bytes.bytes_new(values))
+	equal(machine.attach_tape_media_unit(m, 1, media), true)
+	equal(monitor.boot_tape(m, 1), true)
+	let n = 0
+	while n < 4 {
+		let result = monitor.step(m)
+		is_false(monitor.is_pdp_fault(result))
+		n = n + 1
+	}
+	equal(machine.tape_selected_unit(m), 1)
+	equal(machine.tape_media_position_unit(m, 1), 1)
+	equal(machine.tape_read_count(m), 1)
+	equal(machine.tape_write_count(m), 0)
+	equal(machine.tape_bytes_in(m), 512)
+	equal(machine.unibus_npr_write_count(m), 512)
+	is_true(str.contains(views.tape(m), "reads     1"))
+	is_true(str.contains(views.unibus(m, "tape DMA"), "NPR writes 1000"))
+})
+
+run("monitor help documents restartable suspension and unit-aware tape boot", () {
+	let text = monitor.help_text("monitor")
+	is_true(str.contains(text, "boot tape UNIT"))
+	is_true(str.contains(text, "continue"))
+	is_true(str.contains(text, "attach tape [UNIT] FILE"))
+})

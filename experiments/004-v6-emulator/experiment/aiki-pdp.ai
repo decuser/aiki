@@ -1,0 +1,373 @@
+let broker_mod = import("./observe/broker")
+let monitor_input = import("./monitor/input")
+let io = import("io")
+let file = import("file")
+let machine = import("./machine/machine")
+let monitor = import("./monitor/monitor")
+let octal = import("./reference/octal")
+let str = import("string/native")
+let system = import("system")
+let term = import("term")
+let time = import("time")
+
+let m = monitor.new()
+let requested_port = 0
+let port_text = system.env("AIKI_PDP_PORT")
+if not is_error(port_text) { requested_port = to_number(port_text) }
+let broker = broker_mod.start(requested_port)
+if is_error(broker) {
+	io.write(:stderr, "aiki-pdp: observer broker unavailable: " + inspect(broker) + "\n")
+	system.exit(1)
+}
+
+let port = broker_mod.port(broker)
+let run_dir = system.env("AIKI_PDP_RUN_DIR")
+if not is_error(run_dir) {
+	let port_file = file.open(run_dir + "/observer.port", :write)
+	if not is_error(port_file) {
+		file.write_text(port_file, to_str(port) + "\n")
+		file.close(port_file)
+	}
+}
+
+let observers = []
+let last_unibus_event = ""
+let running = false
+let run_count = 0
+let OBSERVER_INTERVAL_MS = 100
+let last_observer_publish = time.now()
+let alive = true
+let line = ""
+let terminal_state = []
+let terminal_raw = false
+
+let clear_screen = () { return to_str(chr(27)) + "[2J" + to_str(chr(27)) + "[H" }
+
+let view_for = (kind) {
+	match kind {
+		"cpu" { return monitor.registers(m) }
+		"tape" { return monitor.tape(m) }
+		"unibus" { return monitor.bus(m, last_unibus_event) }
+		"kl11" { return monitor.kl11(m) }
+		_ { return "Aiki PDP observer\n\nunknown observer: " + kind }
+	}
+}
+
+let framed_view = (kind) {
+	return clear_screen() + view_for(kind) + "\n"
+}
+
+let publish = () {
+	let kept = []
+	let i = 0
+	while i < length(observers) {
+		let view = observers[i]
+		if broker_mod.alive(view) {
+			broker_mod.update(view, framed_view(broker_mod.kind(view)))
+			kept = append(kept, view)
+		}
+		i = i + 1
+	}
+	observers = kept
+	last_observer_publish = time.now()
+	return true
+}
+
+let accept_observer = () {
+	select {
+		let entry = recv(broker_mod.accepted(broker)) {
+			let kind = entry[0]
+			let view = broker_mod.attach(kind, entry[1], framed_view(kind))
+			observers = append(observers, view)
+		}
+		default {
+		}
+	}
+}
+
+let observer_summary = () {
+	if empty(observers) { return "no observer windows connected" }
+	let text = "observers"
+	let i = 0
+	while i < length(observers) {
+		text = text + " " + broker_mod.kind(observers[i])
+		i = i + 1
+	}
+	return text
+}
+
+let prompt = () {
+	io.write(:stdout, "aiki-pdp> ")
+}
+
+let drain_console = () {
+	let draining = true
+	while draining {
+		let value = machine.console_take_output(m)
+		match value {
+			[@end] { draining = false }
+			_ { io.write(:stdout, to_str(chr(value))) }
+		}
+	}
+	return true
+}
+
+let number = (parts, index, fallback) {
+	if index >= length(parts) { return fallback }
+	let value = monitor.parse_number(parts[index])
+	if is_error(value) {
+		println(inspect(value))
+		return fallback
+	}
+	return value
+}
+
+let stop_running = (reason, suspended) {
+	running = false
+	machine.set_running(m, false)
+	machine.set_suspended(m, suspended)
+	println("")
+	println(reason)
+	println(monitor.status(m))
+	publish()
+	prompt()
+	return true
+}
+
+let execute_command = (text) {
+	let parts = monitor.words(text)
+	if empty(parts) { return true }
+	let cmd = parts[0]
+	match cmd {
+		"help" {
+			let topic = "monitor"
+			if length(parts) > 1 { topic = parts[1] }
+			let result = monitor.help_text(topic)
+			if is_error(result) { println(inspect(result)) } else { println(result) }
+		}
+		"status" { println(monitor.status(m)) }
+		"registers" { println(monitor.registers(m)) }
+		"observers" { println(observer_summary()) }
+		"show" {
+			if length(parts) < 2 { println("show cpu | unibus | tape | kl11") }
+			else { println(view_for(parts[1])) }
+		}
+		"attach" {
+			if length(parts) < 3 or not equal(parts[1], "tape") {
+				println("attach tape [UNIT] FILE")
+			} else {
+				let unit = 0
+				let path = parts[2]
+				if length(parts) > 3 {
+					unit = monitor.parse_number(parts[2])
+					path = parts[3]
+				}
+				let result = monitor.attach_tape_unit(m, unit, path)
+				if is_error(result) { println(inspect(result)) }
+				else {
+					println("tape " + octal.count(unit) + " attached read-only: " + path)
+					publish()
+				}
+			}
+		}
+		"boot" {
+			if length(parts) < 3 or not equal(parts[1], "tape") { println("boot tape UNIT") }
+			else {
+				let unit = monitor.parse_number(parts[2])
+				if is_error(unit) { println(inspect(unit)) }
+				else {
+					let result = monitor.boot_tape(m, unit)
+					if is_error(result) { println(inspect(result)) }
+					else {
+						running = true
+						run_count = 0
+						println("booting tape " + octal.count(unit) + " from 100000  ^T status  ^E suspend")
+					}
+				}
+			}
+		}
+		"deposit" {
+			if length(parts) < 3 { println("deposit ADDR WORD") }
+			else {
+				let address = monitor.parse_number(parts[1])
+				let value = monitor.parse_number(parts[2])
+				if is_error(address) { println(inspect(address)) }
+				else if is_error(value) { println(inspect(value)) }
+				else {
+					let result = monitor.deposit(m, address, value)
+					if is_error(result) { println(inspect(result)) }
+					else { println(monitor.examine(m, address, 1)) }
+					publish()
+				}
+			}
+		}
+		"examine" {
+			if length(parts) < 2 { println("examine ADDR [COUNT]") }
+			else {
+				let address = monitor.parse_number(parts[1])
+				if is_error(address) { println(inspect(address)) }
+				else { println(monitor.examine(m, address, number(parts, 2, 1))) }
+			}
+		}
+		"set" {
+			if length(parts) < 3 or not equal(parts[1], "pc") { println("set pc ADDR") }
+			else {
+				let value = monitor.parse_number(parts[2])
+				if is_error(value) { println(inspect(value)) }
+				else { monitor.set_pc(m, value); println(monitor.status(m)); publish() }
+			}
+		}
+		"step" {
+			machine.set_suspended(m, false)
+			let count = number(parts, 1, 1)
+			let i = 0
+			while i < count {
+				let result = monitor.step(m)
+				if monitor.is_pdp_fault(result) {
+					println(inspect(result))
+					i = count
+				} else {
+					i = i + 1
+				}
+			}
+			if machine.running(m) {
+				machine.set_running(m, false)
+				machine.set_suspended(m, true)
+			}
+			println(monitor.status(m))
+			publish()
+		}
+		"run" {
+			if length(parts) > 1 {
+				let address = monitor.parse_number(parts[1])
+				if is_error(address) { println(inspect(address)); return true }
+				monitor.set_pc(m, address)
+			}
+			machine.set_waiting(m, false)
+			machine.set_suspended(m, false)
+			machine.set_running(m, true)
+			running = true
+			run_count = 0
+			println("running from " + octal.word(machine.pc(m)) + "  ^T status  ^E suspend")
+		}
+		"continue" {
+			if not machine.suspended(m) { println("machine is not suspended") }
+			else {
+				machine.set_waiting(m, false)
+				machine.set_suspended(m, false)
+				machine.set_running(m, true)
+				running = true
+				run_count = 0
+				println("continuing from " + octal.word(machine.pc(m)) + "  ^T status  ^E suspend")
+			}
+		}
+		"reset" {
+			machine.reset_machine(m)
+			println("machine reset")
+			publish()
+		}
+		"quit" { alive = false }
+		_ { println("unknown command; type help") }
+	}
+	return true
+}
+
+println("Aiki PDP-11/40 V6 monitor")
+println("octal machine values; type help")
+println("observer port " + to_str(port))
+
+if term.is(:stdin) {
+	terminal_state = term.raw(:stdin)
+	if not is_error(terminal_state) { terminal_raw = true }
+}
+
+let keys = monitor_input.start()
+prompt()
+
+while alive {
+	accept_observer()
+	select {
+		let event = recv(keys) {
+			match event {
+				[:key, key] {
+					if running {
+						if equal(key, 20) {
+							println("")
+							println(monitor.status(m))
+						} else if equal(key, 5) {
+							stop_running("simulation suspended (^E)", true)
+						} else {
+							machine.console_receive(m, key)
+							publish()
+						}
+					} else {
+						if equal(key, 3) {
+							line = ""
+							io.write(:stdout, "^C\n")
+							prompt()
+						} else if equal(key, 4) {
+							if equal(line, "") { alive = false }
+						} else if equal(key, 20) {
+							println("")
+							println(monitor.status(m))
+							prompt()
+							io.write(:stdout, line)
+						} else if equal(key, 5) {
+							# ^E while halted is intentionally harmless.
+						} else if equal(key, 10) or equal(key, 13) {
+							io.write(:stdout, "\n")
+							let command = line
+							line = ""
+							execute_command(command)
+							if alive and not running { prompt() }
+						} else if equal(key, 8) or equal(key, 127) {
+							if length(line) > 0 {
+								line = str.substring(line, 0, length(line) - 1)
+								io.write(:stdout, "\b \b")
+							}
+						} else if (key >= 32) and (key <= 126) {
+							let ch = to_str(chr(key))
+							line = line + ch
+							io.write(:stdout, ch)
+						}
+					}
+				}
+				[:input_eof] { alive = false }
+				[:input_error, detail] { println(""); println(detail); alive = false }
+			}
+		}
+		default {
+			if running {
+				let before_record = machine.tape_media_position(m)
+				let before_address = machine.tape_current_address(m)
+				let result = monitor.step(m)
+				drain_console()
+				run_count = run_count + 1
+				let after_record = machine.tape_media_position(m)
+				if after_record > before_record {
+					last_unibus_event = "tape DMA " + octal.word(before_address) + ".." + octal.word(machine.tape_current_address(m) - 1)
+				}
+				let now = time.now()
+				if (after_record > before_record) or ((now - last_observer_publish) >= OBSERVER_INTERVAL_MS) {
+					publish()
+				}
+				if monitor.is_pdp_fault(result) {
+					stop_running("machine fault: " + inspect(result), false)
+				} else if not machine.running(m) {
+					stop_running("machine halted", false)
+				} else if machine.waiting(m) {
+					stop_running("machine waiting", false)
+				}
+			} else {
+				time.sleep(1)
+			}
+		}
+	}
+}
+
+if terminal_raw { term.restore(terminal_state) }
+let i = 0
+while i < length(observers) { broker_mod.stop_view(observers[i]); i = i + 1 }
+broker_mod.close(broker)
+println("")
+println("aiki-pdp stopped")

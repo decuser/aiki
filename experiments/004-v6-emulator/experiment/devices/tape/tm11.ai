@@ -1,0 +1,285 @@
+package "aiki_pdp_tm11"
+
+let bits = import("bits/native")
+let octal = import("../../reference/octal")
+let store = import("store")
+let width = import("../../machine/width")
+let v6_tape = import("../../media/v6_tape")
+
+# Physical UNIBUS register addresses.
+let MTS = octal.parse("772520")
+let MTC = octal.parse("772522")
+let MTBRC = octal.parse("772524")
+let MTCMA = octal.parse("772526")
+
+let STATUS = 0
+let COMMAND = 1
+let BYTE_COUNT = 2
+let CURRENT_ADDRESS = 3
+let MEDIA_BASE = 4
+let MEDIA_UNITS = 8
+let ACTIVE = 12
+let READS = 13
+let WRITES = 14
+let BYTES_IN = 15
+let BYTES_OUT = 16
+let WORDS = 17
+
+let STATUS_SELR = bits.shl(1, 6)
+let STATUS_BOT = bits.shl(1, 5)
+let STATUS_WRL = bits.shl(1, 2)
+let STATUS_TUR = 1
+
+let COMMAND_ERROR = bits.shl(1, 15)
+let COMMAND_READY = bits.shl(1, 7)
+let COMMAND_PCLR = bits.shl(1, 12)
+let COMMAND_GO = 1
+let FUNCTION_READ = 1
+let FUNCTION_REWIND = 7
+
+let new = () {
+	let state = store.new(WORDS)
+	store.set(state, STATUS, 0)
+	store.set(state, COMMAND, COMMAND_READY)
+	store.set(state, BYTE_COUNT, 0)
+	store.set(state, CURRENT_ADDRESS, 0)
+	let unit = 0
+	while unit < MEDIA_UNITS {
+		store.set(state, MEDIA_BASE + unit, false)
+		unit = unit + 1
+	}
+	store.set(state, ACTIVE, 0)
+	store.set(state, READS, 0)
+	store.set(state, WRITES, 0)
+	store.set(state, BYTES_IN, 0)
+	store.set(state, BYTES_OUT, 0)
+	return state
+}
+
+let selected_unit = (tape) { return bits.extract(store.get(tape, COMMAND), 8, 3) }
+
+let media = (tape, unit) {
+	return store.get(tape, MEDIA_BASE + unit)
+}
+
+let attached = (tape, unit) {
+	return not equal(media(tape, unit), false)
+}
+
+let refresh_status = (tape) {
+	let status = 0
+	let unit = selected_unit(tape)
+	if attached(tape, unit) {
+		status = STATUS_SELR + STATUS_WRL + STATUS_TUR
+		if v6_tape.at_bot(media(tape, unit)) {
+			status = status + STATUS_BOT
+		}
+	}
+	store.set(tape, STATUS, status)
+	return true
+}
+
+let attach_media_unit = (tape, unit, tape_media) {
+	if (unit < 0) or (unit >= MEDIA_UNITS) { return [@pdp_fault, :tape_unit, unit] }
+	store.set(tape, MEDIA_BASE + unit, tape_media)
+	v6_tape.rewind(tape_media)
+	store.set(tape, COMMAND, COMMAND_READY)
+	store.set(tape, BYTE_COUNT, 0)
+	store.set(tape, CURRENT_ADDRESS, 0)
+	store.set(tape, ACTIVE, 0)
+	refresh_status(tape)
+	return true
+}
+
+let attach_media = (tape, tape_media) { return attach_media_unit(tape, 0, tape_media) }
+
+let attach_raw_unit = (tape, unit, path) {
+	let tape_media = v6_tape.open_raw(path)
+	if is_error(tape_media) { return tape_media }
+	return attach_media_unit(tape, unit, tape_media)
+}
+
+let attach_raw = (tape, path) { return attach_raw_unit(tape, 0, path) }
+
+let reset_tape = (tape) {
+	store.set(tape, COMMAND, COMMAND_READY)
+	store.set(tape, BYTE_COUNT, 0)
+	store.set(tape, CURRENT_ADDRESS, 0)
+	store.set(tape, ACTIVE, 0)
+	# UNIBUS INIT clears controller state; it does not perform a physical rewind.
+	refresh_status(tape)
+	return true
+}
+
+let handles = (address) {
+	return (address >= MTS) and (address <= MTCMA)
+}
+
+let register_word = (tape, address) {
+	if equal(address, MTS) { return store.get(tape, STATUS) }
+	if equal(address, MTC) { return store.get(tape, COMMAND) }
+	if equal(address, MTBRC) { return store.get(tape, BYTE_COUNT) }
+	if equal(address, MTCMA) { return store.get(tape, CURRENT_ADDRESS) }
+	return [@pdp_fault, :bus_address, address]
+}
+
+let read_word = (tape, address) {
+	return register_word(tape, address)
+}
+
+let read_byte = (tape, address) {
+	let base = address
+	if not equal(bits.bit_and(base, 1), 0) {
+		base = base - 1
+	}
+	let word = register_word(tape, base)
+	if equal(bits.bit_and(address, 1), 0) {
+		return bits.low(word, 8)
+	}
+	return bits.extract(word, 8, 8)
+}
+
+let start_command = (tape, command) {
+	store.set(tape, COMMAND, bits.bit_and(command, octal.parse("177577"))) # clear CU READY
+	store.set(tape, ACTIVE, 1)
+	return true
+}
+
+let write_command = (tape, value) {
+	let command = width.wrap(value, 16)
+	if not equal(bits.bit_and(command, COMMAND_PCLR), 0) {
+		reset_tape(tape)
+		command = bits.bit_and(command, octal.parse("167777")) # PCLR reads as zero
+	}
+	store.set(tape, COMMAND, command)
+	if not equal(bits.bit_and(command, COMMAND_GO), 0) {
+		return start_command(tape, command)
+	}
+	return true
+}
+
+let write_word = (tape, address, value) {
+	if equal(address, MTC) { return write_command(tape, value) }
+	if equal(address, MTBRC) {
+		store.set(tape, BYTE_COUNT, width.wrap(value, 16))
+		return true
+	}
+	if equal(address, MTCMA) {
+		store.set(tape, CURRENT_ADDRESS, width.wrap(value, 16))
+		return true
+	}
+	return [@pdp_fault, :bus_address, address]
+}
+
+let write_byte = (tape, address, value) {
+	let base = address
+	if not equal(bits.bit_and(base, 1), 0) {
+		base = base - 1
+	}
+	let current = register_word(tape, base)
+	let updated = 0
+	if equal(bits.bit_and(address, 1), 0) {
+		updated = bits.extract(current, 8, 8) * 256 + width.wrap(value, 8)
+	} else {
+		updated = width.wrap(value, 8) * 256 + bits.low(current, 8)
+	}
+	return write_word(tape, base, updated)
+}
+
+let finish_operation = (tape) {
+	store.set(tape, ACTIVE, 0)
+	store.set(tape, COMMAND, bits.bit_or(store.get(tape, COMMAND), COMMAND_READY))
+	refresh_status(tape)
+	return true
+}
+
+let read_one_record = (tape, dma_write_byte) {
+	let unit = selected_unit(tape)
+	if not attached(tape, unit) {
+		store.set(tape, COMMAND, bits.bit_or(store.get(tape, COMMAND), COMMAND_ERROR))
+		return finish_operation(tape)
+	}
+	let record = v6_tape.read_record(media(tape, unit))
+	if is_error(record) {
+		return record
+	}
+	if equal(shape(record), :tape_mark) {
+		return finish_operation(tape)
+	}
+	let data = record[0]
+	let i = 0
+	while (i < v6_tape.record_length(media(tape, unit), data)) and (not equal(store.get(tape, BYTE_COUNT), 0)) {
+		let address = store.get(tape, CURRENT_ADDRESS)
+		let written = dma_write_byte(address, v6_tape.record_get(media(tape, unit), data, i))
+		if is_error(written) {
+			return written
+		}
+		store.set(tape, CURRENT_ADDRESS, width.wrap(address + 1, 16))
+		store.set(tape, BYTE_COUNT, width.wrap(store.get(tape, BYTE_COUNT) + 1, 16))
+		i = i + 1
+	}
+	store.set(tape, READS, store.get(tape, READS) + 1)
+	store.set(tape, BYTES_IN, store.get(tape, BYTES_IN) + i)
+	return finish_operation(tape)
+}
+
+let advance = (tape, elapsed, dma_write_byte) {
+	if equal(store.get(tape, ACTIVE), 0) {
+		return true
+	}
+	let command = store.get(tape, COMMAND)
+	let function = bits.extract(command, 1, 3)
+	if equal(function, FUNCTION_READ) {
+		return read_one_record(tape, dma_write_byte)
+	}
+	if equal(function, FUNCTION_REWIND) {
+		let unit = selected_unit(tape)
+		if attached(tape, unit) { v6_tape.rewind(media(tape, unit)) }
+		return finish_operation(tape)
+	}
+	return finish_operation(tape)
+}
+
+let byte_count = (tape) { return store.get(tape, BYTE_COUNT) }
+let current_address = (tape) { return store.get(tape, CURRENT_ADDRESS) }
+let command = (tape) { return store.get(tape, COMMAND) }
+let status = (tape) { return store.get(tape, STATUS) }
+let media_position_unit = (tape, unit) {
+	if not attached(tape, unit) { return 0 }
+	return v6_tape.position(media(tape, unit))
+}
+let media_position = (tape) { return media_position_unit(tape, selected_unit(tape)) }
+let read_count = (tape) { return store.get(tape, READS) }
+let write_count = (tape) { return store.get(tape, WRITES) }
+let bytes_in = (tape) { return store.get(tape, BYTES_IN) }
+let bytes_out = (tape) { return store.get(tape, BYTES_OUT) }
+
+export(
+	:MTS,
+	:MTC,
+	:MTBRC,
+	:MTCMA,
+	:new,
+	:attach_media,
+	:attach_media_unit,
+	:attach_raw,
+	:attach_raw_unit,
+	:reset_tape,
+	:handles,
+	:read_byte,
+	:write_byte,
+	:read_word,
+	:write_word,
+	:advance,
+	:byte_count,
+	:current_address,
+	:command,
+	:status,
+	:media_position,
+	:media_position_unit,
+	:selected_unit,
+	:read_count,
+	:write_count,
+	:bytes_in,
+	:bytes_out
+)

@@ -1,0 +1,102 @@
+use("test")
+let bits = import("bytes/native")
+let execute = import("../cpu/execute")
+let machine = import("../machine/machine")
+let math = import("math/native")
+let octal = import("../reference/octal")
+let tape_media = import("../media/v6_tape")
+let unibus = import("../unibus/unibus")
+
+let record_bytes = () {
+	let values = []
+	let i = 0
+	while i < 512 {
+		values = append(values, math.modulo(i, 256))
+		i = i + 1
+	}
+	return bits.bytes_new(values)
+}
+
+let two_records = () {
+	let values = []
+	let i = 0
+	while i < 1024 {
+		values = append(values, math.modulo(i, 256))
+		i = i + 1
+	}
+	return bits.bytes_new(values)
+}
+
+let put_bootstrap = (m) {
+	let base = octal.parse("100000")
+	machine.deposit_word(m, base, octal.parse("012700"))
+	machine.deposit_word(m, base + 2, octal.parse("172526"))
+	machine.deposit_word(m, base + 4, octal.parse("010040"))
+	machine.deposit_word(m, base + 6, octal.parse("012740"))
+	machine.deposit_word(m, base + 8, octal.parse("060003"))
+	machine.deposit_word(m, base + 10, octal.parse("000777"))
+	machine.set_pc(m, base)
+	return true
+}
+
+run("UNIBUS maps the 16-bit CPU I/O page onto physical 18-bit addresses", () {
+	equal(unibus.cpu_physical_address(octal.parse("157776")), octal.parse("157776"))
+	equal(unibus.cpu_physical_address(octal.parse("160000")), octal.parse("760000"))
+	equal(unibus.cpu_physical_address(octal.parse("172526")), octal.parse("772526"))
+	equal(unibus.cpu_physical_address(octal.parse("177776")), octal.parse("777776"))
+})
+
+run("raw tape media advances by fixed 512-byte records and ends at a synthetic tape mark", () {
+	let media = tape_media.from_bytes(two_records())
+	equal(tape_media.total_records(media), 2)
+	equal(tape_media.position(media), 0)
+	let first_record = tape_media.read_record(media)
+	equal(shape(first_record), :record)
+	equal(bits.bytes_length(first_record[0]), 512)
+	equal(bits.bytes_get(first_record[0], 0), 0)
+	equal(bits.bytes_get(first_record[0], 511), 255)
+	equal(tape_media.position(media), 1)
+	let second_record = tape_media.read_record(media)
+	equal(shape(second_record), :record)
+	equal(tape_media.position(media), 2)
+	equal(shape(tape_media.read_record(media)), :tape_mark)
+	tape_media.rewind(media)
+	equal(tape_media.at_bot(media), true)
+})
+
+run("TM11 bootstrap register writes read one record through UNIBUS DMA", () {
+	let m = machine.new()
+	machine.reset_machine(m)
+	let media = tape_media.from_bytes(record_bytes())
+	equal(machine.attach_tape_media(m, media), true)
+
+	machine.write_word(m, octal.parse("172524"), octal.parse("172526"))
+	machine.write_word(m, octal.parse("172522"), octal.parse("060003"))
+	# Device work occurs only through the deterministic bus advancement seam.
+	machine.complete_instruction(m, 1)
+
+	equal(machine.examine_word(m, 0), octal.parse("000400"))
+	equal(machine.examine_word(m, octal.parse("000776")), octal.parse("177776"))
+	equal(machine.tape_current_address(m), octal.parse("001000"))
+	equal(machine.tape_byte_count(m), octal.parse("173526"))
+	equal(machine.tape_media_position(m), 1)
+	equal(machine.tape_command(m), octal.parse("060203"))
+	equal(machine.tape_status(m), octal.parse("000105"))
+})
+
+run("the historical six-word V6 tape bootstrap reaches its terminal loop after loading record zero", () {
+	let m = machine.new()
+	machine.reset_machine(m)
+	let media = tape_media.from_bytes(record_bytes())
+	machine.attach_tape_media(m, media)
+	put_bootstrap(m)
+
+	equal(execute.run_bounded(m, 8), 8)
+	equal(machine.pc(m), octal.parse("100012"))
+	equal(machine.get_register(m, 0), octal.parse("172522"))
+	equal(machine.examine_word(m, 0), octal.parse("000400"))
+	equal(machine.examine_word(m, octal.parse("000776")), octal.parse("177776"))
+	equal(machine.tape_current_address(m), octal.parse("001000"))
+	equal(machine.tape_byte_count(m), octal.parse("173526"))
+	equal(machine.tape_media_position(m), 1)
+})
