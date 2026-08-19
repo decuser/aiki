@@ -29,9 +29,10 @@ VSCODE_VSCE ?= @vscode/vsce@3.9.2
 
 build:
 	go build $(LDFLAGS) -o aiki ./cmd/aiki
+	go build -o aiki-canvas ./cmd/aiki-canvas
 
 clean:
-	rm -f aiki
+	rm -f aiki aiki-canvas
 	rm -rf "$(LINUX_DIST_DIR)" "$(WINDOWS_DIST_DIR)"
 	rm -f "$(LINUX_DIST_ARCHIVE)" "$(WINDOWS_DIST_ARCHIVE)"
 	rm -f "$(BASELINE_ARCHIVE)"
@@ -49,6 +50,7 @@ dist-linux-amd64:
 	rm -f "$(LINUX_DIST_ARCHIVE)"; \
 	mkdir -p "$(LINUX_DIST_DIR)"; \
 	GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o "$(LINUX_DIST_DIR)/aiki" ./cmd/aiki; \
+	GOOS=linux GOARCH=amd64 go build -o "$(LINUX_DIST_DIR)/aiki-canvas" ./cmd/aiki-canvas; \
 	cp LICENSE README.md "$(LINUX_DIST_DIR)/"; \
 	cp -R lib "$(LINUX_DIST_DIR)/lib"; \
 	cp -R experiments "$(LINUX_DIST_DIR)/experiments"; \
@@ -65,6 +67,7 @@ dist-windows-amd64:
 	rm -f "$(WINDOWS_DIST_ARCHIVE)"; \
 	mkdir -p "$(WINDOWS_DIST_DIR)"; \
 	GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o "$(WINDOWS_DIST_DIR)/aiki.exe" ./cmd/aiki; \
+	GOOS=windows GOARCH=amd64 go build -o "$(WINDOWS_DIST_DIR)/aiki-canvas.exe" ./cmd/aiki-canvas; \
 	cp LICENSE README.md "$(WINDOWS_DIST_DIR)/"; \
 	cp -R lib "$(WINDOWS_DIST_DIR)/lib"; \
 	cp -R experiments "$(WINDOWS_DIST_DIR)/experiments"; \
@@ -96,25 +99,30 @@ distcheck: dist
 	test -x "$$created/experiment/run.sh"; \
 	test -d "$$created/results"; \
 	test -d "$$created/analyses"; \
+	test -x "$$tmp/$(LINUX_DIST_NAME)/aiki-canvas" || { echo "distcheck: Linux archive missing aiki-canvas" >&2; exit 1; }; \
 	tar -tzf "$(WINDOWS_DIST_ARCHIVE)" | grep -qx "$(WINDOWS_DIST_NAME)/aiki.exe" || { echo "distcheck: Windows archive missing aiki.exe" >&2; exit 1; }; \
+	tar -tzf "$(WINDOWS_DIST_ARCHIVE)" | grep -qx "$(WINDOWS_DIST_NAME)/aiki-canvas.exe" || { echo "distcheck: Windows archive missing aiki-canvas.exe" >&2; exit 1; }; \
 	tar -tzf "$(WINDOWS_DIST_ARCHIVE)" | grep -qx "$(WINDOWS_DIST_NAME)/lib/" || { echo "distcheck: Windows archive missing lib" >&2; exit 1; }; \
 	echo "distcheck ok: Linux archive is relocatable and Windows archive cross-builds with the shipped library"
 
 # Capture a portable development baseline beside the source tree. Unlike dist,
 # this is a repository snapshot: it intentionally includes .git so branch,
 # history, refs, and session state travel with the source. Only the built
-# top-level aiki executable is omitted.
+# top-level release executables are omitted.
 baseline:
 	@set -eu; \
 	rm -f "$(BASELINE_ARCHIVE)"; \
 	tar -C "$(DIST_PARENT)" \
 		--exclude="$(SOURCE_DIR_NAME)/aiki" \
+		--exclude="$(SOURCE_DIR_NAME)/aiki-canvas" \
+		--exclude="$(SOURCE_DIR_NAME)/aiki.exe" \
+		--exclude="$(SOURCE_DIR_NAME)/aiki-canvas.exe" \
 		-czf "$(BASELINE_ARCHIVE)" "$(SOURCE_DIR_NAME)"; \
 	tar -tzf "$(BASELINE_ARCHIVE)" | grep -q "^$(SOURCE_DIR_NAME)/\.git/" || { \
 		echo "baseline: archive is missing .git" >&2; exit 1; \
 	}; \
-	if tar -tzf "$(BASELINE_ARCHIVE)" | grep -qx "$(SOURCE_DIR_NAME)/aiki"; then \
-		echo "baseline: archive unexpectedly contains built aiki executable" >&2; exit 1; \
+	if tar -tzf "$(BASELINE_ARCHIVE)" | grep -Eq "^$(SOURCE_DIR_NAME)/(aiki|aiki-canvas)(\.exe)?$$"; then \
+		echo "baseline: archive unexpectedly contains built executable" >&2; exit 1; \
 	fi; \
 	echo "$(BASELINE_ARCHIVE)"
 

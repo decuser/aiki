@@ -61,7 +61,7 @@ func distributionRoot() (string, error) {
 }
 
 func distributionRootFromExecutable(exe string) (string, error) {
-	if resolved, resolveErr := filepath.EvalSymlinks(exe); resolveErr == nil {
+	if resolved, resolveErr := resolveExecutableSymlinks(exe); resolveErr == nil {
 		exe = resolved
 	}
 	root := filepath.Dir(exe)
@@ -76,6 +76,27 @@ func distributionRootFromExecutable(exe string) (string, error) {
 		return "", fmt.Errorf("distribution experiments path is not a directory: %s", filepath.Join(root, "experiments"))
 	}
 	return root, nil
+}
+
+func resolveExecutableSymlinks(path string) (string, error) {
+	for i := 0; i < 255; i++ {
+		info, err := os.Lstat(path)
+		if err != nil {
+			return "", err
+		}
+		if info.Mode()&os.ModeSymlink == 0 {
+			return filepath.Clean(path), nil
+		}
+		target, err := os.Readlink(path)
+		if err != nil {
+			return "", err
+		}
+		if !filepath.IsAbs(target) {
+			target = filepath.Join(filepath.Dir(path), target)
+		}
+		path = filepath.Clean(target)
+	}
+	return "", fmt.Errorf("too many executable symlinks resolving %s", path)
 }
 
 // Create creates the next numbered experiment in destination. Numbering is
@@ -271,8 +292,20 @@ if ! command -v aiki >/dev/null 2>&1; then
     exit 1
 fi
 
-STAMP=$(date '+%Y-%m-%d-%H%M%S.%3N')
+STAMP_BASE=$(date '+%Y-%m-%d-%H%M%S')
+STAMP_MS=$(date '+%3N' 2>/dev/null || true)
+case "$STAMP_MS" in
+    ''|*[!0-9]*) STAMP_MS=000 ;;
+esac
+STAMP="$STAMP_BASE.$STAMP_MS"
 RESULT="$RESULTS/run-$STAMP.txt"
+if [ -e "$RESULT" ]; then
+    n=1
+    while [ -e "$RESULTS/run-$STAMP-$n.txt" ]; do
+        n=$((n + 1))
+    done
+    RESULT="$RESULTS/run-$STAMP-$n.txt"
+fi
 
 run_experiment() {
     printf 'Aiki executable: %s\n' "$(command -v aiki)"

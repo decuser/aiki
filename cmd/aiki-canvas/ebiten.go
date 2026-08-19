@@ -1,4 +1,4 @@
-package substrate
+package main
 
 import (
 	"image"
@@ -7,6 +7,8 @@ import (
 	"math"
 	"os"
 
+	"aiki/engine/runtime/hal/substrate"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
@@ -14,16 +16,16 @@ import (
 
 // Game implements ebiten.Game for canvas rendering.
 type Game struct {
-	canvas  *CanvasResource
+	canvas  *substrate.CanvasResource
 	buffer  *ebiten.Image
 	overlay *ebiten.Image
-	ops     []CanvasCmd
-	redoOps []CanvasCmd
+	ops     []substrate.CanvasCmd
+	redoOps []substrate.CanvasCmd
 	maxOps  int
 }
 
 // NewGame creates a new game for the given canvas.
-func NewGame(canvas *CanvasResource) *Game {
+func NewGame(canvas *substrate.CanvasResource) *Game {
 	return &Game{
 		canvas:  canvas,
 		buffer:  ebiten.NewImage(canvas.Width, canvas.Height),
@@ -46,7 +48,7 @@ func (g *Game) Update() error {
 	}
 }
 
-func (g *Game) handleCmd(cmd CanvasCmd) {
+func (g *Game) handleCmd(cmd substrate.CanvasCmd) {
 	switch cmd.Op {
 	case "clear":
 		g.buffer.Fill(g.canvas.BG)
@@ -84,7 +86,7 @@ func (g *Game) handleCmd(cmd CanvasCmd) {
 	}
 }
 
-func (g *Game) drawOp(cmd CanvasCmd) {
+func (g *Game) drawOp(cmd substrate.CanvasCmd) {
 	clr := cmd.Color
 	args := cmd.Args
 	pen := cmd.PenSize
@@ -262,7 +264,7 @@ func drawOval(img *ebiten.Image, cx, cy, rx, ry int, clr color.RGBA, fill bool, 
 }
 
 // RunEbiten starts the ebiten game loop for a canvas.
-func RunEbiten(canvas *CanvasResource) {
+func RunEbiten(canvas *substrate.CanvasResource) {
 	ebiten.SetWindowSize(canvas.Width, canvas.Height)
 	ebiten.SetWindowTitle("Aiki")
 	game := NewGame(canvas)

@@ -4,6 +4,7 @@ import (
 	"go/parser"
 	"go/token"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -16,16 +17,17 @@ import (
 // available, which takes down any program that links it, including programs
 // that never draw.
 //
-// These tests hold that boundary. They are also a measurement: as long as the
-// graphics dependency reaches exactly one file, a headless configuration
-// remains one build tag away rather than a refactor.
+// These tests hold that boundary. The text-facing aiki executable must not link
+// Ebitengine at all; only the dedicated canvas renderer may import it. This is
+// stronger than merely confining the import to one file, because package init
+// still runs for every process that links that file.
 
 // graphicsImportPath is the host graphics library.
 const graphicsImportPath = "github.com/hajimehoshi/ebiten"
 
 // graphicsAllowedFile is the single file permitted to import it, relative to
 // the distribution root.
-const graphicsAllowedFile = "engine/runtime/hal/substrate/ebiten.go"
+const graphicsAllowedFile = "cmd/aiki-canvas/ebiten.go"
 
 // languageCorePackages must not depend on the host graphics library at all.
 // These are the packages that define and evaluate the language.
@@ -123,6 +125,24 @@ func TestLanguageCoreFreeOfGraphics(t *testing.T) {
 				t.Errorf("%s must not depend on %s, but %s does",
 					pkg, prefix, strings.Join(files, ", "))
 			}
+		}
+	}
+}
+
+// TestTextExecutableFreeOfGraphics checks the transitive dependency graph of
+// the user-facing command. This catches the macOS failure mode where a graphics
+// package can be imported indirectly and initialize GLFW before main runs.
+func TestTextExecutableFreeOfGraphics(t *testing.T) {
+	root := distributionRoot(t)
+	cmd := exec.Command("go", "list", "-deps", "-f", "{{.ImportPath}}", "./cmd/aiki")
+	cmd.Dir = root
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("go list ./cmd/aiki: %v", err)
+	}
+	for _, dep := range strings.Fields(string(out)) {
+		if strings.HasPrefix(dep, graphicsImportPath) {
+			t.Fatalf("cmd/aiki must not link host graphics package, found dependency %s", dep)
 		}
 	}
 }

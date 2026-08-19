@@ -9,6 +9,8 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 )
@@ -66,6 +68,37 @@ func waitCanvasSession(cvs *CanvasResource) {
 	}
 }
 
+func canvasChildCommand(width, height int) (string, []string, error) {
+	exe, err := os.Executable()
+	if err != nil {
+		return "", nil, err
+	}
+
+	// Recording deliberately stays in the text-only aiki executable so smoke
+	// tests and headless validation never initialize the graphics library.
+	if strings.EqualFold(os.Getenv("AIKI_CANVAS"), "record") {
+		return exe, []string{
+			"-canvas",
+			fmt.Sprintf("-canvasw=%d", width),
+			fmt.Sprintf("-canvash=%d", height),
+		}, nil
+	}
+
+	resolved := exe
+	if real, err := filepath.EvalSymlinks(exe); err == nil {
+		resolved = real
+	}
+	helper := "aiki-canvas"
+	if runtime.GOOS == "windows" {
+		helper += ".exe"
+	}
+	helper = filepath.Join(filepath.Dir(resolved), helper)
+	return helper, []string{
+		fmt.Sprintf("-canvasw=%d", width),
+		fmt.Sprintf("-canvash=%d", height),
+	}, nil
+}
+
 func startCanvasSession(cvs *CanvasResource) error {
 	cvs.sessionMu.Lock()
 	if cvs.session != nil {
@@ -74,18 +107,12 @@ func startCanvasSession(cvs *CanvasResource) error {
 	}
 	cvs.sessionMu.Unlock()
 
-	exe, err := os.Executable()
+	name, args, err := canvasChildCommand(cvs.Width, cvs.Height)
 	if err != nil {
 		return err
 	}
 
-	args := []string{
-		"-canvas",
-		fmt.Sprintf("-canvasw=%d", cvs.Width),
-		fmt.Sprintf("-canvash=%d", cvs.Height),
-	}
-
-	cmd := canvasExecCommand(exe, args...)
+	cmd := canvasExecCommand(name, args...)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return err

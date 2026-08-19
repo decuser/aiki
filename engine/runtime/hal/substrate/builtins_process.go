@@ -135,7 +135,9 @@ func (g *GoRuntime) halProcessStart(args []value.Value, ctx *hal.EvalContext) va
 	}
 	cmd := exec.Command(command, argv...)
 	cmd.Dir = cwd
-	cmd.Env = environmentList(g.environmentSnapshot())
+	env := g.environmentSnapshot()
+	env["PWD"] = cwd
+	cmd.Env = environmentList(env)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return value.NewShapedError("process", "%s", err.Error())

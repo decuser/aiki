@@ -131,7 +131,9 @@ func (g *GoRuntime) halSystemExec(args []value.Value, ctx *hal.EvalContext) valu
 	}
 	cmd := exec.Command(command, argv...)
 	cmd.Dir = cwd
-	cmd.Env = environmentList(g.environmentSnapshot())
+	env := g.environmentSnapshot()
+	env["PWD"] = cwd
+	cmd.Env = environmentList(env)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
