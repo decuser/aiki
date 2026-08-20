@@ -31,6 +31,7 @@ let status = (m) {
 let registers = (m) { return views.cpu(m) }
 let tape = (m) { return views.tape(m) }
 let kl11 = (m) { return views.kl11(m) }
+let rk = (m) { return views.rk(m) }
 let bus = (m, last_event) { return views.unibus(m, last_event) }
 
 let examine = (m, address, count) {
@@ -51,6 +52,7 @@ let deposit = (m, address, value) {
 
 let attach_tape = (m, path) { return machine.attach_tape_raw(m, path) }
 let attach_tape_unit = (m, unit, path) { return machine.attach_tape_raw_unit(m, unit, path) }
+let attach_disk_unit = (m, unit, path) { return machine.attach_disk_path(m, unit, path) }
 
 let boot_tape = (m, unit) {
 	if (unit < 0) or (unit > 7) { return [@error, :tape_unit, "tape unit must be 0..7"] }
@@ -69,12 +71,33 @@ let boot_tape = (m, unit) {
 	return true
 }
 
+let demo = (m, tape_path, disk_path) {
+	let tape_result = attach_tape_unit(m, 0, tape_path)
+	if is_error(tape_result) { return tape_result }
+	let disk_result = attach_disk_unit(m, 0, disk_path)
+	if is_error(disk_result) { return disk_result }
+	return boot_tape(m, 0)
+}
+
 let set_pc = (m, value) { return machine.set_pc(m, value) }
 
 let is_pdp_fault = (value) {
 	match value {
 		[@pdp_fault, _, _] { return true }
 		_ { return false }
+	}
+}
+
+let format_pdp_fault = (m, value) {
+	match value {
+		[@pdp_fault, :reserved_instruction, instruction] {
+			let fault_pc = machine.pc(m) - 2
+			return "machine fault: reserved instruction\n  PC  " + octal.word(fault_pc) + "\n  IR  " + octal.word(instruction)
+		}
+		[@pdp_fault, kind, detail] {
+			return "machine fault: " + to_str(kind) + "  detail " + inspect(detail)
+		}
+		_ { return inspect(value) }
 	}
 }
 
@@ -92,13 +115,16 @@ let help_text = (topic) {
 			"",
 			"help [TOPIC]             monitor or PDP-11 reference help",
 			"attach tape [UNIT] FILE  attach raw V6 distribution tape read-only",
+			"attach disk UNIT FILE    attach/create writable RK05 pack",
 			"boot tape UNIT           deposit and run V6 TM bootstrap for unit 0..7",
+			"demo V6_TAPE RK0         attach tape/disk 0 and start V6 tape bootstrap",
 			"deposit ADDR WORD        deposit one octal word",
 			"examine ADDR [COUNT]     examine octal words",
 			"set pc ADDR              set program counter",
 			"registers                show CPU state",
 			"status                   concise machine state",
-			"show cpu|unibus|tape|kl11 print observer snapshot here",
+			"show cpu|unibus|tape|rk|kl11 print observer snapshot here",
+			"observe TYPE             open a new observer window (open is alias)",
 			"step [COUNT]             execute bounded instructions",
 			"run [ADDR]               run from current or supplied PC",
 			"continue                 resume after CTRL-E",
@@ -126,4 +152,4 @@ let words = (line) {
 	return result
 }
 
-export(:new, :parse_number, :status, :registers, :tape, :kl11, :bus, :examine, :deposit, :attach_tape, :attach_tape_unit, :boot_tape, :set_pc, :step, :is_pdp_fault, :help_text, :words)
+export(:new, :parse_number, :status, :registers, :tape, :rk, :kl11, :bus, :examine, :deposit, :attach_tape, :attach_tape_unit, :attach_disk_unit, :boot_tape, :demo, :set_pc, :step, :is_pdp_fault, :format_pdp_fault, :help_text, :words)

@@ -41,17 +41,54 @@ let cpu = (m) {
 }
 
 let tape = (m) {
-	return "Aiki PDP-11/40 — Tape\n\n" +
-		"unit      " + octal.count(machine.tape_selected_unit(m)) + "\n" +
-		"record    " + octal.word(machine.tape_media_position(m)) + "\n" +
-		"status    " + octal.word(machine.tape_status(m)) + "\n" +
-		"command   " + octal.word(machine.tape_command(m)) + "\n" +
-		"byte cnt  " + octal.word(machine.tape_byte_count(m)) + "\n" +
-		"mem addr  " + octal.word(machine.tape_current_address(m)) + "\n\n" +
-		"reads     " + octal.count(machine.tape_read_count(m)) + "\n" +
-		"writes    " + octal.count(machine.tape_write_count(m)) + "\n" +
-		"bytes in  " + octal.count(machine.tape_bytes_in(m)) + "\n" +
-		"bytes out " + octal.count(machine.tape_bytes_out(m))
+	let text = "Aiki PDP-11/40 — Tape\n\n"
+	text = text + "units\n"
+	let unit = 0
+	while unit < 8 {
+		text = text + "  " + octal.count(unit) + "  "
+		if machine.tape_unit_attached(m, unit) { text = text + machine.tape_unit_path(m, unit) }
+		else { text = text + "--" }
+		text = text + "\n"
+		unit = unit + 1
+	}
+	text = text + "\nselected  " + octal.count(machine.tape_selected_unit(m)) + "\n"
+	text = text + "record    " + octal.word(machine.tape_media_position(m)) + "\n"
+	text = text + "status    " + octal.word(machine.tape_status(m)) + "\n"
+	text = text + "command   " + octal.word(machine.tape_command(m)) + "\n"
+	text = text + "byte cnt  " + octal.word(machine.tape_byte_count(m)) + "\n"
+	text = text + "mem addr  " + octal.word(machine.tape_current_address(m)) + "\n\n"
+	text = text + "reads     " + octal.count(machine.tape_read_count(m)) + "\n"
+	text = text + "writes    " + octal.count(machine.tape_write_count(m)) + "\n"
+	text = text + "bytes in  " + octal.count(machine.tape_bytes_in(m)) + "\n"
+	text = text + "bytes out " + octal.count(machine.tape_bytes_out(m))
+	return text
+}
+
+
+let rk = (m) {
+	let text = "Aiki PDP-11/40 — RK11 Disk\n\n"
+	text = text + "drives\n"
+	let unit = 0
+	while unit < 8 {
+		text = text + "  " + octal.count(unit) + "  "
+		if machine.disk_unit_attached(m, unit) { text = text + machine.disk_unit_path(m, unit) }
+		else { text = text + "--" }
+		text = text + "\n"
+		unit = unit + 1
+	}
+	text = text + "\nselected  " + octal.count(machine.disk_selected_unit(m)) + "\n"
+	text = text + "RKDS      " + octal.word(machine.disk_drive_status(m)) + "\n"
+	text = text + "RKER      " + octal.word(machine.disk_error(m)) + "\n"
+	text = text + "RKCS      " + octal.word(machine.disk_control_status(m)) + "\n"
+	text = text + "RKWC      " + octal.word(machine.disk_word_count(m)) + "\n"
+	text = text + "RKBA      " + octal.word(machine.disk_bus_address(m)) + "\n"
+	text = text + "RKDA      " + octal.word(machine.disk_address(m)) + "\n"
+	text = text + "cyl/surf/sec  " + octal.count(machine.disk_cylinder(m)) + "/" + octal.count(machine.disk_surface(m)) + "/" + octal.count(machine.disk_sector(m)) + "\n\n"
+	text = text + "reads     " + octal.count(machine.disk_read_count(m)) + "\n"
+	text = text + "writes    " + octal.count(machine.disk_write_count(m)) + "\n"
+	text = text + "bytes in  " + octal.count(machine.disk_bytes_in(m)) + "\n"
+	text = text + "bytes out " + octal.count(machine.disk_bytes_out(m))
+	return text
 }
 
 let printable = (value) {
@@ -81,9 +118,17 @@ let unibus = (m, last_event) {
 	text = text + "DATI       " + octal.count(machine.unibus_dati_count(m)) + "\n"
 	text = text + "DATO       " + octal.count(machine.unibus_dato_count(m)) + "\n"
 	text = text + "DATOB      " + octal.count(machine.unibus_datob_count(m)) + "\n"
+	text = text + "NPR reads  " + octal.count(machine.unibus_npr_read_count(m)) + "\n"
 	text = text + "NPR writes " + octal.count(machine.unibus_npr_write_count(m)) + "\n\n"
-	text = text + "tape current address  " + octal.word(machine.tape_current_address(m)) + "\n"
-	text = text + "tape record           " + octal.word(machine.tape_media_position(m)) + "\n\n"
+	text = text + "connected\n"
+	text = text + "  KL11 console\n"
+	let unit = 0
+	while unit < 8 {
+		if machine.tape_unit_attached(m, unit) { text = text + "  tape " + octal.count(unit) + "  " + machine.tape_unit_path(m, unit) + "\n" }
+		if machine.disk_unit_attached(m, unit) { text = text + "  disk " + octal.count(unit) + "  " + machine.disk_unit_path(m, unit) + "\n" }
+		unit = unit + 1
+	}
+	text = text + "\n"
 	text = text + "last transaction\n  "
 	if equal(last_event, "") {
 		text = text + "none"
@@ -93,4 +138,4 @@ let unibus = (m, last_event) {
 	return text
 }
 
-export(:cpu, :tape, :kl11, :unibus, :instruction_name)
+export(:cpu, :tape, :rk, :kl11, :unibus, :instruction_name)

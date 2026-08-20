@@ -1,10 +1,10 @@
 package "aiki_pdp_tm11"
 
-let bits = import("bits/native")
+let bits = import("bits/ffi")
 let octal = import("../../reference/octal")
 let store = import("store")
 let width = import("../../machine/width")
-let v6_tape = import("../../media/v6_tape")
+let tu10 = import("./tu10")
 
 # Physical UNIBUS register addresses.
 let MTS = octal.parse("772520")
@@ -16,7 +16,7 @@ let STATUS = 0
 let COMMAND = 1
 let BYTE_COUNT = 2
 let CURRENT_ADDRESS = 3
-let MEDIA_BASE = 4
+let DEVICE_BASE = 4
 let MEDIA_UNITS = 8
 let ACTIVE = 12
 let READS = 13
@@ -35,6 +35,7 @@ let COMMAND_READY = bits.shl(1, 7)
 let COMMAND_PCLR = bits.shl(1, 12)
 let COMMAND_GO = 1
 let FUNCTION_READ = 1
+let FUNCTION_SPACE_FORWARD = 4
 let FUNCTION_REWIND = 7
 
 let new = () {
@@ -45,7 +46,7 @@ let new = () {
 	store.set(state, CURRENT_ADDRESS, 0)
 	let unit = 0
 	while unit < MEDIA_UNITS {
-		store.set(state, MEDIA_BASE + unit, false)
+		store.set(state, DEVICE_BASE + unit, tu10.new())
 		unit = unit + 1
 	}
 	store.set(state, ACTIVE, 0)
@@ -58,20 +59,15 @@ let new = () {
 
 let selected_unit = (tape) { return bits.extract(store.get(tape, COMMAND), 8, 3) }
 
-let media = (tape, unit) {
-	return store.get(tape, MEDIA_BASE + unit)
-}
-
-let attached = (tape, unit) {
-	return not equal(media(tape, unit), false)
-}
+let device = (tape, unit) { return store.get(tape, DEVICE_BASE + unit) }
+let attached = (tape, unit) { return tu10.attached(device(tape, unit)) }
 
 let refresh_status = (tape) {
 	let status = 0
 	let unit = selected_unit(tape)
 	if attached(tape, unit) {
 		status = STATUS_SELR + STATUS_WRL + STATUS_TUR
-		if v6_tape.at_bot(media(tape, unit)) {
+		if tu10.at_bot(device(tape, unit)) {
 			status = status + STATUS_BOT
 		}
 	}
@@ -79,10 +75,7 @@ let refresh_status = (tape) {
 	return true
 }
 
-let attach_media_unit = (tape, unit, tape_media) {
-	if (unit < 0) or (unit >= MEDIA_UNITS) { return [@pdp_fault, :tape_unit, unit] }
-	store.set(tape, MEDIA_BASE + unit, tape_media)
-	v6_tape.rewind(tape_media)
+let finish_attach = (tape) {
 	store.set(tape, COMMAND, COMMAND_READY)
 	store.set(tape, BYTE_COUNT, 0)
 	store.set(tape, CURRENT_ADDRESS, 0)
@@ -91,14 +84,20 @@ let attach_media_unit = (tape, unit, tape_media) {
 	return true
 }
 
+let attach_media_unit = (tape, unit, tape_media) {
+	if (unit < 0) or (unit >= MEDIA_UNITS) { return [@pdp_fault, :tape_unit, unit] }
+	let result = tu10.attach_media(device(tape, unit), tape_media, "<memory>")
+	if is_error(result) { return result }
+	return finish_attach(tape)
+}
 let attach_media = (tape, tape_media) { return attach_media_unit(tape, 0, tape_media) }
 
 let attach_raw_unit = (tape, unit, path) {
-	let tape_media = v6_tape.open_raw(path)
-	if is_error(tape_media) { return tape_media }
-	return attach_media_unit(tape, unit, tape_media)
+	if (unit < 0) or (unit >= MEDIA_UNITS) { return [@pdp_fault, :tape_unit, unit] }
+	let result = tu10.attach_raw(device(tape, unit), path)
+	if is_error(result) { return result }
+	return finish_attach(tape)
 }
-
 let attach_raw = (tape, path) { return attach_raw_unit(tape, 0, path) }
 
 let reset_tape = (tape) {
@@ -111,8 +110,11 @@ let reset_tape = (tape) {
 	return true
 }
 
+let FIRST_ADDRESS = MTS
+let LAST_ADDRESS = MTCMA
+
 let handles = (address) {
-	return (address >= MTS) and (address <= MTCMA)
+	return (address >= FIRST_ADDRESS) and (address <= LAST_ADDRESS)
 }
 
 let register_word = (tape, address) {
@@ -199,7 +201,7 @@ let read_one_record = (tape, dma_write_byte) {
 		store.set(tape, COMMAND, bits.bit_or(store.get(tape, COMMAND), COMMAND_ERROR))
 		return finish_operation(tape)
 	}
-	let record = v6_tape.read_record(media(tape, unit))
+	let record = tu10.read_record(device(tape, unit))
 	if is_error(record) {
 		return record
 	}
@@ -208,9 +210,9 @@ let read_one_record = (tape, dma_write_byte) {
 	}
 	let data = record[0]
 	let i = 0
-	while (i < v6_tape.record_length(media(tape, unit), data)) and (not equal(store.get(tape, BYTE_COUNT), 0)) {
+	while (i < tu10.record_length(device(tape, unit), data)) and (not equal(store.get(tape, BYTE_COUNT), 0)) {
 		let address = store.get(tape, CURRENT_ADDRESS)
-		let written = dma_write_byte(address, v6_tape.record_get(media(tape, unit), data, i))
+		let written = dma_write_byte(address, tu10.record_get(device(tape, unit), data, i))
 		if is_error(written) {
 			return written
 		}
@@ -232,9 +234,19 @@ let advance = (tape, elapsed, dma_write_byte) {
 	if equal(function, FUNCTION_READ) {
 		return read_one_record(tape, dma_write_byte)
 	}
+	if equal(function, FUNCTION_SPACE_FORWARD) {
+		let unit = selected_unit(tape)
+		if not attached(tape, unit) { return finish_operation(tape) }
+		let count = 0
+		let counter = store.get(tape, BYTE_COUNT)
+		if not equal(counter, 0) { count = 65536 - counter }
+		tu10.space_forward(device(tape, unit), count)
+		store.set(tape, BYTE_COUNT, 0)
+		return finish_operation(tape)
+	}
 	if equal(function, FUNCTION_REWIND) {
 		let unit = selected_unit(tape)
-		if attached(tape, unit) { v6_tape.rewind(media(tape, unit)) }
+		if attached(tape, unit) { tu10.rewind(device(tape, unit)) }
 		return finish_operation(tape)
 	}
 	return finish_operation(tape)
@@ -246,15 +258,22 @@ let command = (tape) { return store.get(tape, COMMAND) }
 let status = (tape) { return store.get(tape, STATUS) }
 let media_position_unit = (tape, unit) {
 	if not attached(tape, unit) { return 0 }
-	return v6_tape.position(media(tape, unit))
+	return tu10.position(device(tape, unit))
 }
 let media_position = (tape) { return media_position_unit(tape, selected_unit(tape)) }
 let read_count = (tape) { return store.get(tape, READS) }
 let write_count = (tape) { return store.get(tape, WRITES) }
 let bytes_in = (tape) { return store.get(tape, BYTES_IN) }
 let bytes_out = (tape) { return store.get(tape, BYTES_OUT) }
+let unit_attached = (tape, unit) { return attached(tape, unit) }
+let unit_path = (tape, unit) { return tu10.path(device(tape, unit)) }
+
+let active = (tape) { return not equal(store.get(tape, ACTIVE), 0) }
 
 export(
+	:FIRST_ADDRESS,
+	:LAST_ADDRESS,
+	:active,
 	:MTS,
 	:MTC,
 	:MTBRC,
@@ -281,5 +300,7 @@ export(
 	:read_count,
 	:write_count,
 	:bytes_in,
-	:bytes_out
+	:bytes_out,
+	:unit_attached,
+	:unit_path
 )

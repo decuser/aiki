@@ -1,63 +1,23 @@
 package "aiki_pdp_psw"
 
-let bits = import("bits/native")
+let fixed = import("machine/ffi")
 
 let C = 0
 let V = 1
 let Z = 2
 let N = 3
 
-let bit = (psw, position) {
-	return bits.extract(psw, position, 1)
-}
-
-let flag = (psw, position) {
-	return equal(bit(psw, position), 1)
-}
-
-let set_flag = (psw, position, value) {
-	let replacement = 0
-	if value {
-		replacement = 1
-	}
-	return bits.replace(psw, position, 1, replacement)
-}
-
+let flag = (psw, position) { return fixed.word_bit(psw, position) }
+let set_flag = (psw, position, value) { return fixed.word_set_bit(psw, position, value) }
 let negative = (psw) { return flag(psw, N) }
 let zero = (psw) { return flag(psw, Z) }
 let overflow = (psw) { return flag(psw, V) }
 let carry = (psw) { return flag(psw, C) }
-
 let set_nz = (psw, value, width) {
-	let sign = bits.extract(value, width - 1, 1)
-	let masked = bits.low(value, width)
-	psw = set_flag(psw, N, equal(sign, 1))
-	psw = set_flag(psw, Z, equal(masked, 0))
+	psw = set_flag(psw, N, fixed.negative(value))
+	psw = set_flag(psw, Z, fixed.zero(value))
 	return psw
 }
-
-let set_nzv = (psw, value, width, v) {
-	psw = set_nz(psw, value, width)
-	return set_flag(psw, V, v)
-}
-
-let set_nzvc = (psw, value, width, v, c) {
-	psw = set_nz(psw, value, width)
-	psw = set_flag(psw, V, v)
-	return set_flag(psw, C, c)
-}
-
-export(
-	:C,
-	:V,
-	:Z,
-	:N,
-	:negative,
-	:zero,
-	:overflow,
-	:carry,
-	:set_flag,
-	:set_nz,
-	:set_nzv,
-	:set_nzvc
-)
+let set_nzv = (psw, value, width, v) { psw = set_nz(psw, value, width); return set_flag(psw, V, v) }
+let set_nzvc = (psw, value, width, v, c) { psw = set_nz(psw, value, width); psw = set_flag(psw, V, v); return set_flag(psw, C, c) }
+export(:C,:V,:Z,:N,:negative,:zero,:overflow,:carry,:set_flag,:set_nz,:set_nzv,:set_nzvc)

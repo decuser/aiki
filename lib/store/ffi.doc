@@ -1,0 +1,89 @@
+@preamble let store = import("store/ffi")
+new_byte
+Explicit store/ffi operation.
+
+new_byte(size)
+
+===
+new_word
+Explicit store/ffi operation.
+
+new_word(size)
+
+===
+new_addr18
+Explicit store/ffi operation.
+
+new_addr18(size)
+
+===
+get
+Explicit store/ffi operation.
+
+get(store, index)
+
+===
+set
+Explicit store/ffi operation.
+
+set(store, index, value)
+
+===
+length
+Explicit store/ffi operation.
+
+length(store)
+
+===
+snapshot
+Explicit store/ffi operation.
+
+snapshot(store, ...args)
+
+===
+word_read_addr
+Explicit store/ffi operation.
+
+word_read_addr(store, address)
+
+===
+word_write_addr
+Explicit store/ffi operation.
+
+word_write_addr(store, address, value)
+
+===
+byte_read_addr
+Explicit store/ffi operation.
+
+byte_read_addr(store, address)
+
+===
+byte_write_addr
+Explicit store/ffi operation.
+
+byte_write_addr(store, address, value)
+
+===
+new_counter
+Create provider-backed mutable storage for non-negative execution counters.
+
+new_counter(size)
+
+===
+counter_get
+Read an execution counter as an ordinary exact Aiki number at the observation/control boundary.
+
+counter_get(store, index)
+
+===
+counter_set
+Assign a non-negative execution counter.
+
+counter_set(store, index, value)
+
+===
+counter_add
+Increment an execution counter inside the provider, avoiding a get/add/set cycle in Aiki.
+
+counter_add(store, index, delta)

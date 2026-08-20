@@ -62,6 +62,8 @@ var stdlibModulePolicies = []StdlibModulePolicy{
 	// Runtime-owned Aiki facilities.
 	{Module: "io", Role: RoleRuntimeCapability, Realization: RealizationIntrinsic},
 	{Module: "store", Role: RoleRuntimeCapability, Realization: RealizationIntrinsic},
+	{Module: "machine/ffi", Role: RoleRuntimeCapability, Realization: RealizationFFI},
+	{Module: "store/ffi", Role: RoleRuntimeCapability, Realization: RealizationFFI},
 
 	// Host-mediated facilities. path intentionally composes portable Aiki code
 	// with host/runtime operations and is therefore mixed. Turtle is classified

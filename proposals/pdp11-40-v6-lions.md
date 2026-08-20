@@ -2,7 +2,7 @@
 
 ## Status
 
-ACTIVE — project branch `v6-emulator`; Gates 1-2 are gated and Cut 5 is establishing the normal monitor/observer surface before Gate 3 standalone execution.
+ACTIVE — project branch `v6-emulator`; implementation begins with Gate 1 core diagnostics.
 
 ## Purpose
 
@@ -439,28 +439,13 @@ executing the standalone installer.
 
 ### Cut 5 — `aiki-pdp` monitor and read-only observer windows
 
-Status: GATED.
+Status: ACTIVE.
 
 Build the normal operator control surface before Gate 3 so the historical path is no longer dependent on a purpose-built bootstrap runner. The monitor owns command interpretation and remains the only writer of machine state. A raw-terminal input reader sends keystrokes to the monitor event loop; CTRL-T reports status without mutation, CTRL-E suspends execution and returns to `aiki-pdp>`, CTRL-C interrupts the foreground run, and CTRL-D at an empty prompt is EOF/quit.
 
-Add an observation broker inspired by Experiment 003 but stronger about execution isolation: one read-only CPU/debug view, one UNIBUS view, and one tape view for currently implemented components. Each observer has its own sender process and a latest-snapshot mailbox so blocked terminal/TCP output cannot pace guest execution. Later disk, paper-tape, printer, console, and clock windows use the same contract. Window creation remains host presentation in `showcase.sh`; closing an observer must not affect the machine. Observer refresh is presentation-only: while the guest runs it is rate-limited and latest-snapshot coalesced so observer speed cannot pace execution. CPU/debug remains visibly live; device and UNIBUS views expose cumulative octal activity counters. CTRL-E suspension is restartable with `continue`. The monitor also provides unit-aware `attach tape [UNIT] FILE` and `boot tape UNIT`; the latter deposits the six-word V6 TM bootstrap with the real TM11 Unit Select field and starts execution at `100000`.
+Add an observation broker inspired by Experiment 003 but stronger about execution isolation: one read-only CPU/debug view, one UNIBUS view, and one tape view for currently implemented components. Each observer has its own sender process and a latest-snapshot mailbox so blocked terminal/TCP output cannot pace guest execution. Later disk, paper-tape, printer, console, and clock windows use the same contract. Window creation remains host presentation in `showcase.sh`; closing an observer must not affect the machine.
 
-Monitor suspension is distinct from architectural HALT. CTRL-E (and foreground interruption) leaves the CPU `SUSPENDED`; only execution of the PDP-11 HALT instruction is reported as `HALTED`. Resuming clears the suspended state.
-
-Gate this cut with focused monitor/view diagnostics and a manual run that starts `showcase.sh`, attaches the real raw tape to unit 0, uses `boot tape 0`, verifies CTRL-T/CTRL-E/`continue`, examines memory 0, and confirms the three observer windows track CPU, UNIBUS, and tape state with live/coalesced refresh and cumulative counters. Gate 3 standalone execution does not begin until this control surface is validated.
-
-
-### Cut 6 — KL11 console and standalone `=`
-
-Status: ACTIVE.
-
-Add the console KL11 at the standard V6 addresses `777560` through `777566` (CPU-visible `177560` through `177566` with memory management disabled): receiver status/buffer and transmitter status/buffer. The main `aiki-pdp` terminal is the guest console while the machine runs. CTRL-T and CTRL-E remain emulator-private; all other bytes, including CTRL-C and CTRL-D, are delivered to the KL11 receiver. At the monitor prompt CTRL-C/CTRL-D retain their normal host-terminal behavior.
-
-Add a separate read-only KL11 observer window showing TKS/TKB/TPS/TPB, receiver DONE/transmitter READY and interrupt-enable states, cumulative RX/TX character counts, and last RX/TX values. The window follows the same isolated latest-snapshot observer contract as CPU, UNIBUS, and tape.
-
-Extend the narrow TM11 model with REWIND (function `111`), which the standalone startup path uses before presenting its prompt. Do not add disk behavior yet.
-
-Gate: focused KL11 diagnostics pass; then, using the real raw V6 tape, `boot tape 0`, CTRL-E at `100012`, and `run 0` must cause the real standalone image to drive the emulated KL11 and produce the first `=` prompt in the main terminal. The KL11 observer must show the corresponding transmitter activity. Stop at that prompt before implementing RK11/RK05.
+Gate this cut with focused monitor/view diagnostics and a manual run that starts `showcase.sh`, attaches the real raw tape, deposits the six bootstrap words through `aiki-pdp>`, runs from `100000`, verifies CTRL-T/CTRL-E, examines memory 0, and confirms the three observer windows track CPU, UNIBUS, and tape state. Gate 3 standalone execution does not begin until this control surface is validated.
 
 ## Validation discipline
 
@@ -488,3 +473,92 @@ Until the Lions workload proves otherwise, this project does not attempt:
 - all historical V6 configurations;
 - SIMH command compatibility; or
 - reproduction of DEC operator-console vocabulary at the normal user surface.
+
+
+### Current execution gate — RK11/RK05
+
+Cut 7 adds the Lions-lab RK path as one controller with eight attachable RK05 drives. The gate is not controller unit tests alone: the real V6 standalone `tmrk` must use TM11 space-forward/read plus RK11 NPR write operations to create disk 0 from the original distribution tape. The accepted transfer sequence is tape offset 100 -> disk block 0 count 1, then tape offset 101 -> disk block 1 count 3999. Booting that resulting pack is the following gate.
+
+### Cut 7 architectural performance refinement
+
+Real V6 standalone execution and staged semantic profiling established that the
+remaining emulator cost was representation and dispatch overhead rather than
+PDP-11 work. The execution realization therefore follows the physical machine
+more directly while preserving the architectural contracts above:
+
+- CPU architectural state is compact mutable storage; rich Aiki structures are
+  produced at observation boundaries rather than on every instruction.
+- Physical core is word-backed while remaining byte-addressable. Word fetches
+  and stores are one indexed storage operation; byte operations select/update a
+  byte lane.
+- Backplane configuration establishes I/O address ownership once. Ordinary RAM
+  takes the direct UNIBUS memory path; an I/O-page address selects the configured
+  controller rather than polling every controller with `handles(address)`.
+- UNIBUS routes transactions. Controllers own bus-visible registers, commands,
+  interrupts/NPR sequencing. Attached devices own their own media and local
+  device state. In the current machine this is explicit as TM11 -> TU10 and
+  RK11 -> RK05 drive.
+- Idle controllers receive no per-instruction advancement. Controller work is
+  serviced only while a command is pending; the authoritative machine loop
+  remains the sole committer of machine state.
+- Instruction decode is classified once per fetched word and dispatched from
+  that result; the executor does not repeat decoder-family searches.
+- Observer processes remain concurrent, disposable subscribers. `show TYPE`
+  prints a snapshot in the monitor; `observe TYPE` (alias `open TYPE`) launches
+  another observer window when one has been closed.
+
+These are execution-realization changes, not shortcuts around the PDP-11/40,
+UNIBUS, or controller semantics. The same historical `tmrk` gate and the same
+`CLR/CMP/BLO` scaling workload remain the acceptance evidence.
+
+### Cut 7 fixed-width execution-domain refinement
+
+Aiki `number` remains exact rational. PDP machine-width representation is not a
+new Aiki numeric type and is not implemented by hidden integer/float promotion.
+The emulator explicitly imports a provider-backed machine capability instead:
+
+```text
+ordinary Aiki exact number
+        |
+        | explicit boundary conversion
+        v
+opaque machine/ffi value
+        |
+        | fixed-width machine operations + typed store/ffi
+        v
+opaque machine/ffi value
+        |
+        | explicit observation/control conversion
+        v
+ordinary Aiki exact number
+```
+
+The following invariants govern this realization:
+
+- No `int`, `float`, `:word`, `:byte`, or `:addr18` semantic is added to Aiki.
+  Provider width/kind is private; ordinary source sees only an opaque capability
+  value and cannot apply ordinary Aiki arithmetic to it.
+- Conversion is deliberate. Exact rationals enter the machine domain at monitor,
+  diagnostic, configuration, or media/controller boundaries and return only at
+  observation/control boundaries.
+- PDP data words, registers, IR, and PSW are 16-bit machine values; bytes are
+  8-bit machine values; physical/UNIBUS addresses are 18-bit byte addresses.
+  An 18-bit address is never treated as an 18-bit data word.
+- `store/ffi` is typed provider-backed storage, not a faster arbitrary-value
+  Aiki store. Physical machine storage uses fixed-width `word`, `byte`, and
+  address backing. Execution-only non-negative counters use an explicit counter
+  block with provider-side `add`, avoiding `store.get -> Aiki arithmetic ->
+  store.set` bookkeeping in the CPU hot path. Counter blocks are implementation
+  capabilities, not an Aiki integer type. Physical RAM remains a word store
+  indexed from the 18-bit byte address; byte operations select/update a word lane.
+- Functions model machine relationships; storage models state owned by the
+  hardware being represented. Rich Aiki lists/shapes are observation/control
+  representations, not the normal CPU/RAM execution representation.
+- The current serial cut applies this invariant to CPU/RAM and PSW audit first.
+  Legacy numeric controller-register APIs remain an explicit I/O-boundary
+  compatibility island until the following representation cut. EIS wider signed
+  operations are similarly isolated until given a fixed-width implementation.
+
+The same historical diagnostics and `CLR/CMP/BLO` scaling workload remain the
+acceptance evidence. A performance improvement does not excuse a semantic
+regression, and a semantic pass does not by itself gate the real `tmrk` transfer.

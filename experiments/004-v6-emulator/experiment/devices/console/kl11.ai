@@ -1,6 +1,6 @@
 package "aiki_pdp_kl11"
 
-let bits = import("bits/native")
+let bits = import("bits/ffi")
 let octal = import("../../reference/octal")
 let store = import("store")
 let width = import("../../machine/width")
@@ -22,7 +22,8 @@ let RX_COUNT = 7
 let TX_COUNT = 8
 let LAST_RX = 9
 let LAST_TX = 10
-let WORDS = 11
+let OUTPUT_QUEUE = 11
+let WORDS = 12
 
 let DONE = bits.shl(1, 7)
 let INTERRUPT_ENABLE = bits.shl(1, 6)
@@ -42,6 +43,7 @@ let new = () {
 	store.set(state, TX_COUNT, 0)
 	store.set(state, LAST_RX, 0)
 	store.set(state, LAST_TX, 0)
+	store.set(state, OUTPUT_QUEUE, [])
 	return state
 }
 
@@ -53,10 +55,14 @@ let reset_console = (console) {
 	store.set(console, TX_PENDING, false)
 	store.set(console, OUTPUT_READY, false)
 	store.set(console, OUTPUT_BYTE, 0)
+	store.set(console, OUTPUT_QUEUE, [])
 	return true
 }
 
-let handles = (address) { return (address >= TKS) and (address <= TPB) }
+let FIRST_ADDRESS = TKS
+let LAST_ADDRESS = TPB
+
+let handles = (address) { return (address >= FIRST_ADDRESS) and (address <= LAST_ADDRESS) }
 
 let register_word = (console, address) {
 	if equal(address, TKS) { return store.get(console, RCSR) }
@@ -142,7 +148,9 @@ let receive = (console, value) {
 let advance = (console, elapsed) {
 	if store.get(console, TX_PENDING) {
 		store.set(console, TX_PENDING, false)
-		store.set(console, OUTPUT_BYTE, store.get(console, XBUF))
+		let value = store.get(console, XBUF)
+		store.set(console, OUTPUT_BYTE, value)
+		store.set(console, OUTPUT_QUEUE, append(store.get(console, OUTPUT_QUEUE), value))
 		store.set(console, OUTPUT_READY, true)
 		store.set(console, XCSR, bits.bit_or(store.get(console, XCSR), DONE))
 	}
@@ -150,9 +158,12 @@ let advance = (console, elapsed) {
 }
 
 let take_output = (console) {
-	if not store.get(console, OUTPUT_READY) { return [@end] }
-	let value = store.get(console, OUTPUT_BYTE)
-	store.set(console, OUTPUT_READY, false)
+	let queue = store.get(console, OUTPUT_QUEUE)
+	if empty(queue) { store.set(console, OUTPUT_READY, false); return [@end] }
+	let value = first(queue)
+	queue = rest(queue)
+	store.set(console, OUTPUT_QUEUE, queue)
+	store.set(console, OUTPUT_READY, not empty(queue))
 	return value
 }
 
@@ -169,7 +180,12 @@ let transmitter_ready = (console) { return not equal(bits.bit_and(store.get(cons
 let receiver_interrupt_enabled = (console) { return not equal(bits.bit_and(store.get(console, RCSR), INTERRUPT_ENABLE), 0) }
 let transmitter_interrupt_enabled = (console) { return not equal(bits.bit_and(store.get(console, XCSR), INTERRUPT_ENABLE), 0) }
 
+let active = (console) { return store.get(console, TX_PENDING) }
+
 export(
+	:FIRST_ADDRESS,
+	:LAST_ADDRESS,
+	:active,
 	:TKS,
 	:TKB,
 	:TPS,

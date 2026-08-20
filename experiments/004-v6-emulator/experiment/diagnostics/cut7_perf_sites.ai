@@ -1,0 +1,84 @@
+# Cut 7 source-site attribution for the exact CLR/CMP/BLO workload.
+# Setup is outside profile.measure; only guest execution is attributed.
+
+let execute = import("../cpu/execute")
+let machine = import("../machine/machine")
+let octal = import("../reference/octal")
+let profile = import("profile")
+let list = import("list")
+let system = import("system")
+
+let BASE_ITERATIONS = 256
+let LOOP_PC = octal.parse("150000")
+let CLR_AUTOINCREMENT_R0 = octal.parse("005020")
+let CMP_R0_R6 = octal.parse("020006")
+let BLO_BACK_THREE_WORDS = octal.parse("103775")
+
+let die = (message) {
+	println("CUT7 SITES FAIL: " + message)
+	system.exit(1)
+}
+
+let scale = 1
+let scale_text = system.env("AIKI_PDP_PERF_SCALE")
+if not is_error(scale_text) {
+	scale = to_number(scale_text)
+}
+if is_error(scale) or (scale <= 0) or (scale > 10) {
+	die("AIKI_PDP_PERF_SCALE must be in 1..10")
+}
+
+let iterations = BASE_ITERATIONS * scale
+let target = iterations * 2
+let expected_steps = iterations * 3
+if target >= LOOP_PC { die("workload would clear its own code") }
+
+let m = machine.new()
+machine.reset_machine(m)
+machine.set_register(m, 0, 0)
+machine.set_register(m, 6, target)
+machine.set_pc(m, LOOP_PC)
+if not equal(machine.deposit_word(m, LOOP_PC, CLR_AUTOINCREMENT_R0), true) { die("cannot deposit CLR") }
+if not equal(machine.deposit_word(m, LOOP_PC + 2, CMP_R0_R6), true) { die("cannot deposit CMP") }
+if not equal(machine.deposit_word(m, LOOP_PC + 4, BLO_BACK_THREE_WORDS), true) { die("cannot deposit BLO") }
+
+let executed = 0
+let measured = profile.measure(() {
+	executed = execute.run_bounded(m, expected_steps)
+})
+
+if not equal(executed, expected_steps) { die("unexpected guest instruction count") }
+if not equal(machine.get_register(m, 0), target) { die("R0 did not reach target") }
+if not equal(machine.pc(m), LOOP_PC + 6) { die("loop did not fall through") }
+
+let sites = measured[1]
+let hot = []
+let i = 0
+while i < length(sites) {
+	let row = sites[i]
+	if equal(row[0], :call) or equal(row[0], :index) {
+		hot = append(hot, row)
+	}
+	i = i + 1
+}
+
+hot = list.sort(hot, (a, b) {
+	if equal(a[1], b[1]) { return to_str(a[0]) < to_str(b[0]) }
+	return a[1] > b[1]
+})
+
+println("CUT7 SITES " + to_str(scale) + "x guest_instructions=" + to_str(expected_steps))
+println("rank unit count per_guest file:line:col function detail source")
+let limit = 30
+if length(hot) < limit { limit = length(hot) }
+i = 0
+while i < limit {
+	let row = hot[i]
+	println(
+		to_str(i + 1) + " " + to_str(row[0]) + " " + to_str(row[1]) +
+		" " + to_str(row[1] / expected_steps) +
+		" " + row[2] + ":" + to_str(row[3]) + ":" + to_str(row[4]) +
+		" " + to_str(row[5]) + " " + to_str(row[6]) + " " + to_str(row[7])
+	)
+	i = i + 1
+}

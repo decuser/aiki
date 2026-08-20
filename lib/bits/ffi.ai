@@ -1,29 +1,17 @@
 package "bits/ffi"
 
 # bits/ffi - provider-backed bit operations over non-negative integral numbers.
-let bit_and = (a, b) {
-	_bits_and(a, b)
-}
+let bit_and = _bits_and
 
-let bit_or = (a, b) {
-	_bits_or(a, b)
-}
+let bit_or = _bits_or
 
-let bit_xor = (a, b) {
-	_bits_xor(a, b)
-}
+let bit_xor = _bits_xor
 
-let bit_not = (a, width) {
-	_bits_not(a, width)
-}
+let bit_not = _bits_not
 
-let shl = (a, count) {
-	_bits_shl(a, count)
-}
+let shl = _bits_shl
 
-let shr = (a, count) {
-	_bits_shr(a, count)
-}
+let shr = _bits_shr
 
 let mask = (width) {
 	if width < 0 {

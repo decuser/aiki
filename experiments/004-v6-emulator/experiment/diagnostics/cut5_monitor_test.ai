@@ -1,6 +1,6 @@
 use("test")
 
-let bytes = import("bytes/native")
+let bytes = import("bytes/ffi")
 let machine = import("../machine/machine")
 let monitor = import("../monitor/monitor")
 let octal = import("../reference/octal")

@@ -1,5 +1,5 @@
 use("test")
-let bits = import("bytes/native")
+let bits = import("bytes/ffi")
 let execute = import("../cpu/execute")
 let machine = import("../machine/machine")
 let math = import("math/native")

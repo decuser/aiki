@@ -1,7 +1,6 @@
 package "aiki_pdp_v6_tape"
 
-let host_bytes = import("bytes/ffi")
-let native_bytes = import("bytes/native")
+let bytes = import("bytes/ffi")
 let file = import("file")
 let math = import("math/native")
 let store = import("store")
@@ -43,7 +42,7 @@ let open_raw = (path) {
 
 # Diagnostic constructor. Production V6 media is opened through open_raw.
 let from_bytes = (data) {
-	let n = native_bytes.bytes_length(data)
+	let n = bytes.bytes_length(data)
 	if is_error(n) {
 		return n
 	}
@@ -84,21 +83,28 @@ let read_record_data = (tape, record_index) {
 	if equal(tape[SOURCE_KIND], :file) {
 		return file.read_at(tape[SOURCE_VALUE], start, RECORD_BYTES)
 	}
-	return native_bytes.bytes_slice(tape[SOURCE_VALUE], start, end)
+	return bytes.bytes_slice(tape[SOURCE_VALUE], start, end)
 }
 
 let record_length = (tape, data) {
 	if equal(tape[SOURCE_KIND], :file) {
-		return host_bytes.bytes_length(data)
+		return bytes.bytes_length(data)
 	}
-	return native_bytes.bytes_length(data)
+	return bytes.bytes_length(data)
 }
 
 let record_get = (tape, data, index) {
 	if equal(tape[SOURCE_KIND], :file) {
-		return host_bytes.bytes_get(data, index)
+		return bytes.bytes_get(data, index)
 	}
-	return native_bytes.bytes_get(data, index)
+	return bytes.bytes_get(data, index)
+}
+
+let space_forward = (tape, count) {
+	let next = position(tape) + count
+	if next > total_records(tape) { next = total_records(tape) }
+	store.set(state_of(tape), STATE_RECORD, next)
+	return true
 }
 
 let read_record = (tape) {
@@ -138,5 +144,6 @@ export(
 	:record_length,
 	:record_get,
 	:read_record,
+	:space_forward,
 	:close
 )

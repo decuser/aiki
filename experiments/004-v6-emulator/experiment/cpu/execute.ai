@@ -1,736 +1,638 @@
 package "aiki_pdp_execute"
 
-let bits = import("bits/native")
+let fixed = import("machine/ffi")
+let bits = import("bits/ffi")
 let addressing = import("./addressing")
 let decode = import("./decode")
 let fetch = import("./fetch")
 let machine = import("../machine/machine")
+let state = import("../machine/state")
+let storage = import("store/ffi")
+let unibus = import("../unibus/unibus")
+let audit = import("../audit/audit")
 let psw = import("./psw")
 let width = import("../machine/width")
 
 let @pdp_fault [kind, detail]
-
 let WORD = addressing.WORD
 let BYTE = addressing.BYTE
 
-let is_fault = (value) {
-	return equal(shape(value), :pdp_fault)
-}
+let WORD_ZERO = fixed.word(0)
+let WORD_ONE = fixed.word(1)
+let WORD_MIN = fixed.word(32768)
+let WORD_MAX_POS = fixed.word(32767)
+let WORD_MAX = fixed.word(65535)
+let BYTE_ZERO = fixed.byte(0)
+let BYTE_ONE = fixed.byte(1)
+let BYTE_MIN = fixed.byte(128)
+let BYTE_MAX_POS = fixed.byte(127)
+let BYTE_MAX = fixed.byte(255)
 
-let sign = (value, width_bits) {
-	return bits.extract(width.wrap(value, width_bits), width_bits - 1, 1)
-}
+let is_fault = (value) { match value { [@pdp_fault, kind, detail] { return true } _ { return false } } }
+let zero_for = (size) { if equal(size, BYTE) { return BYTE_ZERO }; return WORD_ZERO }
+let one_for = (size) { if equal(size, BYTE) { return BYTE_ONE }; return WORD_ONE }
+let minimum_for = (size) { if equal(size, BYTE) { return BYTE_MIN }; return WORD_MIN }
+let maximum_positive_for = (size) { if equal(size, BYTE) { return BYTE_MAX_POS }; return WORD_MAX_POS }
+let maximum_for = (size) { if equal(size, BYTE) { return BYTE_MAX }; return WORD_MAX }
 
-let maximum = (width_bits) {
-	return bits.mask(width_bits)
-}
-
-let signed_word = (value) {
-	let word = width.wrap(value, 16)
-	if word >= 32768 {
-		return word - 65536
-	}
-	return word
-}
-
-let signed_six = (value) {
-	let count = width.wrap(value, 6)
-	if count >= 32 {
-		return count - 64
-	}
-	return count
-}
-
-let signed_32 = (high, low) {
-	return (signed_word(high) * 65536) + width.wrap(low, 16)
-}
-
-let operand_value = (m, operand, size) {
-	return addressing.read_operand(m, operand, size)
-}
-
-let write_value = (m, operand, size, value) {
-	return addressing.write_operand(m, operand, size, value)
-}
-
-let audit_spec = (m, role, specification) {
-	return machine.audit_operand(m, role, decode.operand_mode(specification))
-}
-
+let operand_value = (m, operand, size) { return addressing.read_operand_machine(m, operand, size) }
+let write_value = (m, operand, size, value) { return addressing.write_operand_machine(m, operand, size, value) }
+let audit_spec = (m, role, specification) { return machine.audit_operand(m, role, decode.operand_mode(specification)) }
 let set_logic_flags = (m, result, width_bits, clear_carry) {
-	let current = machine.psw(m)
+	let current = machine.psw_word(m)
 	current = psw.set_nzv(current, result, width_bits, false)
-	if clear_carry {
-		current = psw.set_flag(current, psw.C, false)
-	}
-	machine.set_psw(m, current)
+	if clear_carry { current = psw.set_flag(current, psw.C, false) }
+	machine.set_psw_word(m, current)
 	return true
-}
-
-let resolve_double = (m, instruction, size) {
-	audit_spec(m, :source, decode.source_spec(instruction))
-	audit_spec(m, :destination, decode.destination_spec(instruction))
-	let source = addressing.resolve(m, decode.source_spec(instruction), size)
-	if is_fault(source) {
-		return source
-	}
-	let destination = addressing.resolve(m, decode.destination_spec(instruction), size)
-	if is_fault(destination) {
-		return destination
-	}
-	return [source, destination]
 }
 
 let execute_double = (m, instruction, kind) {
 	let size = WORD
 	let width_bits = 16
-	if equal(kind, :movb) or equal(kind, :cmpb) or equal(kind, :bitb) or equal(kind, :bicb) or equal(kind, :bisb) {
-		size = BYTE
-		width_bits = 8
-	}
+	if equal(kind, :movb) or equal(kind, :cmpb) or equal(kind, :bitb) or equal(kind, :bicb) or equal(kind, :bisb) { size = BYTE; width_bits = 8 }
 
-	# PDP-11 double-operand ordering is architecturally visible when source and
-	# destination share a register. Capture the source value before destination
-	# addressing side effects (for example MOV R0,-(R0) in the V6 tape bootstrap).
-	audit_spec(m, :source, decode.source_spec(instruction))
-	audit_spec(m, :destination, decode.destination_spec(instruction))
-	let source_operand = addressing.resolve(m, decode.source_spec(instruction), size)
-	if is_fault(source_operand) {
-		return source_operand
-	}
+	audit_spec(m, :source, decode.source_spec_machine(instruction))
+	audit_spec(m, :destination, decode.destination_spec_machine(instruction))
+	let source_operand = addressing.resolve_machine(m, decode.source_spec_machine(instruction), size)
+	if is_fault(source_operand) { return source_operand }
 	let source = operand_value(m, source_operand, size)
-	if is_fault(source) {
-		return source
-	}
-	let destination_operand = addressing.resolve(m, decode.destination_spec(instruction), size)
-	if is_fault(destination_operand) {
-		return destination_operand
-	}
+	if is_fault(source) { return source }
+	let destination_operand = addressing.resolve_machine(m, decode.destination_spec_machine(instruction), size)
+	if is_fault(destination_operand) { return destination_operand }
+
 	if equal(kind, :mov) or equal(kind, :movb) {
-		let result = width.wrap(source, width_bits)
-		if equal(kind, :movb) {
-			addressing.write_movb(m, destination_operand, result)
-		} else {
-			write_value(m, destination_operand, size, result)
-		}
-		set_logic_flags(m, result, width_bits, false)
+		if equal(kind, :movb) { addressing.write_movb_machine(m, destination_operand, source) } else { write_value(m, destination_operand, size, source) }
+		set_logic_flags(m, source, width_bits, false)
 		return true
 	}
 
 	let destination = operand_value(m, destination_operand, size)
-	if is_fault(destination) {
-		return destination
-	}
+	if is_fault(destination) { return destination }
 
 	if equal(kind, :cmp) or equal(kind, :cmpb) {
-		# CMP is source - destination, unlike SUB.
-		let result = width.wrap(source - destination, width_bits)
-		let source_sign = sign(source, width_bits)
-		let destination_sign = sign(destination, width_bits)
-		let result_sign = sign(result, width_bits)
+		# CMP is source - destination.
+		let result = fixed.sub(source, destination)
+		let source_sign = fixed.negative(source)
+		let destination_sign = fixed.negative(destination)
+		let result_sign = fixed.negative(result)
 		let overflow = not equal(source_sign, destination_sign) and equal(destination_sign, result_sign)
-		let borrow = width.wrap(source, width_bits) < width.wrap(destination, width_bits)
-		machine.set_psw(m, psw.set_nzvc(machine.psw(m), result, width_bits, overflow, borrow))
+		let borrow = fixed.lt(source, destination)
+		machine.set_psw_word(m, psw.set_nzvc(machine.psw_word(m), result, width_bits, overflow, borrow))
 		return true
 	}
-
 	if equal(kind, :bit) or equal(kind, :bitb) {
-		let result = bits.bit_and(width.wrap(source, width_bits), width.wrap(destination, width_bits))
+		let result = fixed.bit_and(source, destination)
 		set_logic_flags(m, result, width_bits, false)
 		return true
 	}
-
 	if equal(kind, :bic) or equal(kind, :bicb) {
-		let result = bits.bit_and(width.wrap(destination, width_bits), bits.bit_not(width.wrap(source, width_bits), width_bits))
+		let result = fixed.bit_and(destination, fixed.bit_not(source))
 		write_value(m, destination_operand, size, result)
 		set_logic_flags(m, result, width_bits, false)
 		return true
 	}
-
 	if equal(kind, :bis) or equal(kind, :bisb) {
-		let result = bits.bit_or(width.wrap(source, width_bits), width.wrap(destination, width_bits))
+		let result = fixed.bit_or(source, destination)
 		write_value(m, destination_operand, size, result)
 		set_logic_flags(m, result, width_bits, false)
 		return true
 	}
-
 	if equal(kind, :add) {
-		let raw = source + destination
-		let result = width.wrap(raw, 16)
-		let source_sign = sign(source, 16)
-		let destination_sign = sign(destination, 16)
-		let result_sign = sign(result, 16)
+		let result = fixed.add(source, destination)
+		let source_sign = fixed.negative(source)
+		let destination_sign = fixed.negative(destination)
+		let result_sign = fixed.negative(result)
 		let overflow = equal(source_sign, destination_sign) and not equal(source_sign, result_sign)
-		let carry = raw > maximum(16)
+		let carry = fixed.add_carry(source, destination)
 		write_value(m, destination_operand, WORD, result)
-		machine.set_psw(m, psw.set_nzvc(machine.psw(m), result, 16, overflow, carry))
+		machine.set_psw_word(m, psw.set_nzvc(machine.psw_word(m), result, 16, overflow, carry))
 		return true
 	}
-
 	if equal(kind, :sub) {
-		let result = width.wrap(destination - source, 16)
-		let source_sign = sign(source, 16)
-		let destination_sign = sign(destination, 16)
-		let result_sign = sign(result, 16)
+		let result = fixed.sub(destination, source)
+		let source_sign = fixed.negative(source)
+		let destination_sign = fixed.negative(destination)
+		let result_sign = fixed.negative(result)
 		let overflow = not equal(source_sign, destination_sign) and equal(source_sign, result_sign)
-		let borrow = width.wrap(destination, 16) < width.wrap(source, 16)
+		let borrow = fixed.sub_borrow(destination, source)
 		write_value(m, destination_operand, WORD, result)
-		machine.set_psw(m, psw.set_nzvc(machine.psw(m), result, 16, overflow, borrow))
+		machine.set_psw_word(m, psw.set_nzvc(machine.psw_word(m), result, 16, overflow, borrow))
 		return true
 	}
-
-	return [@pdp_fault, :reserved_instruction, instruction]
+	return [@pdp_fault, :reserved_instruction, fixed.number(instruction)]
 }
 
 let single_size = (kind) {
-	if equal(kind, :clrb) or equal(kind, :incb) or equal(kind, :adcb) or equal(kind, :sbcb) or equal(kind, :tstb) or equal(kind, :rorb) or equal(kind, :asrb) or equal(kind, :aslb) {
-		return BYTE
-	}
+	if equal(kind, :clrb) or equal(kind, :incb) or equal(kind, :negb) or equal(kind, :adcb) or equal(kind, :sbcb) or equal(kind, :tstb) or equal(kind, :rorb) or equal(kind, :asrb) or equal(kind, :aslb) { return BYTE }
 	return WORD
 }
-
-let single_width = (kind) {
-	if equal(single_size(kind), BYTE) {
-		return 8
-	}
-	return 16
-}
+let single_width = (kind) { if equal(single_size(kind), BYTE) { return 8 }; return 16 }
 
 let execute_single = (m, instruction, kind) {
 	let size = single_size(kind)
 	let width_bits = single_width(kind)
-	audit_spec(m, :destination, decode.destination_spec(instruction))
-	let destination_operand = addressing.resolve(m, decode.destination_spec(instruction), size)
-	if is_fault(destination_operand) {
-		return destination_operand
-	}
+	audit_spec(m, :destination, decode.destination_spec_machine(instruction))
+	let destination_operand = addressing.resolve_machine(m, decode.destination_spec_machine(instruction), size)
+	if is_fault(destination_operand) { return destination_operand }
+	let zero = zero_for(size)
+	let one = one_for(size)
+
 	if equal(kind, :clr) or equal(kind, :clrb) {
-		write_value(m, destination_operand, size, 0)
-		machine.set_psw(m, psw.set_nzvc(machine.psw(m), 0, width_bits, false, false))
+		write_value(m, destination_operand, size, zero)
+		machine.set_psw_word(m, psw.set_nzvc(machine.psw_word(m), zero, width_bits, false, false))
 		return true
 	}
-
 	let destination = operand_value(m, destination_operand, size)
-	if is_fault(destination) {
-		return destination
-	}
+	if is_fault(destination) { return destination }
+
 	if equal(kind, :inc) or equal(kind, :incb) {
-		let result = width.wrap(destination + 1, width_bits)
+		let result = fixed.add(destination, one)
 		write_value(m, destination_operand, size, result)
-		let overflow = equal(result, bits.shl(1, width_bits - 1))
-		machine.set_psw(m, psw.set_nzv(machine.psw(m), result, width_bits, overflow))
+		machine.set_psw_word(m, psw.set_nzv(machine.psw_word(m), result, width_bits, fixed.same(result, minimum_for(size))))
 		return true
 	}
 	if equal(kind, :dec) {
-		let result = width.wrap(destination - 1, width_bits)
+		let result = fixed.sub(destination, one)
 		write_value(m, destination_operand, size, result)
-		let overflow = equal(result, bits.shl(1, width_bits - 1) - 1)
-		machine.set_psw(m, psw.set_nzv(machine.psw(m), result, width_bits, overflow))
+		machine.set_psw_word(m, psw.set_nzv(machine.psw_word(m), result, width_bits, fixed.same(result, maximum_positive_for(size))))
+		return true
+	}
+	if equal(kind, :neg) or equal(kind, :negb) {
+		let result = fixed.sub(zero, destination)
+		write_value(m, destination_operand, size, result)
+		let overflow = fixed.same(result, minimum_for(size))
+		let carry = not fixed.zero(result)
+		machine.set_psw_word(m, psw.set_nzvc(machine.psw_word(m), result, width_bits, overflow, carry))
 		return true
 	}
 	if equal(kind, :adc) or equal(kind, :adcb) {
-		let carry_in = 0
-		if psw.carry(machine.psw(m)) {
-			carry_in = 1
-		}
-		let result = width.wrap(destination + carry_in, width_bits)
+		let carry_in = psw.carry(machine.psw_word(m))
+		let result = destination
+		if carry_in { result = fixed.add(destination, one) }
 		write_value(m, destination_operand, size, result)
-		let overflow = equal(destination, bits.shl(1, width_bits - 1) - 1) and equal(carry_in, 1)
-		let carry_out = equal(width.wrap(destination, width_bits), maximum(width_bits)) and equal(carry_in, 1)
-		machine.set_psw(m, psw.set_nzvc(machine.psw(m), result, width_bits, overflow, carry_out))
+		let overflow = carry_in and fixed.same(destination, maximum_positive_for(size))
+		let carry_out = carry_in and fixed.same(destination, maximum_for(size))
+		machine.set_psw_word(m, psw.set_nzvc(machine.psw_word(m), result, width_bits, overflow, carry_out))
 		return true
 	}
 	if equal(kind, :sbc) or equal(kind, :sbcb) {
-		let carry_in = 0
-		if psw.carry(machine.psw(m)) {
-			carry_in = 1
-		}
-		let result = width.wrap(destination - carry_in, width_bits)
+		let carry_in = psw.carry(machine.psw_word(m))
+		let result = destination
+		if carry_in { result = fixed.sub(destination, one) }
 		write_value(m, destination_operand, size, result)
-		let overflow = equal(width.wrap(destination, width_bits), bits.shl(1, width_bits - 1)) and equal(carry_in, 1)
-		let carry_out = equal(width.wrap(destination, width_bits), 0) and equal(carry_in, 1)
-		machine.set_psw(m, psw.set_nzvc(machine.psw(m), result, width_bits, overflow, carry_out))
+		let overflow = carry_in and fixed.same(destination, minimum_for(size))
+		let carry_out = carry_in and fixed.zero(destination)
+		machine.set_psw_word(m, psw.set_nzvc(machine.psw_word(m), result, width_bits, overflow, carry_out))
 		return true
 	}
 	if equal(kind, :tst) or equal(kind, :tstb) {
-		machine.set_psw(m, psw.set_nzvc(machine.psw(m), destination, width_bits, false, false))
+		machine.set_psw_word(m, psw.set_nzvc(machine.psw_word(m), destination, width_bits, false, false))
 		return true
 	}
 	if equal(kind, :ror) or equal(kind, :rorb) {
-		let carry_in = 0
-		if psw.carry(machine.psw(m)) {
-			carry_in = 1
-		}
-		let carry_out = equal(bits.extract(width.wrap(destination, width_bits), 0, 1), 1)
-		let result = truncate(width.wrap(destination, width_bits) / 2)
-		if equal(carry_in, 1) {
-			result = result + bits.shl(1, width_bits - 1)
-		}
+		let carry_in = psw.carry(machine.psw_word(m))
+		let carry_out = fixed.low_bit(destination)
+		let result = fixed.shr1(destination)
+		if carry_in { result = fixed.set_high_bit(result, true) }
 		write_value(m, destination_operand, size, result)
-		let negative = equal(sign(result, width_bits), 1)
-		let overflow = not equal(negative, carry_out)
-		machine.set_psw(m, psw.set_nzvc(machine.psw(m), result, width_bits, overflow, carry_out))
+		let overflow = not equal(fixed.negative(result), carry_out)
+		machine.set_psw_word(m, psw.set_nzvc(machine.psw_word(m), result, width_bits, overflow, carry_out))
 		return true
 	}
 	if equal(kind, :asr) or equal(kind, :asrb) {
-		let source_pattern = width.wrap(destination, width_bits)
-		let carry_out = equal(bits.extract(source_pattern, 0, 1), 1)
-		let result = truncate(source_pattern / 2)
-		if equal(sign(source_pattern, width_bits), 1) {
-			result = result + bits.shl(1, width_bits - 1)
-		}
+		let carry_out = fixed.low_bit(destination)
+		let result = fixed.set_high_bit(fixed.shr1(destination), fixed.negative(destination))
 		write_value(m, destination_operand, size, result)
-		let negative = equal(sign(result, width_bits), 1)
-		let overflow = not equal(negative, carry_out)
-		machine.set_psw(m, psw.set_nzvc(machine.psw(m), result, width_bits, overflow, carry_out))
+		let overflow = not equal(fixed.negative(result), carry_out)
+		machine.set_psw_word(m, psw.set_nzvc(machine.psw_word(m), result, width_bits, overflow, carry_out))
 		return true
 	}
 	if equal(kind, :asl) or equal(kind, :aslb) {
-		let source_pattern = width.wrap(destination, width_bits)
-		let carry_out = equal(sign(source_pattern, width_bits), 1)
-		let result = width.wrap(source_pattern * 2, width_bits)
+		let carry_out = fixed.negative(destination)
+		let result = fixed.shl1(destination)
 		write_value(m, destination_operand, size, result)
-		let negative = equal(sign(result, width_bits), 1)
-		let overflow = not equal(negative, carry_out)
-		machine.set_psw(m, psw.set_nzvc(machine.psw(m), result, width_bits, overflow, carry_out))
+		let overflow = not equal(fixed.negative(result), carry_out)
+		machine.set_psw_word(m, psw.set_nzvc(machine.psw_word(m), result, width_bits, overflow, carry_out))
 		return true
 	}
-	return [@pdp_fault, :reserved_instruction, instruction]
+	return [@pdp_fault, :reserved_instruction, fixed.number(instruction)]
 }
 
 let execute_swab = (m, instruction) {
-	audit_spec(m, :destination, decode.destination_spec(instruction))
-	let destination_operand = addressing.resolve(m, decode.destination_spec(instruction), WORD)
-	if is_fault(destination_operand) {
-		return destination_operand
-	}
+	audit_spec(m, :destination, decode.destination_spec_machine(instruction))
+	let destination_operand = addressing.resolve_machine(m, decode.destination_spec_machine(instruction), WORD)
+	if is_fault(destination_operand) { return destination_operand }
 	let destination = operand_value(m, destination_operand, WORD)
-	if is_fault(destination) {
-		return destination
-	}
-	let result = (bits.low(destination, 8) * 256) + bits.extract(destination, 8, 8)
+	if is_fault(destination) { return destination }
+	let result = fixed.with_low_byte(fixed.with_high_byte(WORD_ZERO, fixed.low_byte(destination)), fixed.high_byte(destination))
 	write_value(m, destination_operand, WORD, result)
-	# SWAB sets N/Z from the low-order byte after the swap and clears V/C.
-	machine.set_psw(m, psw.set_nzvc(machine.psw(m), bits.low(result, 8), 8, false, false))
+	machine.set_psw_word(m, psw.set_nzvc(machine.psw_word(m), fixed.low_byte(result), 8, false, false))
 	return true
 }
 
-let signed_byte = (value) {
-	let byte = width.wrap(value, 8)
-	if byte >= 128 {
-		return byte - 256
-	}
+let signed_byte_field = (instruction) {
+	let byte = fixed.word_field(instruction, 0, 8)
+	if byte >= 128 { return byte - 256 }
 	return byte
 }
-
 let branch_condition = (kind, current_psw) {
-	let n = psw.negative(current_psw)
-	let z = psw.zero(current_psw)
-	let v = psw.overflow(current_psw)
-	let c = psw.carry(current_psw)
+	let n = psw.negative(current_psw); let z = psw.zero(current_psw); let v = psw.overflow(current_psw); let c = psw.carry(current_psw)
 	match kind {
-		:br { return true }
-		:bne { return not z }
-		:beq { return z }
-		:bge { return equal(n, v) }
-		:blt { return not equal(n, v) }
-		:bgt { return (not z) and equal(n, v) }
-		:ble { return z or not equal(n, v) }
-		:bpl { return not n }
-		:bmi { return n }
-		:bhi { return (not c) and (not z) }
-		:blos { return c or z }
-		:bvc { return not v }
-		:bvs { return v }
-		:bhis { return not c }
-		:blo { return c }
-		_ { return false }
+		:br { return true } :bne { return not z } :beq { return z } :bge { return equal(n, v) }
+		:blt { return not equal(n, v) } :bgt { return (not z) and equal(n, v) } :ble { return z or not equal(n, v) }
+		:bpl { return not n } :bmi { return n } :bhi { return (not c) and (not z) } :blos { return c or z }
+		:bvc { return not v } :bvs { return v } :bhis { return not c } :blo { return c } _ { return false }
 	}
 }
-
 let execute_branch = (m, instruction, kind) {
-	if branch_condition(kind, machine.psw(m)) {
-		let offset = signed_byte(bits.low(instruction, 8))
-		machine.set_pc(m, machine.pc(m) + (offset * 2))
+	if branch_condition(kind, machine.psw_word(m)) {
+		machine.set_pc_word(m, fixed.word_add_small(machine.pc_word(m), signed_byte_field(instruction) * 2))
 	}
 	return true
 }
-
 let target_address = (m, operand) {
-	if equal(addressing.operand_kind(operand), addressing.REGISTER) {
-		return [@pdp_fault, :illegal_register_jump, 0]
-	}
+	if equal(addressing.operand_kind(operand), addressing.REGISTER) { return [@pdp_fault, :illegal_register_jump, 0] }
 	return addressing.operand_address(operand)
 }
-
 let execute_jump = (m, instruction) {
-	audit_spec(m, :destination, decode.destination_spec(instruction))
-	let destination = addressing.resolve(m, decode.destination_spec(instruction), WORD)
-	if is_fault(destination) {
-		return destination
-	}
-	let target = target_address(m, destination)
-	if is_fault(target) {
-		return target
-	}
-	machine.set_pc(m, target)
-	return true
+	audit_spec(m, :destination, decode.destination_spec_machine(instruction))
+	let destination = addressing.resolve_machine(m, decode.destination_spec_machine(instruction), WORD)
+	if is_fault(destination) { return destination }
+	let target = target_address(m, destination); if is_fault(target) { return target }
+	machine.set_pc_word(m, target); return true
 }
-
 let execute_jsr = (m, instruction) {
-	let register = bits.extract(instruction, 6, 3)
-	audit_spec(m, :destination, decode.destination_spec(instruction))
-	let destination = addressing.resolve(m, decode.destination_spec(instruction), WORD)
-	if is_fault(destination) {
-		return destination
-	}
-	let target = target_address(m, destination)
-	if is_fault(target) {
-		return target
-	}
-	let old_register = machine.get_register(m, register)
-	machine.set_sp(m, machine.sp(m) - 2)
-	let pushed = machine.write_word(m, machine.sp(m), old_register)
-	if is_fault(pushed) {
-		return pushed
-	}
-	machine.set_register(m, register, machine.pc(m))
-	machine.set_pc(m, target)
+	let register = fixed.word_field(instruction, 6, 3)
+	audit_spec(m, :destination, decode.destination_spec_machine(instruction))
+	let destination = addressing.resolve_machine(m, decode.destination_spec_machine(instruction), WORD); if is_fault(destination) { return destination }
+	let target = target_address(m, destination); if is_fault(target) { return target }
+	let old_register = machine.register_word(m, register)
+	machine.set_sp_word(m, fixed.word_sub_small(machine.sp_word(m), 2))
+	let pushed = machine.write_word_machine(m, machine.sp_word(m), old_register); if is_fault(pushed) { return pushed }
+	machine.set_register_word(m, register, machine.pc_word(m))
+	machine.set_pc_word(m, target)
 	return true
 }
-
 let execute_rts = (m, instruction) {
-	let register = bits.low(instruction, 3)
-	let target = machine.get_register(m, register)
-	let restored = machine.read_word(m, machine.sp(m))
-	if is_fault(restored) {
-		return restored
-	}
-	machine.set_pc(m, target)
-	machine.set_register(m, register, restored)
-	machine.set_sp(m, machine.sp(m) + 2)
+	let register = fixed.word_field(instruction, 0, 3)
+	let target = machine.register_word(m, register)
+	let restored = machine.read_word_machine(m, machine.sp_word(m)); if is_fault(restored) { return restored }
+	machine.set_pc_word(m, target)
+	machine.set_register_word(m, register, restored)
+	machine.set_sp_word(m, fixed.word_add_small(machine.sp_word(m), 2))
 	return true
 }
-
 let execute_sob = (m, instruction) {
-	let register = bits.extract(instruction, 6, 3)
-	let offset = bits.low(instruction, 6)
-	let value = width.wrap(machine.get_register(m, register) - 1, 16)
-	machine.set_register(m, register, value)
-	if not equal(value, 0) {
-		machine.set_pc(m, machine.pc(m) - (offset * 2))
-	}
+	let register = fixed.word_field(instruction, 6, 3)
+	let offset = fixed.word_field(instruction, 0, 6)
+	let value = fixed.word_sub_small(machine.register_word(m, register), 1)
+	machine.set_register_word(m, register, value)
+	if not fixed.zero(value) { machine.set_pc_word(m, fixed.word_sub_small(machine.pc_word(m), offset * 2)) }
 	return true
 }
 
+# EIS compatibility island. The common CPU path never enters Aiki rational
+# arithmetic. These four rare instructions retain the proven numeric semantics
+# until the next fixed-width cut moves 32-bit EIS intermediates into machine/ffi.
+let signed_word_number = (value) {
+	let n = fixed.number(value)
+	if n >= 32768 { return n - 65536 }
+	return n
+}
+let signed_six = (value) {
+	let count = bits.low(fixed.number(value), 6)
+	if count >= 32 { return count - 64 }
+	return count
+}
+let signed_32 = (high, low) { return (signed_word_number(high) * 65536) + fixed.number(low) }
+let word_from_signed = (number) { return fixed.word(width.wrap(number, 16)) }
+let set_eis_nzvc = (m, numeric, bits_width, overflow, carry) {
+	let current = machine.psw_word(m)
+	let pattern = width.wrap(numeric, bits_width)
+	let sign_mask = bits.shl(1, bits_width - 1)
+	current = psw.set_flag(current, psw.N, not equal(bits.bit_and(pattern, sign_mask), 0))
+	current = psw.set_flag(current, psw.Z, equal(pattern, 0))
+	current = psw.set_flag(current, psw.V, overflow)
+	current = psw.set_flag(current, psw.C, carry)
+	machine.set_psw_word(m, current)
+	return true
+}
 let execute_mul = (m, instruction) {
-	let register = bits.extract(instruction, 6, 3)
-	audit_spec(m, :source, decode.destination_spec(instruction))
-	let source_operand = addressing.resolve(m, decode.destination_spec(instruction), WORD)
-	if is_fault(source_operand) {
-		return source_operand
-	}
-	let source = operand_value(m, source_operand, WORD)
-	if is_fault(source) {
-		return source
-	}
-	let product = signed_word(machine.get_register(m, register)) * signed_word(source)
+	let register = fixed.word_field(instruction, 6, 3)
+	audit_spec(m, :source, decode.destination_spec_machine(instruction))
+	let source_operand = addressing.resolve_machine(m, decode.destination_spec_machine(instruction), WORD); if is_fault(source_operand) { return source_operand }
+	let source = operand_value(m, source_operand, WORD); if is_fault(source) { return source }
+	let product = signed_word_number(machine.register_word(m, register)) * signed_word_number(source)
 	let pattern = width.wrap(product, 32)
 	if equal(bits.extract(register, 0, 1), 0) {
-		machine.set_register(m, register, bits.extract(pattern, 16, 16))
-		machine.set_register(m, register + 1, bits.low(pattern, 16))
-	} else {
-		machine.set_register(m, register, bits.low(pattern, 16))
-	}
-	let carry = product < -32768 or product > 32767
-	machine.set_psw(m, psw.set_nzvc(machine.psw(m), pattern, 32, false, carry))
+		machine.set_register_word(m, register, fixed.word(bits.extract(pattern, 16, 16)))
+		machine.set_register_word(m, register + 1, fixed.word(bits.low(pattern, 16)))
+	} else { machine.set_register_word(m, register, fixed.word(bits.low(pattern, 16))) }
+	set_eis_nzvc(m, pattern, 32, false, (product < -32768) or (product > 32767))
 	return true
 }
-
 let execute_div = (m, instruction) {
-	let register = bits.extract(instruction, 6, 3)
-	if not equal(bits.extract(register, 0, 1), 0) {
-		return [@pdp_fault, :illegal_register_pair, register]
-	}
-	audit_spec(m, :source, decode.destination_spec(instruction))
-	let source_operand = addressing.resolve(m, decode.destination_spec(instruction), WORD)
-	if is_fault(source_operand) {
-		return source_operand
-	}
-	let source = signed_word(operand_value(m, source_operand, WORD))
+	let register = fixed.word_field(instruction, 6, 3)
+	if not equal(bits.extract(register, 0, 1), 0) { return [@pdp_fault, :illegal_register_pair, register] }
+	audit_spec(m, :source, decode.destination_spec_machine(instruction))
+	let source_operand = addressing.resolve_machine(m, decode.destination_spec_machine(instruction), WORD); if is_fault(source_operand) { return source_operand }
+	let source = signed_word_number(operand_value(m, source_operand, WORD))
 	if equal(source, 0) {
-		let current = machine.psw(m)
-		current = psw.set_flag(current, psw.V, true)
-		current = psw.set_flag(current, psw.C, true)
-		machine.set_psw(m, current)
-		return true
+		let current = machine.psw_word(m); current = psw.set_flag(current, psw.V, true); current = psw.set_flag(current, psw.C, true); machine.set_psw_word(m, current); return true
 	}
-	let dividend = signed_32(machine.get_register(m, register), machine.get_register(m, register + 1))
+	let dividend = signed_32(machine.register_word(m, register), machine.register_word(m, register + 1))
 	let quotient = truncate(dividend / source)
-	if quotient < -32768 or quotient > 32767 {
-		let current = machine.psw(m)
-		current = psw.set_flag(current, psw.V, true)
-		current = psw.set_flag(current, psw.C, false)
-		machine.set_psw(m, current)
-		return true
+	if (quotient < -32768) or (quotient > 32767) {
+		let current = machine.psw_word(m); current = psw.set_flag(current, psw.V, true); current = psw.set_flag(current, psw.C, false); machine.set_psw_word(m, current); return true
 	}
 	let remainder = dividend - (quotient * source)
-	machine.set_register(m, register, quotient)
-	machine.set_register(m, register + 1, remainder)
-	machine.set_psw(m, psw.set_nzvc(machine.psw(m), width.wrap(quotient, 16), 16, false, false))
+	machine.set_register_word(m, register, word_from_signed(quotient))
+	machine.set_register_word(m, register + 1, word_from_signed(remainder))
+	set_eis_nzvc(m, width.wrap(quotient,16), 16, false, false)
 	return true
 }
-
 let execute_ash = (m, instruction) {
-	let register = bits.extract(instruction, 6, 3)
-	audit_spec(m, :source, decode.destination_spec(instruction))
-	let source_operand = addressing.resolve(m, decode.destination_spec(instruction), WORD)
-	if is_fault(source_operand) {
-		return source_operand
-	}
+	let register = fixed.word_field(instruction, 6, 3)
+	audit_spec(m, :source, decode.destination_spec_machine(instruction))
+	let source_operand = addressing.resolve_machine(m, decode.destination_spec_machine(instruction), WORD); if is_fault(source_operand) { return source_operand }
 	let count = signed_six(operand_value(m, source_operand, WORD))
-	let result = width.wrap(machine.get_register(m, register), 16)
-	let carry = psw.carry(machine.psw(m))
-	let overflow = false
-	let i = 0
+	let result = fixed.number(machine.register_word(m, register))
+	let carry = psw.carry(machine.psw_word(m)); let overflow = false; let i = 0
 	if count > 0 {
-		while i < count {
-			let before_sign = sign(result, 16)
-			carry = equal(before_sign, 1)
-			result = width.wrap(result * 2, 16)
-			if not equal(before_sign, sign(result, 16)) {
-				overflow = true
-			}
-			i = i + 1
-		}
+		while i < count { let before_sign=bits.extract(result,15,1); carry=equal(before_sign,1); result=width.wrap(result*2,16); if not equal(before_sign,bits.extract(result,15,1)){overflow=true}; i=i+1 }
 	} else if count < 0 {
-		while i < -count {
-			carry = equal(bits.extract(result, 0, 1), 1)
-			let before_sign = sign(result, 16)
-			result = truncate(result / 2)
-			if equal(before_sign, 1) {
-				result = result + 32768
-			}
-			i = i + 1
-		}
+		while i < -count { carry=equal(bits.extract(result,0,1),1); let before_sign=bits.extract(result,15,1); result=truncate(result/2); if equal(before_sign,1){result=result+32768}; i=i+1 }
 	}
-	machine.set_register(m, register, result)
-	machine.set_psw(m, psw.set_nzvc(machine.psw(m), result, 16, overflow, carry))
-	return true
+	machine.set_register_word(m, register, fixed.word(result)); set_eis_nzvc(m,result,16,overflow,carry); return true
 }
-
 let execute_ashc = (m, instruction) {
-	let register = bits.extract(instruction, 6, 3)
-	if not equal(bits.extract(register, 0, 1), 0) {
-		return [@pdp_fault, :illegal_register_pair, register]
-	}
-	audit_spec(m, :source, decode.destination_spec(instruction))
-	let source_operand = addressing.resolve(m, decode.destination_spec(instruction), WORD)
-	if is_fault(source_operand) {
-		return source_operand
-	}
-	let count = signed_six(operand_value(m, source_operand, WORD))
-	let result = width.wrap((machine.get_register(m, register) * 65536) + machine.get_register(m, register + 1), 32)
-	let carry = psw.carry(machine.psw(m))
-	let overflow = false
-	let i = 0
-	if count > 0 {
-		while i < count {
-			let before_sign = sign(result, 32)
-			carry = equal(before_sign, 1)
-			result = width.wrap(result * 2, 32)
-			if not equal(before_sign, sign(result, 32)) {
-				overflow = true
-			}
-			i = i + 1
-		}
-	} else if count < 0 {
-		while i < -count {
-			carry = equal(bits.extract(result, 0, 1), 1)
-			let before_sign = sign(result, 32)
-			result = truncate(result / 2)
-			if equal(before_sign, 1) {
-				result = result + 2147483648
-			}
-			i = i + 1
-		}
-	}
-	machine.set_register(m, register, bits.extract(result, 16, 16))
-	machine.set_register(m, register + 1, bits.low(result, 16))
-	machine.set_psw(m, psw.set_nzvc(machine.psw(m), result, 32, overflow, carry))
-	return true
+	let register = fixed.word_field(instruction, 6, 3)
+	if not equal(bits.extract(register, 0, 1), 0) { return [@pdp_fault, :illegal_register_pair, register] }
+	audit_spec(m, :source, decode.destination_spec_machine(instruction))
+	let source_operand=addressing.resolve_machine(m,decode.destination_spec_machine(instruction),WORD);if is_fault(source_operand){return source_operand}
+	let count=signed_six(operand_value(m,source_operand,WORD))
+	let result=width.wrap((fixed.number(machine.register_word(m,register))*65536)+fixed.number(machine.register_word(m,register+1)),32)
+	let carry=psw.carry(machine.psw_word(m));let overflow=false;let i=0
+	if count>0 { while i<count { let before_sign=bits.extract(result,31,1);carry=equal(before_sign,1);result=width.wrap(result*2,32);if not equal(before_sign,bits.extract(result,31,1)){overflow=true};i=i+1 } }
+	else if count<0 { while i< -count { carry=equal(bits.extract(result,0,1),1);let before_sign=bits.extract(result,31,1);result=truncate(result/2);if equal(before_sign,1){result=result+2147483648};i=i+1 } }
+	machine.set_register_word(m,register,fixed.word(bits.extract(result,16,16)));machine.set_register_word(m,register+1,fixed.word(bits.low(result,16)));set_eis_nzvc(m,result,32,overflow,carry);return true
 }
-
 let execute_eis = (m, instruction, kind) {
 	if equal(kind, :mul) { return execute_mul(m, instruction) }
 	if equal(kind, :div) { return execute_div(m, instruction) }
 	if equal(kind, :ash) { return execute_ash(m, instruction) }
 	if equal(kind, :ashc) { return execute_ashc(m, instruction) }
-	return [@pdp_fault, :reserved_instruction, instruction]
+	return [@pdp_fault, :reserved_instruction, fixed.number(instruction)]
 }
 
 let execute_mfpi = (m, instruction) {
-	# Before KT11-D is enabled, current and previous address spaces resolve to the
-	# same physical bus path. The instruction boundary is complete here; Gate 5
-	# inserts previous-mode translation beneath this access without changing it.
-	audit_spec(m, :source, decode.destination_spec(instruction))
-	let source_operand = addressing.resolve(m, decode.destination_spec(instruction), WORD)
-	if is_fault(source_operand) {
-		return source_operand
-	}
-	let source = operand_value(m, source_operand, WORD)
-	if is_fault(source) {
-		return source
-	}
-	machine.set_sp(m, machine.sp(m) - 2)
-	let pushed = machine.write_word(m, machine.sp(m), source)
-	if is_fault(pushed) {
-		return pushed
-	}
-	machine.set_psw(m, psw.set_nzv(machine.psw(m), source, 16, false))
-	return true
+	audit_spec(m, :source, decode.destination_spec_machine(instruction))
+	let source_operand=addressing.resolve_machine(m,decode.destination_spec_machine(instruction),WORD);if is_fault(source_operand){return source_operand}
+	let source=operand_value(m,source_operand,WORD);if is_fault(source){return source}
+	machine.set_sp_word(m,fixed.word_sub_small(machine.sp_word(m),2))
+	let pushed=machine.write_word_machine(m,machine.sp_word(m),source);if is_fault(pushed){return pushed}
+	machine.set_psw_word(m,psw.set_nzv(machine.psw_word(m),source,16,false));return true
 }
-
 let execute_mtpi = (m, instruction) {
-	audit_spec(m, :destination, decode.destination_spec(instruction))
-	let destination_operand = addressing.resolve(m, decode.destination_spec(instruction), WORD)
-	if is_fault(destination_operand) {
-		return destination_operand
-	}
-	let source = machine.read_word(m, machine.sp(m))
-	if is_fault(source) {
-		return source
-	}
-	machine.set_sp(m, machine.sp(m) + 2)
-	let written = write_value(m, destination_operand, WORD, source)
-	if is_fault(written) {
-		return written
-	}
-	machine.set_psw(m, psw.set_nzv(machine.psw(m), source, 16, false))
-	return true
+	audit_spec(m,:destination,decode.destination_spec_machine(instruction))
+	let destination_operand=addressing.resolve_machine(m,decode.destination_spec_machine(instruction),WORD);if is_fault(destination_operand){return destination_operand}
+	let source=machine.read_word_machine(m,machine.sp_word(m));if is_fault(source){return source}
+	machine.set_sp_word(m,fixed.word_add_small(machine.sp_word(m),2))
+	let written=write_value(m,destination_operand,WORD,source);if is_fault(written){return written}
+	machine.set_psw_word(m,psw.set_nzv(machine.psw_word(m),source,16,false));return true
 }
-
 let execute_rtt = (m) {
-	let restored_pc = machine.read_word(m, machine.sp(m))
-	if is_fault(restored_pc) {
-		return restored_pc
-	}
-	machine.set_sp(m, machine.sp(m) + 2)
-	let restored_psw = machine.read_word(m, machine.sp(m))
-	if is_fault(restored_psw) {
-		return restored_psw
-	}
-	machine.set_sp(m, machine.sp(m) + 2)
-	machine.set_pc(m, restored_pc)
-	machine.set_psw(m, restored_psw)
-	return true
+	let restored_pc=machine.read_word_machine(m,machine.sp_word(m));if is_fault(restored_pc){return restored_pc}
+	machine.set_sp_word(m,fixed.word_add_small(machine.sp_word(m),2))
+	let restored_psw=machine.read_word_machine(m,machine.sp_word(m));if is_fault(restored_psw){return restored_psw}
+	machine.set_sp_word(m,fixed.word_add_small(machine.sp_word(m),2));machine.set_pc_word(m,restored_pc);machine.set_psw_word(m,restored_psw);return true
 }
-
 let execute_condition_code = (m, instruction) {
-	if instruction < 161 or instruction > 191 {
-		return false
-	}
-	let selected = bits.low(instruction, 4)
-	let set_mode = not equal(bits.extract(instruction, 4, 1), 0)
-	let current = machine.psw(m)
-	let i = 0
-	while i < 4 {
-		if equal(bits.extract(selected, i, 1), 1) {
-			current = psw.set_flag(current, i, set_mode)
-		}
-		i = i + 1
-	}
-	machine.set_psw(m, current)
-	return true
+	if not fixed.word_ge_number(instruction,161) or fixed.word_ge_number(instruction,192) { return false }
+	let selected=fixed.word_field(instruction,0,4);let set_mode=not equal(fixed.word_field(instruction,4,1),0);let current=machine.psw_word(m);let i=0
+	while i<4 { if equal(bits.extract(selected,i,1),1){current=psw.set_flag(current,i,set_mode)};i=i+1 }
+	machine.set_psw_word(m,current);return true
 }
 
-let step = (m) {
-	if machine.waiting(m) {
-		return false
+# Complete a fetched instruction through the compatibility machine facade. This
+# remains the general path while serial cuts move instruction families onto the
+# bound execution dependencies below.
+let execute_fetched = (m, instruction, kind, before_psw) {
+	machine.audit_instruction(m,kind)
+	let result=false
+	match kind {
+		:mov { result=execute_double(m,instruction,kind) } :cmp { result=execute_double(m,instruction,kind) } :bit { result=execute_double(m,instruction,kind) }
+		:bic { result=execute_double(m,instruction,kind) } :bis { result=execute_double(m,instruction,kind) } :add { result=execute_double(m,instruction,kind) }
+		:movb { result=execute_double(m,instruction,kind) } :cmpb { result=execute_double(m,instruction,kind) } :bitb { result=execute_double(m,instruction,kind) }
+		:bicb { result=execute_double(m,instruction,kind) } :bisb { result=execute_double(m,instruction,kind) } :sub { result=execute_double(m,instruction,kind) }
+		:clr { result=execute_single(m,instruction,kind) } :inc { result=execute_single(m,instruction,kind) } :dec { result=execute_single(m,instruction,kind) }
+		:neg { result=execute_single(m,instruction,kind) } :adc { result=execute_single(m,instruction,kind) } :sbc { result=execute_single(m,instruction,kind) }
+		:tst { result=execute_single(m,instruction,kind) } :ror { result=execute_single(m,instruction,kind) } :asr { result=execute_single(m,instruction,kind) }
+		:asl { result=execute_single(m,instruction,kind) } :clrb { result=execute_single(m,instruction,kind) } :incb { result=execute_single(m,instruction,kind) }
+		:negb { result=execute_single(m,instruction,kind) } :adcb { result=execute_single(m,instruction,kind) } :sbcb { result=execute_single(m,instruction,kind) }
+		:tstb { result=execute_single(m,instruction,kind) } :rorb { result=execute_single(m,instruction,kind) } :asrb { result=execute_single(m,instruction,kind) }
+		:aslb { result=execute_single(m,instruction,kind) }
+		:br { result=execute_branch(m,instruction,kind) } :bne { result=execute_branch(m,instruction,kind) } :beq { result=execute_branch(m,instruction,kind) }
+		:bge { result=execute_branch(m,instruction,kind) } :blt { result=execute_branch(m,instruction,kind) } :bgt { result=execute_branch(m,instruction,kind) }
+		:ble { result=execute_branch(m,instruction,kind) } :bpl { result=execute_branch(m,instruction,kind) } :bmi { result=execute_branch(m,instruction,kind) }
+		:bhi { result=execute_branch(m,instruction,kind) } :blos { result=execute_branch(m,instruction,kind) } :bvc { result=execute_branch(m,instruction,kind) }
+		:bvs { result=execute_branch(m,instruction,kind) } :bhis { result=execute_branch(m,instruction,kind) } :blo { result=execute_branch(m,instruction,kind) }
+		:mul { result=execute_eis(m,instruction,kind) } :div { result=execute_eis(m,instruction,kind) } :ash { result=execute_eis(m,instruction,kind) } :ashc { result=execute_eis(m,instruction,kind) }
+		:swab { result=execute_swab(m,instruction) } :jmp { result=execute_jump(m,instruction) } :jsr { result=execute_jsr(m,instruction) }
+		:sob { result=execute_sob(m,instruction) } :rts { result=execute_rts(m,instruction) } :mfpi { result=execute_mfpi(m,instruction) }
+		:mtpi { result=execute_mtpi(m,instruction) } :rtt { result=execute_rtt(m) } :reset { result=machine.reset_bus(m) }
+		:wait { machine.set_waiting(m,true);result=true } :halt { machine.set_running(m,false);result=true } :nop { result=true }
+		:clc { result=execute_condition_code(m,instruction) } :condition_code { result=execute_condition_code(m,instruction) }
+		_ { result=[@pdp_fault,:reserved_instruction,fixed.number(instruction)] }
 	}
-	let instruction = fetch.word(m)
-	if is_fault(instruction) {
-		return instruction
-	}
-
-	let kind = decode.instruction_kind(instruction)
-	if equal(kind, :other) {
-		return [@pdp_fault, :reserved_instruction, instruction]
-	}
-	let before_psw = machine.psw(m)
-	machine.audit_instruction(m, kind)
-
-	let result = false
-	let double_kind = decode.double_operand_kind(instruction)
-	if not equal(double_kind, :other) {
-		result = execute_double(m, instruction, double_kind)
-	} else {
-		let single_kind = decode.single_operand_kind(instruction)
-		if not equal(single_kind, :other) {
-			result = execute_single(m, instruction, single_kind)
-		} else {
-			let branch_kind = decode.branch_kind(instruction)
-			if not equal(branch_kind, :other) {
-				result = execute_branch(m, instruction, branch_kind)
-			} else {
-				let eis_kind = decode.eis_kind(instruction)
-				if not equal(eis_kind, :other) {
-					result = execute_eis(m, instruction, eis_kind)
-				} else if equal(kind, :swab) {
-					result = execute_swab(m, instruction)
-				} else if equal(kind, :jmp) {
-					result = execute_jump(m, instruction)
-				} else if equal(kind, :jsr) {
-					result = execute_jsr(m, instruction)
-				} else if equal(kind, :sob) {
-					result = execute_sob(m, instruction)
-				} else if equal(kind, :rts) {
-					result = execute_rts(m, instruction)
-				} else if equal(kind, :mfpi) {
-					result = execute_mfpi(m, instruction)
-				} else if equal(kind, :mtpi) {
-					result = execute_mtpi(m, instruction)
-				} else if equal(kind, :rtt) {
-					result = execute_rtt(m)
-				} else if equal(kind, :reset) {
-					result = machine.reset_bus(m)
-				} else if equal(kind, :wait) {
-					machine.set_waiting(m, true)
-					result = true
-				} else if equal(kind, :halt) {
-					machine.set_running(m, false)
-					result = true
-				} else if equal(kind, :nop) {
-					result = true
-				} else if equal(kind, :clc) or equal(kind, :condition_code) {
-					result = execute_condition_code(m, instruction)
-				} else {
-					result = [@pdp_fault, :reserved_instruction, instruction]
-				}
-			}
-		}
-	}
-
-	if is_fault(result) {
-		return result
-	}
-	machine.audit_psw_transition(m, kind, before_psw, machine.psw(m))
-	machine.complete_instruction(m, 1)
+	if is_fault(result){return result}
+	machine.audit_psw_transition(m,kind,before_psw,machine.psw_word(m))
+	machine.complete_instruction(m,1)
 	return result
 }
 
-let run_bounded = (m, limit) {
-	machine.set_running(m, true)
-	let count = 0
-	while machine.running(m) and (not machine.waiting(m)) and (count < limit) {
-		let result = step(m)
-		if is_fault(result) {
-			machine.set_running(m, false)
-			return result
+let step = (m) {
+	if machine.waiting(m) { return false }
+	let instruction=fetch.word_machine(m);if is_fault(instruction){return instruction}
+	let kind=decode.instruction_kind_machine(instruction)
+	if equal(kind,:other){return [@pdp_fault,:reserved_instruction,fixed.number(instruction)]}
+	return execute_fetched(m,instruction,kind,machine.psw_word(m))
+}
+
+# Bound hot path. run_bounded resolves the machine's processor state, UNIBUS,
+# and audit once. The workload's CLR/CMP/branch families then execute without
+# rediscovering those dependencies or constructing operand descriptor lists.
+let set_nzvc_bound = (cpu_words, value, overflow, carry) {
+	let current = storage.get(cpu_words, state.WORD_PSW)
+	current = fixed.word_set_bit(current, psw.N, fixed.negative(value))
+	current = fixed.word_set_bit(current, psw.Z, fixed.zero(value))
+	current = fixed.word_set_bit(current, psw.V, overflow)
+	current = fixed.word_set_bit(current, psw.C, carry)
+	storage.set(cpu_words, state.WORD_PSW, current)
+	return true
+}
+let finish_bound = (cpu_words, cpu_counts, bus, bus_pending, audit_psw_changes, audit_last_kind, audit_last_words, instruction_index, before_psw, result) {
+	if is_fault(result) { return result }
+	audit.record_psw_transition_index_bound(audit_psw_changes, audit_last_kind, audit_last_words, instruction_index, before_psw, storage.get(cpu_words, state.WORD_PSW))
+	unibus.advance_bound(bus, bus_pending, 1)
+	storage.counter_add(cpu_counts, state.COUNT_STEPS, 1); storage.counter_add(cpu_counts, state.COUNT_TIME, 1)
+	return result
+}
+let finish_bound_psw_unchanged = (cpu_words, cpu_counts, bus, bus_pending, audit_last_kind, audit_last_words, instruction_index, current_psw, result) {
+	if is_fault(result) { return result }
+	audit.record_psw_unchanged_index_bound(audit_last_kind, audit_last_words, instruction_index, current_psw)
+	unibus.advance_bound(bus, bus_pending, 1)
+	storage.counter_add(cpu_counts, state.COUNT_STEPS, 1); storage.counter_add(cpu_counts, state.COUNT_TIME, 1)
+	return result
+}
+let execute_cmp_fields_bound = (cpu_words, bus, bus_memory, bus_counts, audit_source_modes, audit_destination_modes, instruction, byte_mode) {
+	let size = WORD
+	if byte_mode { size = BYTE }
+	let source_mode = fixed.word_field(instruction, 9, 3)
+	let source_register = fixed.word_field(instruction, 6, 3)
+	let destination_mode = fixed.word_field(instruction, 3, 3)
+	let destination_register = fixed.word_field(instruction, 0, 3)
+	storage.counter_add(audit_source_modes, source_mode, 1)
+	storage.counter_add(audit_destination_modes, destination_mode, 1)
+	let source = addressing.read_decoded_bound(cpu_words, bus, bus_memory, bus_counts, source_mode, source_register, size)
+	if is_fault(source) { return source }
+	let destination = addressing.read_decoded_bound(cpu_words, bus, bus_memory, bus_counts, destination_mode, destination_register, size)
+	if is_fault(destination) { return destination }
+	let result = fixed.sub(source, destination)
+	let source_sign = fixed.negative(source)
+	let destination_sign = fixed.negative(destination)
+	let result_sign = fixed.negative(result)
+	let overflow = not equal(source_sign, destination_sign) and equal(destination_sign, result_sign)
+	let borrow = fixed.lt(source, destination)
+	set_nzvc_bound(cpu_words, result, overflow, borrow)
+	return true
+}
+let execute_clr_fields_bound = (cpu_words, bus, bus_memory, bus_counts, audit_destination_modes, instruction, byte_mode) {
+	let size = WORD
+	let zero = WORD_ZERO
+	if byte_mode { size = BYTE; zero = BYTE_ZERO }
+	let destination_mode = fixed.word_field(instruction, 3, 3)
+	let destination_register = fixed.word_field(instruction, 0, 3)
+	storage.counter_add(audit_destination_modes, destination_mode, 1)
+	let written = addressing.write_decoded_bound(cpu_words, bus, bus_memory, bus_counts, destination_mode, destination_register, size, zero)
+	if is_fault(written) { return written }
+	set_nzvc_bound(cpu_words, zero, false, false)
+	return true
+}
+let branch_index_from_base = (base) {
+	match base {
+		256 { return audit.INDEX_BR } 512 { return audit.INDEX_BNE } 768 { return audit.INDEX_BEQ } 1024 { return audit.INDEX_BGE }
+		1280 { return audit.INDEX_BLT } 1536 { return audit.INDEX_BGT } 1792 { return audit.INDEX_BLE } 32768 { return audit.INDEX_BPL }
+		33024 { return audit.INDEX_BMI } 33280 { return audit.INDEX_BHI } 33536 { return audit.INDEX_BLOS } 33792 { return audit.INDEX_BVC }
+		34048 { return audit.INDEX_BVS } 34304 { return audit.INDEX_BHIS } 34560 { return audit.INDEX_BLO }
+		_ { return -1 }
+	}
+}
+let branch_condition_base = (base, current_psw) {
+	# Read only the PSW bits required by the selected branch. The hardware
+	# condition is encoded by the opcode; eagerly extracting all NZVC bits turns
+	# one branch decision into four fixed-domain calls for no semantic benefit.
+	match base {
+		256 { return true }
+		512 { return not fixed.word_bit(current_psw, psw.Z) }
+		768 { return fixed.word_bit(current_psw, psw.Z) }
+		1024 { return equal(fixed.word_bit(current_psw, psw.N), fixed.word_bit(current_psw, psw.V)) }
+		1280 { return not equal(fixed.word_bit(current_psw, psw.N), fixed.word_bit(current_psw, psw.V)) }
+		1536 { return (not fixed.word_bit(current_psw, psw.Z)) and equal(fixed.word_bit(current_psw, psw.N), fixed.word_bit(current_psw, psw.V)) }
+		1792 { return fixed.word_bit(current_psw, psw.Z) or not equal(fixed.word_bit(current_psw, psw.N), fixed.word_bit(current_psw, psw.V)) }
+		32768 { return not fixed.word_bit(current_psw, psw.N) }
+		33024 { return fixed.word_bit(current_psw, psw.N) }
+		33280 { return (not fixed.word_bit(current_psw, psw.C)) and (not fixed.word_bit(current_psw, psw.Z)) }
+		33536 { return fixed.word_bit(current_psw, psw.C) or fixed.word_bit(current_psw, psw.Z) }
+		33792 { return not fixed.word_bit(current_psw, psw.V) }
+		34048 { return fixed.word_bit(current_psw, psw.V) }
+		34304 { return not fixed.word_bit(current_psw, psw.C) }
+		34560 { return fixed.word_bit(current_psw, psw.C) }
+		_ { return false }
+	}
+}
+let execute_branch_base_bound = (cpu_words, instruction, base) {
+	if branch_condition_base(base, storage.get(cpu_words, state.WORD_PSW)) {
+		storage.set(cpu_words, state.PC, fixed.word_add_small(storage.get(cpu_words, state.PC), signed_byte_field(instruction) * 2))
+	}
+	return true
+}
+let step_bound = (m, cpu_words, bus, bus_memory, bus_counts, bus_pending, cpu_counts, audit_instructions, audit_source_modes, audit_destination_modes, audit_psw_changes, audit_last_kind, audit_last_words) {
+	let instruction = fetch.word_bound(cpu_words, bus, bus_memory, bus_counts)
+	if is_fault(instruction) { return instruction }
+	let before_psw = storage.get(cpu_words, state.WORD_PSW)
+
+	# Branches are identified directly from their opcode byte. This avoids the
+	# general decoder followed by a second symbol-to-condition dispatch.
+	let branch_base = fixed.word_mask(instruction, 65280)
+	let branch_index = branch_index_from_base(branch_base)
+	if branch_index >= 0 {
+		storage.counter_add(audit_instructions, branch_index, 1)
+		return finish_bound_psw_unchanged(cpu_words, cpu_counts, bus, bus_pending, audit_last_kind, audit_last_words, branch_index, before_psw, execute_branch_base_bound(cpu_words, instruction, branch_base))
+	}
+
+	# Double-operand CMP/CMPB are identified by their major opcode and decode
+	# addressing fields once. Addressing consumes mode/register directly.
+	let major = fixed.word_field(instruction, 12, 4)
+	match major {
+		2 {
+			storage.counter_add(audit_instructions, audit.INDEX_CMP, 1)
+			return finish_bound(cpu_words, cpu_counts, bus, bus_pending, audit_psw_changes, audit_last_kind, audit_last_words, audit.INDEX_CMP, before_psw, execute_cmp_fields_bound(cpu_words, bus, bus_memory, bus_counts, audit_source_modes, audit_destination_modes, instruction, false))
 		}
+		10 {
+			storage.counter_add(audit_instructions, audit.INDEX_CMPB, 1)
+			return finish_bound(cpu_words, cpu_counts, bus, bus_pending, audit_psw_changes, audit_last_kind, audit_last_words, audit.INDEX_CMPB, before_psw, execute_cmp_fields_bound(cpu_words, bus, bus_memory, bus_counts, audit_source_modes, audit_destination_modes, instruction, true))
+		}
+		_ {}
+	}
+
+	# CLR/CLRB are identified by the single-operand base and likewise decode the
+	# destination mode/register only once.
+	let single_base = fixed.word_mask(instruction, 65472)
+	match single_base {
+		2560 {
+			storage.counter_add(audit_instructions, audit.INDEX_CLR, 1)
+			return finish_bound(cpu_words, cpu_counts, bus, bus_pending, audit_psw_changes, audit_last_kind, audit_last_words, audit.INDEX_CLR, before_psw, execute_clr_fields_bound(cpu_words, bus, bus_memory, bus_counts, audit_destination_modes, instruction, false))
+		}
+		35328 {
+			storage.counter_add(audit_instructions, audit.INDEX_CLRB, 1)
+			return finish_bound(cpu_words, cpu_counts, bus, bus_pending, audit_psw_changes, audit_last_kind, audit_last_words, audit.INDEX_CLRB, before_psw, execute_clr_fields_bound(cpu_words, bus, bus_memory, bus_counts, audit_destination_modes, instruction, true))
+		}
+		_ {}
+	}
+
+	let kind = decode.instruction_kind_machine(instruction)
+	if equal(kind, :other) { return [@pdp_fault, :reserved_instruction, fixed.number(instruction)] }
+	return execute_fetched(m, instruction, kind, before_psw)
+}
+
+let run_bounded = (m, limit) {
+	let processor_state = machine.processor_state(m)
+	let bus = machine.bus(m)
+	let execution_audit = machine.execution_audit(m)
+	# Resolve stable component ownership once for this execution run. The hot
+	# path passes the owning stores directly rather than rediscovering them from
+	# processor/bus lists on every instruction and memory reference.
+	let cpu_words = state.word_store(processor_state)
+	let cpu_flags = state.flag_store(processor_state)
+	let cpu_counts = state.count_store(processor_state)
+	let bus_memory = unibus.memory_store(bus)
+	let bus_counts = unibus.count_store(bus)
+	let bus_pending = unibus.pending_store(bus)
+	let audit_instructions = audit.instruction_store(execution_audit)
+	let audit_source_modes = audit.source_mode_store(execution_audit)
+	let audit_destination_modes = audit.destination_mode_store(execution_audit)
+	let audit_psw_changes = audit.psw_change_store(execution_audit)
+	let audit_last_kind = audit.last_kind_store(execution_audit)
+	let audit_last_words = audit.last_word_store(execution_audit)
+	state.set_running(processor_state, true)
+	let count = 0
+	while (storage.counter_get(cpu_flags, state.FLAG_RUNNING) > 0) and (storage.counter_get(cpu_flags, state.FLAG_WAITING) <= 0) and (count < limit) {
+		let result = step_bound(m, cpu_words, bus, bus_memory, bus_counts, bus_pending, cpu_counts, audit_instructions, audit_source_modes, audit_destination_modes, audit_psw_changes, audit_last_kind, audit_last_words)
+		if is_fault(result) { state.set_running(processor_state, false); return result }
 		count = count + 1
 	}
 	return count
 }
+export(:step,:run_bounded)
 
-export(:step, :run_bounded)

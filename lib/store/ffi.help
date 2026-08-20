@@ -1,0 +1,61 @@
+# store/ffi - explicit provider-backed systems capability
+
+@func new_byte
+@template "new_byte(size)"
+@help "new_byte is an explicit store/ffi operation."
+
+@func new_word
+@template "new_word(size)"
+@help "new_word is an explicit store/ffi operation."
+
+@func new_addr18
+@template "new_addr18(size)"
+@help "new_addr18 is an explicit store/ffi operation."
+
+@func get
+@template "get(store, index)"
+@help "get is an explicit store/ffi operation."
+
+@func set
+@template "set(store, index, value)"
+@help "set is an explicit store/ffi operation."
+
+@func length
+@template "length(store)"
+@help "length is an explicit store/ffi operation."
+
+@func snapshot
+@template "snapshot(store, ...args)"
+@help "snapshot is an explicit store/ffi operation."
+
+@func word_read_addr
+@template "word_read_addr(store, address)"
+@help "word_read_addr is an explicit store/ffi operation."
+
+@func word_write_addr
+@template "word_write_addr(store, address, value)"
+@help "word_write_addr is an explicit store/ffi operation."
+
+@func byte_read_addr
+@template "byte_read_addr(store, address)"
+@help "byte_read_addr is an explicit store/ffi operation."
+
+@func byte_write_addr
+@template "byte_write_addr(store, address, value)"
+@help "byte_write_addr is an explicit store/ffi operation."
+
+@func new_counter
+@template "new_counter(size)"
+@help "new_counter creates provider-backed non-negative execution counters."
+
+@func counter_get
+@template "counter_get(store, index)"
+@help "counter_get reads a provider-backed execution counter as an Aiki number."
+
+@func counter_set
+@template "counter_set(store, index, value)"
+@help "counter_set assigns a non-negative execution counter."
+
+@func counter_add
+@template "counter_add(store, index, delta)"
+@help "counter_add increments a provider-backed execution counter without an Aiki get/add/set cycle."

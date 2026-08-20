@@ -114,7 +114,7 @@ downloads are network-blocked. Static grammar/syntax evidence is therefore not
 a substitute for the user-side Aiki gate.
 
 
-## Cut 6 — KL11 console and standalone `=` — ACTIVE
+## Cut 6 — KL11 console and standalone `=` — GATED
 
 Run the focused console/device test:
 
@@ -140,3 +140,82 @@ run 0
 The main terminal is the actual guest KL11 while the PDP is running. CTRL-T reports emulator status and CTRL-E suspends back to `aiki-pdp>`; every other byte, including CTRL-C and CTRL-D, is guest console input.
 
 Gate when the real standalone image loaded from record zero prints its first `=` prompt through the emulated KL11. The KL11 observer must show transmitter activity. Stop there before RK11/RK05 work.
+
+Observed real-media evidence: the standalone image printed `=` through KL11 after rewinding the real TUHS V6 tape. At suspension the tape showed one read / `1000` octal bytes in and record `000000`; UNIBUS NPR writes were fixed at `1000`, and the CPU was polling in the standalone command loop. Cut 6 is GATED.
+
+
+## Cut 7 — RK11/RK05 and standalone `tmrk` — ACTIVE
+
+Run the focused disk/controller gate:
+
+```sh
+aiki test diagnostics/cut7_rk_test.ai
+```
+
+Then launch the laboratory:
+
+```sh
+./showcase.sh
+```
+
+Attach the real V6 tape and a writable disk-0 pack (a missing disk file is created at exact RK05 size):
+
+```text
+attach tape 0 /path/to/v6.tape
+attach disk 0 /path/to/rk0
+boot tape 0
+^E
+run 0
+```
+
+At the standalone `=` prompt, run the distribution's own transfer program:
+
+```text
+=tmrk
+disk offset
+0
+tape offset
+100
+count
+1
+=tmrk
+disk offset
+1
+tape offset
+101
+count
+3999
+```
+
+The first transfer writes the RK05 bootstrap to disk block 0. The second writes the binary filesystem to disk blocks 1..3999. Gate only when both operations complete under the real standalone program, with the RK observer showing disk-0 activity and the resulting host pack remaining exactly one RK05 cartridge in size. Stop before booting disk 0.
+
+### Cut 7 performance diagnostic — ACTIVE, measure before optimization
+
+The real standalone `tmrk` loader exposed a long but finite CPU-only memory-clear
+loop:
+
+```text
+CLR (R0)+
+CMP R0,R6
+BLO loop
+```
+
+Before changing the emulator hot path, measure that exact instruction mix with
+observers, tape, disk, and KL11 absent. Run the scaling sweep from the repository
+root:
+
+```sh
+experiments/004-v6-emulator/experiment/diagnostics/cut7_perf_sweep.sh
+```
+
+The sweep runs independent `aiki profile --counts` processes at 1x, 2x, 10x,
+50x, and 100x. One x is 256 loop iterations (768 guest instructions); 100x is
+25,600 iterations (76,800 guest instructions), approximately the scale at which
+the standalone pause became visibly objectionable. Each run records Aiki
+semantic counts and Go realization measurements including elapsed time,
+allocation bytes, mallocs, and GC cycles under `results/cut7-perf/`.
+
+This is an evidence gate, not an optimization. Review scaling and dominant
+semantic units before changing memory, UNIBUS, audit, state, or operand
+representation. If source attribution is needed after the counts sweep, rerun a
+representative scale with `aiki profile` (without `--counts`).

@@ -1,113 +1,230 @@
 package "aiki_pdp_unibus"
 
+let fixed = import("machine/ffi")
 let kl11 = import("../devices/console/kl11")
 let memory = import("../memory/memory")
 let octal = import("../reference/octal")
 let store = import("store")
+let counters = import("store/ffi")
 let tm11 = import("../devices/tape/tm11")
+let rk11 = import("../devices/disk/rk11")
 
 let BUS_MEMORY = 0
 let BUS_TAPE = 1
 let BUS_COUNTS = 2
 let BUS_CONSOLE = 3
+let BUS_DISK = 4
+let BUS_IO_MAP = 5
+let BUS_PENDING = 6
+
 let DATI = 0
 let DATO = 1
 let DATOB = 2
 let NPR_WRITE = 3
-let COUNT_WORDS = 4
+let NPR_READ = 4
+let COUNT_WORDS = 5
+
+let OWNER_NONE = 0
+let OWNER_TAPE = 1
+let OWNER_CONSOLE = 2
+let OWNER_DISK = 3
 
 let IO_PAGE_16 = octal.parse("160000")
 let IO_PAGE_OFFSET = octal.parse("600000")
+let IO_PAGE_PHYSICAL = octal.parse("760000")
+let PHYSICAL_LIMIT = octal.parse("1000000")
+let IO_WORD_SLOTS = truncate((PHYSICAL_LIMIT - IO_PAGE_PHYSICAL) / 2)
 
+let io_slot_number = (address) {
+	return truncate((fixed.number(address) - IO_PAGE_PHYSICAL) / 2)
+}
+let register_range = (routes, first, last, owner) {
+	let address = first
+	while address <= last {
+		store.set(routes, truncate((address - IO_PAGE_PHYSICAL) / 2), owner)
+		address = address + 2
+	}
+	return true
+}
+let configure_io = () {
+	let routes = store.new(IO_WORD_SLOTS)
+	register_range(routes, tm11.FIRST_ADDRESS, tm11.LAST_ADDRESS, OWNER_TAPE)
+	register_range(routes, kl11.FIRST_ADDRESS, kl11.LAST_ADDRESS, OWNER_CONSOLE)
+	register_range(routes, rk11.FIRST_ADDRESS, rk11.LAST_ADDRESS, OWNER_DISK)
+	return routes
+}
 let new = () {
-	let counts = store.new(COUNT_WORDS)
-	let i = 0
-	while i < COUNT_WORDS { store.set(counts, i, 0); i = i + 1 }
-	return [memory.new(), tm11.new(), counts, kl11.new()]
+	let counts = counters.new_counter(COUNT_WORDS)
+	let pending = counters.new_counter(1)
+	return [memory.new(), tm11.new(), counts, kl11.new(), rk11.new(), configure_io(), pending]
 }
 
 let physical_memory = (bus) { return bus[BUS_MEMORY] }
 let tape = (bus) { return bus[BUS_TAPE] }
 let counts = (bus) { return bus[BUS_COUNTS] }
 let console = (bus) { return bus[BUS_CONSOLE] }
-let bump = (bus, index) {
-	store.set(counts(bus), index, store.get(counts(bus), index) + 1)
-	return true
+let disk = (bus) { return bus[BUS_DISK] }
+let io_routes = (bus) { return bus[BUS_IO_MAP] }
+let pending = (bus) { return bus[BUS_PENDING] }
+
+# Bound execution accessors. The CPU resolves these once before its run loop.
+let memory_store = (bus) { return physical_memory(bus) }
+let count_store = (bus) { return counts(bus) }
+let pending_store = (bus) { return pending(bus) }
+let bump_bound = (counter_store, index) { counters.counter_add(counter_store, index, 1); return true }
+let bump = (bus, index) { return bump_bound(counts(bus), index) }
+
+# 16-bit CPU address -> 18-bit physical UNIBUS address, preserving opaque
+# machine representation. With MMU disabled the upper 8K CPU page projects to
+# the physical I/O page.
+let cpu_physical_address_machine = (address) {
+	let physical = fixed.addr_from_word(address)
+	if fixed.word_ge_number(address, IO_PAGE_16) {
+		return fixed.addr_add(physical, IO_PAGE_OFFSET)
+	}
+	return physical
+}
+let owner = (bus, address) {
+	if fixed.addr_lt_number(address, IO_PAGE_PHYSICAL) { return OWNER_NONE }
+	return store.get(io_routes(bus), io_slot_number(address))
+}
+let refresh_pending = (bus) {
+	let value = 0
+	if tm11.active(tape(bus)) or kl11.active(console(bus)) or rk11.active(disk(bus)) { value = 1 }
+	counters.counter_set(pending(bus), 0, value)
+	return value
 }
 
-# With memory management disabled, the PDP-11/40 maps the upper 8K-byte
-# 16-bit CPU address range onto the 18-bit UNIBUS I/O page.
-let cpu_physical_address = (address) {
-	if (address >= IO_PAGE_16) and (address < octal.parse("200000")) {
-		return address + IO_PAGE_OFFSET
-	}
-	return address
-}
+# Controllers are still numeric at their legacy boundary in this cut. That
+# conversion occurs only for I/O-page transactions; ordinary RAM remains fixed
+# width end-to-end. Controller migration is a separate representation cut.
+let device_word = (value) { if is_error(value) { return value }; return fixed.word(value) }
+let device_byte = (value) { if is_error(value) { return value }; return fixed.byte(value) }
 
 let read_byte_physical = (bus, address) {
-	if tm11.handles(address) { return tm11.read_byte(tape(bus), address) }
-	if kl11.handles(address) { return kl11.read_byte(console(bus), address) }
-	return memory.read_byte(physical_memory(bus), address)
+	if fixed.addr_lt_number(address, IO_PAGE_PHYSICAL) { return memory.read_byte_machine(physical_memory(bus), address) }
+	let numeric = fixed.number(address)
+	match owner(bus, address) {
+		1 { return device_byte(tm11.read_byte(tape(bus), numeric)) }
+		2 { return device_byte(kl11.read_byte(console(bus), numeric)) }
+		3 { return device_byte(rk11.read_byte(disk(bus), numeric)) }
+		_ { return memory.read_byte_machine(physical_memory(bus), address) }
+	}
 }
-
 let write_byte_physical = (bus, address, value) {
-	if tm11.handles(address) { return tm11.write_byte(tape(bus), address, value) }
-	if kl11.handles(address) { return kl11.write_byte(console(bus), address, value) }
-	return memory.write_byte(physical_memory(bus), address, value)
+	if fixed.addr_lt_number(address, IO_PAGE_PHYSICAL) { return memory.write_byte_machine(physical_memory(bus), address, value) }
+	let numeric = fixed.number(address)
+	let result = false
+	match owner(bus, address) {
+		1 { result = tm11.write_byte(tape(bus), numeric, fixed.number(value)) }
+		2 { result = kl11.write_byte(console(bus), numeric, fixed.number(value)) }
+		3 { result = rk11.write_byte(disk(bus), numeric, fixed.number(value)) }
+		_ { result = memory.write_byte_machine(physical_memory(bus), address, value) }
+	}
+	refresh_pending(bus)
+	return result
 }
-
 let read_word_physical = (bus, address) {
-	if tm11.handles(address) { return tm11.read_word(tape(bus), address) }
-	if kl11.handles(address) { return kl11.read_word(console(bus), address) }
-	return memory.read_word(physical_memory(bus), address)
+	if fixed.addr_lt_number(address, IO_PAGE_PHYSICAL) { return memory.read_word_machine(physical_memory(bus), address) }
+	let numeric = fixed.number(address)
+	match owner(bus, address) {
+		1 { return device_word(tm11.read_word(tape(bus), numeric)) }
+		2 { return device_word(kl11.read_word(console(bus), numeric)) }
+		3 { return device_word(rk11.read_word(disk(bus), numeric)) }
+		_ { return memory.read_word_machine(physical_memory(bus), address) }
+	}
 }
-
 let write_word_physical = (bus, address, value) {
-	if tm11.handles(address) { return tm11.write_word(tape(bus), address, value) }
-	if kl11.handles(address) { return kl11.write_word(console(bus), address, value) }
-	return memory.write_word(physical_memory(bus), address, value)
+	if fixed.addr_lt_number(address, IO_PAGE_PHYSICAL) { return memory.write_word_machine(physical_memory(bus), address, value) }
+	let numeric = fixed.number(address)
+	let result = false
+	match owner(bus, address) {
+		1 { result = tm11.write_word(tape(bus), numeric, fixed.number(value)) }
+		2 { result = kl11.write_word(console(bus), numeric, fixed.number(value)) }
+		3 { result = rk11.write_word(disk(bus), numeric, fixed.number(value)) }
+		_ { result = memory.write_word_machine(physical_memory(bus), address, value) }
+	}
+	refresh_pending(bus)
+	return result
 }
 
-let read_byte = (bus, address) {
-	bump(bus, DATI)
-	return read_byte_physical(bus, cpu_physical_address(address))
+let read_byte_machine = (bus, address) { bump(bus, DATI); return read_byte_physical(bus, cpu_physical_address_machine(address)) }
+let write_byte_machine = (bus, address, value) { bump(bus, DATOB); return write_byte_physical(bus, cpu_physical_address_machine(address), value) }
+let read_word_machine = (bus, address) { bump(bus, DATI); return read_word_physical(bus, cpu_physical_address_machine(address)) }
+let write_word_machine = (bus, address, value) { bump(bus, DATO); return write_word_physical(bus, cpu_physical_address_machine(address), value) }
+
+# Bound CPU path. Ordinary RAM bypasses bus-list rediscovery entirely; I/O-page
+# accesses fall back to the configured controller path because the bus object is
+# still the authority for controller routing.
+let read_byte_bound = (bus, memory_store, counter_store, address) {
+	counters.counter_add(counter_store, DATI, 1)
+	if fixed.word_lt_number(address, IO_PAGE_16) {
+		return memory.read_byte_machine(memory_store, fixed.addr_from_word(address))
+	}
+	return read_byte_physical(bus, cpu_physical_address_machine(address))
+}
+let write_byte_bound = (bus, memory_store, counter_store, address, value) {
+	counters.counter_add(counter_store, DATOB, 1)
+	if fixed.word_lt_number(address, IO_PAGE_16) {
+		return memory.write_byte_machine(memory_store, fixed.addr_from_word(address), value)
+	}
+	return write_byte_physical(bus, cpu_physical_address_machine(address), value)
+}
+let read_word_bound = (bus, memory_store, counter_store, address) {
+	counters.counter_add(counter_store, DATI, 1)
+	if fixed.word_lt_number(address, IO_PAGE_16) {
+		return memory.read_word_machine(memory_store, fixed.addr_from_word(address))
+	}
+	return read_word_physical(bus, cpu_physical_address_machine(address))
+}
+let write_word_bound = (bus, memory_store, counter_store, address, value) {
+	counters.counter_add(counter_store, DATO, 1)
+	if fixed.word_lt_number(address, IO_PAGE_16) {
+		return memory.write_word_machine(memory_store, fixed.addr_from_word(address), value)
+	}
+	return write_word_physical(bus, cpu_physical_address_machine(address), value)
 }
 
-let write_byte = (bus, address, value) {
-	bump(bus, DATOB)
-	return write_byte_physical(bus, cpu_physical_address(address), value)
-}
-
-let read_word = (bus, address) {
-	bump(bus, DATI)
-	return read_word_physical(bus, cpu_physical_address(address))
-}
-
-let write_word = (bus, address, value) {
-	bump(bus, DATO)
-	return write_word_physical(bus, cpu_physical_address(address), value)
-}
+# Numeric diagnostic/control facade; execution uses the *_machine forms.
+let read_byte = (bus, address) { let v=read_byte_machine(bus,fixed.word(address)); if equal(shape(v),:pdp_fault){return v}; return fixed.number(v) }
+let write_byte = (bus, address, value) { return write_byte_machine(bus, fixed.word(address), fixed.byte(value)) }
+let read_word = (bus, address) { let v=read_word_machine(bus,fixed.word(address)); if equal(shape(v),:pdp_fault){return v}; return fixed.number(v) }
+let write_word = (bus, address, value) { return write_word_machine(bus, fixed.word(address), fixed.word(value)) }
 
 let attach_tape_media = (bus, media) { return tm11.attach_media(tape(bus), media) }
 let attach_tape_media_unit = (bus, unit, media) { return tm11.attach_media_unit(tape(bus), unit, media) }
 let attach_tape_raw = (bus, path) { return tm11.attach_raw(tape(bus), path) }
 let attach_tape_raw_unit = (bus, unit, path) { return tm11.attach_raw_unit(tape(bus), unit, path) }
+let attach_disk_path = (bus, unit, path) { return rk11.attach_path(disk(bus), unit, path) }
+let reset_bus = (bus) { tm11.reset_tape(tape(bus)); kl11.reset_console(console(bus)); rk11.reset_disk(disk(bus)); refresh_pending(bus); return true }
 
-let reset_bus = (bus) {
-	tm11.reset_tape(tape(bus))
-	kl11.reset_console(console(bus))
+# Device progress remains deterministic. DMA crosses the legacy controller
+# numeric boundary once per callback, then enters fixed-width RAM directly.
+let advance = (bus, elapsed) {
+	if equal(counters.counter_get(pending(bus), 0), 0) { return true }
+	let tape_result = true
+	if tm11.active(tape(bus)) {
+		tape_result = tm11.advance(tape(bus), elapsed, (address, value) {
+			bump(bus, NPR_WRITE)
+			return memory.write_byte_machine(physical_memory(bus), fixed.addr18(address), fixed.byte(value))
+		})
+	}
+	if is_error(tape_result) { return tape_result }
+	let disk_result = true
+	if rk11.active(disk(bus)) {
+		disk_result = rk11.advance(disk(bus), elapsed,
+			(address) { bump(bus, NPR_READ); let v=memory.read_word_machine(physical_memory(bus),fixed.addr18(address)); if equal(shape(v),:pdp_fault){return v}; return fixed.number(v) },
+			(address, value) { bump(bus, NPR_WRITE); return memory.write_word_machine(physical_memory(bus),fixed.addr18(address),fixed.word(value)) })
+	}
+	if is_error(disk_result) { return disk_result }
+	if kl11.active(console(bus)) { kl11.advance(console(bus), elapsed) }
+	refresh_pending(bus)
 	return true
 }
 
-# Device progress is serialized here. DMA uses physical UNIBUS addresses and
-# therefore bypasses the CPU's 16-bit I/O-page projection.
-let advance = (bus, elapsed) {
-	let tape_result = tm11.advance(tape(bus), elapsed, (address, value) {
-		bump(bus, NPR_WRITE)
-		return memory.write_byte(physical_memory(bus), address, value)
-	})
-	if is_error(tape_result) { return tape_result }
-	return kl11.advance(console(bus), elapsed)
+let advance_bound = (bus, pending_store, elapsed) {
+	if counters.counter_get(pending_store, 0) <= 0 { return true }
+	return advance(bus, elapsed)
 }
 
 let tape_byte_count = (bus) { return tm11.byte_count(tape(bus)) }
@@ -121,6 +238,25 @@ let tape_read_count = (bus) { return tm11.read_count(tape(bus)) }
 let tape_write_count = (bus) { return tm11.write_count(tape(bus)) }
 let tape_bytes_in = (bus) { return tm11.bytes_in(tape(bus)) }
 let tape_bytes_out = (bus) { return tm11.bytes_out(tape(bus)) }
+let tape_unit_attached = (bus, unit) { return tm11.unit_attached(tape(bus), unit) }
+let tape_unit_path = (bus, unit) { return tm11.unit_path(tape(bus), unit) }
+
+let disk_unit_attached = (bus, unit) { return rk11.attached(disk(bus), unit) }
+let disk_unit_path = (bus, unit) { return rk11.path(disk(bus), unit) }
+let disk_selected_unit = (bus) { return rk11.selected_unit(disk(bus)) }
+let disk_drive_status = (bus) { return rk11.drive_status(disk(bus)) }
+let disk_error = (bus) { return rk11.error(disk(bus)) }
+let disk_control_status = (bus) { return rk11.control_status(disk(bus)) }
+let disk_word_count = (bus) { return rk11.word_count_register(disk(bus)) }
+let disk_bus_address = (bus) { return rk11.bus_address(disk(bus)) }
+let disk_address = (bus) { return rk11.disk_address(disk(bus)) }
+let disk_cylinder = (bus) { return rk11.cylinder(disk(bus)) }
+let disk_surface = (bus) { return rk11.surface(disk(bus)) }
+let disk_sector = (bus) { return rk11.sector(disk(bus)) }
+let disk_read_count = (bus) { return rk11.read_count(disk(bus)) }
+let disk_write_count = (bus) { return rk11.write_count(disk(bus)) }
+let disk_bytes_in = (bus) { return rk11.bytes_in(disk(bus)) }
+let disk_bytes_out = (bus) { return rk11.bytes_out(disk(bus)) }
 
 let console_receive = (bus, value) { return kl11.receive(console(bus), value) }
 let console_take_output = (bus) { return kl11.take_output(console(bus)) }
@@ -137,51 +273,22 @@ let console_transmitter_ready = (bus) { return kl11.transmitter_ready(console(bu
 let console_receiver_interrupt_enabled = (bus) { return kl11.receiver_interrupt_enabled(console(bus)) }
 let console_transmitter_interrupt_enabled = (bus) { return kl11.transmitter_interrupt_enabled(console(bus)) }
 
-let dati_count = (bus) { return store.get(counts(bus), DATI) }
-let dato_count = (bus) { return store.get(counts(bus), DATO) }
-let datob_count = (bus) { return store.get(counts(bus), DATOB) }
-let npr_write_count = (bus) { return store.get(counts(bus), NPR_WRITE) }
+let dati_count = (bus) { return counters.counter_get(counts(bus), DATI) }
+let dato_count = (bus) { return counters.counter_get(counts(bus), DATO) }
+let datob_count = (bus) { return counters.counter_get(counts(bus), DATOB) }
+let npr_write_count = (bus) { return counters.counter_get(counts(bus), NPR_WRITE) }
+let npr_read_count = (bus) { return counters.counter_get(counts(bus), NPR_READ) }
 
-export(
-	:cpu_physical_address,
-	:new,
-	:read_byte,
-	:write_byte,
-	:read_word,
-	:write_word,
-	:attach_tape_media,
-	:attach_tape_media_unit,
-	:attach_tape_raw,
-	:attach_tape_raw_unit,
-	:reset_bus,
-	:advance,
-	:tape_byte_count,
-	:tape_current_address,
-	:tape_command,
-	:tape_status,
-	:tape_selected_unit,
-	:tape_media_position,
-	:tape_media_position_unit,
-	:tape_read_count,
-	:tape_write_count,
-	:tape_bytes_in,
-	:tape_bytes_out,
-	:dati_count,
-	:dato_count,
-	:datob_count,
-	:npr_write_count,
-	:console_receive,
-	:console_take_output,
-	:console_receiver_status,
-	:console_receiver_buffer,
-	:console_transmitter_status,
-	:console_transmitter_buffer,
-	:console_rx_count,
-	:console_tx_count,
-	:console_last_rx,
-	:console_last_tx,
-	:console_receiver_done,
-	:console_transmitter_ready,
-	:console_receiver_interrupt_enabled,
-	:console_transmitter_interrupt_enabled
-)
+# Diagnostic/configuration boundary for inspecting the 16->18 bit projection.
+let cpu_physical_address = (address) { return fixed.number(cpu_physical_address_machine(fixed.word(address))) }
+
+export(:cpu_physical_address_machine,:cpu_physical_address,:memory_store,:count_store,:pending_store,:advance_bound,:new,:read_byte_machine,:write_byte_machine,:read_word_machine,:write_word_machine,:read_byte_bound,:write_byte_bound,:read_word_bound,:write_word_bound,:read_byte,:write_byte,:read_word,:write_word,
+:attach_tape_media,:attach_tape_media_unit,:attach_tape_raw,:attach_tape_raw_unit,:attach_disk_path,:reset_bus,:advance,
+:tape_byte_count,:tape_current_address,:tape_command,:tape_status,:tape_selected_unit,:tape_media_position,:tape_media_position_unit,
+:tape_read_count,:tape_write_count,:tape_bytes_in,:tape_bytes_out,:tape_unit_attached,:tape_unit_path,
+:disk_unit_attached,:disk_unit_path,:disk_selected_unit,:disk_drive_status,:disk_error,:disk_control_status,:disk_word_count,:disk_bus_address,
+:disk_address,:disk_cylinder,:disk_surface,:disk_sector,:disk_read_count,:disk_write_count,:disk_bytes_in,:disk_bytes_out,
+:dati_count,:dato_count,:datob_count,:npr_write_count,:npr_read_count,
+:console_receive,:console_take_output,:console_receiver_status,:console_receiver_buffer,:console_transmitter_status,:console_transmitter_buffer,
+:console_rx_count,:console_tx_count,:console_last_rx,:console_last_tx,:console_receiver_done,:console_transmitter_ready,
+:console_receiver_interrupt_enabled,:console_transmitter_interrupt_enabled)

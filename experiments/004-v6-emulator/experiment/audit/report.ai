@@ -2,7 +2,7 @@ package "aiki_pdp_audit_report"
 
 let machine = import("../machine/machine")
 let octal = import("../reference/octal")
-let bits = import("bits/native")
+let bits = import("bits/ffi")
 let str = import("string/native")
 
 let MODE_NAMES = [

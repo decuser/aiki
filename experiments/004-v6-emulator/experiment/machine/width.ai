@@ -1,6 +1,6 @@
 package "aiki_pdp_width"
 
-let bits = import("bits/native")
+let bits = import("bits/ffi")
 
 # Reduce an exact integer to an unsigned machine bit-pattern width. Aiki numbers
 # are unbounded exact rationals, so negative host values need explicit modulo

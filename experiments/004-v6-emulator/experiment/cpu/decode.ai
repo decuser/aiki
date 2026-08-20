@@ -1,154 +1,83 @@
 package "aiki_pdp_decode"
 
-let bits = import("bits/native")
+let fixed = import("machine/ffi")
+let bits = import("bits/ffi")
 
-# Every PDP-11 operand specification is six bits: a three-bit addressing mode
-# followed by a three-bit general-register selector.
-let operand_mode = (specification) {
-	return bits.extract(specification, 3, 3)
-}
+# Operand specifications are decode metadata, not PDP data values. They leave
+# the opaque word domain only as small structural selectors (mode/register).
+let operand_mode = (specification) { return bits.extract(specification, 3, 3) }
+let operand_register = (specification) { return bits.extract(specification, 0, 3) }
+let source_spec_machine = (instruction) { return fixed.word_field(instruction, 6, 6) }
+let destination_spec_machine = (instruction) { return fixed.word_field(instruction, 0, 6) }
+let major_opcode_machine = (instruction) { return fixed.word_field(instruction, 12, 4) }
 
-let operand_register = (specification) {
-	return bits.extract(specification, 0, 3)
-}
-
-let source_spec = (instruction) {
-	return bits.extract(instruction, 6, 6)
-}
-
-let destination_spec = (instruction) {
-	return bits.extract(instruction, 0, 6)
-}
-
-let major_opcode = (instruction) {
-	return bits.extract(instruction, 12, 4)
-}
-
-let double_operand_kind = (instruction) {
-	match major_opcode(instruction) {
-		1 { return :mov }
-		2 { return :cmp }
-		3 { return :bit }
-		4 { return :bic }
-		5 { return :bis }
-		6 { return :add }
-		9 { return :movb }
-		10 { return :cmpb }
-		11 { return :bitb }
-		12 { return :bicb }
-		13 { return :bisb }
-		14 { return :sub }
+let double_operand_kind_machine = (instruction) {
+	match major_opcode_machine(instruction) {
+		1 { return :mov } 2 { return :cmp } 3 { return :bit } 4 { return :bic }
+		5 { return :bis } 6 { return :add } 9 { return :movb } 10 { return :cmpb }
+		11 { return :bitb } 12 { return :bicb } 13 { return :bisb } 14 { return :sub }
 		_ { return :other }
 	}
 }
-
-let single_operand_kind = (instruction) {
-	let base = bits.bit_and(instruction, 65472) # 0177700
+let single_operand_kind_machine = (instruction) {
+	let base = fixed.word_mask(instruction, 65472)
 	match base {
-		2560 { return :clr }    # 005000
-		2688 { return :inc }    # 005200
-		2752 { return :dec }    # 005300
-		2880 { return :adc }    # 005500
-		2944 { return :sbc }    # 005600
-		3008 { return :tst }    # 005700
-		3072 { return :ror }    # 006000
-		3200 { return :asr }    # 006200
-		3264 { return :asl }    # 006300
-		35328 { return :clrb }  # 105000
-		35456 { return :incb }  # 105200
-		35648 { return :adcb }  # 105500
-		35712 { return :sbcb }  # 105600
-		35776 { return :tstb }  # 105700
-		35840 { return :rorb }  # 106000
-		35968 { return :asrb }  # 106200
-		36032 { return :aslb }  # 106300
+		2560 { return :clr } 2688 { return :inc } 2752 { return :dec } 2816 { return :neg }
+		2880 { return :adc } 2944 { return :sbc } 3008 { return :tst } 3072 { return :ror }
+		3200 { return :asr } 3264 { return :asl } 35328 { return :clrb } 35456 { return :incb }
+		35584 { return :negb } 35648 { return :adcb } 35712 { return :sbcb } 35776 { return :tstb }
+		35840 { return :rorb } 35968 { return :asrb } 36032 { return :aslb }
 		_ { return :other }
 	}
 }
-
-let branch_kind = (instruction) {
-	let base = bits.bit_and(instruction, 65280) # 0177400
+let branch_kind_machine = (instruction) {
+	let base = fixed.word_mask(instruction, 65280)
 	match base {
-		256 { return :br }       # 000400
-		512 { return :bne }      # 001000
-		768 { return :beq }      # 001400
-		1024 { return :bge }     # 002000
-		1280 { return :blt }     # 002400
-		1536 { return :bgt }     # 003000
-		1792 { return :ble }     # 003400
-		32768 { return :bpl }    # 100000
-		33024 { return :bmi }    # 100400
-		33280 { return :bhi }    # 101000
-		33536 { return :blos }   # 101400
-		33792 { return :bvc }    # 102000
-		34048 { return :bvs }    # 102400
-		34304 { return :bhis }   # 103000 / BCC
-		34560 { return :blo }    # 103400 / BCS
+		256 { return :br } 512 { return :bne } 768 { return :beq } 1024 { return :bge }
+		1280 { return :blt } 1536 { return :bgt } 1792 { return :ble } 32768 { return :bpl }
+		33024 { return :bmi } 33280 { return :bhi } 33536 { return :blos } 33792 { return :bvc }
+		34048 { return :bvs } 34304 { return :bhis } 34560 { return :blo }
 		_ { return :other }
 	}
 }
-
-let eis_kind = (instruction) {
-	let base = bits.bit_and(instruction, 65024) # 0177000
-	match base {
-		28672 { return :mul }   # 070000
-		29184 { return :div }   # 071000
-		29696 { return :ash }   # 072000
-		30208 { return :ashc }  # 073000
-		_ { return :other }
-	}
+let eis_kind_machine = (instruction) {
+	let base = fixed.word_mask(instruction, 65024)
+	match base { 28672 { return :mul } 29184 { return :div } 29696 { return :ash } 30208 { return :ashc } _ { return :other } }
 }
-
-let instruction_kind = (instruction) {
-	let kind = double_operand_kind(instruction)
-	if not equal(kind, :other) {
-		return kind
-	}
-	kind = single_operand_kind(instruction)
-	if not equal(kind, :other) {
-		return kind
-	}
-	kind = branch_kind(instruction)
-	if not equal(kind, :other) {
-		return kind
-	}
-	kind = eis_kind(instruction)
-	if not equal(kind, :other) {
-		return kind
-	}
-
-	let single_base = bits.bit_and(instruction, 65472)
-	if equal(single_base, 192) { return :swab }  # 000300
-	if equal(single_base, 64) { return :jmp }    # 000100
-	if equal(single_base, 3392) { return :mfpi } # 006500
-	if equal(single_base, 3456) { return :mtpi } # 006600
-
-	if equal(bits.bit_and(instruction, 65024), 2048) { return :jsr } # 004000
-	if equal(bits.bit_and(instruction, 65024), 32256) { return :sob } # 077000
-	if equal(bits.bit_and(instruction, 65528), 128) { return :rts } # 000200
-
-	if equal(instruction, 0) { return :halt }
-	if equal(instruction, 1) { return :wait }
-	if equal(instruction, 5) { return :reset }
-	if equal(instruction, 6) { return :rtt }
-	if equal(instruction, 160) { return :nop }
-	if instruction >= 161 and instruction <= 191 {
-		# m40.s uses CLC; the executor supports the whole condition-code family.
-		if equal(instruction, 161) { return :clc }
+let instruction_kind_machine = (instruction) {
+	let kind = double_operand_kind_machine(instruction); if not equal(kind, :other) { return kind }
+	kind = single_operand_kind_machine(instruction); if not equal(kind, :other) { return kind }
+	kind = branch_kind_machine(instruction); if not equal(kind, :other) { return kind }
+	kind = eis_kind_machine(instruction); if not equal(kind, :other) { return kind }
+	let single_base = fixed.word_mask(instruction, 65472)
+	if equal(single_base, 192) { return :swab }
+	if equal(single_base, 64) { return :jmp }
+	if equal(single_base, 3392) { return :mfpi }
+	if equal(single_base, 3456) { return :mtpi }
+	if equal(fixed.word_mask(instruction, 65024), 2048) { return :jsr }
+	if equal(fixed.word_mask(instruction, 65024), 32256) { return :sob }
+	if equal(fixed.word_mask(instruction, 65528), 128) { return :rts }
+	if fixed.word_eq_number(instruction, 0) { return :halt }
+	if fixed.word_eq_number(instruction, 1) { return :wait }
+	if fixed.word_eq_number(instruction, 5) { return :reset }
+	if fixed.word_eq_number(instruction, 6) { return :rtt }
+	if fixed.word_eq_number(instruction, 160) { return :nop }
+	if fixed.word_ge_number(instruction, 161) and not fixed.word_ge_number(instruction, 192) {
+		if fixed.word_eq_number(instruction, 161) { return :clc }
 		return :condition_code
 	}
 	return :other
 }
+# Numeric diagnostic boundary. Execution uses only the *_machine forms above.
+let source_spec = (instruction) { return source_spec_machine(fixed.word(instruction)) }
+let destination_spec = (instruction) { return destination_spec_machine(fixed.word(instruction)) }
+let major_opcode = (instruction) { return major_opcode_machine(fixed.word(instruction)) }
+let double_operand_kind = (instruction) { return double_operand_kind_machine(fixed.word(instruction)) }
+let single_operand_kind = (instruction) { return single_operand_kind_machine(fixed.word(instruction)) }
+let branch_kind = (instruction) { return branch_kind_machine(fixed.word(instruction)) }
+let eis_kind = (instruction) { return eis_kind_machine(fixed.word(instruction)) }
+let instruction_kind = (instruction) { return instruction_kind_machine(fixed.word(instruction)) }
 
-export(
-	:operand_mode,
-	:operand_register,
-	:source_spec,
-	:destination_spec,
-	:major_opcode,
-	:double_operand_kind,
-	:single_operand_kind,
-	:branch_kind,
-	:eis_kind,
-	:instruction_kind
-)
+export(:operand_mode,:operand_register,
+:source_spec_machine,:destination_spec_machine,:major_opcode_machine,:double_operand_kind_machine,:single_operand_kind_machine,:branch_kind_machine,:eis_kind_machine,:instruction_kind_machine,
+:source_spec,:destination_spec,:major_opcode,:double_operand_kind,:single_operand_kind,:branch_kind,:eis_kind,:instruction_kind)

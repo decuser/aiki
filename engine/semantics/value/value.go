@@ -18,6 +18,7 @@ const (
 	RuneType          Type = "rune"
 	StringType        Type = "string"
 	BytesType         Type = "bytes"
+	OpaqueType        Type = "opaque"
 	SymbolType        Type = "symbol"
 	ListType          Type = "list"
 	FunctionType      Type = "function"
@@ -112,6 +113,115 @@ func (b *Bytes) Inspect() string {
 		return fmt.Sprintf("<bytes:%d %v>", len(b.Val), b.Val)
 	}
 	return fmt.Sprintf("<bytes:%d [%v...]>", len(b.Val), b.Val[:20])
+}
+
+// Opaque is a provider-owned value whose representation and operations are not
+// part of Aiki's language semantics. Providers may distinguish private kinds,
+// but ordinary Aiki code sees only an opaque capability value.
+type Opaque struct {
+	Provider string
+	Kind     string
+	Bits     uint32
+}
+
+func (o *Opaque) Type() Type      { return OpaqueType }
+func (o *Opaque) Inspect() string { return "<opaque>" }
+
+// FixedStore is provider-backed mutable fixed-width storage. Unlike Store,
+// cells are not arbitrary Aiki values. Width is provider policy, not an Aiki
+// numeric type.
+type FixedStore struct {
+	mu       sync.RWMutex
+	Kind     string
+	Bytes    []uint8
+	Words    []uint16
+	Addrs    []uint32
+	Counters []uint64
+}
+
+func (s *FixedStore) Type() Type { return StoreType }
+func (s *FixedStore) Inspect() string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return fmt.Sprintf("<store/ffi %d>", s.fixedLen())
+}
+func (s *FixedStore) fixedLen() int {
+	switch s.Kind {
+	case "byte":
+		return len(s.Bytes)
+	case "word":
+		return len(s.Words)
+	case "addr18":
+		return len(s.Addrs)
+	case "counter":
+		return len(s.Counters)
+	default:
+		return 0
+	}
+}
+func (s *FixedStore) FixedLen() int { s.mu.RLock(); defer s.mu.RUnlock(); return s.fixedLen() }
+func (s *FixedStore) FixedGet(i int) uint32 {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	switch s.Kind {
+	case "byte":
+		return uint32(s.Bytes[i])
+	case "word":
+		return uint32(s.Words[i])
+	case "addr18":
+		return s.Addrs[i]
+	default:
+		return uint32(s.Counters[i])
+	}
+}
+func (s *FixedStore) FixedSet(i int, v uint32) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	switch s.Kind {
+	case "byte":
+		s.Bytes[i] = uint8(v)
+	case "word":
+		s.Words[i] = uint16(v)
+	case "addr18":
+		s.Addrs[i] = v & 0x3ffff
+	default:
+		s.Counters[i] = uint64(v)
+	}
+}
+func (s *FixedStore) FixedSnapshot(count int) []uint32 {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	out := make([]uint32, count)
+	for i := 0; i < count; i++ {
+		switch s.Kind {
+		case "byte":
+			out[i] = uint32(s.Bytes[i])
+		case "word":
+			out[i] = uint32(s.Words[i])
+		case "addr18":
+			out[i] = s.Addrs[i]
+		default:
+			out[i] = uint32(s.Counters[i])
+		}
+	}
+	return out
+}
+
+func (s *FixedStore) CounterGet(i int) uint64 {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.Counters[i]
+}
+func (s *FixedStore) CounterSet(i int, v uint64) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.Counters[i] = v
+}
+func (s *FixedStore) CounterAdd(i int, delta uint64) uint64 {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.Counters[i] += delta
+	return s.Counters[i]
 }
 
 // Symbol

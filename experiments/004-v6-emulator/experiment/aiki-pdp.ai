@@ -1,4 +1,5 @@
 let broker_mod = import("./observe/broker")
+let execute = import("./cpu/execute")
 let monitor_input = import("./monitor/input")
 let io = import("io")
 let file = import("file")
@@ -35,6 +36,7 @@ let last_unibus_event = ""
 let running = false
 let run_count = 0
 let OBSERVER_INTERVAL_MS = 100
+let RUN_SLICE = 128
 let last_observer_publish = time.now()
 let alive = true
 let line = ""
@@ -47,6 +49,7 @@ let view_for = (kind) {
 	match kind {
 		"cpu" { return monitor.registers(m) }
 		"tape" { return monitor.tape(m) }
+		"rk" { return monitor.rk(m) }
 		"unibus" { return monitor.bus(m, last_unibus_event) }
 		"kl11" { return monitor.kl11(m) }
 		_ { return "Aiki PDP observer\n\nunknown observer: " + kind }
@@ -83,6 +86,19 @@ let accept_observer = () {
 		default {
 		}
 	}
+}
+
+let observer_kind = (kind) {
+	return equal(kind, "cpu") or equal(kind, "unibus") or equal(kind, "tape") or equal(kind, "rk") or equal(kind, "kl11")
+}
+
+let open_observer = (kind) {
+	if not observer_kind(kind) { return [@error, :observer, "observer must be cpu, unibus, tape, rk, or kl11"] }
+	let launcher = system.env("AIKI_PDP_OBSERVER_LAUNCHER")
+	if is_error(launcher) { return [@error, :observer, "observer launcher unavailable; start with showcase.sh"] }
+	let result = system.exec("sh", [launcher, kind, to_str(port)])
+	if is_error(result) { return result }
+	return true
 }
 
 let observer_summary = () {
@@ -149,13 +165,27 @@ let execute_command = (text) {
 		"registers" { println(monitor.registers(m)) }
 		"observers" { println(observer_summary()) }
 		"show" {
-			if length(parts) < 2 { println("show cpu | unibus | tape | kl11") }
+			if length(parts) < 2 { println("show cpu | unibus | tape | rk | kl11") }
 			else { println(view_for(parts[1])) }
 		}
+		"observe" {
+			if length(parts) < 2 { println("observe cpu | unibus | tape | rk | kl11") }
+			else {
+				let result = open_observer(parts[1])
+				if is_error(result) { println(inspect(result)) }
+			}
+		}
+		"open" {
+			if length(parts) < 2 { println("open cpu | unibus | tape | rk | kl11") }
+			else {
+				let result = open_observer(parts[1])
+				if is_error(result) { println(inspect(result)) }
+			}
+		}
 		"attach" {
-			if length(parts) < 3 or not equal(parts[1], "tape") {
-				println("attach tape [UNIT] FILE")
-			} else {
+			if length(parts) < 3 {
+				println("attach tape [UNIT] FILE | attach disk UNIT FILE")
+			} else if equal(parts[1], "tape") {
 				let unit = 0
 				let path = parts[2]
 				if length(parts) > 3 {
@@ -166,6 +196,37 @@ let execute_command = (text) {
 				if is_error(result) { println(inspect(result)) }
 				else {
 					println("tape " + octal.count(unit) + " attached read-only: " + path)
+					publish()
+				}
+			} else if equal(parts[1], "disk") {
+				if length(parts) < 4 { println("attach disk UNIT FILE") }
+				else {
+					let unit = monitor.parse_number(parts[2])
+					let path = parts[3]
+					if is_error(unit) { println(inspect(unit)) }
+					else {
+						let result = monitor.attach_disk_unit(m, unit, path)
+						if is_error(result) { println(inspect(result)) }
+						else { println("disk " + octal.count(unit) + " attached read-write: " + path); publish() }
+					}
+				}
+			} else {
+				println("attach tape [UNIT] FILE | attach disk UNIT FILE")
+			}
+		}
+		"demo" {
+			if length(parts) < 3 { println("demo V6_TAPE RK0") }
+			else {
+				let tape_path = parts[1]
+				let disk_path = parts[2]
+				let result = monitor.demo(m, tape_path, disk_path)
+				if is_error(result) { println(inspect(result)) }
+				else {
+					running = true
+					run_count = 0
+					println("demo tape 0 attached read-only: " + tape_path)
+					println("demo disk 0 attached read-write: " + disk_path)
+					println("booting tape 0 from 100000  ^T status  ^E suspend")
 					publish()
 				}
 			}
@@ -340,19 +401,27 @@ while alive {
 			if running {
 				let before_record = machine.tape_media_position(m)
 				let before_address = machine.tape_current_address(m)
-				let result = monitor.step(m)
+				let before_disk_reads = machine.disk_read_count(m)
+				let before_disk_writes = machine.disk_write_count(m)
+				let result = execute.run_bounded(m, RUN_SLICE)
 				drain_console()
-				run_count = run_count + 1
+				if not monitor.is_pdp_fault(result) { run_count = run_count + result }
 				let after_record = machine.tape_media_position(m)
 				if after_record > before_record {
 					last_unibus_event = "tape DMA " + octal.word(before_address) + ".." + octal.word(machine.tape_current_address(m) - 1)
+				}
+				if machine.disk_read_count(m) > before_disk_reads {
+					last_unibus_event = "disk read unit " + octal.count(machine.disk_selected_unit(m))
+				}
+				if machine.disk_write_count(m) > before_disk_writes {
+					last_unibus_event = "disk write unit " + octal.count(machine.disk_selected_unit(m))
 				}
 				let now = time.now()
 				if (after_record > before_record) or ((now - last_observer_publish) >= OBSERVER_INTERVAL_MS) {
 					publish()
 				}
 				if monitor.is_pdp_fault(result) {
-					stop_running("machine fault: " + inspect(result), false)
+					stop_running(monitor.format_pdp_fault(m, result), false)
 				} else if not machine.running(m) {
 					stop_running("machine halted", false)
 				} else if machine.waiting(m) {

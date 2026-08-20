@@ -1,0 +1,51 @@
+use("test")
+
+let fixed = import("machine/ffi")
+let memory = import("../memory/memory")
+let store = import("store/ffi")
+
+run("fixed-width machine values are opaque to ordinary Aiki", () {
+	let w = fixed.word(65535)
+	equal(inspect(w), "<opaque>")
+	faults(() { return w + 1 })
+	equal(fixed.number(w), 65535)
+})
+
+run("machine word arithmetic wraps without returning to number", () {
+	let max = fixed.word(65535)
+	let one = fixed.word(1)
+	let zero = fixed.add(max, one)
+	equal(fixed.same(zero, fixed.word(0)), true)
+	equal(fixed.add_carry(max, one), true)
+	equal(fixed.number(zero), 0)
+})
+
+run("typed word store carries opaque machine words", () {
+	let words = store.new_word(4)
+	store.set(words, 2, fixed.word(4660))
+	let value = store.get(words, 2)
+	equal(inspect(value), "<opaque>")
+	equal(fixed.number(value), 4660)
+	faults(() { store.set(words, 2, fixed.byte(1)) })
+})
+
+run("PDP RAM is word-backed with byte lanes inside fixed-width storage", () {
+	let mem = memory.new()
+	let address = memory.physical_address(512)
+	memory.write_word_machine(mem, address, memory.word(4660))
+	equal(memory.number(memory.read_byte_machine(mem, address)), 52)
+	equal(memory.number(memory.read_byte_machine(mem, memory.physical_address(513))), 18)
+	memory.write_byte_machine(mem, memory.physical_address(513), memory.byte(171))
+	equal(memory.number(memory.read_word_machine(mem, address)), 43828)
+})
+
+run("provider counter storage keeps execution bookkeeping off general store", () {
+	let counters = store.new_counter(3)
+	equal(store.counter_get(counters, 0), 0)
+	store.counter_add(counters, 0, 7)
+	store.counter_add(counters, 0, 5)
+	equal(store.counter_get(counters, 0), 12)
+	store.counter_set(counters, 1, 3)
+	equal(store.counter_get(counters, 1), 3)
+	faults(() { store.set(counters, 0, fixed.word(1)) })
+})

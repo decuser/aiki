@@ -1,0 +1,28 @@
+use("test")
+
+let memory = import("../memory/memory")
+let octal = import("../reference/octal")
+let unibus = import("../unibus/unibus")
+
+run("word-backed memory preserves PDP byte addressing", () {
+	let mem = memory.new()
+	equal(memory.size(mem), memory.PHYSICAL_BYTES)
+	equal(memory.write_word(mem, octal.parse("001000"), octal.parse("123456")), true)
+	equal(memory.read_word(mem, octal.parse("001000")), octal.parse("123456"))
+	equal(memory.read_byte(mem, octal.parse("001000")), octal.parse("000056"))
+	equal(memory.read_byte(mem, octal.parse("001001")), octal.parse("000247"))
+	equal(memory.write_byte(mem, octal.parse("001001"), octal.parse("000001")), true)
+	equal(memory.read_word(mem, octal.parse("001000")), octal.parse("000456"))
+})
+
+run("UNIBUS projects CPU I/O page onto physical backplane", () {
+	equal(unibus.cpu_physical_address(octal.parse("177560")), octal.parse("777560"))
+	equal(unibus.cpu_physical_address(octal.parse("100000")), octal.parse("100000"))
+})
+
+run("configured I/O table routes KL11 register addresses", () {
+	let bus = unibus.new()
+	# TPS starts READY. Reading the CPU-visible address must reach KL11 rather
+	# than ordinary RAM through the configured backplane map.
+	equal(unibus.read_word(bus, octal.parse("177564")), octal.parse("000200"))
+})

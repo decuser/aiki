@@ -1,0 +1,241 @@
+# machine/ffi - explicit provider-backed systems capability
+
+@func word
+@template "word(number)"
+@help "word is an explicit machine/ffi operation."
+
+@func byte
+@template "byte(number)"
+@help "byte is an explicit machine/ffi operation."
+
+@func addr18
+@template "addr18(number)"
+@help "addr18 is an explicit machine/ffi operation."
+
+@func number
+@template "number(value)"
+@help "number is an explicit machine/ffi operation."
+
+@func same
+@template "same(a, b)"
+@help "same is an explicit machine/ffi operation."
+
+@func word_add
+@template "word_add(a, b)"
+@help "word_add is an explicit machine/ffi operation."
+
+@func word_sub
+@template "word_sub(a, b)"
+@help "word_sub is an explicit machine/ffi operation."
+
+@func word_and
+@template "word_and(a, b)"
+@help "word_and is an explicit machine/ffi operation."
+
+@func word_or
+@template "word_or(a, b)"
+@help "word_or is an explicit machine/ffi operation."
+
+@func word_xor
+@template "word_xor(a, b)"
+@help "word_xor is an explicit machine/ffi operation."
+
+@func word_not
+@template "word_not(a)"
+@help "word_not is an explicit machine/ffi operation."
+
+@func word_shl
+@template "word_shl(a, count)"
+@help "word_shl is an explicit machine/ffi operation."
+
+@func word_shr
+@template "word_shr(a, count)"
+@help "word_shr is an explicit machine/ffi operation."
+
+@func word_extract
+@template "word_extract(a, start, width)"
+@help "word_extract is an explicit machine/ffi operation."
+
+@func word_lt
+@template "word_lt(a, b)"
+@help "word_lt is an explicit machine/ffi operation."
+
+@func word_gt
+@template "word_gt(a, b)"
+@help "word_gt is an explicit machine/ffi operation."
+
+@func word_zero
+@template "word_zero(a)"
+@help "word_zero is an explicit machine/ffi operation."
+
+@func word_sign
+@template "word_sign(a)"
+@help "word_sign is an explicit machine/ffi operation."
+
+@func low_byte
+@template "low_byte(a)"
+@help "low_byte is an explicit machine/ffi operation."
+
+@func high_byte
+@template "high_byte(a)"
+@help "high_byte is an explicit machine/ffi operation."
+
+@func with_low_byte
+@template "with_low_byte(a, b)"
+@help "with_low_byte is an explicit machine/ffi operation."
+
+@func with_high_byte
+@template "with_high_byte(a, b)"
+@help "with_high_byte is an explicit machine/ffi operation."
+
+@func byte_to_word
+@template "byte_to_word(b)"
+@help "byte_to_word is an explicit machine/ffi operation."
+
+@func byte_sign_word
+@template "byte_sign_word(b)"
+@help "byte_sign_word is an explicit machine/ffi operation."
+
+@func byte_zero
+@template "byte_zero(b)"
+@help "byte_zero is an explicit machine/ffi operation."
+
+@func addr_add
+@template "addr_add(a, amount)"
+@help "addr_add is an explicit machine/ffi operation."
+
+@func addr_even
+@template "addr_even(a)"
+@help "addr_even is an explicit machine/ffi operation."
+
+@func word_field
+@template "word_field(a, start, width)"
+@help "word_field is an explicit machine/ffi operation."
+
+@func word_mask
+@template "word_mask(a, mask)"
+@help "word_mask is an explicit machine/ffi operation."
+
+@func word_eq_number
+@template "word_eq_number(a, number)"
+@help "word_eq_number is an explicit machine/ffi operation."
+
+@func word_lt_number
+@template "word_lt_number(a, number)"
+@help "word_lt_number is an explicit machine/ffi operation."
+
+@func word_ge_number
+@template "word_ge_number(a, number)"
+@help "word_ge_number is an explicit machine/ffi operation."
+
+@func word_add_small
+@template "word_add_small(a, amount)"
+@help "word_add_small is an explicit machine/ffi operation."
+
+@func word_sub_small
+@template "word_sub_small(a, amount)"
+@help "word_sub_small is an explicit machine/ffi operation."
+
+@func word_add_carry
+@template "word_add_carry(a, b)"
+@help "word_add_carry is an explicit machine/ffi operation."
+
+@func word_sub_borrow
+@template "word_sub_borrow(a, b)"
+@help "word_sub_borrow is an explicit machine/ffi operation."
+
+@func word_bit
+@template "word_bit(a, position)"
+@help "word_bit is an explicit machine/ffi operation."
+
+@func word_set_bit
+@template "word_set_bit(a, position, value)"
+@help "word_set_bit is an explicit machine/ffi operation."
+
+@func zero
+@template "zero(a)"
+@help "zero is an explicit machine/ffi operation."
+
+@func negative
+@template "negative(a)"
+@help "negative is an explicit machine/ffi operation."
+
+@func addr_from_word
+@template "addr_from_word(a)"
+@help "addr_from_word is an explicit machine/ffi operation."
+
+@func addr_lt_number
+@template "addr_lt_number(a, number)"
+@help "addr_lt_number is an explicit machine/ffi operation."
+
+@func addr_ge_number
+@template "addr_ge_number(a, number)"
+@help "addr_ge_number is an explicit machine/ffi operation."
+
+@func word_any_mask
+@template "word_any_mask(a, mask)"
+@help "word_any_mask is an explicit machine/ffi operation."
+
+@func add
+@template "add(a, b)"
+@help "add is an explicit machine/ffi operation."
+
+@func sub
+@template "sub(a, b)"
+@help "sub is an explicit machine/ffi operation."
+
+@func bit_and
+@template "bit_and(a, b)"
+@help "bit_and is an explicit machine/ffi operation."
+
+@func bit_or
+@template "bit_or(a, b)"
+@help "bit_or is an explicit machine/ffi operation."
+
+@func bit_xor
+@template "bit_xor(a, b)"
+@help "bit_xor is an explicit machine/ffi operation."
+
+@func bit_not
+@template "bit_not(a)"
+@help "bit_not is an explicit machine/ffi operation."
+
+@func add_small
+@template "add_small(a, amount)"
+@help "add_small is an explicit machine/ffi operation."
+
+@func sub_small
+@template "sub_small(a, amount)"
+@help "sub_small is an explicit machine/ffi operation."
+
+@func lt
+@template "lt(a, b)"
+@help "lt is an explicit machine/ffi operation."
+
+@func gt
+@template "gt(a, b)"
+@help "gt is an explicit machine/ffi operation."
+
+@func add_carry
+@template "add_carry(a, b)"
+@help "add_carry is an explicit machine/ffi operation."
+
+@func sub_borrow
+@template "sub_borrow(a, b)"
+@help "sub_borrow is an explicit machine/ffi operation."
+
+@func shr1
+@template "shr1(a)"
+@help "shr1 is an explicit machine/ffi operation."
+
+@func shl1
+@template "shl1(a)"
+@help "shl1 is an explicit machine/ffi operation."
+
+@func low_bit
+@template "low_bit(a)"
+@help "low_bit is an explicit machine/ffi operation."
+
+@func set_high_bit
+@template "set_high_bit(a, value)"
+@help "set_high_bit is an explicit machine/ffi operation."
