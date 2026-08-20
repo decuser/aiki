@@ -1,0 +1,14 @@
+use("test")
+
+let octal = import("../reference/octal")
+let trace = import("../observe/bootstrap_trace")
+
+run("bootstrap trace renders PDP values in octal", () {
+	equal(trace.instruction_line(octal.parse("100000"), octal.parse("012700")), "100000  012700  MOV #172526,R0")
+	equal(trace.instruction_line(octal.parse("100012"), octal.parse("000777")), "100012  000777  BR 100012")
+})
+
+run("bootstrap trace renders DMA range from observed bus state", () {
+	equal(trace.dma_line(0, 1, 0, octal.parse("001000")), "UNIBUS   DMA 000000..000777")
+	equal(trace.dma_line(1, 1, octal.parse("001000"), octal.parse("002000")), "")
+})

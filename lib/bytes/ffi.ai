@@ -4,44 +4,28 @@ package "bytes/ffi"
 # Bytes are an opaque type backed by Go []byte.
 # Use specialized functions: bytes_get, bytes_length, bytes_slice.
 # Convert string to bytes (UTF-8 encoding)
-let str_to_bytes = (s) {
-	_str_to_bytes(s)
-}
+let str_to_bytes = _str_to_bytes
 
 # Convert bytes to string (UTF-8 decoding)
-let bytes_to_str = (bytes) {
-	_bytes_to_str(bytes)
-}
+let bytes_to_str = _bytes_to_str
 
 # Create bytes from list of integers (0-255)
-let bytes_new = (list) {
-	_bytes_new(list)
-}
+let bytes_new = _bytes_new
 
 # Get byte at index (returns number 0-255)
-let bytes_get = (bytes, i) {
-	_bytes_get(bytes, i)
-}
+let bytes_get = _bytes_get
 
 # Get length of bytes
-let bytes_length = (bytes) {
-	_bytes_length(bytes)
-}
+let bytes_length = _bytes_length
 
 # Slice bytes from start to end (exclusive)
-let bytes_slice = (bytes, start, end) {
-	_bytes_slice(bytes, start, end)
-}
+let bytes_slice = _bytes_slice
 
 # Decode ASCII decimal digits into raw byte values 0-9.
-let digits_from_text = (text) {
-	_bytes_digits_from_text(text)
-}
+let digits_from_text = _bytes_digits_from_text
 
 # Encode raw byte values 0-9 as ASCII decimal digits.
-let digits_to_text = (bytes) {
-	_bytes_digits_to_text(bytes)
-}
+let digits_to_text = _bytes_digits_to_text
 
 export(
 	:str_to_bytes,

@@ -1,0 +1,66 @@
+use("test")
+
+let audit = import("../audit/audit")
+let execute = import("../cpu/execute")
+let machine = import("../machine/machine")
+let monitor = import("../monitor/monitor")
+let octal = import("../reference/octal")
+let str = import("string/native")
+
+let fresh = () {
+	let m = machine.new()
+	machine.reset_machine(m)
+	machine.set_pc(m, octal.parse("010000"))
+	return m
+}
+
+run("NEG word implements two's-complement NZVC semantics", () {
+	let m = fresh()
+	machine.set_register(m, 0, octal.parse("000010"))
+	machine.deposit_word(m, octal.parse("010000"), octal.parse("005400"))
+	equal(execute.step(m), true)
+	equal(machine.get_register(m, 0), octal.parse("177770"))
+	equal(machine.psw(m), octal.parse("000011")) # N,C
+})
+
+run("NEG sets V and C for the most-negative word", () {
+	let m = fresh()
+	machine.set_register(m, 0, octal.parse("100000"))
+	machine.deposit_word(m, octal.parse("010000"), octal.parse("005400"))
+	equal(execute.step(m), true)
+	equal(machine.get_register(m, 0), octal.parse("100000"))
+	equal(machine.psw(m), octal.parse("000013")) # N,V,C
+})
+
+run("NEG clears carry when the result is zero", () {
+	let m = fresh()
+	machine.set_psw(m, octal.parse("000017"))
+	machine.deposit_word(m, octal.parse("010000"), octal.parse("005400"))
+	equal(execute.step(m), true)
+	equal(machine.get_register(m, 0), 0)
+	equal(machine.psw(m), octal.parse("000004")) # Z only
+})
+
+run("NEGB changes only the low register byte and uses byte overflow", () {
+	let m = fresh()
+	machine.set_register(m, 0, octal.parse("021200")) # high byte 021, low byte 0200
+	machine.deposit_word(m, octal.parse("010000"), octal.parse("105400"))
+	equal(execute.step(m), true)
+	equal(machine.get_register(m, 0), octal.parse("021200"))
+	equal(machine.psw(m), octal.parse("000013")) # N,V,C
+})
+
+
+run("audit fast instruction index remains tied to manifest order", () {
+	is_true(audit.validate_instruction_index())
+})
+
+run("reserved-instruction rendering reports octal fault PC and IR", () {
+	let m = fresh()
+	machine.deposit_word(m, octal.parse("010000"), octal.parse("000007"))
+	let result = execute.step(m)
+	is_true(monitor.is_pdp_fault(result))
+	let text = monitor.format_pdp_fault(m, result)
+	is_true(str.contains(text, "PC  010000"))
+	is_true(str.contains(text, "IR  000007"))
+})

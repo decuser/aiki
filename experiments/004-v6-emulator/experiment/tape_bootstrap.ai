@@ -1,0 +1,90 @@
+let execute = import("./cpu/execute")
+let machine = import("./machine/machine")
+let octal = import("./reference/octal")
+let trace = import("./observe/bootstrap_trace")
+let system = import("system")
+
+let args = system.args()
+if empty(args) {
+	println("usage: aiki experiments/004-v6-emulator/experiment/tape_bootstrap.ai v6.tape")
+	system.exit(2)
+}
+
+let m = machine.new()
+machine.reset_machine(m)
+let attached = machine.attach_tape_raw(m, args[0])
+if is_error(attached) {
+	println(inspect(attached))
+	system.exit(1)
+}
+
+let base = octal.parse("100000")
+machine.deposit_word(m, base, octal.parse("012700"))
+machine.deposit_word(m, base + 2, octal.parse("172526"))
+machine.deposit_word(m, base + 4, octal.parse("010040"))
+machine.deposit_word(m, base + 6, octal.parse("012740"))
+machine.deposit_word(m, base + 8, octal.parse("060003"))
+machine.deposit_word(m, base + 10, octal.parse("000777"))
+machine.set_pc(m, base)
+
+println("Aiki PDP-11/40 V6 raw-tape bootstrap")
+println("")
+println("CPU      PDP-11/40")
+println("tape     " + args[0])
+println("record   " + octal.word(machine.tape_media_position(m)))
+println("load     000000..000777")
+println("")
+
+# Execute the three setup/READ instructions plus one trip through the terminal
+# BR loop. Immediate words are instruction extensions, not independent steps.
+let step_count = 0
+while step_count < 4 {
+	let before_pc = machine.pc(m)
+	let before_word = machine.examine_word(m, before_pc)
+	let before_record = machine.tape_media_position(m)
+	let before_address = machine.tape_current_address(m)
+	let before_count = machine.tape_byte_count(m)
+
+	println(trace.instruction_line(before_pc, before_word))
+	let stepped = execute.step(m)
+	if is_error(stepped) {
+		println(inspect(stepped))
+		system.exit(1)
+	}
+
+	let after_record = machine.tape_media_position(m)
+	if after_record > before_record {
+		println("TM11     READ record " + octal.word(before_record))
+		let dma = trace.dma_line(before_record, after_record, before_address, machine.tape_current_address(m))
+		if not equal(dma, "") { println(dma) }
+		println("TM11     byte count " + octal.word(before_count) + " -> " + octal.word(machine.tape_byte_count(m)))
+		println("TM11     complete")
+	}
+	step_count = step_count + 1
+}
+
+let ok = true
+ok = ok and equal(machine.pc(m), octal.parse("100012"))
+ok = ok and equal(machine.tape_media_position(m), 1)
+ok = ok and equal(machine.tape_current_address(m), octal.parse("001000"))
+ok = ok and equal(machine.examine_word(m, 0), octal.parse("000407"))
+ok = ok and equal(machine.examine_word(m, 2), octal.parse("000654"))
+ok = ok and equal(machine.examine_word(m, 14), octal.parse("000001"))
+ok = ok and equal(machine.examine_word(m, 16), octal.parse("012706"))
+
+println("")
+println("CPU      suspended at terminal bootstrap loop")
+println("PC       " + octal.word(machine.pc(m)))
+println("tape rec " + octal.word(machine.tape_media_position(m)))
+println("mem addr " + octal.word(machine.tape_current_address(m)))
+println("byte cnt " + octal.word(machine.tape_byte_count(m)))
+println("word 000000  " + octal.word(machine.examine_word(m, 0)))
+println("word 000002  " + octal.word(machine.examine_word(m, 2)))
+if ok {
+	println("")
+	println("TAPE BOOTSTRAP PASS")
+} else {
+	println("")
+	println("TAPE BOOTSTRAP FAIL")
+	system.exit(1)
+}

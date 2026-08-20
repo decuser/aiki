@@ -1,0 +1,28 @@
+package "aiki_pdp_fetch"
+
+let fixed = import("machine/ffi")
+let machine = import("../machine/machine")
+let state = import("../machine/state")
+let unibus = import("../unibus/unibus")
+
+# PC and instruction remain opaque 16-bit machine words throughout fetch.
+let word_machine = (m) {
+	let address = machine.pc_word(m)
+	let value = machine.read_word_machine(m, address)
+	match value { [@pdp_fault, kind, detail] { return value } _ {} }
+	machine.set_pc_word(m, fixed.word_add_small(address, 2))
+	return value
+}
+
+# Bound execution path: run_bounded resolves state and UNIBUS once.
+let word_bound = (cpu_words, bus, bus_memory, bus_counts) {
+	let address = state.pc_word_bound(cpu_words)
+	let value = unibus.read_word_bound(bus, bus_memory, bus_counts, address)
+	match value { [@pdp_fault, kind, detail] { return value } _ {} }
+	state.set_pc_word_bound(cpu_words, fixed.word_add_small(address, 2))
+	return value
+}
+
+let word = (m) { let value=word_machine(m); match value { [@pdp_fault, kind, detail] { return value } _ {} }; return fixed.number(value) }
+
+export(:word_machine,:word_bound,:word)

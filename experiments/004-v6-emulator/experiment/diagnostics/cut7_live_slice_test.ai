@@ -1,0 +1,41 @@
+use("test")
+
+let execute = import("../cpu/execute")
+let machine = import("../machine/machine")
+let monitor = import("../monitor/monitor")
+let octal = import("../reference/octal")
+
+run("KL11 host output survives more than one guest transmit before drain", () {
+	let m = monitor.new()
+	equal(machine.write_byte(m, octal.parse("177566"), ord('A')), true)
+	is_false(machine.console_transmitter_ready(m))
+	machine.complete_instruction(m, 1)
+	is_true(machine.console_transmitter_ready(m))
+	equal(machine.write_byte(m, octal.parse("177566"), ord('B')), true)
+	machine.complete_instruction(m, 1)
+	equal(machine.console_tx_count(m), 2)
+	equal(machine.console_last_tx(m), ord('B'))
+	equal(machine.console_take_output(m), ord('A'))
+	equal(machine.console_take_output(m), ord('B'))
+	match machine.console_take_output(m) {
+		[@end] { is_true(true) }
+		_ { is_true(false) }
+	}
+})
+
+run("bounded live execution stops on architectural HALT", () {
+	let m = monitor.new()
+	let pc = octal.parse("150000")
+	machine.deposit_word(m, pc, octal.parse("000000"))
+	machine.set_pc(m, pc)
+	machine.set_waiting(m, false)
+	machine.set_suspended(m, false)
+	machine.set_running(m, true)
+	equal(execute.run_bounded(m, 128), 1)
+	is_false(machine.running(m))
+	equal(machine.steps(m), 1)
+	equal(machine.machine_time(m), 1)
+	is_false(machine.waiting(m))
+	is_false(machine.suspended(m))
+	equal(machine.pc(m), pc + 2)
+})

@@ -1,0 +1,26 @@
+package "store/ffi"
+
+# Typed mutable storage for opaque machine values. This is intentionally not an
+# accelerated arbitrary-value store.
+let new_byte = _fixed_store_new_byte
+let new_word = _fixed_store_new_word
+let new_addr18 = _fixed_store_new_addr18
+let new_counter = _fixed_store_new_counter
+let get = _fixed_store_get
+let set = _fixed_store_set
+let length = _fixed_store_length
+let snapshot = (store, ...args) {
+  if empty(args) { return _fixed_store_snapshot(store) }
+  if not empty(rest(args)) { return [@error, :arity, "snapshot expects store and optional count"] }
+  return _fixed_store_snapshot(store, first(args))
+}
+let word_read_addr = _fixed_store_word_read_addr
+let word_write_addr = _fixed_store_word_write_addr
+let byte_read_addr = _fixed_store_byte_read_addr
+let byte_write_addr = _fixed_store_byte_write_addr
+let counter_get = _fixed_store_counter_get
+let counter_set = _fixed_store_counter_set
+let counter_add = _fixed_store_counter_add
+export(:new_byte, :new_word, :new_addr18, :get, :set, :length, :snapshot,
+       :word_read_addr, :word_write_addr, :byte_read_addr, :byte_write_addr,
+       :new_counter, :counter_get, :counter_set, :counter_add)

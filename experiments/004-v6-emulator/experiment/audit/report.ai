@@ -1,0 +1,89 @@
+package "aiki_pdp_audit_report"
+
+let machine = import("../machine/machine")
+let octal = import("../reference/octal")
+let bits = import("bits/ffi")
+let str = import("string/native")
+
+let MODE_NAMES = [
+	"register",
+	"register deferred",
+	"autoincrement",
+	"autoincrement deferred",
+	"autodecrement",
+	"autodecrement deferred",
+	"indexed",
+	"indexed deferred"
+]
+
+
+let psw_flag_names = (mask) {
+	let names = []
+	if equal(bits.extract(mask, 3, 1), 1) { names = append(names, "N") }
+	if equal(bits.extract(mask, 2, 1), 1) { names = append(names, "Z") }
+	if equal(bits.extract(mask, 1, 1), 1) { names = append(names, "V") }
+	if equal(bits.extract(mask, 0, 1), 1) { names = append(names, "C") }
+	if empty(names) {
+		return "-"
+	}
+	return str.join(names, " ")
+}
+
+let psw_lines = (m) {
+	let transition = machine.audit_last_psw_transition(m)
+	let lines = ["psw changes"]
+	if equal(transition[0], :none) {
+		return lines
+	}
+	lines = append(lines, "  last " + to_str(transition[0]))
+	lines = append(lines, "    before " + octal.word(transition[1]))
+	lines = append(lines, "    after  " + octal.word(transition[2]))
+	lines = append(lines, "    delta  " + octal.word(transition[3]) + "  " + psw_flag_names(transition[3]))
+	return lines
+}
+
+let instruction_lines = (m) {
+	let lines = ["instructions"]
+	let counts = machine.audit_instruction_counts(m)
+	let i = 0
+	while i < length(counts) {
+		if counts[i][1] > 0 {
+			lines = append(lines, "  " + to_str(counts[i][0]) + "  " + octal.count(counts[i][1]))
+		}
+		i = i + 1
+	}
+	return lines
+}
+
+let mode_lines = (m, role) {
+	let lines = [to_str(role) + " addressing"]
+	let mode = 0
+	while mode < 8 {
+		let n = machine.audit_mode_count(m, role, mode)
+		if n > 0 {
+			lines = append(lines, "  " + octal.count(mode) + "  " + MODE_NAMES[mode] + "  " + octal.count(n))
+		}
+		mode = mode + 1
+	}
+	return lines
+}
+
+let render = (m) {
+	let lines = ["PDP-11 execution audit", "", "all numeric values are octal", ""]
+	let groups = [instruction_lines(m), mode_lines(m, :source), mode_lines(m, :destination), psw_lines(m)]
+	let g = 0
+	while g < length(groups) {
+		let i = 0
+		while i < length(groups[g]) {
+			lines = append(lines, groups[g][i])
+			i = i + 1
+		}
+		if g < (length(groups) - 1) {
+			lines = append(lines, "")
+		}
+		g = g + 1
+	}
+	return str.join(lines, "\n")
+}
+
+export(:render)

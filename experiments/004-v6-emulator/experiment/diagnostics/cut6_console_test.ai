@@ -1,0 +1,74 @@
+use("test")
+
+let bytes = import("bytes/ffi")
+let machine = import("../machine/machine")
+let monitor = import("../monitor/monitor")
+let octal = import("../reference/octal")
+let str = import("string/native")
+let v6_tape = import("../media/v6_tape")
+let views = import("../observe/views")
+
+run("KL11 console registers occupy the V6 console addresses", () {
+	let m = monitor.new()
+	equal(machine.read_word(m, octal.parse("177564")), octal.parse("000200"))
+	equal(machine.read_word(m, octal.parse("177560")), 0)
+})
+
+run("KL11 transmitter clears READY on write and emits one character on advance", () {
+	let m = monitor.new()
+	equal(machine.write_byte(m, octal.parse("177566"), ord('A')), true)
+	is_false(machine.console_transmitter_ready(m))
+	equal(machine.console_tx_count(m), 1)
+	machine.complete_instruction(m, 1)
+	is_true(machine.console_transmitter_ready(m))
+	let value = machine.console_take_output(m)
+	equal(value, ord('A'))
+	match machine.console_take_output(m) {
+		[@end] { is_true(true) }
+		_ { is_true(false) }
+	}
+})
+
+run("KL11 receiver exposes typed input and clears DONE when TKB is read", () {
+	let m = monitor.new()
+	equal(machine.console_receive(m, ord('x')), true)
+	is_true(machine.console_receiver_done(m))
+	equal(machine.console_rx_count(m), 1)
+	equal(machine.read_byte(m, octal.parse("177562")), ord('x'))
+	is_false(machine.console_receiver_done(m))
+})
+
+run("KL11 observer is a read-only architectural projection", () {
+	let m = monitor.new()
+	machine.console_receive(m, ord('q'))
+	machine.write_byte(m, octal.parse("177566"), ord('='))
+	let text = views.kl11(m)
+	is_true(str.contains(text, "KL11 Console"))
+	is_true(str.contains(text, "rx chars  1"))
+	is_true(str.contains(text, "tx chars  1"))
+	is_true(str.contains(text, "last tx"))
+})
+
+run("TM11 rewind returns selected raw media to record zero", () {
+	let m = monitor.new()
+	let values = []
+	let i = 0
+	while i < 1024 { values = append(values, i - (truncate(i / 256) * 256)); i = i + 1 }
+	let media = v6_tape.from_bytes(bytes.bytes_new(values))
+	equal(machine.attach_tape_media_unit(m, 0, media), true)
+	# Read one record through the already-gated bootstrap path.
+	equal(monitor.boot_tape(m, 0), true)
+	let n = 0
+	while n < 4 { monitor.step(m); n = n + 1 }
+	equal(machine.tape_media_position(m), 1)
+	# TM11 function 111 + GO, unit zero.
+	equal(machine.write_word(m, octal.parse("172522"), octal.parse("000017")), true)
+	machine.complete_instruction(m, 1)
+	equal(machine.tape_media_position(m), 0)
+})
+
+run("monitor exposes the dedicated KL11 observer view", () {
+	let m = monitor.new()
+	is_true(str.contains(monitor.kl11(m), "Aiki PDP-11/40 — KL11 Console"))
+	is_true(str.contains(monitor.help_text("monitor"), "kl11"))
+})

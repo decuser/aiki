@@ -1,0 +1,30 @@
+package "aiki_pdp_input"
+
+let bytes = import("bytes/ffi")
+let io = import("io")
+
+let reader = (events) {
+	let bytes = import("bytes/ffi")
+	let io = import("io")
+	let alive = true
+	while alive {
+		let data = io.read(:stdin, 1)
+		if is_error(data) {
+			send(events, [:input_error, inspect(data)])
+			alive = false
+		} else if equal(shape(data), :end) {
+			send(events, [:input_eof])
+			alive = false
+		} else if bytes.bytes_length(data) > 0 {
+			send(events, [:key, bytes.bytes_get(data, 0)])
+		}
+	}
+}
+
+let start = () {
+	let events = channel()
+	spawn(reader, events)
+	return events
+}
+
+export(:start)

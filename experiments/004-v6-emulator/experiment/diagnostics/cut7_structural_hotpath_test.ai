@@ -1,0 +1,49 @@
+use("test")
+
+let execute = import("../cpu/execute")
+let machine = import("../machine/machine")
+let octal = import("../reference/octal")
+
+let LOOP_PC = octal.parse("150000")
+let CLR_AUTOINCREMENT_R0 = octal.parse("005020")
+let CMP_R0_R6 = octal.parse("020006")
+let BLO_BACK_THREE_WORDS = octal.parse("103775")
+
+let prepare = () {
+	let m = machine.new()
+	machine.reset_machine(m)
+	machine.set_register(m, 0, 0)
+	machine.set_register(m, 6, 8)
+	machine.set_pc(m, LOOP_PC)
+	machine.deposit_word(m, LOOP_PC, CLR_AUTOINCREMENT_R0)
+	machine.deposit_word(m, LOOP_PC + 2, CMP_R0_R6)
+	machine.deposit_word(m, LOOP_PC + 4, BLO_BACK_THREE_WORDS)
+	return m
+}
+
+run("bound CLR/CMP/BLO path matches single-step machine semantics", () {
+	let stepped = prepare()
+	let bounded = prepare()
+
+	let i = 0
+	while i < 12 {
+		equal(execute.step(stepped), true)
+		i = i + 1
+	}
+	equal(execute.run_bounded(bounded, 12), 12)
+
+	equal(machine.get_register(bounded, 0), machine.get_register(stepped, 0))
+	equal(machine.get_register(bounded, 6), machine.get_register(stepped, 6))
+	equal(machine.pc(bounded), machine.pc(stepped))
+	equal(machine.psw(bounded), machine.psw(stepped))
+	equal(machine.steps(bounded), machine.steps(stepped))
+	equal(machine.machine_time(bounded), machine.machine_time(stepped))
+	equal(machine.examine_word(bounded, 0), machine.examine_word(stepped, 0))
+	equal(machine.examine_word(bounded, 6), machine.examine_word(stepped, 6))
+	equal(machine.audit_instruction_count(bounded, :clr), machine.audit_instruction_count(stepped, :clr))
+	equal(machine.audit_instruction_count(bounded, :cmp), machine.audit_instruction_count(stepped, :cmp))
+	equal(machine.audit_instruction_count(bounded, :blo), machine.audit_instruction_count(stepped, :blo))
+	equal(machine.audit_mode_count(bounded, :destination, 2), machine.audit_mode_count(stepped, :destination, 2))
+	equal(machine.audit_mode_count(bounded, :source, 0), machine.audit_mode_count(stepped, :source, 0))
+	equal(machine.audit_mode_count(bounded, :destination, 0), machine.audit_mode_count(stepped, :destination, 0))
+})

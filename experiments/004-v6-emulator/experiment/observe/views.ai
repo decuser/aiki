@@ -1,0 +1,141 @@
+package "aiki_pdp_views"
+
+let decode = import("../cpu/decode")
+let machine = import("../machine/machine")
+let octal = import("../reference/octal")
+
+let instruction_name = (word) {
+	let kind = decode.instruction_kind(word)
+	if equal(kind, :other) { return "???" }
+	return to_str(kind)
+}
+
+let cpu = (m) {
+	let text = "Aiki PDP-11/40 — CPU\n\n"
+	let i = 0
+	while i < 6 {
+		text = text + "R" + to_str(i) + "  " + octal.word(machine.get_register(m, i))
+		if equal(i - (truncate(i / 2) * 2), 0) {
+			text = text + "    "
+		} else {
+			text = text + "\n"
+		}
+		i = i + 1
+	}
+	let pc = machine.pc(m)
+	let word = machine.examine_word(m, pc)
+	text = text + "SP  " + octal.word(machine.sp(m)) + "    PC  " + octal.word(pc) + "\n"
+	text = text + "PSW " + octal.word(machine.psw(m)) + "\n\n"
+	text = text + "IR  " + octal.word(word) + "  " + instruction_name(word) + "\n"
+	text = text + "steps " + octal.count(machine.steps(m)) + "   time " + octal.count(machine.machine_time(m)) + "\n"
+	if machine.running(m) {
+		text = text + "state RUNNING"
+	} else if machine.waiting(m) {
+		text = text + "state WAITING"
+	} else if machine.suspended(m) {
+		text = text + "state SUSPENDED"
+	} else {
+		text = text + "state HALTED"
+	}
+	return text
+}
+
+let tape = (m) {
+	let text = "Aiki PDP-11/40 — Tape\n\n"
+	text = text + "units\n"
+	let unit = 0
+	while unit < 8 {
+		text = text + "  " + octal.count(unit) + "  "
+		if machine.tape_unit_attached(m, unit) { text = text + machine.tape_unit_path(m, unit) }
+		else { text = text + "--" }
+		text = text + "\n"
+		unit = unit + 1
+	}
+	text = text + "\nselected  " + octal.count(machine.tape_selected_unit(m)) + "\n"
+	text = text + "record    " + octal.word(machine.tape_media_position(m)) + "\n"
+	text = text + "status    " + octal.word(machine.tape_status(m)) + "\n"
+	text = text + "command   " + octal.word(machine.tape_command(m)) + "\n"
+	text = text + "byte cnt  " + octal.word(machine.tape_byte_count(m)) + "\n"
+	text = text + "mem addr  " + octal.word(machine.tape_current_address(m)) + "\n\n"
+	text = text + "reads     " + octal.count(machine.tape_read_count(m)) + "\n"
+	text = text + "writes    " + octal.count(machine.tape_write_count(m)) + "\n"
+	text = text + "bytes in  " + octal.count(machine.tape_bytes_in(m)) + "\n"
+	text = text + "bytes out " + octal.count(machine.tape_bytes_out(m))
+	return text
+}
+
+
+let rk = (m) {
+	let text = "Aiki PDP-11/40 — RK11 Disk\n\n"
+	text = text + "drives\n"
+	let unit = 0
+	while unit < 8 {
+		text = text + "  " + octal.count(unit) + "  "
+		if machine.disk_unit_attached(m, unit) { text = text + machine.disk_unit_path(m, unit) }
+		else { text = text + "--" }
+		text = text + "\n"
+		unit = unit + 1
+	}
+	text = text + "\nselected  " + octal.count(machine.disk_selected_unit(m)) + "\n"
+	text = text + "RKDS      " + octal.word(machine.disk_drive_status(m)) + "\n"
+	text = text + "RKER      " + octal.word(machine.disk_error(m)) + "\n"
+	text = text + "RKCS      " + octal.word(machine.disk_control_status(m)) + "\n"
+	text = text + "RKWC      " + octal.word(machine.disk_word_count(m)) + "\n"
+	text = text + "RKBA      " + octal.word(machine.disk_bus_address(m)) + "\n"
+	text = text + "RKDA      " + octal.word(machine.disk_address(m)) + "\n"
+	text = text + "cyl/surf/sec  " + octal.count(machine.disk_cylinder(m)) + "/" + octal.count(machine.disk_surface(m)) + "/" + octal.count(machine.disk_sector(m)) + "\n\n"
+	text = text + "reads     " + octal.count(machine.disk_read_count(m)) + "\n"
+	text = text + "writes    " + octal.count(machine.disk_write_count(m)) + "\n"
+	text = text + "bytes in  " + octal.count(machine.disk_bytes_in(m)) + "\n"
+	text = text + "bytes out " + octal.count(machine.disk_bytes_out(m))
+	return text
+}
+
+let printable = (value) {
+	if (value >= 32) and (value <= 126) { return to_str(chr(value)) }
+	if equal(value, 10) { return "\n" }
+	if equal(value, 13) { return "\r" }
+	return "."
+}
+
+let kl11 = (m) {
+	let text = "Aiki PDP-11/40 — KL11 Console\n\n"
+	text = text + "TKS  " + octal.word(machine.console_receiver_status(m)) + "   DONE " + to_str(machine.console_receiver_done(m)) + "   IE " + to_str(machine.console_receiver_interrupt_enabled(m)) + "\n"
+	text = text + "TKB  " + octal.word(machine.console_receiver_buffer(m)) + "\n"
+	text = text + "TPS  " + octal.word(machine.console_transmitter_status(m)) + "   READY " + to_str(machine.console_transmitter_ready(m)) + "   IE " + to_str(machine.console_transmitter_interrupt_enabled(m)) + "\n"
+	text = text + "TPB  " + octal.word(machine.console_transmitter_buffer(m)) + "\n\n"
+	text = text + "rx chars  " + octal.count(machine.console_rx_count(m)) + "\n"
+	text = text + "tx chars  " + octal.count(machine.console_tx_count(m)) + "\n"
+	text = text + "last rx   " + octal.word(machine.console_last_rx(m)) + "  " + printable(machine.console_last_rx(m)) + "\n"
+	text = text + "last tx   " + octal.word(machine.console_last_tx(m)) + "  " + printable(machine.console_last_tx(m))
+	return text
+}
+
+let unibus = (m, last_event) {
+	let text = "Aiki PDP-11/40 — UNIBUS\n\n"
+	text = text + "CPU I/O page 160000..177777\n"
+	text = text + "physical     760000..777777\n\n"
+	text = text + "DATI       " + octal.count(machine.unibus_dati_count(m)) + "\n"
+	text = text + "DATO       " + octal.count(machine.unibus_dato_count(m)) + "\n"
+	text = text + "DATOB      " + octal.count(machine.unibus_datob_count(m)) + "\n"
+	text = text + "NPR reads  " + octal.count(machine.unibus_npr_read_count(m)) + "\n"
+	text = text + "NPR writes " + octal.count(machine.unibus_npr_write_count(m)) + "\n\n"
+	text = text + "connected\n"
+	text = text + "  KL11 console\n"
+	let unit = 0
+	while unit < 8 {
+		if machine.tape_unit_attached(m, unit) { text = text + "  tape " + octal.count(unit) + "  " + machine.tape_unit_path(m, unit) + "\n" }
+		if machine.disk_unit_attached(m, unit) { text = text + "  disk " + octal.count(unit) + "  " + machine.disk_unit_path(m, unit) + "\n" }
+		unit = unit + 1
+	}
+	text = text + "\n"
+	text = text + "last transaction\n  "
+	if equal(last_event, "") {
+		text = text + "none"
+	} else {
+		text = text + last_event
+	}
+	return text
+}
+
+export(:cpu, :tape, :rk, :kl11, :unibus, :instruction_name)

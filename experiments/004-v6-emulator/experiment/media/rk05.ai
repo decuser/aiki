@@ -1,0 +1,69 @@
+package "aiki_pdp_rk05"
+
+let bytes = import("bytes/ffi")
+let file = import("file")
+
+let SECTOR_BYTES = 512
+let WORDS_PER_SECTOR = 256
+let SECTORS_PER_TRACK = 12
+let SURFACES = 2
+let CYLINDERS = 200
+let SECTORS = CYLINDERS * SURFACES * SECTORS_PER_TRACK
+let PACK_BYTES = SECTORS * SECTOR_BYTES
+
+let MEDIA_HANDLE = 0
+let MEDIA_PATH = 1
+
+let create_blank = (path) {
+	let f = file.open(path, :write)
+	if is_error(f) { return f }
+	let written = file.write_at(f, PACK_BYTES - 1, bytes.bytes_new([0]))
+	if is_error(written) { file.close(f); return written }
+	return [f, path]
+}
+
+let open_pack = (path) {
+	if not file.exists(path) { return create_blank(path) }
+	let n = file.size(path)
+	if is_error(n) { return n }
+	if not equal(n, PACK_BYTES) {
+		return [@error, :disk, "RK05 pack must be exactly 4800 sectors of 512 bytes"]
+	}
+	let f = file.open(path, :read_write)
+	if is_error(f) { return f }
+	return [f, path]
+}
+
+let path = (media) { return media[MEDIA_PATH] }
+
+let valid_sector = (sector) { return (sector >= 0) and (sector < SECTORS) }
+
+let read_sector = (media, sector) {
+	if not valid_sector(sector) { return [@error, :disk, "RK05 sector out of range"] }
+	return file.read_at(media[MEDIA_HANDLE], sector * SECTOR_BYTES, SECTOR_BYTES)
+}
+
+let write_sector = (media, sector, data) {
+	if not valid_sector(sector) { return [@error, :disk, "RK05 sector out of range"] }
+	if not equal(bytes.bytes_length(data), SECTOR_BYTES) {
+		return [@error, :disk, "RK05 sector write must be 512 bytes"]
+	}
+	return file.write_at(media[MEDIA_HANDLE], sector * SECTOR_BYTES, data)
+}
+
+let close = (media) { return file.close(media[MEDIA_HANDLE]) }
+
+export(
+	:SECTOR_BYTES,
+	:WORDS_PER_SECTOR,
+	:SECTORS_PER_TRACK,
+	:SURFACES,
+	:CYLINDERS,
+	:SECTORS,
+	:PACK_BYTES,
+	:open_pack,
+	:path,
+	:read_sector,
+	:write_sector,
+	:close
+)

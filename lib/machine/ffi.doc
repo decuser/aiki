@@ -1,0 +1,359 @@
+@preamble let machine = import("machine/ffi")
+word
+Explicit machine/ffi operation.
+
+word(number)
+
+===
+byte
+Explicit machine/ffi operation.
+
+byte(number)
+
+===
+addr18
+Explicit machine/ffi operation.
+
+addr18(number)
+
+===
+number
+Explicit machine/ffi operation.
+
+number(value)
+
+===
+same
+Explicit machine/ffi operation.
+
+same(a, b)
+
+===
+word_add
+Explicit machine/ffi operation.
+
+word_add(a, b)
+
+===
+word_sub
+Explicit machine/ffi operation.
+
+word_sub(a, b)
+
+===
+word_and
+Explicit machine/ffi operation.
+
+word_and(a, b)
+
+===
+word_or
+Explicit machine/ffi operation.
+
+word_or(a, b)
+
+===
+word_xor
+Explicit machine/ffi operation.
+
+word_xor(a, b)
+
+===
+word_not
+Explicit machine/ffi operation.
+
+word_not(a)
+
+===
+word_shl
+Explicit machine/ffi operation.
+
+word_shl(a, count)
+
+===
+word_shr
+Explicit machine/ffi operation.
+
+word_shr(a, count)
+
+===
+word_extract
+Explicit machine/ffi operation.
+
+word_extract(a, start, width)
+
+===
+word_lt
+Explicit machine/ffi operation.
+
+word_lt(a, b)
+
+===
+word_gt
+Explicit machine/ffi operation.
+
+word_gt(a, b)
+
+===
+word_zero
+Explicit machine/ffi operation.
+
+word_zero(a)
+
+===
+word_sign
+Explicit machine/ffi operation.
+
+word_sign(a)
+
+===
+low_byte
+Explicit machine/ffi operation.
+
+low_byte(a)
+
+===
+high_byte
+Explicit machine/ffi operation.
+
+high_byte(a)
+
+===
+with_low_byte
+Explicit machine/ffi operation.
+
+with_low_byte(a, b)
+
+===
+with_high_byte
+Explicit machine/ffi operation.
+
+with_high_byte(a, b)
+
+===
+byte_to_word
+Explicit machine/ffi operation.
+
+byte_to_word(b)
+
+===
+byte_sign_word
+Explicit machine/ffi operation.
+
+byte_sign_word(b)
+
+===
+byte_zero
+Explicit machine/ffi operation.
+
+byte_zero(b)
+
+===
+addr_add
+Explicit machine/ffi operation.
+
+addr_add(a, amount)
+
+===
+addr_even
+Explicit machine/ffi operation.
+
+addr_even(a)
+
+===
+word_field
+Explicit machine/ffi operation.
+
+word_field(a, start, width)
+
+===
+word_mask
+Explicit machine/ffi operation.
+
+word_mask(a, mask)
+
+===
+word_eq_number
+Explicit machine/ffi operation.
+
+word_eq_number(a, number)
+
+===
+word_lt_number
+Explicit machine/ffi operation.
+
+word_lt_number(a, number)
+
+===
+word_ge_number
+Explicit machine/ffi operation.
+
+word_ge_number(a, number)
+
+===
+word_add_small
+Explicit machine/ffi operation.
+
+word_add_small(a, amount)
+
+===
+word_sub_small
+Explicit machine/ffi operation.
+
+word_sub_small(a, amount)
+
+===
+word_add_carry
+Explicit machine/ffi operation.
+
+word_add_carry(a, b)
+
+===
+word_sub_borrow
+Explicit machine/ffi operation.
+
+word_sub_borrow(a, b)
+
+===
+word_bit
+Explicit machine/ffi operation.
+
+word_bit(a, position)
+
+===
+word_set_bit
+Explicit machine/ffi operation.
+
+word_set_bit(a, position, value)
+
+===
+zero
+Explicit machine/ffi operation.
+
+zero(a)
+
+===
+negative
+Explicit machine/ffi operation.
+
+negative(a)
+
+===
+addr_from_word
+Explicit machine/ffi operation.
+
+addr_from_word(a)
+
+===
+addr_lt_number
+Explicit machine/ffi operation.
+
+addr_lt_number(a, number)
+
+===
+addr_ge_number
+Explicit machine/ffi operation.
+
+addr_ge_number(a, number)
+
+===
+word_any_mask
+Explicit machine/ffi operation.
+
+word_any_mask(a, mask)
+
+===
+add
+Explicit machine/ffi operation.
+
+add(a, b)
+
+===
+sub
+Explicit machine/ffi operation.
+
+sub(a, b)
+
+===
+bit_and
+Explicit machine/ffi operation.
+
+bit_and(a, b)
+
+===
+bit_or
+Explicit machine/ffi operation.
+
+bit_or(a, b)
+
+===
+bit_xor
+Explicit machine/ffi operation.
+
+bit_xor(a, b)
+
+===
+bit_not
+Explicit machine/ffi operation.
+
+bit_not(a)
+
+===
+add_small
+Explicit machine/ffi operation.
+
+add_small(a, amount)
+
+===
+sub_small
+Explicit machine/ffi operation.
+
+sub_small(a, amount)
+
+===
+lt
+Explicit machine/ffi operation.
+
+lt(a, b)
+
+===
+gt
+Explicit machine/ffi operation.
+
+gt(a, b)
+
+===
+add_carry
+Explicit machine/ffi operation.
+
+add_carry(a, b)
+
+===
+sub_borrow
+Explicit machine/ffi operation.
+
+sub_borrow(a, b)
+
+===
+shr1
+Explicit machine/ffi operation.
+
+shr1(a)
+
+===
+shl1
+Explicit machine/ffi operation.
+
+shl1(a)
+
+===
+low_bit
+Explicit machine/ffi operation.
+
+low_bit(a)
+
+===
+set_high_bit
+Explicit machine/ffi operation.
+
+set_high_bit(a, value)

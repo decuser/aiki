@@ -1,0 +1,220 @@
+use("test")
+let execute = import("../cpu/execute")
+let fixture = import("./fixture")
+let machine = import("../machine/machine")
+let psw = import("../cpu/psw")
+
+let fresh = () {
+	let m = machine.new()
+	machine.reset_machine(m)
+	machine.set_pc(m, 4096)
+	return m
+}
+
+let put = (m, address, word) {
+	machine.deposit_word(m, address, word)
+	return true
+}
+
+run("MOV immediate executes through fetch decode resolve and preserves carry", () {
+	let m = fresh()
+	machine.set_psw(m, 1) # C set
+	put(m, 4096, 5568) # 012700 MOV #...,R0
+	put(m, 4098, 32768) # 0100000
+	equal(execute.step(m), true)
+	equal(machine.get_register(m, 0), 32768)
+	equal(machine.pc(m), 4100)
+	equal(machine.psw(m), 9) # N=1, C preserved
+	equal(machine.steps(m), 1)
+})
+
+run("MOVB to register sign extends uniquely", () {
+	let m = fresh()
+	put(m, 4096, 38337) # 112701 MOVB #...,R1
+	put(m, 4098, 128)
+	equal(execute.step(m), true)
+	equal(machine.get_register(m, 1), 65408)
+	equal(machine.psw(m), 8)
+})
+
+run("byte single operand changes only low register byte", () {
+	let m = fresh()
+	machine.set_register(m, 0, 4479) # high byte 0x11, low byte 0x7f
+	put(m, 4096, 35456) # 105200 INCB R0
+	equal(execute.step(m), true)
+	equal(machine.get_register(m, 0), 4480) # high byte retained, low byte -> 0x80
+	equal(machine.psw(m), 10) # N,V
+})
+
+run("ADD sets signed overflow and carry independently", () {
+	let m = fresh()
+	machine.set_register(m, 0, 32767)
+	machine.set_register(m, 1, 1)
+	put(m, 4096, 24577) # 060001 ADD R0,R1
+	equal(execute.step(m), true)
+	equal(machine.get_register(m, 1), 32768)
+	equal(machine.psw(m), 10) # N,V
+})
+
+run("ADD sets carry on unsigned wrap", () {
+	let m = fresh()
+	machine.set_register(m, 0, 65535)
+	machine.set_register(m, 1, 1)
+	put(m, 4096, 24577)
+	equal(execute.step(m), true)
+	equal(machine.get_register(m, 1), 0)
+	equal(machine.psw(m), 5) # Z,C
+})
+
+run("SUB uses destination minus source and sets borrow carry", () {
+	let m = fresh()
+	machine.set_register(m, 0, 2)
+	machine.set_register(m, 1, 1)
+	put(m, 4096, 57345) # 160001 SUB R0,R1
+	equal(execute.step(m), true)
+	equal(machine.get_register(m, 1), 65535)
+	equal(machine.psw(m), 9) # N,C borrow
+})
+
+run("CMP is source minus destination and leaves both operands unchanged", () {
+	let m = fresh()
+	machine.set_register(m, 0, 1)
+	machine.set_register(m, 1, 2)
+	put(m, 4096, 8193) # 020001 CMP R0,R1
+	equal(execute.step(m), true)
+	equal(machine.get_register(m, 0), 1)
+	equal(machine.get_register(m, 1), 2)
+	equal(machine.psw(m), 9) # 1-2 = -1, borrow
+})
+
+run("BIT BIC BIS use logical result flags and preserve carry", () {
+	let m = fresh()
+	machine.set_register(m, 0, 15)
+	machine.set_psw(m, 1)
+	put(m, 4096, 13760) # 032700 BIT #...,R0
+	put(m, 4098, 8)
+	equal(execute.step(m), true)
+	equal(machine.get_register(m, 0), 15)
+	equal(machine.psw(m), 1)
+	put(m, 4100, 17856) # 042700 BIC #...,R0
+	put(m, 4102, 3)
+	equal(execute.step(m), true)
+	equal(machine.get_register(m, 0), 12)
+	equal(machine.psw(m), 1)
+	put(m, 4104, 21952) # 052700 BIS #...,R0
+	put(m, 4106, 3)
+	equal(execute.step(m), true)
+	equal(machine.get_register(m, 0), 15)
+	equal(machine.psw(m), 1)
+})
+
+run("CLR INC DEC TST implement handbook NZVC behavior", () {
+	let m = fresh()
+	machine.set_psw(m, 15)
+	put(m, 4096, 2560) # CLR R0
+	equal(execute.step(m), true)
+	equal(machine.get_register(m, 0), 0)
+	equal(machine.psw(m), 4)
+	machine.set_register(m, 0, 32767)
+	machine.set_psw(m, 1)
+	put(m, 4098, 2688) # INC R0
+	equal(execute.step(m), true)
+	equal(machine.get_register(m, 0), 32768)
+	equal(machine.psw(m), 11) # N,V,C preserved
+	machine.set_register(m, 0, 32768)
+	put(m, 4100, 2752) # DEC R0
+	equal(execute.step(m), true)
+	equal(machine.get_register(m, 0), 32767)
+	equal(machine.psw(m), 3) # V,C preserved
+	put(m, 4102, 3008) # TST R0
+	equal(execute.step(m), true)
+	equal(machine.psw(m), 0)
+})
+
+run("conditional branch uses updated PC and signed word offset", () {
+	let m = fresh()
+	machine.set_psw(m, 4) # Z
+	put(m, 4096, 769) # 001401 BEQ +1
+	equal(execute.step(m), true)
+	equal(machine.pc(m), 4100)
+	put(m, 4100, 765) # 001375 BNE -3
+	machine.set_psw(m, 0)
+	equal(execute.step(m), true)
+	equal(machine.pc(m), 4096)
+})
+
+run("JMP rejects register mode and accepts register deferred", () {
+	let m = fresh()
+	machine.set_register(m, 1, 8192)
+	put(m, 4096, 65) # 000101 JMP R1 - illegal mode 0
+	let bad = execute.step(m)
+	equal(shape(bad), :pdp_fault)
+	machine.set_pc(m, 4096)
+	put(m, 4096, 73) # 000111 JMP (R1)
+	equal(execute.step(m), true)
+	equal(machine.pc(m), 8192)
+})
+
+run("JSR PC and RTS PC use the processor stack for linkage", () {
+	let m = fresh()
+	machine.set_sp(m, 12288)
+	machine.set_register(m, 1, 8192)
+	put(m, 4096, 2505) # 004711 JSR PC,(R1)
+	put(m, 8192, 135) # 000207 RTS PC
+	equal(execute.step(m), true)
+	equal(machine.pc(m), 8192)
+	equal(machine.sp(m), 12286)
+	equal(machine.examine_word(m, 12286), 4098)
+	equal(execute.step(m), true)
+	equal(machine.pc(m), 4098)
+	equal(machine.sp(m), 12288)
+})
+
+run("condition-code operators touch only selected NZVC bits", () {
+	let m = fresh()
+	machine.set_psw(m, 256) # unrelated upper PSW bit
+	put(m, 4096, 191) # 000277 SCC
+	put(m, 4098, 175) # 000257 CCC
+	equal(execute.step(m), true)
+	equal(machine.psw(m), 271)
+	equal(execute.step(m), true)
+	equal(machine.psw(m), 256)
+})
+
+run("bounded diagnostic program loops, accumulates, and halts deterministically", () {
+	let m = fresh()
+	put(m, 4096, 5568) # MOV #5,R0
+	put(m, 4098, 5)
+	put(m, 4100, 2561) # CLR R1
+	put(m, 4102, 24577) # ADD R0,R1
+	put(m, 4104, 2752) # DEC R0
+	put(m, 4106, 765) # BNE -3 words -> 4102
+	put(m, 4108, 0) # HALT
+	equal(execute.run_bounded(m, 100), 18)
+	equal(machine.get_register(m, 0), 0)
+	equal(machine.get_register(m, 1), 15)
+	equal(machine.pc(m), 4110)
+	equal(machine.psw(m), 4)
+	equal(machine.steps(m), 18)
+	equal(machine.machine_time(m), 18)
+	equal(machine.running(m), false)
+})
+
+run("declarative fixture drives bounded program from before state to exact after state", () {
+	let f = [
+		@fixture,
+		"bounded accumulator fixture",
+		[0, 0, 0, 0, 0, 0, 12288, 4096],
+		0,
+		[],
+		[5568, 5, 2561, 24577, 2752, 765, 0],
+		100,
+		[0, 15, 0, 0, 0, 0, 12288, 4110],
+		4,
+		[]
+	]
+	let result = fixture.run_fixture(f)
+	equal(shape(result), :diagnostic_result)
+	equal(result[1], true)
+	equal(length(result[2]), 0)
+})

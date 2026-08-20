@@ -1,0 +1,40 @@
+use("test")
+let pdp_help = import("../reference/help")
+let str = import("string/native")
+
+run("PDP help exposes the reference index", () {
+	let result = pdp_help.topic("")
+	equal(str.contains(result, "help addressing"), true)
+	equal(str.contains(result, "help instructions"), true)
+})
+
+run("addressing help includes all eight modes and PC forms", () {
+	let result = pdp_help.topic("addressing")
+	equal(str.contains(result, "mode 0"), true)
+	equal(str.contains(result, "mode 7"), true)
+	equal(str.contains(result, "immediate"), true)
+	equal(str.contains(result, "PC-relative"), true)
+})
+
+run("instruction help carries octal encoding forms", () {
+	let result = pdp_help.topic("instructions")
+	equal(str.contains(result, "01SSDD"), true)
+	equal(str.contains(result, "0050DD"), true)
+	equal(str.contains(result, "077RNN"), true)
+})
+
+run("register and PSW help name architectural roles", () {
+	let registers = pdp_help.topic("registers")
+	let psw = pdp_help.topic("psw")
+	equal(str.contains(registers, "R6"), true)
+	equal(str.contains(registers, "R7"), true)
+	equal(str.contains(psw, "NZVC"), false)
+	equal(str.contains(psw, "negative"), true)
+	equal(str.contains(psw, "processor priority"), true)
+})
+
+run("mnemonic help is available and unknown topics fault", () {
+	let mov = pdp_help.topic("mov")
+	equal(str.contains(mov, "01SSDD"), true)
+	equal(shape(pdp_help.topic("not-an-op")), :error)
+})

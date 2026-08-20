@@ -1,0 +1,81 @@
+package "machine/ffi"
+
+# Explicit fixed-width machine representation. Values are opaque to ordinary
+# Aiki arithmetic; conversion to and from exact Aiki numbers is deliberate.
+let word = _machine_word
+let byte = _machine_byte
+let addr18 = _machine_addr18
+let number = _machine_number
+let same = _machine_same
+
+let word_add = _machine_word_add
+let word_sub = _machine_word_sub
+let word_and = _machine_word_and
+let word_or = _machine_word_or
+let word_xor = _machine_word_xor
+let word_not = _machine_word_not
+let word_shl = _machine_word_shl
+let word_shr = _machine_word_shr
+let word_extract = _machine_word_extract
+let word_lt = _machine_word_lt
+let word_gt = _machine_word_gt
+let word_zero = _machine_word_zero
+let word_sign = _machine_word_sign
+let low_byte = _machine_word_low_byte
+let high_byte = _machine_word_high_byte
+let with_low_byte = _machine_word_with_low_byte
+let with_high_byte = _machine_word_with_high_byte
+let byte_to_word = _machine_byte_to_word
+let byte_sign_word = _machine_byte_sign_word
+let byte_zero = _machine_byte_zero
+let addr_add = _machine_addr_add
+let addr_even = _machine_addr_even
+
+let word_field = _machine_word_field
+let word_mask = _machine_word_mask
+let word_eq_number = _machine_word_eq_number
+let word_lt_number = _machine_word_lt_number
+let word_ge_number = _machine_word_ge_number
+let word_add_small = _machine_word_add_small
+let word_sub_small = _machine_word_sub_small
+let word_add_carry = _machine_word_add_carry
+let word_sub_borrow = _machine_word_sub_borrow
+let word_bit = _machine_word_bit
+let word_any_mask = _machine_word_any_mask
+let word_set_bit = _machine_word_set_bit
+let zero = _machine_zero
+let negative = _machine_negative
+let addr_from_word = _machine_addr_from_word
+let addr_lt_number = _machine_addr_lt_number
+let addr_ge_number = _machine_addr_ge_number
+
+let add = _machine_add
+let sub = _machine_sub
+let bit_and = _machine_and
+let bit_or = _machine_or
+let bit_xor = _machine_xor
+let bit_not = _machine_not
+let add_small = _machine_add_small
+let sub_small = _machine_sub_small
+let lt = _machine_lt
+let gt = _machine_gt
+let add_carry = _machine_add_carry_generic
+let sub_borrow = _machine_sub_borrow_generic
+let shr1 = _machine_shr1
+let shl1 = _machine_shl1
+let low_bit = _machine_low_bit
+let set_high_bit = _machine_set_high_bit
+
+export(
+  :word, :byte, :addr18, :number, :same,
+  :word_add, :word_sub, :word_and, :word_or, :word_xor, :word_not,
+  :word_shl, :word_shr, :word_extract, :word_lt, :word_gt, :word_zero, :word_sign,
+  :low_byte, :high_byte, :with_low_byte, :with_high_byte,
+  :byte_to_word, :byte_sign_word, :byte_zero,
+  :addr_add, :addr_even, :addr_from_word, :addr_lt_number, :addr_ge_number,
+  :word_field, :word_mask, :word_eq_number, :word_lt_number, :word_ge_number,
+  :word_add_small, :word_sub_small, :word_add_carry, :word_sub_borrow,
+  :word_bit, :word_any_mask, :word_set_bit, :zero, :negative,
+  :add, :sub, :bit_and, :bit_or, :bit_xor, :bit_not, :add_small, :sub_small,
+  :lt, :gt, :add_carry, :sub_borrow, :shr1, :shl1, :low_bit, :set_high_bit
+)

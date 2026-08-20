@@ -1,0 +1,15 @@
+let pdp_help = import("./reference/help")
+let system = import("system")
+
+let args = system.args()
+let topic = ""
+if not empty(args) {
+	topic = args[0]
+}
+
+let result = pdp_help.topic(topic)
+if is_error(result) {
+	println(inspect(result))
+	system.exit(1)
+}
+println(result)

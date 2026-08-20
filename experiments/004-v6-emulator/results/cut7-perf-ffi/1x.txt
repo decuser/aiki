@@ -1,0 +1,17 @@
+CUT7 PERF 1x iterations=256 guest_instructions=768
+Aiki semantic work
+  arithmetic   80786
+  comparison   89489
+  call         738355
+  iteration    35807
+  index        57313
+  send         0
+  receive      0
+  store_read   16390
+  store_write  11238
+
+Go substrate realization
+  elapsed      1.559478345s
+  alloc_bytes  995393008
+  mallocs      17327180
+  gc_cycles    77

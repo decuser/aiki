@@ -1,0 +1,215 @@
+package "aiki_pdp_kl11"
+
+let bits = import("bits/ffi")
+let octal = import("../../reference/octal")
+let store = import("store")
+let width = import("../../machine/width")
+
+# Physical UNIBUS register addresses for the console KL11.
+let TKS = octal.parse("777560")
+let TKB = octal.parse("777562")
+let TPS = octal.parse("777564")
+let TPB = octal.parse("777566")
+
+let RCSR = 0
+let RBUF = 1
+let XCSR = 2
+let XBUF = 3
+let TX_PENDING = 4
+let OUTPUT_READY = 5
+let OUTPUT_BYTE = 6
+let RX_COUNT = 7
+let TX_COUNT = 8
+let LAST_RX = 9
+let LAST_TX = 10
+let OUTPUT_QUEUE = 11
+let WORDS = 12
+
+let DONE = bits.shl(1, 7)
+let INTERRUPT_ENABLE = bits.shl(1, 6)
+let READER_ENABLE = 1
+let MAINTENANCE = bits.shl(1, 2)
+
+let new = () {
+	let state = store.new(WORDS)
+	store.set(state, RCSR, 0)
+	store.set(state, RBUF, 0)
+	store.set(state, XCSR, DONE) # transmitter READY after INIT
+	store.set(state, XBUF, 0)
+	store.set(state, TX_PENDING, false)
+	store.set(state, OUTPUT_READY, false)
+	store.set(state, OUTPUT_BYTE, 0)
+	store.set(state, RX_COUNT, 0)
+	store.set(state, TX_COUNT, 0)
+	store.set(state, LAST_RX, 0)
+	store.set(state, LAST_TX, 0)
+	store.set(state, OUTPUT_QUEUE, [])
+	return state
+}
+
+let reset_console = (console) {
+	store.set(console, RCSR, 0)
+	store.set(console, RBUF, 0)
+	store.set(console, XCSR, DONE)
+	store.set(console, XBUF, 0)
+	store.set(console, TX_PENDING, false)
+	store.set(console, OUTPUT_READY, false)
+	store.set(console, OUTPUT_BYTE, 0)
+	store.set(console, OUTPUT_QUEUE, [])
+	return true
+}
+
+let FIRST_ADDRESS = TKS
+let LAST_ADDRESS = TPB
+
+let handles = (address) { return (address >= FIRST_ADDRESS) and (address <= LAST_ADDRESS) }
+
+let register_word = (console, address) {
+	if equal(address, TKS) { return store.get(console, RCSR) }
+	if equal(address, TKB) {
+		let value = store.get(console, RBUF)
+		store.set(console, RCSR, bits.bit_and(store.get(console, RCSR), octal.parse("177577"))) # clear DONE
+		return value
+	}
+	if equal(address, TPS) { return store.get(console, XCSR) }
+	if equal(address, TPB) { return 0 }
+	return [@pdp_fault, :bus_address, address]
+}
+
+let read_word = (console, address) { return register_word(console, address) }
+
+let read_byte = (console, address) {
+	let base = address
+	if not equal(bits.bit_and(base, 1), 0) { base = base - 1 }
+	let word = register_word(console, base)
+	if equal(bits.bit_and(address, 1), 0) { return bits.low(word, 8) }
+	return bits.extract(word, 8, 8)
+}
+
+let write_rcsr = (console, value) {
+	let current = store.get(console, RCSR)
+	let writable = bits.bit_and(value, INTERRUPT_ENABLE + READER_ENABLE)
+	let preserved = bits.bit_and(current, DONE)
+	store.set(console, RCSR, preserved + writable)
+	if not equal(bits.bit_and(writable, READER_ENABLE), 0) {
+		# Reader enable is load-only and clears DONE; keyboard input remains enabled independently.
+		store.set(console, RCSR, bits.bit_and(store.get(console, RCSR), octal.parse("177576")))
+	}
+	return true
+}
+
+let write_xcsr = (console, value) {
+	let ready = bits.bit_and(store.get(console, XCSR), DONE)
+	let writable = bits.bit_and(value, INTERRUPT_ENABLE + MAINTENANCE)
+	store.set(console, XCSR, ready + writable)
+	return true
+}
+
+let write_xbuf = (console, value) {
+	let byte = width.wrap(value, 8)
+	store.set(console, XBUF, byte)
+	store.set(console, LAST_TX, byte)
+	store.set(console, TX_COUNT, store.get(console, TX_COUNT) + 1)
+	store.set(console, XCSR, bits.bit_and(store.get(console, XCSR), octal.parse("177577"))) # clear READY
+	store.set(console, TX_PENDING, true)
+	return true
+}
+
+let write_word = (console, address, value) {
+	if equal(address, TKS) { return write_rcsr(console, value) }
+	if equal(address, TPS) { return write_xcsr(console, value) }
+	if equal(address, TPB) { return write_xbuf(console, value) }
+	return [@pdp_fault, :bus_address, address]
+}
+
+let write_byte = (console, address, value) {
+	let base = address
+	if not equal(bits.bit_and(base, 1), 0) { base = base - 1 }
+	# The console data path is eight bits. High-byte writes to the buffers have no useful effect.
+	if not equal(bits.bit_and(address, 1), 0) {
+		if equal(base, TKS) or equal(base, TPS) { return true }
+		return true
+	}
+	return write_word(console, base, width.wrap(value, 8))
+}
+
+let receive = (console, value) {
+	let byte = width.wrap(value, 8)
+	store.set(console, RBUF, byte)
+	store.set(console, LAST_RX, byte)
+	store.set(console, RX_COUNT, store.get(console, RX_COUNT) + 1)
+	store.set(console, RCSR, bits.bit_or(store.get(console, RCSR), DONE))
+	return true
+}
+
+# One architectural step is ample time for the bounded emulator model. The
+# visible KL11 contract is READY clearing on TPB load and becoming set again
+# when the character has left the transmitter buffer.
+let advance = (console, elapsed) {
+	if store.get(console, TX_PENDING) {
+		store.set(console, TX_PENDING, false)
+		let value = store.get(console, XBUF)
+		store.set(console, OUTPUT_BYTE, value)
+		store.set(console, OUTPUT_QUEUE, append(store.get(console, OUTPUT_QUEUE), value))
+		store.set(console, OUTPUT_READY, true)
+		store.set(console, XCSR, bits.bit_or(store.get(console, XCSR), DONE))
+	}
+	return true
+}
+
+let take_output = (console) {
+	let queue = store.get(console, OUTPUT_QUEUE)
+	if empty(queue) { store.set(console, OUTPUT_READY, false); return [@end] }
+	let value = first(queue)
+	queue = rest(queue)
+	store.set(console, OUTPUT_QUEUE, queue)
+	store.set(console, OUTPUT_READY, not empty(queue))
+	return value
+}
+
+let receiver_status = (console) { return store.get(console, RCSR) }
+let receiver_buffer = (console) { return store.get(console, RBUF) }
+let transmitter_status = (console) { return store.get(console, XCSR) }
+let transmitter_buffer = (console) { return store.get(console, XBUF) }
+let rx_count = (console) { return store.get(console, RX_COUNT) }
+let tx_count = (console) { return store.get(console, TX_COUNT) }
+let last_rx = (console) { return store.get(console, LAST_RX) }
+let last_tx = (console) { return store.get(console, LAST_TX) }
+let receiver_done = (console) { return not equal(bits.bit_and(store.get(console, RCSR), DONE), 0) }
+let transmitter_ready = (console) { return not equal(bits.bit_and(store.get(console, XCSR), DONE), 0) }
+let receiver_interrupt_enabled = (console) { return not equal(bits.bit_and(store.get(console, RCSR), INTERRUPT_ENABLE), 0) }
+let transmitter_interrupt_enabled = (console) { return not equal(bits.bit_and(store.get(console, XCSR), INTERRUPT_ENABLE), 0) }
+
+let active = (console) { return store.get(console, TX_PENDING) }
+
+export(
+	:FIRST_ADDRESS,
+	:LAST_ADDRESS,
+	:active,
+	:TKS,
+	:TKB,
+	:TPS,
+	:TPB,
+	:new,
+	:reset_console,
+	:handles,
+	:read_byte,
+	:write_byte,
+	:read_word,
+	:write_word,
+	:receive,
+	:advance,
+	:take_output,
+	:receiver_status,
+	:receiver_buffer,
+	:transmitter_status,
+	:transmitter_buffer,
+	:rx_count,
+	:tx_count,
+	:last_rx,
+	:last_tx,
+	:receiver_done,
+	:transmitter_ready,
+	:receiver_interrupt_enabled,
+	:transmitter_interrupt_enabled
+)

@@ -1,0 +1,57 @@
+package "aiki_pdp_tu10"
+
+let store = import("store")
+let v6_tape = import("../../media/v6_tape")
+
+let MEDIA = 0
+let PATH = 1
+let WORDS = 2
+
+let new = () {
+	let device = store.new(WORDS)
+	store.set(device, MEDIA, false)
+	store.set(device, PATH, "")
+	return device
+}
+
+let attached = (device) { return not equal(store.get(device, MEDIA), false) }
+let media = (device) { return store.get(device, MEDIA) }
+let path = (device) {
+	if not attached(device) { return "" }
+	return store.get(device, PATH)
+}
+
+let attach_media = (device, tape_media, media_path) {
+	store.set(device, MEDIA, tape_media)
+	store.set(device, PATH, media_path)
+	v6_tape.rewind(tape_media)
+	return true
+}
+
+let attach_raw = (device, media_path) {
+	let tape_media = v6_tape.open_raw(media_path)
+	if is_error(tape_media) { return tape_media }
+	return attach_media(device, tape_media, media_path)
+}
+
+let at_bot = (device) { return attached(device) and v6_tape.at_bot(media(device)) }
+let position = (device) {
+	if not attached(device) { return 0 }
+	return v6_tape.position(media(device))
+}
+let rewind = (device) {
+	if attached(device) { return v6_tape.rewind(media(device)) }
+	return true
+}
+let space_forward = (device, count) {
+	if not attached(device) { return [@error, :tape, "TU10 has no attached media"] }
+	return v6_tape.space_forward(media(device), count)
+}
+let read_record = (device) {
+	if not attached(device) { return [@error, :tape, "TU10 has no attached media"] }
+	return v6_tape.read_record(media(device))
+}
+let record_length = (device, data) { return v6_tape.record_length(media(device), data) }
+let record_get = (device, data, index) { return v6_tape.record_get(media(device), data, index) }
+
+export(:new, :attached, :path, :attach_media, :attach_raw, :at_bot, :position, :rewind, :space_forward, :read_record, :record_length, :record_get)

@@ -1,0 +1,53 @@
+package "aiki_pdp_memory"
+
+let machine = import("machine/ffi")
+let store = import("store/ffi")
+let width = import("../machine/width")
+
+# PDP-11/40 data words are 16 bits. The physical UNIBUS address is 18-bit and
+# byte-addressed. Those are distinct machine representations.
+let ADDRESS_BITS = 18
+let PHYSICAL_BYTES = 262144
+let PHYSICAL_WORDS = 131072
+let BYTE_BITS = 8
+let WORD_BITS = 16
+
+let @pdp_fault [kind, address]
+
+let new = () { return store.new_word(PHYSICAL_WORDS) }
+let size = (memory) { return PHYSICAL_BYTES }
+
+# Explicit boundary constructors used by diagnostics and monitor control.
+let physical_address = (number) { return machine.addr18(number) }
+let byte = (number) { return machine.byte(width.wrap(number, BYTE_BITS)) }
+let word = (number) { return machine.word(width.wrap(number, WORD_BITS)) }
+let number = (value) { return machine.number(value) }
+
+let read_byte_machine = (memory, address) { return store.byte_read_addr(memory, address) }
+let write_byte_machine = (memory, address, value) { return store.byte_write_addr(memory, address, value) }
+let read_word_machine = (memory, address) {
+	if not machine.addr_even(address) { return [@pdp_fault, :odd_address, machine.number(address)] }
+	return store.word_read_addr(memory, address)
+}
+let write_word_machine = (memory, address, value) {
+	if not machine.addr_even(address) { return [@pdp_fault, :odd_address, machine.number(address)] }
+	return store.word_write_addr(memory, address, value)
+}
+
+# Control/diagnostic boundary: ordinary Aiki exact numbers enter and leave here.
+let read_byte = (memory, address) {
+	let value = read_byte_machine(memory, physical_address(address))
+	if equal(shape(value), :pdp_fault) { return value }
+	return number(value)
+}
+let write_byte = (memory, address, value) { return write_byte_machine(memory, physical_address(address), byte(value)) }
+let read_word = (memory, address) {
+	let value = read_word_machine(memory, physical_address(address))
+	if equal(shape(value), :pdp_fault) { return value }
+	return number(value)
+}
+let write_word = (memory, address, value) { return write_word_machine(memory, physical_address(address), word(value)) }
+
+export(:ADDRESS_BITS,:PHYSICAL_BYTES,:PHYSICAL_WORDS,:BYTE_BITS,:WORD_BITS,:new,:size,:physical_address,:byte,:word,:number,
+:read_byte_machine,:write_byte_machine,:read_word_machine,:write_word_machine,
+:read_byte,:write_byte,:read_word,:write_word)

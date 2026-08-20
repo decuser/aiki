@@ -1,0 +1,209 @@
+package "aiki_pdp_help"
+
+let str = import("string/native")
+
+let text = (lines) {
+	return str.join(lines, "\n")
+}
+
+let index = () {
+	return text([
+		"PDP-11/40 reference",
+		"",
+		"help addressing     addressing modes and operand encoding",
+		"help registers      R0-R7, SP, PC",
+		"help psw            processor status word",
+		"help instructions   instruction groups and octal base codes",
+		"help branches       branch conditions and octal base codes",
+		"help traps          traps, interrupt-return, and misc instructions",
+		"help mov            instruction-specific help (also cmp, bit, bic, bis, add, sub)",
+		"",
+		"All machine numbers shown here are octal unless stated otherwise."
+	])
+}
+
+let addressing = () {
+	return text([
+		"PDP-11 addressing",
+		"",
+		"Each operand field is six bits: MODE(3) + REGISTER(3).",
+		"The two octal digits of an operand specification are therefore mode,register.",
+		"",
+		"mode 0  Rn          register              operand is Rn",
+		"mode 1  (Rn)        register deferred     Rn contains operand address",
+		"mode 2  (Rn)+       autoincrement         use (Rn), then increment Rn",
+		"mode 3  *(Rn)+      autoinc deferred      use word at (Rn) as address; Rn += 2",
+		"mode 4  -(Rn)       autodecrement         decrement Rn, then use (Rn)",
+		"mode 5  *-(Rn)      autodec deferred      Rn -= 2; word at (Rn) is address",
+		"mode 6  X(Rn)       indexed               fetch X; address = Rn + signed X",
+		"mode 7  *X(Rn)      indexed deferred      word at Rn + signed X is address",
+		"",
+		"Word operands change autoincrement/autodecrement registers by 2.",
+		"Byte operands change R0-R5 by 1, but SP (R6) and PC (R7) always change by 2.",
+		"Deferred auto modes always change by 2 because they fetch a 16-bit address.",
+		"",
+		"PC (R7) special forms:",
+		"  mode 2  #value     immediate",
+		"  mode 3  @#address  absolute / immediate deferred",
+		"  mode 6  label      PC-relative",
+		"  mode 7  @label     PC-relative deferred",
+		"",
+		"Examples:",
+		"  MOV R1,R0          source spec 01, destination spec 00",
+		"  MOV (R1)+,R0       source spec 21; R1 advances after operand access",
+		"  MOV #1234,R0       source spec 27; following word is the operand",
+		"  CLR -(SP)          destination spec 46; SP decrements by 2 first"
+	])
+}
+
+let registers = () {
+	return text([
+		"PDP-11/40 registers",
+		"",
+		"R0-R5  general-purpose 16-bit registers",
+		"R6     general-purpose register conventionally used as SP (stack pointer)",
+		"R7     general-purpose register used as PC (program counter)",
+		"PS     processor status word, bus address 777776",
+		"",
+		"SP points to the current top of the downward-growing stack.",
+		"PC participates in normal addressing modes; that is how immediate and relative addressing arise.",
+		"Instruction fetch reads the word at PC and advances PC by 2."
+	])
+}
+
+let psw = () {
+	return text([
+		"PDP-11/40 Processor Status Word (PS)",
+		"",
+		"bits 15-14  current mode",
+		"bits 13-12  previous mode",
+		"bits  7-5   processor priority 0-7",
+		"bit   4     T  trace/trap after instruction",
+		"bit   3     N  negative",
+		"bit   2     Z  zero",
+		"bit   1     V  overflow",
+		"bit   0     C  carry",
+		"",
+		"Condition codes describe the result of instructions that define them.",
+		"Interrupt eligibility compares device priority against PS priority.",
+		"A set T bit causes a trap through vector 014 after instruction completion."
+	])
+}
+
+let instructions = () {
+	return text([
+		"PDP-11/40 instruction base codes (octal)",
+		"",
+		"Double operand (SS = source spec, DD = destination spec):",
+		"  MOV   01SSDD     MOVB  11SSDD",
+		"  CMP   02SSDD     CMPB  12SSDD",
+		"  BIT   03SSDD     BITB  13SSDD",
+		"  BIC   04SSDD     BICB  14SSDD",
+		"  BIS   05SSDD     BISB  15SSDD",
+		"  ADD   06SSDD     SUB   16SSDD",
+		"",
+		"Single operand (DD = destination spec; byte form adds 100000):",
+		"  CLR 0050DD   COM 0051DD   INC 0052DD   DEC 0053DD",
+		"  NEG 0054DD   ADC 0055DD   SBC 0056DD   TST 0057DD",
+		"  ROR 0060DD   ROL 0061DD   ASR 0062DD   ASL 0063DD",
+		"  SWAB 0003DD  SXT 0067DD",
+		"",
+		"Control:",
+		"  JMP 0001DD   JSR 004RDD   RTS 00020R   SOB 077RNN",
+		"",
+		"Use 'help branches' and 'help traps' for the other control instructions.",
+		"Use 'help mov', 'help cmp', 'help bit', 'help bic', 'help bis', 'help add', or 'help sub' for details."
+	])
+}
+
+let branches = () {
+	return text([
+		"PDP-11 branch base codes (octal)",
+		"",
+		"BR    000400  always",
+		"BNE   001000  Z=0        BEQ   001400  Z=1",
+		"BGE   002000  N xor V=0  BLT   002400  N xor V=1",
+		"BGT   003000  Z=0 and N xor V=0",
+		"BLE   003400  Z=1 or  N xor V=1",
+		"BPL   100000  N=0        BMI   100400  N=1",
+		"BHI   101000  C=0 and Z=0",
+		"BLOS  101400  C=1 or  Z=1",
+		"BVC   102000  V=0        BVS   102400  V=1",
+		"BCC/BHIS 103000 C=0      BCS/BLO 103400 C=1",
+		"",
+		"The low byte is a signed word displacement in units of two bytes.",
+		"Target = PC after branch fetch + 2 * signed offset."
+	])
+}
+
+let traps = () {
+	return text([
+		"PDP-11/40 trap, return, and miscellaneous instructions (octal)",
+		"",
+		"HALT   000000",
+		"WAIT   000001",
+		"RTI    000002",
+		"BPT    000003   vector 014",
+		"IOT    000004   vector 020",
+		"RESET  000005   initialize external bus/devices",
+		"RTT    000006",
+		"NOP    000240",
+		"EMT    104000-104377   vector 030",
+		"TRAP   104400-104777   vector 034",
+		"MFPI   0065SS",
+		"MTPI   006600 + destination spec",
+		"",
+		"Condition-code operators:",
+		"CLC 000241  CLV 000242  CLZ 000244  CLN 000250  CCC 000257",
+		"SEC 000261  SEV 000262  SEZ 000264  SEN 000270  SCC 000277"
+	])
+}
+
+let double_instruction = (name, code, operation, flags) {
+	return text([
+		name + " — PDP-11/40 double-operand instruction",
+		"",
+		"base code: " + code + " (SS source specification, DD destination specification)",
+		"operation: " + operation,
+		"NZVC: " + flags,
+		"",
+		"The source operand is resolved before the destination operand.",
+		"Addressing-mode side effects occur as the corresponding operand is resolved."
+	])
+}
+
+let topic = (name) {
+	match name {
+		"" { return index() }
+		"help" { return index() }
+		"address" { return addressing() }
+		"addressing" { return addressing() }
+		"register" { return registers() }
+		"registers" { return registers() }
+		"ps" { return psw() }
+		"psw" { return psw() }
+		"instruction" { return instructions() }
+		"instructions" { return instructions() }
+		"opcode" { return instructions() }
+		"opcodes" { return instructions() }
+		"branch" { return branches() }
+		"branches" { return branches() }
+		"trap" { return traps() }
+		"traps" { return traps() }
+		"mov" { return double_instruction("MOV", "01SSDD", "source -> destination", "N,Z from result; V=0; C unchanged") }
+		"movb" { return double_instruction("MOVB", "11SSDD", "source byte -> destination byte", "N,Z from byte result; V=0; C unchanged") }
+		"cmp" { return double_instruction("CMP", "02SSDD", "source - destination for condition codes; no stored result", "N,Z,V,C from subtraction") }
+		"cmpb" { return double_instruction("CMPB", "12SSDD", "source byte - destination byte for condition codes", "N,Z,V,C from byte subtraction") }
+		"bit" { return double_instruction("BIT", "03SSDD", "source AND destination for condition codes; no stored result", "N,Z from result; V=0; C unchanged") }
+		"bitb" { return double_instruction("BITB", "13SSDD", "source byte AND destination byte for condition codes", "N,Z from byte result; V=0; C unchanged") }
+		"bic" { return double_instruction("BIC", "04SSDD", "destination AND NOT source -> destination", "N,Z from result; V=0; C unchanged") }
+		"bicb" { return double_instruction("BICB", "14SSDD", "destination byte AND NOT source byte -> destination", "N,Z from byte result; V=0; C unchanged") }
+		"bis" { return double_instruction("BIS", "05SSDD", "destination OR source -> destination", "N,Z from result; V=0; C unchanged") }
+		"bisb" { return double_instruction("BISB", "15SSDD", "destination byte OR source byte -> destination", "N,Z from byte result; V=0; C unchanged") }
+		"add" { return double_instruction("ADD", "06SSDD", "source + destination -> destination", "N,Z,V,C from addition") }
+		"sub" { return double_instruction("SUB", "16SSDD", "destination - source -> destination", "N,Z,V,C from subtraction") }
+		_ { return [@error, :pdp_help, "unknown PDP-11 help topic: " + name] }
+	}
+}
+
+export(:topic)

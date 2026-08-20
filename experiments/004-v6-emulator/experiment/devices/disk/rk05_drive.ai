@@ -1,0 +1,38 @@
+package "aiki_pdp_rk05_drive"
+
+let rk05 = import("../../media/rk05")
+let store = import("store")
+
+let MEDIA = 0
+let WORDS = 1
+
+let new = () {
+	let drive = store.new(WORDS)
+	store.set(drive, MEDIA, false)
+	return drive
+}
+
+let attached = (drive) { return not equal(store.get(drive, MEDIA), false) }
+let media = (drive) { return store.get(drive, MEDIA) }
+let path = (drive) {
+	if not attached(drive) { return "" }
+	return rk05.path(media(drive))
+}
+
+let attach_path = (drive, disk_path) {
+	let pack = rk05.open_pack(disk_path)
+	if is_error(pack) { return pack }
+	store.set(drive, MEDIA, pack)
+	return true
+}
+
+let read_sector = (drive, sector) {
+	if not attached(drive) { return [@error, :disk, "RK05 has no attached pack"] }
+	return rk05.read_sector(media(drive), sector)
+}
+let write_sector = (drive, sector, data) {
+	if not attached(drive) { return [@error, :disk, "RK05 has no attached pack"] }
+	return rk05.write_sector(media(drive), sector, data)
+}
+
+export(:new, :attached, :path, :attach_path, :read_sector, :write_sector)

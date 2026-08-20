@@ -1,0 +1,203 @@
+use("test")
+let addressing = import("../cpu/addressing")
+let decode = import("../cpu/decode")
+let fetch = import("../cpu/fetch")
+let machine = import("../machine/machine")
+
+let fresh = () {
+	let m = machine.new()
+	machine.reset_machine(m)
+	return m
+}
+
+run("operand field decodes mode and register", () {
+	# octal 27 = mode 2, register 7 (PC autoincrement / immediate)
+	equal(decode.operand_mode(23), 2)
+	equal(decode.operand_register(23), 7)
+})
+
+run("double operand fields decode independently", () {
+	# 012700 = MOV #...,R0; decimal 5568
+	let instruction = 5568
+	equal(decode.double_operand_kind(instruction), :mov)
+	equal(decode.source_spec(instruction), 23)
+	equal(decode.destination_spec(instruction), 0)
+})
+
+run("fetch reads at PC and advances PC by one word", () {
+	let m = fresh()
+	machine.set_pc(m, 4096)
+	machine.deposit_word(m, 4096, 4660)
+	equal(fetch.word(m), 4660)
+	equal(machine.pc(m), 4098)
+})
+
+run("mode 0 register addressing names the register without side effect", () {
+	let m = fresh()
+	machine.set_register(m, 3, 4660)
+	let operand = addressing.resolve(m, 3, addressing.WORD)
+	equal(addressing.operand_kind(operand), addressing.REGISTER)
+	equal(addressing.operand_register(operand), 3)
+	equal(addressing.read_operand(m, operand, addressing.WORD), 4660)
+	equal(machine.get_register(m, 3), 4660)
+})
+
+run("mode 1 register deferred reads memory through register address", () {
+	let m = fresh()
+	machine.set_register(m, 1, 8192)
+	machine.deposit_word(m, 8192, 4660)
+	let operand = addressing.resolve(m, 9, addressing.WORD)
+	equal(addressing.operand_kind(operand), addressing.MEMORY)
+	equal(addressing.operand_address(operand), 8192)
+	equal(addressing.read_operand(m, operand, addressing.WORD), 4660)
+	equal(machine.get_register(m, 1), 8192)
+})
+
+run("mode 2 word autoincrement uses then advances by two", () {
+	let m = fresh()
+	machine.set_register(m, 1, 8192)
+	machine.deposit_word(m, 8192, 4660)
+	let operand = addressing.resolve(m, 17, addressing.WORD)
+	equal(addressing.operand_address(operand), 8192)
+	equal(addressing.read_operand(m, operand, addressing.WORD), 4660)
+	equal(machine.get_register(m, 1), 8194)
+})
+
+run("mode 2 byte autoincrement advances R0-R5 by one", () {
+	let m = fresh()
+	machine.set_register(m, 1, 8192)
+	machine.deposit_byte(m, 8192, 171)
+	let operand = addressing.resolve(m, 17, addressing.BYTE)
+	equal(addressing.read_operand(m, operand, addressing.BYTE), 171)
+	equal(machine.get_register(m, 1), 8193)
+})
+
+run("mode 2 byte autoincrement keeps SP word aligned", () {
+	let m = fresh()
+	machine.set_sp(m, 8192)
+	machine.deposit_byte(m, 8192, 171)
+	let operand = addressing.resolve(m, 22, addressing.BYTE)
+	equal(addressing.read_operand(m, operand, addressing.BYTE), 171)
+	equal(machine.sp(m), 8194)
+})
+
+run("mode 3 autoincrement deferred fetches pointer and advances by two", () {
+	let m = fresh()
+	machine.set_register(m, 1, 8192)
+	machine.deposit_word(m, 8192, 12288)
+	machine.deposit_word(m, 12288, 4660)
+	let operand = addressing.resolve(m, 25, addressing.WORD)
+	equal(addressing.operand_address(operand), 12288)
+	equal(addressing.read_operand(m, operand, addressing.WORD), 4660)
+	equal(machine.get_register(m, 1), 8194)
+})
+
+run("mode 4 word autodecrement decrements before use", () {
+	let m = fresh()
+	machine.set_register(m, 1, 8194)
+	machine.deposit_word(m, 8192, 4660)
+	let operand = addressing.resolve(m, 33, addressing.WORD)
+	equal(addressing.operand_address(operand), 8192)
+	equal(addressing.read_operand(m, operand, addressing.WORD), 4660)
+	equal(machine.get_register(m, 1), 8192)
+})
+
+run("mode 4 byte autodecrement decrements R0-R5 by one", () {
+	let m = fresh()
+	machine.set_register(m, 1, 8193)
+	machine.deposit_byte(m, 8192, 171)
+	let operand = addressing.resolve(m, 33, addressing.BYTE)
+	equal(addressing.operand_address(operand), 8192)
+	equal(machine.get_register(m, 1), 8192)
+})
+
+run("mode 5 autodecrement deferred decrements pointer register by two", () {
+	let m = fresh()
+	machine.set_register(m, 1, 8194)
+	machine.deposit_word(m, 8192, 12288)
+	machine.deposit_word(m, 12288, 4660)
+	let operand = addressing.resolve(m, 41, addressing.WORD)
+	equal(addressing.operand_address(operand), 12288)
+	equal(addressing.read_operand(m, operand, addressing.WORD), 4660)
+	equal(machine.get_register(m, 1), 8192)
+})
+
+run("mode 6 indexed uses signed extension and preserves base register", () {
+	let m = fresh()
+	machine.set_register(m, 1, 8192)
+	machine.set_pc(m, 4096)
+	machine.deposit_word(m, 4096, 6)
+	machine.deposit_word(m, 8198, 4660)
+	let operand = addressing.resolve(m, 49, addressing.WORD)
+	equal(addressing.operand_address(operand), 8198)
+	equal(addressing.read_operand(m, operand, addressing.WORD), 4660)
+	equal(machine.get_register(m, 1), 8192)
+	equal(machine.pc(m), 4098)
+})
+
+run("mode 6 indexed sign extends negative displacement", () {
+	let m = fresh()
+	machine.set_register(m, 1, 8192)
+	machine.set_pc(m, 4096)
+	machine.deposit_word(m, 4096, 65534)
+	let operand = addressing.resolve(m, 49, addressing.WORD)
+	equal(addressing.operand_address(operand), 8190)
+	equal(machine.get_register(m, 1), 8192)
+})
+
+run("mode 7 indexed deferred fetches effective address through pointer", () {
+	let m = fresh()
+	machine.set_register(m, 1, 8192)
+	machine.set_pc(m, 4096)
+	machine.deposit_word(m, 4096, 6)
+	machine.deposit_word(m, 8198, 12288)
+	machine.deposit_word(m, 12288, 4660)
+	let operand = addressing.resolve(m, 57, addressing.WORD)
+	equal(addressing.operand_address(operand), 12288)
+	equal(addressing.read_operand(m, operand, addressing.WORD), 4660)
+	equal(machine.get_register(m, 1), 8192)
+})
+
+run("PC mode 2 is immediate and consumes following word", () {
+	let m = fresh()
+	machine.set_pc(m, 4096)
+	machine.deposit_word(m, 4096, 4660)
+	let operand = addressing.resolve(m, 23, addressing.WORD)
+	equal(addressing.operand_address(operand), 4096)
+	equal(addressing.read_operand(m, operand, addressing.WORD), 4660)
+	equal(machine.pc(m), 4098)
+})
+
+run("PC mode 3 is absolute deferred and consumes address word", () {
+	let m = fresh()
+	machine.set_pc(m, 4096)
+	machine.deposit_word(m, 4096, 12288)
+	machine.deposit_word(m, 12288, 4660)
+	let operand = addressing.resolve(m, 31, addressing.WORD)
+	equal(addressing.operand_address(operand), 12288)
+	equal(addressing.read_operand(m, operand, addressing.WORD), 4660)
+	equal(machine.pc(m), 4098)
+})
+
+run("PC mode 6 is relative to PC after extension word", () {
+	let m = fresh()
+	machine.set_pc(m, 4096)
+	machine.deposit_word(m, 4096, 6)
+	machine.deposit_word(m, 4104, 4660)
+	let operand = addressing.resolve(m, 55, addressing.WORD)
+	equal(machine.pc(m), 4098)
+	equal(addressing.operand_address(operand), 4104)
+	equal(addressing.read_operand(m, operand, addressing.WORD), 4660)
+})
+
+run("PC mode 7 is relative deferred", () {
+	let m = fresh()
+	machine.set_pc(m, 4096)
+	machine.deposit_word(m, 4096, 6)
+	machine.deposit_word(m, 4104, 12288)
+	machine.deposit_word(m, 12288, 4660)
+	let operand = addressing.resolve(m, 63, addressing.WORD)
+	equal(machine.pc(m), 4098)
+	equal(addressing.operand_address(operand), 12288)
+	equal(addressing.read_operand(m, operand, addressing.WORD), 4660)
+})

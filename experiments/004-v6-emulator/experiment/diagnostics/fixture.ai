@@ -1,0 +1,139 @@
+package "aiki_pdp_diagnostic_fixture"
+
+let execute = import("../cpu/execute")
+let machine = import("../machine/machine")
+
+let @memory_word [address, value]
+let @memory_byte [address, value]
+let @fixture [name, before_registers, before_psw, before_memory, program, steps, after_registers, after_psw, after_memory]
+let @diagnostic_result [name, passed, differences]
+
+let set_registers = (m, registers) {
+	let i = 0
+	while i < length(registers) {
+		machine.set_register(m, i, registers[i])
+		i = i + 1
+	}
+	return true
+}
+
+let load_memory = (m, entries) {
+	let i = 0
+	while i < length(entries) {
+		let entry = entries[i]
+		match entry {
+			[@memory_word, address, value] {
+				let result = machine.deposit_word(m, address, value)
+				if not equal(result, true) {
+					return result
+				}
+			}
+			[@memory_byte, address, value] {
+				let result = machine.deposit_byte(m, address, value)
+				if not equal(result, true) {
+					return result
+				}
+			}
+			_ {
+				return [@error, :diagnostic, "unknown memory fixture entry"]
+			}
+		}
+		i = i + 1
+	}
+	return true
+}
+
+let prepare = (fixture) {
+	let m = machine.new()
+	machine.reset_machine(m)
+	set_registers(m, fixture.before_registers)
+	machine.set_psw(m, fixture.before_psw)
+	let result = load_memory(m, fixture.before_memory)
+	if is_error(result) {
+		return result
+	}
+	# Programs are represented as encoded words beginning at the PC supplied by
+	# before_registers. Execution remains bounded by fixture.steps.
+	let pc = machine.pc(m)
+	let i = 0
+	while i < length(fixture.program) {
+		let write = machine.deposit_word(m, pc + (i * 2), fixture.program[i])
+		if not equal(write, true) {
+			return write
+		}
+		i = i + 1
+	}
+	return m
+}
+
+let compare_registers = (m, expected) {
+	let differences = []
+	let i = 0
+	while i < length(expected) {
+		let actual = machine.get_register(m, i)
+		if not equal(actual, expected[i]) {
+			differences = append(differences, [@register_difference, i, expected[i], actual])
+		}
+		i = i + 1
+	}
+	return differences
+}
+
+let compare_memory = (m, expected) {
+	let differences = []
+	let i = 0
+	while i < length(expected) {
+		let entry = expected[i]
+		match entry {
+			[@memory_word, address, value] {
+				let actual = machine.examine_word(m, address)
+				if not equal(actual, value) {
+					differences = append(differences, [@memory_difference, :word, address, value, actual])
+				}
+			}
+			[@memory_byte, address, value] {
+				let actual = machine.examine_byte(m, address)
+				if not equal(actual, value) {
+					differences = append(differences, [@memory_difference, :byte, address, value, actual])
+				}
+			}
+			_ {
+				differences = append(differences, [@fixture_difference, "unknown expected memory entry"])
+			}
+		}
+		i = i + 1
+	}
+	return differences
+}
+
+let compare_after = (m, fixture) {
+	let differences = compare_registers(m, fixture.after_registers)
+	if not equal(machine.psw(m), fixture.after_psw) {
+		differences = append(differences, [@psw_difference, fixture.after_psw, machine.psw(m)])
+	}
+	let memory_differences = compare_memory(m, fixture.after_memory)
+	let i = 0
+	while i < length(memory_differences) {
+		differences = append(differences, memory_differences[i])
+		i = i + 1
+	}
+	return [@diagnostic_result, fixture.name, equal(length(differences), 0), differences]
+}
+
+let run_fixture = (fixture) {
+	let m = prepare(fixture)
+	if is_error(m) {
+		return m
+	}
+	let executed = execute.run_bounded(m, fixture.steps)
+	if equal(shape(executed), :pdp_fault) {
+		return executed
+	}
+	return compare_after(m, fixture)
+}
+
+export(
+	:prepare,
+	:compare_after,
+	:run_fixture
+)
