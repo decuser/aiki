@@ -281,16 +281,10 @@ func (e *Evaluator) evalWhile(node *syntax.Node, env *value.Env) value.Value {
 
 func (e *Evaluator) evalMatch(node *syntax.Node, env *value.Env) value.Value {
 	var matchExpr *syntax.Node
-	var cases []*syntax.Node
-
 	for i, child := range node.Children {
-		if child.Type == "TERMINAL" && child.Value == "match" {
-			if i+1 < len(node.Children) {
-				matchExpr = node.Children[i+1]
-			}
-		}
-		if child.Type == "pattern" || child.Type == "block" {
-			cases = append(cases, child)
+		if child.Type == "TERMINAL" && child.Value == "match" && i+1 < len(node.Children) {
+			matchExpr = node.Children[i+1]
+			break
 		}
 	}
 
@@ -303,17 +297,26 @@ func (e *Evaluator) evalMatch(node *syntax.Node, env *value.Env) value.Value {
 		return matchVal
 	}
 
-	for i := 0; i+1 < len(cases); i += 2 {
-		pattern := cases[i]
-		block := cases[i+1]
-
-		bindings := make(map[string]value.Value)
-		if e.matchPattern(pattern, matchVal, bindings, env) {
-			matchEnv := value.NewEnclosedEnv(env)
-			for k, v := range bindings {
-				matchEnv.Set(k, v)
+	// Pattern/block pairs already live in the immutable AST. Keep only the
+	// pending pattern rather than materializing a temporary cases slice.
+	var pattern *syntax.Node
+	for _, child := range node.Children {
+		switch child.Type {
+		case "pattern":
+			pattern = child
+		case "block":
+			if pattern == nil {
+				continue
 			}
-			return e.Eval(block, matchEnv)
+			bindings := patternBindingMap(pattern)
+			if e.matchPattern(pattern, matchVal, bindings, env) {
+				matchEnv := value.NewEnclosedEnv(env)
+				for k, v := range bindings {
+					matchEnv.Set(k, v)
+				}
+				return e.Eval(child, matchEnv)
+			}
+			pattern = nil
 		}
 	}
 

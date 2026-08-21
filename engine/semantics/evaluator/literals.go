@@ -102,16 +102,43 @@ func (e *Evaluator) evalFunc(node *syntax.Node, env *value.Env) value.Value {
 	}
 
 	return &value.Function{
-		Params: params,
-		Rest:   rest,
-		Body:   body,
-		Env:    env,
+		Params:          params,
+		Rest:            rest,
+		Body:            body,
+		Env:             env,
+		TailEnvReusable: bodyHasNoClosureLiteral(body),
 	}
 }
 
+func bodyHasNoClosureLiteral(node *syntax.Node) bool {
+	if node == nil {
+		return true
+	}
+	for _, child := range node.Children {
+		if child.Type == "func_literal" {
+			return false
+		}
+		if !bodyHasNoClosureLiteral(child) {
+			return false
+		}
+	}
+	return true
+}
+
 func (e *Evaluator) evalList(node *syntax.Node, env *value.Env) value.Value {
+	elemCount := 0
+	for _, child := range node.Children {
+		if child.Type != "TERMINAL" && child.Type != "SHAPE" {
+			elemCount++
+		}
+	}
+
 	var elements []value.Value
+	if elemCount > 0 {
+		elements = make([]value.Value, elemCount)
+	}
 	var shape string
+	i := 0
 
 	for _, child := range node.Children {
 		if child.Type == "SHAPE" {
@@ -121,7 +148,8 @@ func (e *Evaluator) evalList(node *syntax.Node, env *value.Env) value.Value {
 			if shouldHalt(val) {
 				return val
 			}
-			elements = append(elements, val)
+			elements[i] = val
+			i++
 		}
 	}
 

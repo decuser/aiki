@@ -226,11 +226,12 @@ func (l *List) Inspect() string {
 
 // Function
 type Function struct {
-	Name   string
-	Params []string
-	Rest   string      // rest parameter name, empty if none
-	Body   interface{} // *syntax.Node, but we don't import syntax here
-	Env    interface{} // *Env, set at runtime
+	Name            string
+	Params          []string
+	Rest            string      // rest parameter name, empty if none
+	Body            interface{} // *syntax.Node, but we don't import syntax here
+	Env             interface{} // *Env, set at runtime
+	TailEnvReusable bool        // body cannot create a closure capturing its call env
 }
 
 func (f *Function) Type() Type { return FunctionType }

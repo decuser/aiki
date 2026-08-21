@@ -70,6 +70,15 @@ type NumberRealizationCounts struct {
 	PromotedBigRational   int64
 }
 
+// CallRealizationCounts describes how semantic call events are realized by the
+// evaluator. These counters are profiling facts, not language semantics.
+type CallRealizationCounts struct {
+	UserEntry    int64
+	Substrate    int64
+	TailReuse    int64
+	TailEnvReuse int64
+}
+
 // SemanticSiteCount records the number of observations at one semantic site.
 type SemanticSiteCount struct {
 	Kind  SemanticKind
@@ -82,6 +91,7 @@ type SemanticMeasurement struct {
 	Counts      SemanticCounts
 	Numbers     NumberRealizationCounts
 	CallNumbers NumberRealizationCounts
+	Calls       CallRealizationCounts
 	Sites       []SemanticSiteCount
 }
 

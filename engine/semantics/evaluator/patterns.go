@@ -34,7 +34,9 @@ func (e *Evaluator) matchPattern(pattern *syntax.Node, val value.Value, bindings
 	}
 
 	if pattern.Type == "NAME" {
-		bindings[pattern.Value] = val
+		if bindings != nil {
+			bindings[pattern.Value] = val
+		}
 		return true
 	}
 
@@ -63,32 +65,58 @@ func (e *Evaluator) matchPattern(pattern *syntax.Node, val value.Value, bindings
 }
 
 func (e *Evaluator) matchListPattern(pattern *syntax.Node, list *value.List, bindings map[string]value.Value, env *value.Env) bool {
-	var patternElems []*syntax.Node
 	var shapeName string
-
+	elemCount := 0
 	for _, child := range pattern.Children {
 		if child.Type == "SHAPE" {
 			shapeName = strings.TrimPrefix(child.Value, "@")
 		} else if child.Type != "TERMINAL" {
-			patternElems = append(patternElems, child)
+			elemCount++
 		}
 	}
 
 	if shapeName != "" && list.Shape != shapeName {
 		return false
 	}
-
-	if len(patternElems) != len(list.Elements) {
+	if elemCount != len(list.Elements) {
 		return false
 	}
 
-	for i, pe := range patternElems {
-		if !e.matchPattern(pe, list.Elements[i], bindings, env) {
+	i := 0
+	for _, child := range pattern.Children {
+		if child.Type == "TERMINAL" || child.Type == "SHAPE" {
+			continue
+		}
+		if !e.matchPattern(child, list.Elements[i], bindings, env) {
 			return false
 		}
+		i++
 	}
-
 	return true
+}
+
+// patternBinds reports whether matching the pattern can introduce a lexical
+// binding. It traverses the immutable AST directly and allocates nothing.
+func patternBinds(pattern *syntax.Node) bool {
+	if pattern == nil {
+		return false
+	}
+	if pattern.Type == "NAME" && pattern.Value != "_" {
+		return true
+	}
+	for _, child := range pattern.Children {
+		if patternBinds(child) {
+			return true
+		}
+	}
+	return false
+}
+
+func patternBindingMap(pattern *syntax.Node) map[string]value.Value {
+	if !patternBinds(pattern) {
+		return nil
+	}
+	return make(map[string]value.Value)
 }
 
 func (e *Evaluator) valuesEqual(a, b value.Value) bool {

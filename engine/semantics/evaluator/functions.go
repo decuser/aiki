@@ -9,49 +9,36 @@ import (
 )
 
 func (e *Evaluator) applyFunction(fn value.Value, args []value.Value, node *syntax.Node, env *value.Env) value.Value {
-	callName := fn.Inspect()
-	if named, ok := fn.(*value.Function); ok && named.Name != "" {
-		callName = named.Name
-	}
-	e.semanticHitDetail(engine.SemanticCall, callName, node, env)
+	probe := e.semanticCallHit(fn, node, env)
 	switch f := fn.(type) {
 	case *value.Function:
-		return e.numberCallResult(e.applyUserFunction(f, args, node, env), env)
+		e.callUserEntry(probe)
+		return e.numberCallResult(e.applyUserFunction(f, args, node, env), probe)
 	case value.Callable:
-		probe := e.activeProbe(env)
-		parentLabels := semanticProfileLabels(env)
-		ctx := &hal.EvalContext{
-			Env:     env,
-			Node:    node,
-			Grammar: e.grammar,
-			Eval:    e.Eval,
-			Probe:   probe,
-			Labels:  parentLabels,
-			Measure: func(target value.Value, targetArgs []value.Value, attributed bool) (value.Value, engine.SemanticMeasurement) {
-				return e.measure(target, targetArgs, node, env, attributed)
-			},
-			WithProfileLabels: e.withProfileLabels,
-		}
-		if faults, ok := e.runtime.(hal.AsyncFaultSource); ok {
-			ctx.AsyncFault = faults.AsyncFaults()
-			ctx.ReportAsyncFault = faults.ReportAsyncFault
-		}
+		e.callSubstrate(probe)
 		var result value.Value
-		labels := parentLabels
-		labels.Layer = "substrate"
-		if node != nil && node.Pos.Line > 0 {
-			labels.Line = strconv.Itoa(node.Pos.Line)
+
+		needsContext := true
+		if requirement, ok := f.(hal.EvalContextRequired); ok {
+			needsContext = requirement.NeedsEvalContext()
 		}
-		if named, ok := f.(hal.ProfileNamed); ok {
-			labels.Primitive = named.ProfileName()
-		}
-		e.withProfileLabels(labels, parentLabels, func() {
-			if cf, ok := f.(hal.ContextCallable); ok {
-				result = cf.CallWithContext(args, ctx)
-			} else {
-				result = f.Call(args)
+
+		if e.profileLabelsEnabled() {
+			parentLabels := semanticProfileLabels(env)
+			labels := parentLabels
+			labels.Layer = "substrate"
+			if node != nil && node.Pos.Line > 0 {
+				labels.Line = strconv.Itoa(node.Pos.Line)
 			}
-		})
+			if named, ok := f.(hal.ProfileNamed); ok {
+				labels.Primitive = named.ProfileName()
+			}
+			e.withProfileLabels(labels, parentLabels, func() {
+				result = e.callSubstrateValue(f, args, node, env, parentLabels, needsContext)
+			})
+		} else {
+			result = e.callSubstrateValue(f, args, node, env, engine.ProfileLabels{}, needsContext)
+		}
 		// Annotate HAL faults with call site location
 		if fault, ok := result.(*value.Fault); ok && fault.File == "" {
 			fault.File = env.GetFile()
@@ -59,14 +46,63 @@ func (e *Evaluator) applyFunction(fn value.Value, args []value.Value, node *synt
 			fault.Source = env.GetSourceLine(node.Pos.Line)
 			fault.Stack = env.CopyStack()
 		}
-		return e.numberCallResult(result, env)
+		return e.numberCallResult(result, probe)
 	default:
 		return e.makeFault(node, env, "not a function: %s", fn.Type())
 	}
 }
 
-func (e *Evaluator) numberCallResult(result value.Value, env *value.Env) value.Value {
+func (e *Evaluator) callSubstrateValue(f value.Callable, args []value.Value, node *syntax.Node, env *value.Env, parentLabels engine.ProfileLabels, needsContext bool) value.Value {
+	cf, contextCallable := f.(hal.ContextCallable)
+	if !contextCallable || !needsContext {
+		return f.Call(args)
+	}
+
 	probe := e.activeProbe(env)
+	ctx := &hal.EvalContext{
+		Env:     env,
+		Node:    node,
+		Grammar: e.grammar,
+		Eval:    e.Eval,
+		Probe:   probe,
+		Labels:  parentLabels,
+		Measure: func(target value.Value, targetArgs []value.Value, attributed bool) (value.Value, engine.SemanticMeasurement) {
+			return e.measure(target, targetArgs, node, env, attributed)
+		},
+		WithProfileLabels: e.withProfileLabels,
+	}
+	if faults, ok := e.runtime.(hal.AsyncFaultSource); ok {
+		ctx.AsyncFault = faults.AsyncFaults()
+		ctx.ReportAsyncFault = faults.ReportAsyncFault
+	}
+	return cf.CallWithContext(args, ctx)
+}
+
+func (e *Evaluator) callUserEntry(probe engine.SemanticProbe) {
+	if counters, ok := probe.(*Counters); ok {
+		counters.UserCallEntry()
+	}
+}
+
+func (e *Evaluator) callSubstrate(probe engine.SemanticProbe) {
+	if counters, ok := probe.(*Counters); ok {
+		counters.SubstrateCall()
+	}
+}
+
+func (e *Evaluator) callTailReuse(env *value.Env) {
+	if counters, ok := e.activeProbe(env).(*Counters); ok {
+		counters.TailCallReuse()
+	}
+}
+
+func (e *Evaluator) callTailEnvReuse(env *value.Env) {
+	if counters, ok := e.activeProbe(env).(*Counters); ok {
+		counters.TailEnvReuse()
+	}
+}
+
+func (e *Evaluator) numberCallResult(result value.Value, probe engine.SemanticProbe) value.Value {
 	if counters, ok := probe.(*Counters); ok {
 		counters.NumberCallResult(result)
 	}
@@ -78,6 +114,7 @@ func (e *Evaluator) applyUserFunction(fn *value.Function, args []value.Value, no
 	currentArgs := args
 	callSite := node
 	pushed := false
+	var reusableCallEnv *value.Env
 
 	for {
 		fnEnv, ok := currentFn.Env.(*value.Env)
@@ -90,12 +127,16 @@ func (e *Evaluator) applyUserFunction(fn *value.Function, args []value.Value, no
 			return e.makeFault(callSite, env, "%s: want %d arguments, got %d", currentFn.Name, len(currentFn.Params), len(currentArgs))
 		}
 
-		callEnv := value.NewCallEnv(fnEnv, env)
-		callEnv.SetSemanticProbe(e.activeProbe(env))
-
-		for i, param := range currentFn.Params {
-			callEnv.Set(param, currentArgs[i])
+		var callEnv *value.Env
+		if reusableCallEnv != nil {
+			callEnv = reusableCallEnv
+			callEnv.ResetCallEnv(fnEnv, env)
+			reusableCallEnv = nil
+			e.callTailEnvReuse(callEnv)
+		} else {
+			callEnv = value.NewCallEnv(fnEnv, env)
 		}
+		callEnv.BindCallParams(currentFn.Params, currentArgs)
 
 		if currentFn.Rest != "" {
 			restStart := len(currentFn.Params)
@@ -117,28 +158,38 @@ func (e *Evaluator) applyUserFunction(fn *value.Function, args []value.Value, no
 		}
 
 		// Enforce non tail call stack limit on first entry only.
+		line := callSite.Pos.Line
+		scope := callEnv.GetScope()
 		if !pushed {
 			limit := callEnv.GetStackLimit()
 			if limit > 0 && callEnv.StackDepth() >= limit {
 				return e.makeFault(callSite, callEnv, "stack overflow")
 			}
-			callEnv.PushFrame(funcName, callSite.Pos.Line, callEnv.GetScope())
+			callEnv.PushFrame(funcName, line, scope)
 			pushed = true
 		} else {
 			// Tail call - reuse the top frame.
-			callEnv.ReplaceTopFrame(funcName, callSite.Pos.Line, callEnv.GetScope())
+			callEnv.ReplaceTopFrame(funcName, line, scope)
 		}
 
 		var result value.Value
-		labels := engine.ProfileLabels{Layer: "semantic", Function: funcName, File: callEnv.GetFile()}
-		restore := semanticProfileLabels(env)
-		e.withProfileLabels(labels, restore, func() {
+		if e.profileLabelsEnabled() {
+			labels := engine.ProfileLabels{Layer: "semantic", Function: funcName, File: callEnv.GetFile()}
+			restore := semanticProfileLabels(env)
+			e.withProfileLabels(labels, restore, func() {
+				result = e.evalTail(body, callEnv)
+			})
+		} else {
 			result = e.evalTail(body, callEnv)
-		})
+		}
 
 		// Tail call jump
 		if tc, ok := result.(*tailCallValue); ok {
 			e.semanticHitDetail(engine.SemanticCall, funcNameValue(tc.Fn), tc.Node, callEnv)
+			e.callTailReuse(callEnv)
+			if currentFn.TailEnvReusable {
+				reusableCallEnv = callEnv
+			}
 			currentFn = tc.Fn
 			currentArgs = tc.Args
 			callSite = tc.Node
@@ -149,6 +200,10 @@ func (e *Evaluator) applyUserFunction(fn *value.Function, args []value.Value, no
 		if ret, ok := result.(*value.Return); ok {
 			if tc, ok := ret.Val.(*tailCallValue); ok {
 				e.semanticHitDetail(engine.SemanticCall, funcNameValue(tc.Fn), tc.Node, callEnv)
+				e.callTailReuse(callEnv)
+				if currentFn.TailEnvReusable {
+					reusableCallEnv = callEnv
+				}
 				currentFn = tc.Fn
 				currentArgs = tc.Args
 				callSite = tc.Node
@@ -179,7 +234,23 @@ func funcNameValue(fn *value.Function) string {
 }
 
 func (e *Evaluator) extractParams(node *syntax.Node) ([]string, string) {
+	count := 0
+	for _, child := range node.Children {
+		if child.Type == "param_list" {
+			for _, p := range child.Children {
+				if p.Type == "NAME" {
+					count++
+				}
+			}
+		} else if child.Type == "NAME" {
+			count++
+		}
+	}
+
 	var params []string
+	if count > 0 {
+		params = make([]string, 0, count)
+	}
 	var rest string
 
 	for _, child := range node.Children {
@@ -206,12 +277,24 @@ func (e *Evaluator) extractParams(node *syntax.Node) ([]string, string) {
 }
 
 func (e *Evaluator) evalCallArgs(node *syntax.Node, env *value.Env) []value.Value {
-	var args []value.Value
+	arity := 0
 	for _, child := range node.Children {
 		if child.Type != "TERMINAL" {
-			val := e.Eval(child, env)
-			args = append(args, val)
+			arity++
 		}
+	}
+	if arity == 0 {
+		return nil
+	}
+
+	args := make([]value.Value, arity)
+	i := 0
+	for _, child := range node.Children {
+		if child.Type == "TERMINAL" {
+			continue
+		}
+		args[i] = e.Eval(child, env)
+		i++
 	}
 	return args
 }

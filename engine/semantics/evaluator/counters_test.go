@@ -254,3 +254,16 @@ func TestNumberCallRealizationUsesEnvironmentProbe(t *testing.T) {
 		t.Fatalf("small integer call returns through environment probe: got %d want 1", n.ResultSmallInteger)
 	}
 }
+
+func TestCallRealizationSnapshot(t *testing.T) {
+	c := NewCounters()
+	c.UserCallEntry()
+	c.UserCallEntry()
+	c.SubstrateCall()
+	c.TailCallReuse()
+
+	got := c.CallSnapshot()
+	if got.UserEntry != 2 || got.Substrate != 1 || got.TailReuse != 1 {
+		t.Fatalf("call realization = %+v, want user=2 substrate=1 tail=1", got)
+	}
+}

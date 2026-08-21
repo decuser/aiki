@@ -167,7 +167,14 @@ func (g *GoRuntime) registerHAL() {
 		"_bits_and":                   halBitsAnd, "_bits_or": halBitsOr, "_bits_xor": halBitsXor,
 		"_bits_not": halBitsNot, "_bits_shl": halBitsShl, "_bits_shr": halBitsShr,
 	} {
-		g.registerPrimitive(name, fn)
+		switch name {
+		case "_stack_limit", "_store_get", "_store_set":
+			// These operations observe evaluator context for stack state or
+			// semantic profiling. Keep the conservative context path.
+			g.registerPrimitive(name, fn)
+		default:
+			g.registerContextFreePrimitive(name, fn)
+		}
 	}
 
 	// Native/FFI library providers. Native realization does not imply host
@@ -195,7 +202,7 @@ func (g *GoRuntime) registerHAL() {
 		"_regex_find_all": halRegexFindAll, "_regex_replace": halRegexReplace,
 		"_regex_replace_first": halRegexReplaceFirst, "_regex_split": halRegexSplit,
 	} {
-		g.registerPrimitive(name, fn)
+		g.registerContextFreePrimitive(name, fn)
 	}
 
 	// Runtime/tooling/session services.

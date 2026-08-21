@@ -39,6 +39,18 @@ func (g *GoRuntime) lookupBuiltin(name string) (*Builtin, bool) {
 }
 
 func (g *GoRuntime) registerPrimitive(name string, fn BuiltinFunc) {
+	g.registerPrimitiveWithContextPolicy(name, fn, true)
+}
+
+// registerContextFreePrimitive is used only for audited builtins whose result
+// cannot depend on evaluator context. Unknown/new registrations remain
+// context-requiring by default, so omission costs performance rather than
+// correctness.
+func (g *GoRuntime) registerContextFreePrimitive(name string, fn BuiltinFunc) {
+	g.registerPrimitiveWithContextPolicy(name, fn, false)
+}
+
+func (g *GoRuntime) registerPrimitiveWithContextPolicy(name string, fn BuiltinFunc, needsContext bool) {
 	if fn == nil {
 		panic("runtime primitive registration has nil function: " + name)
 	}
@@ -49,7 +61,12 @@ func (g *GoRuntime) registerPrimitive(name string, fn BuiltinFunc) {
 	if _, exists := g.lookupBuiltin(name); exists {
 		panic("duplicate compatibility primitive registration: " + name)
 	}
-	g.registryFor(role)[name] = &Builtin{name: name, fn: fn, runtime: g}
+	g.registryFor(role)[name] = &Builtin{
+		name:         name,
+		fn:           fn,
+		runtime:      g,
+		needsContext: needsContext,
+	}
 }
 
 // PrimitiveRegistrations returns the runtime's actual primitive registrations

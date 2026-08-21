@@ -65,6 +65,7 @@ func printMeasurement(m engine.SemanticMeasurement, showSites bool) {
 	}
 	printNumberRealization("Number arithmetic realization", m.Numbers, true)
 	printNumberRealization("Number call-return realization", m.CallNumbers, false)
+	printCallRealization(m.Calls)
 	if !showSites || len(m.Sites) == 0 {
 		return
 	}
@@ -83,6 +84,18 @@ func printMeasurement(m engine.SemanticMeasurement, showSites bool) {
 			fmt.Printf("            %s\n", text)
 		}
 	}
+}
+
+func printCallRealization(c engine.CallRealizationCounts) {
+	total := c.UserEntry + c.Substrate + c.TailReuse + c.TailEnvReuse
+	if total == 0 {
+		return
+	}
+	fmt.Println("\nCall realization")
+	fmt.Printf("  %-20s %d\n", "user_entry", c.UserEntry)
+	fmt.Printf("  %-20s %d\n", "substrate", c.Substrate)
+	fmt.Printf("  %-20s %d\n", "tail_reuse", c.TailReuse)
+	fmt.Printf("  %-20s %d\n", "tail_env_reuse", c.TailEnvReuse)
 }
 
 func printNumberRealization(title string, n engine.NumberRealizationCounts, arithmetic bool) {

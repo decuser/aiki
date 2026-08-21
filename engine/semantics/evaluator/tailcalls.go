@@ -17,26 +17,21 @@ type tailCallValue struct {
 func (t *tailCallValue) Type() value.Type { return value.Type("tailcall") }
 func (t *tailCallValue) Inspect() string  { return "<tailcall>" }
 
-func countNonTerminalChildren(node *syntax.Node) (nonterm []*syntax.Node, terms []string) {
+func singleWrappedChild(node *syntax.Node) (*syntax.Node, bool) {
+	var only *syntax.Node
 	for _, ch := range node.Children {
 		if ch.Type == "TERMINAL" {
-			if ch.Value != "" {
-				terms = append(terms, ch.Value)
+			if ch.Value != "" && ch.Value != "(" && ch.Value != ")" {
+				return nil, false
 			}
 			continue
 		}
-		nonterm = append(nonterm, ch)
-	}
-	return nonterm, terms
-}
-
-func harmlessTerminals(terms []string) bool {
-	for _, t := range terms {
-		if t != "(" && t != ")" {
-			return false
+		if only != nil {
+			return nil, false
 		}
+		only = ch
 	}
-	return true
+	return only, only != nil
 }
 
 // evalTail evaluates a node in tail position context.
@@ -46,9 +41,8 @@ func (e *Evaluator) evalTail(node *syntax.Node, env *value.Env) value.Value {
 	// Unwrap simple expression wrapper nodes that contain a single non terminal child
 	// and only harmless terminals like parentheses.
 	if strings.HasSuffix(node.Type, "_expr") || node.Type == "expr" || node.Type == "primary" {
-		nonterm, terms := countNonTerminalChildren(node)
-		if len(nonterm) == 1 && harmlessTerminals(terms) {
-			return e.evalTail(nonterm[0], env)
+		if child, ok := singleWrappedChild(node); ok {
+			return e.evalTail(child, env)
 		}
 	}
 
@@ -94,30 +88,29 @@ func (e *Evaluator) evalTail(node *syntax.Node, env *value.Env) value.Value {
 }
 
 func (e *Evaluator) evalBlockTail(node *syntax.Node, env *value.Env) value.Value {
-	// Evaluate all statements except the last in normal mode.
-	// Evaluate the last statement in tail mode.
-	var stmts []*syntax.Node
+	// Keep one statement pending. Once the next statement is seen, the pending
+	// statement is known not to be tail and can be evaluated normally. This
+	// avoids building a temporary statement slice for every function body.
+	var pending *syntax.Node
 	for _, child := range node.Children {
 		if child.Type == "TERMINAL" {
 			continue
 		}
-		stmts = append(stmts, child)
+		if pending != nil {
+			res := e.Eval(pending, env)
+			if ret, ok := res.(*value.Return); ok {
+				return ret
+			}
+			if shouldHalt(res) {
+				return res
+			}
+		}
+		pending = child
 	}
-	if len(stmts) == 0 {
+	if pending == nil {
 		return value.EMPTY
 	}
-	for i := 0; i < len(stmts)-1; i++ {
-		res := e.Eval(stmts[i], env)
-		if ret, ok := res.(*value.Return); ok {
-			return ret
-		}
-		if shouldHalt(res) {
-			return res
-		}
-	}
-	// Tail evaluate last
-	last := e.evalTail(stmts[len(stmts)-1], env)
-	return last
+	return e.evalTail(pending, env)
 }
 
 func (e *Evaluator) evalIfTail(node *syntax.Node, env *value.Env) value.Value {
@@ -163,16 +156,10 @@ func (e *Evaluator) evalIfTail(node *syntax.Node, env *value.Env) value.Value {
 
 func (e *Evaluator) evalMatchTail(node *syntax.Node, env *value.Env) value.Value {
 	var matchExpr *syntax.Node
-	var cases []*syntax.Node
-
 	for i, child := range node.Children {
-		if child.Type == "TERMINAL" && child.Value == "match" {
-			if i+1 < len(node.Children) {
-				matchExpr = node.Children[i+1]
-			}
-		}
-		if child.Type == "pattern" || child.Type == "block" {
-			cases = append(cases, child)
+		if child.Type == "TERMINAL" && child.Value == "match" && i+1 < len(node.Children) {
+			matchExpr = node.Children[i+1]
+			break
 		}
 	}
 
@@ -185,17 +172,24 @@ func (e *Evaluator) evalMatchTail(node *syntax.Node, env *value.Env) value.Value
 		return matchVal
 	}
 
-	for i := 0; i+1 < len(cases); i += 2 {
-		pattern := cases[i]
-		block := cases[i+1]
-
-		bindings := make(map[string]value.Value)
-		if e.matchPattern(pattern, matchVal, bindings, env) {
-			matchEnv := value.NewEnclosedEnv(env)
-			for k, v := range bindings {
-				matchEnv.Set(k, v)
+	var pattern *syntax.Node
+	for _, child := range node.Children {
+		switch child.Type {
+		case "pattern":
+			pattern = child
+		case "block":
+			if pattern == nil {
+				continue
 			}
-			return e.evalTail(block, matchEnv)
+			bindings := patternBindingMap(pattern)
+			if e.matchPattern(pattern, matchVal, bindings, env) {
+				matchEnv := value.NewEnclosedEnv(env)
+				for k, v := range bindings {
+					matchEnv.Set(k, v)
+				}
+				return e.evalTail(child, matchEnv)
+			}
+			pattern = nil
 		}
 	}
 
@@ -203,50 +197,55 @@ func (e *Evaluator) evalMatchTail(node *syntax.Node, env *value.Env) value.Value
 }
 
 func (e *Evaluator) evalPipeTail(node *syntax.Node, env *value.Env) value.Value {
-	// Evaluate pipe left to right. Only the final application may be in tail position.
-	var parts []*syntax.Node
+	// Evaluate pipe left to right. Count parts without materializing a temporary
+	// slice, then traverse the immutable AST directly.
+	partCount := 0
 	for _, child := range node.Children {
 		if child.Type == "TERMINAL" && child.Value == "|>" {
 			continue
 		}
-		parts = append(parts, child)
+		partCount++
 	}
-	if len(parts) == 0 {
+	if partCount == 0 {
 		return value.EMPTY
 	}
-	// first part normal
-	result := e.Eval(parts[0], env)
-	if shouldHalt(result) {
-		return result
-	}
-	// Short-circuit on shaped error
-	if value.IsShapedError(result) {
-		return result
-	}
-	for i := 1; i < len(parts); i++ {
-		// last application in tail context
-		if i == len(parts)-1 {
-			fn := e.evalToFunction(parts[i], env)
+
+	partIndex := 0
+	var result value.Value
+	for _, part := range node.Children {
+		if part.Type == "TERMINAL" && part.Value == "|>" {
+			continue
+		}
+
+		if partIndex == 0 {
+			result = e.Eval(part, env)
+			if shouldHalt(result) || value.IsShapedError(result) {
+				return result
+			}
+			partIndex++
+			continue
+		}
+
+		if partIndex == partCount-1 {
+			fn := e.evalToFunction(part, env)
 			if shouldHalt(fn) {
 				return fn
 			}
-			args := []value.Value{result}
-			args = append(args, e.collectCallArgs(parts[i], env)...)
-			// only tail optimize user functions
+			callArgs := e.collectCallArgs(part, env)
+			args := make([]value.Value, 1+len(callArgs))
+			args[0] = result
+			copy(args[1:], callArgs)
 			if uf, ok := fn.(*value.Function); ok {
-				return &tailCallValue{Fn: uf, Args: args, Node: parts[i]}
+				return &tailCallValue{Fn: uf, Args: args, Node: part}
 			}
-			return e.applyFunction(fn, args, parts[i], env)
+			return e.applyFunction(fn, args, part, env)
 		}
-		// non tail intermediate step
-		result = e.applyPipe(parts[i], result, env)
-		if shouldHalt(result) {
+
+		result = e.applyPipe(part, result, env)
+		if shouldHalt(result) || value.IsShapedError(result) {
 			return result
 		}
-		// Short-circuit on shaped error
-		if value.IsShapedError(result) {
-			return result
-		}
+		partIndex++
 	}
 	return result
 }

@@ -41,6 +41,11 @@ type Counters struct {
 	numberCallBinaryCarrier   int64
 	numberCallBigRational     int64
 
+	callUserEntry    int64
+	callSubstrate    int64
+	callTailReuse    int64
+	callTailEnvReuse int64
+
 	// Coverage maps source positions to hit counts.
 	// Key is "file:line". Only populated when coverage is enabled.
 	mu       sync.Mutex
@@ -163,6 +168,42 @@ func (c *Counters) NumberCallResult(result value.Value) {
 	}
 }
 
+func (c *Counters) UserCallEntry() {
+	if c != nil {
+		atomic.AddInt64(&c.callUserEntry, 1)
+	}
+}
+
+func (c *Counters) SubstrateCall() {
+	if c != nil {
+		atomic.AddInt64(&c.callSubstrate, 1)
+	}
+}
+
+func (c *Counters) TailCallReuse() {
+	if c != nil {
+		atomic.AddInt64(&c.callTailReuse, 1)
+	}
+}
+
+func (c *Counters) TailEnvReuse() {
+	if c != nil {
+		atomic.AddInt64(&c.callTailEnvReuse, 1)
+	}
+}
+
+func (c *Counters) CallSnapshot() engine.CallRealizationCounts {
+	if c == nil {
+		return engine.CallRealizationCounts{}
+	}
+	return engine.CallRealizationCounts{
+		UserEntry:    atomic.LoadInt64(&c.callUserEntry),
+		Substrate:    atomic.LoadInt64(&c.callSubstrate),
+		TailReuse:    atomic.LoadInt64(&c.callTailReuse),
+		TailEnvReuse: atomic.LoadInt64(&c.callTailEnvReuse),
+	}
+}
+
 func (c *Counters) NumberCallSnapshot() engine.NumberRealizationCounts {
 	if c == nil {
 		return engine.NumberRealizationCounts{}
@@ -213,6 +254,7 @@ func (c *Counters) Measurement() engine.SemanticMeasurement {
 		Counts:      c.Snapshot(),
 		Numbers:     c.NumberSnapshot(),
 		CallNumbers: c.NumberCallSnapshot(),
+		Calls:       c.CallSnapshot(),
 	}
 	if c == nil || c.sites == nil {
 		return m

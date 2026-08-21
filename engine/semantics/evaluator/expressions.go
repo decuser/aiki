@@ -67,15 +67,11 @@ func (e *Evaluator) evalPipe(node *syntax.Node, env *value.Env) value.Value {
 }
 
 func (e *Evaluator) evalUnary(node *syntax.Node, env *value.Env) value.Value {
-	var prefixes []string
 	var operand value.Value
 
 	for _, child := range node.Children {
-		if child.Type == "TERMINAL" {
-			if child.Value == "not" || child.Value == "-" {
-				prefixes = append(prefixes, child.Value)
-				continue
-			}
+		if child.Type == "TERMINAL" && (child.Value == "not" || child.Value == "-") {
+			continue
 		}
 		operand = e.Eval(child, env)
 		if shouldHalt(operand) {
@@ -87,8 +83,14 @@ func (e *Evaluator) evalUnary(node *syntax.Node, env *value.Env) value.Value {
 		return value.EMPTY
 	}
 
-	for i := len(prefixes) - 1; i >= 0; i-- {
-		switch prefixes[i] {
+	// Prefix operators apply inside-out. Walk the immutable children backward
+	// instead of collecting a temporary prefix slice.
+	for i := len(node.Children) - 1; i >= 0; i-- {
+		child := node.Children[i]
+		if child.Type != "TERMINAL" {
+			continue
+		}
+		switch child.Value {
 		case "not":
 			if value.IsTruthy(operand) {
 				operand = value.FALSE
@@ -149,8 +151,10 @@ func (e *Evaluator) applyPipe(node *syntax.Node, arg value.Value, env *value.Env
 		return fn
 	}
 
-	args := []value.Value{arg}
-	args = append(args, e.collectCallArgs(node, env)...)
+	callArgs := e.collectCallArgs(node, env)
+	args := make([]value.Value, 1+len(callArgs))
+	args[0] = arg
+	copy(args[1:], callArgs)
 
 	return e.applyFunction(fn, args, node, env)
 }
