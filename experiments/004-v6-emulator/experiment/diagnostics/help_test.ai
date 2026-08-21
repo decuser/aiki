@@ -8,6 +8,7 @@ run("PDP help exposes the reference index", () {
 	equal(str.contains(result, "help instructions"), true)
 })
 
+
 run("addressing help includes all eight modes and PC forms", () {
 	let result = pdp_help.topic("addressing")
 	equal(str.contains(result, "mode 0"), true)
@@ -16,12 +17,14 @@ run("addressing help includes all eight modes and PC forms", () {
 	equal(str.contains(result, "PC-relative"), true)
 })
 
+
 run("instruction help carries octal encoding forms", () {
 	let result = pdp_help.topic("instructions")
 	equal(str.contains(result, "01SSDD"), true)
 	equal(str.contains(result, "0050DD"), true)
 	equal(str.contains(result, "077RNN"), true)
 })
+
 
 run("register and PSW help name architectural roles", () {
 	let registers = pdp_help.topic("registers")
@@ -32,6 +35,7 @@ run("register and PSW help name architectural roles", () {
 	equal(str.contains(psw, "negative"), true)
 	equal(str.contains(psw, "processor priority"), true)
 })
+
 
 run("mnemonic help is available and unknown topics fault", () {
 	let mov = pdp_help.topic("mov")

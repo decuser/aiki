@@ -1,359 +1,420 @@
-@preamble let machine = import("machine/ffi")
+@preamble use("machine/ffi")
 word
-Explicit machine/ffi operation.
+Constructs a 16-bit machine word from a number.
 
-word(number)
+word(n)
 
+type(word)    # :function
 ===
 byte
-Explicit machine/ffi operation.
+Constructs an 8-bit machine byte from a number.
 
-byte(number)
+byte(n)
 
+type(byte)    # :function
 ===
 addr18
-Explicit machine/ffi operation.
+Constructs an 18-bit machine address from a number.
 
-addr18(number)
+addr18(n)
 
+type(addr18)    # :function
 ===
 number
-Explicit machine/ffi operation.
+Converts a machine value to its Aiki numeric value.
 
 number(value)
 
+type(number)    # :function
 ===
 same
-Explicit machine/ffi operation.
+Reports whether two machine values are the same value.
 
 same(a, b)
 
+type(same)    # :function
 ===
 word_add
-Explicit machine/ffi operation.
+Adds two 16-bit words with machine-width wrapping.
 
 word_add(a, b)
 
+type(word_add)    # :function
 ===
 word_sub
-Explicit machine/ffi operation.
+Subtracts two 16-bit words with machine-width wrapping.
 
 word_sub(a, b)
 
+type(word_sub)    # :function
 ===
 word_and
-Explicit machine/ffi operation.
+Computes bitwise AND of two 16-bit words.
 
 word_and(a, b)
 
+type(word_and)    # :function
 ===
 word_or
-Explicit machine/ffi operation.
+Computes bitwise OR of two 16-bit words.
 
 word_or(a, b)
 
+type(word_or)    # :function
 ===
 word_xor
-Explicit machine/ffi operation.
+Computes bitwise XOR of two 16-bit words.
 
 word_xor(a, b)
 
+type(word_xor)    # :function
 ===
 word_not
-Explicit machine/ffi operation.
+Computes bitwise complement of a 16-bit word.
 
-word_not(a)
+word_not(value)
 
+type(word_not)    # :function
 ===
 word_shl
-Explicit machine/ffi operation.
+Shifts a 16-bit word left.
 
-word_shl(a, count)
+word_shl(value, count)
 
+type(word_shl)    # :function
 ===
 word_shr
-Explicit machine/ffi operation.
+Shifts a 16-bit word right.
 
-word_shr(a, count)
+word_shr(value, count)
 
+type(word_shr)    # :function
 ===
 word_extract
-Explicit machine/ffi operation.
+Extracts a bit field from a 16-bit word.
 
-word_extract(a, start, width)
+word_extract(value, start, width)
 
+type(word_extract)    # :function
 ===
 word_lt
-Explicit machine/ffi operation.
+Compares two 16-bit words as unsigned values.
 
 word_lt(a, b)
 
+type(word_lt)    # :function
 ===
 word_gt
-Explicit machine/ffi operation.
+Compares two 16-bit words as unsigned values.
 
 word_gt(a, b)
 
+type(word_gt)    # :function
 ===
 word_zero
-Explicit machine/ffi operation.
+Reports whether a 16-bit word is zero.
 
-word_zero(a)
+word_zero(value)
 
+type(word_zero)    # :function
 ===
 word_sign
-Explicit machine/ffi operation.
+Reports the sign bit of a 16-bit word.
 
-word_sign(a)
+word_sign(value)
 
+type(word_sign)    # :function
 ===
 low_byte
-Explicit machine/ffi operation.
+Returns the low byte of a 16-bit word.
 
-low_byte(a)
+low_byte(value)
 
+type(low_byte)    # :function
 ===
 high_byte
-Explicit machine/ffi operation.
+Returns the high byte of a 16-bit word.
 
-high_byte(a)
+high_byte(value)
 
+type(high_byte)    # :function
 ===
 with_low_byte
-Explicit machine/ffi operation.
+Returns a word with its low byte replaced.
 
-with_low_byte(a, b)
+with_low_byte(word_value, byte_value)
 
+type(with_low_byte)    # :function
 ===
 with_high_byte
-Explicit machine/ffi operation.
+Returns a word with its high byte replaced.
 
-with_high_byte(a, b)
+with_high_byte(word_value, byte_value)
 
+type(with_high_byte)    # :function
 ===
 byte_to_word
-Explicit machine/ffi operation.
+Zero-extends a byte to a word.
 
-byte_to_word(b)
+byte_to_word(value)
 
+type(byte_to_word)    # :function
 ===
 byte_sign_word
-Explicit machine/ffi operation.
+Sign-extends a byte to a word.
 
-byte_sign_word(b)
+byte_sign_word(value)
 
+type(byte_sign_word)    # :function
 ===
 byte_zero
-Explicit machine/ffi operation.
+Reports whether a byte is zero.
 
-byte_zero(b)
+byte_zero(value)
 
+type(byte_zero)    # :function
 ===
 addr_add
-Explicit machine/ffi operation.
+Adds an offset to an 18-bit address with machine-width wrapping.
 
-addr_add(a, amount)
+addr_add(address, offset)
 
+type(addr_add)    # :function
 ===
 addr_even
-Explicit machine/ffi operation.
+Reports whether an 18-bit address is even.
 
-addr_even(a)
+addr_even(address)
 
+type(addr_even)    # :function
 ===
 word_field
-Explicit machine/ffi operation.
+Returns a selected field from a word.
 
-word_field(a, start, width)
+word_field(value, start, width)
 
+type(word_field)    # :function
 ===
 word_mask
-Explicit machine/ffi operation.
+Applies a numeric mask to a word.
 
-word_mask(a, mask)
+word_mask(value, mask)
 
+type(word_mask)    # :function
 ===
 word_eq_number
-Explicit machine/ffi operation.
+Compares a word with an Aiki number.
 
-word_eq_number(a, number)
+word_eq_number(value, number_value)
 
+type(word_eq_number)    # :function
 ===
 word_lt_number
-Explicit machine/ffi operation.
+Reports whether a word is less than an Aiki number.
 
-word_lt_number(a, number)
+word_lt_number(value, number_value)
 
+type(word_lt_number)    # :function
 ===
 word_ge_number
-Explicit machine/ffi operation.
+Reports whether a word is greater than or equal to an Aiki number.
 
-word_ge_number(a, number)
+word_ge_number(value, number_value)
 
+type(word_ge_number)    # :function
 ===
 word_add_small
-Explicit machine/ffi operation.
+Adds a small numeric offset to a word.
 
-word_add_small(a, amount)
+word_add_small(value, amount)
 
+type(word_add_small)    # :function
 ===
 word_sub_small
-Explicit machine/ffi operation.
+Subtracts a small numeric offset from a word.
 
-word_sub_small(a, amount)
+word_sub_small(value, amount)
 
+type(word_sub_small)    # :function
 ===
 word_add_carry
-Explicit machine/ffi operation.
+Performs word addition and reports carry information.
 
 word_add_carry(a, b)
 
+type(word_add_carry)    # :function
 ===
 word_sub_borrow
-Explicit machine/ffi operation.
+Performs word subtraction and reports borrow information.
 
 word_sub_borrow(a, b)
 
+type(word_sub_borrow)    # :function
 ===
 word_bit
-Explicit machine/ffi operation.
+Reports the selected bit of a word.
 
-word_bit(a, position)
+word_bit(value, bit)
 
+type(word_bit)    # :function
 ===
 word_set_bit
-Explicit machine/ffi operation.
+Returns a word with the selected bit set or cleared.
 
-word_set_bit(a, position, value)
+word_set_bit(value, bit, state)
 
+type(word_set_bit)    # :function
 ===
 zero
-Explicit machine/ffi operation.
+Reports whether a machine value is zero.
 
-zero(a)
+zero(value)
 
+type(zero)    # :function
 ===
 negative
-Explicit machine/ffi operation.
+Reports whether a machine value has its sign bit set.
 
-negative(a)
+negative(value)
 
+type(negative)    # :function
 ===
 addr_from_word
-Explicit machine/ffi operation.
+Converts a word value to an 18-bit address.
 
-addr_from_word(a)
+addr_from_word(value)
 
+type(addr_from_word)    # :function
 ===
 addr_lt_number
-Explicit machine/ffi operation.
+Reports whether an address is less than an Aiki number.
 
-addr_lt_number(a, number)
+addr_lt_number(address, number_value)
 
+type(addr_lt_number)    # :function
 ===
 addr_ge_number
-Explicit machine/ffi operation.
+Reports whether an address is greater than or equal to an Aiki number.
 
-addr_ge_number(a, number)
+addr_ge_number(address, number_value)
 
+type(addr_ge_number)    # :function
 ===
 word_any_mask
-Explicit machine/ffi operation.
+Reports whether any bit selected by a mask is set.
 
-word_any_mask(a, mask)
+word_any_mask(value, mask)
 
+type(word_any_mask)    # :function
 ===
 add
-Explicit machine/ffi operation.
+Adds two machine values.
 
 add(a, b)
 
+type(add)    # :function
 ===
 sub
-Explicit machine/ffi operation.
+Subtracts two machine values.
 
 sub(a, b)
 
+type(sub)    # :function
 ===
 bit_and
-Explicit machine/ffi operation.
+Computes bitwise AND of two machine values.
 
 bit_and(a, b)
 
+type(bit_and)    # :function
 ===
 bit_or
-Explicit machine/ffi operation.
+Computes bitwise OR of two machine values.
 
 bit_or(a, b)
 
+type(bit_or)    # :function
 ===
 bit_xor
-Explicit machine/ffi operation.
+Computes bitwise XOR of two machine values.
 
 bit_xor(a, b)
 
+type(bit_xor)    # :function
 ===
 bit_not
-Explicit machine/ffi operation.
+Computes bitwise complement of a machine value.
 
-bit_not(a)
+bit_not(value)
 
+type(bit_not)    # :function
 ===
 add_small
-Explicit machine/ffi operation.
+Adds a small numeric offset to a machine value.
 
-add_small(a, amount)
+add_small(value, amount)
 
+type(add_small)    # :function
 ===
 sub_small
-Explicit machine/ffi operation.
+Subtracts a small numeric offset from a machine value.
 
-sub_small(a, amount)
+sub_small(value, amount)
 
+type(sub_small)    # :function
 ===
 lt
-Explicit machine/ffi operation.
+Compares two machine values.
 
 lt(a, b)
 
+type(lt)    # :function
 ===
 gt
-Explicit machine/ffi operation.
+Compares two machine values.
 
 gt(a, b)
 
+type(gt)    # :function
 ===
 add_carry
-Explicit machine/ffi operation.
+Performs machine-width addition and reports carry information.
 
 add_carry(a, b)
 
+type(add_carry)    # :function
 ===
 sub_borrow
-Explicit machine/ffi operation.
+Performs machine-width subtraction and reports borrow information.
 
 sub_borrow(a, b)
 
+type(sub_borrow)    # :function
 ===
 shr1
-Explicit machine/ffi operation.
+Shifts a machine value right by one bit.
 
-shr1(a)
+shr1(value)
 
+type(shr1)    # :function
 ===
 shl1
-Explicit machine/ffi operation.
+Shifts a machine value left by one bit.
 
-shl1(a)
+shl1(value)
 
+type(shl1)    # :function
 ===
 low_bit
-Explicit machine/ffi operation.
+Reports the low bit of a machine value.
 
-low_bit(a)
+low_bit(value)
 
+type(low_bit)    # :function
 ===
 set_high_bit
-Explicit machine/ffi operation.
+Returns a machine value with its high bit set as requested.
 
-set_high_bit(a, value)
+set_high_bit(value, state)
+
+type(set_high_bit)    # :function

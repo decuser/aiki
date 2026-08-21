@@ -163,3 +163,107 @@ countdown(5)
 		t.Errorf("call: expected 6 including 5 proper tail calls, got %d", ev.Counters.Call)
 	}
 }
+
+func TestNumberRealizationUsesEnvironmentProbe(t *testing.T) {
+	g, err := grammar.Load("grammar.ebnfx", syntax.EbnfxSource, "grammar.help", syntax.HelpSource)
+	if err != nil {
+		t.Fatalf("loading grammar: %v", err)
+	}
+	ev := New(nil, engine.SilentObserver{})
+	ev.SetGrammar(g)
+	counters := NewCounters()
+	source := "1 + 2 * 3"
+	lexer := syntax.NewLexer(g, "test.ai", source, engine.SilentObserver{})
+	tokens, err := lexer.Tokenize()
+	if err != nil {
+		t.Fatalf("lex error: %v", err)
+	}
+	parser := syntax.NewParser(g, tokens, source, engine.SilentObserver{})
+	tree, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("parse error: %v", err)
+	}
+	env := value.NewEnvWithScope(value.ScopeUser)
+	env.SetSemanticProbe(counters)
+	env.SetFile("test.ai")
+	env.SetSource(source)
+	result := ev.Eval(tree, env)
+	if got := result.Inspect(); got != "9" {
+		t.Fatalf("result: got %s want 9", got)
+	}
+	n := counters.NumberSnapshot()
+	if n.ResultSmallInteger != 2 {
+		t.Fatalf("small integer results through environment probe: got %d want 2", n.ResultSmallInteger)
+	}
+}
+
+func TestNumberRealizationCounters(t *testing.T) {
+	c := NewCounters()
+	a := value.NewNumber(2, 1)
+	b := value.NewNumber(3, 1)
+	c.NumberArithmeticResult(a, b, a.Add(b))
+
+	f1, ok := value.NewNumberFromFloat64(0.5)
+	if !ok {
+		t.Fatal("0.5 carrier rejected")
+	}
+	f2, ok := value.NewNumberFromFloat64(0.25)
+	if !ok {
+		t.Fatal("0.25 carrier rejected")
+	}
+	c.NumberArithmeticResult(f1, f2, f1.Add(f2))
+
+	n := c.NumberSnapshot()
+	if n.ResultSmallInteger != 1 {
+		t.Fatalf("small integer results: got %d want 1", n.ResultSmallInteger)
+	}
+	if n.ResultBinaryCarrier != 1 || n.BinaryCertified != 1 || n.BinaryFallback != 0 {
+		t.Fatalf("binary realization: %+v", n)
+	}
+}
+
+func TestNumberCallRealizationUsesEnvironmentProbe(t *testing.T) {
+	g, err := grammar.Load("grammar.ebnfx", syntax.EbnfxSource, "grammar.help", syntax.HelpSource)
+	if err != nil {
+		t.Fatalf("loading grammar: %v", err)
+	}
+	ev := New(nil, engine.SilentObserver{})
+	ev.SetGrammar(g)
+	counters := NewCounters()
+	source := "let f = () { 42 }\nf()\n"
+	lexer := syntax.NewLexer(g, "test.ai", source, engine.SilentObserver{})
+	tokens, err := lexer.Tokenize()
+	if err != nil {
+		t.Fatalf("lex error: %v", err)
+	}
+	parser := syntax.NewParser(g, tokens, source, engine.SilentObserver{})
+	tree, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("parse error: %v", err)
+	}
+	env := value.NewEnvWithScope(value.ScopeUser)
+	env.SetSemanticProbe(counters)
+	env.SetFile("test.ai")
+	env.SetSource(source)
+	result := ev.Eval(tree, env)
+	if got := result.Inspect(); got != "42" {
+		t.Fatalf("result: got %s want 42", got)
+	}
+	n := counters.NumberCallSnapshot()
+	if n.ResultSmallInteger != 1 {
+		t.Fatalf("small integer call returns through environment probe: got %d want 1", n.ResultSmallInteger)
+	}
+}
+
+func TestCallRealizationSnapshot(t *testing.T) {
+	c := NewCounters()
+	c.UserCallEntry()
+	c.UserCallEntry()
+	c.SubstrateCall()
+	c.TailCallReuse()
+
+	got := c.CallSnapshot()
+	if got.UserEntry != 2 || got.Substrate != 1 || got.TailReuse != 1 {
+		t.Fatalf("call realization = %+v, want user=2 substrate=1 tail=1", got)
+	}
+}

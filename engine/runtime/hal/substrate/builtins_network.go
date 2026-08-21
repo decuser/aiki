@@ -51,10 +51,10 @@ func networkHostPort(args []value.Value, offset int, opname string) (string, int
 		return "", 0, value.NewFault("%s: host must be string, got %s", opname, args[offset].Type())
 	}
 	port, ok := args[offset+1].(*value.Number)
-	if !ok || !port.Val.IsInt() || port.Val.Sign() < 0 || port.Val.Cmp(value.NewNumber(65535, 1).Val) > 0 {
+	if !ok || !port.IsInt() || port.Sign() < 0 || port.Compare(value.NewNumber(65535, 1)) > 0 {
 		return "", 0, value.NewFault("%s: port must be an integer from 0 through 65535", opname)
 	}
-	return host.Val, int(port.Val.Num().Int64()), nil
+	return host.Val, int(port.Int64Value()), nil
 }
 
 func networkAddress(host string, port int) string {

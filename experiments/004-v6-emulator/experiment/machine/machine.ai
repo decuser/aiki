@@ -9,10 +9,21 @@ let MACHINE_STATE = 0
 let MACHINE_BUS = 1
 let MACHINE_AUDIT = 2
 
-let new = () { return [state.new(), unibus.new(), audit.new()] }
-let processor_state = (m) { return m[MACHINE_STATE] }
-let bus = (m) { return m[MACHINE_BUS] }
-let execution_audit = (m) { return m[MACHINE_AUDIT] }
+let new = () {
+	return [state.new(), unibus.new(), audit.new()]
+}
+
+let processor_state = (m) {
+	return m[MACHINE_STATE]
+}
+
+let bus = (m) {
+	return m[MACHINE_BUS]
+}
+
+let execution_audit = (m) {
+	return m[MACHINE_AUDIT]
+}
 
 let reset_machine = (m) {
 	state.reset_state(processor_state(m))
@@ -22,136 +33,524 @@ let reset_machine = (m) {
 }
 
 # Hot execution API: opaque machine values remain fixed-width.
-let register_word = (m, index) { return state.get_register_word(processor_state(m), index) }
-let set_register_word = (m, index, value) { return state.set_register_word(processor_state(m), index, value) }
-let pc_word = (m) { return state.pc_word(processor_state(m)) }
-let set_pc_word = (m, value) { return state.set_pc_word(processor_state(m), value) }
-let sp_word = (m) { return state.sp_word(processor_state(m)) }
-let set_sp_word = (m, value) { return state.set_sp_word(processor_state(m), value) }
-let psw_word = (m) { return state.psw_word(processor_state(m)) }
-let set_psw_word = (m, value) { return state.set_psw_word(processor_state(m), value) }
-let read_byte_machine = (m, address) { return unibus.read_byte_machine(bus(m), address) }
-let write_byte_machine = (m, address, value) { return unibus.write_byte_machine(bus(m), address, value) }
-let read_word_machine = (m, address) { return unibus.read_word_machine(bus(m), address) }
-let write_word_machine = (m, address, value) { return unibus.write_word_machine(bus(m), address, value) }
+let register_word = (m, index) {
+	return state.get_register_word(processor_state(m), index)
+}
+
+let set_register_word = (m, index, value) {
+	return state.set_register_word(processor_state(m), index, value)
+}
+
+let pc_word = (m) {
+	return state.pc_word(processor_state(m))
+}
+
+let set_pc_word = (m, value) {
+	return state.set_pc_word(processor_state(m), value)
+}
+
+let sp_word = (m) {
+	return state.sp_word(processor_state(m))
+}
+
+let set_sp_word = (m, value) {
+	return state.set_sp_word(processor_state(m), value)
+}
+
+let psw_word = (m) {
+	return state.psw_word(processor_state(m))
+}
+
+let set_psw_word = (m, value) {
+	return state.set_psw_word(processor_state(m), value)
+}
+
+let read_byte_machine = (m, address) {
+	return unibus.read_byte_machine(bus(m), address)
+}
+
+let write_byte_machine = (m, address, value) {
+	return unibus.write_byte_machine(bus(m), address, value)
+}
+
+let read_word_machine = (m, address) {
+	return unibus.read_word_machine(bus(m), address)
+}
+
+let write_word_machine = (m, address, value) {
+	return unibus.write_word_machine(bus(m), address, value)
+}
 
 # Explicit control/diagnostic boundary. Existing tests and monitor surfaces deal
 # in exact Aiki numbers; conversion occurs here and nowhere in the CPU hot path.
-let get_register = (m, index) { return fixed.number(register_word(m, index)) }
-let set_register = (m, index, value) { return set_register_word(m, index, fixed.word(value)) }
-let pc = (m) { return fixed.number(pc_word(m)) }
-let set_pc = (m, value) { return set_pc_word(m, fixed.word(value)) }
-let sp = (m) { return fixed.number(sp_word(m)) }
-let set_sp = (m, value) { return set_sp_word(m, fixed.word(value)) }
-let psw = (m) { return fixed.number(psw_word(m)) }
-let set_psw = (m, value) { return set_psw_word(m, fixed.word(value)) }
+let get_register = (m, index) {
+	return fixed.number(register_word(m, index))
+}
 
-let running = (m) { return state.running(processor_state(m)) }
-let set_running = (m, value) { return state.set_running(processor_state(m), value) }
-let waiting = (m) { return state.waiting(processor_state(m)) }
-let set_waiting = (m, value) { return state.set_waiting(processor_state(m), value) }
-let suspended = (m) { return state.suspended(processor_state(m)) }
-let set_suspended = (m, value) { return state.set_suspended(processor_state(m), value) }
-let steps = (m) { return state.steps(processor_state(m)) }
-let machine_time = (m) { return state.machine_time(processor_state(m)) }
-let snapshot = (m) { return state.snapshot(processor_state(m)) }
-let complete_instruction = (m, elapsed) { unibus.advance(bus(m), elapsed); return state.complete_instruction(processor_state(m), elapsed) }
-let reset_bus = (m) { return unibus.reset_bus(bus(m)) }
+let set_register = (m, index, value) {
+	return set_register_word(m, index, fixed.word(value))
+}
 
-let examine_byte = (m, address) { let v=read_byte_machine(m,fixed.word(address)); if equal(shape(v),:pdp_fault){return v}; return fixed.number(v) }
-let deposit_byte = (m, address, value) { return write_byte_machine(m, fixed.word(address), fixed.byte(value)) }
-let examine_word = (m, address) { let v=read_word_machine(m,fixed.word(address)); if equal(shape(v),:pdp_fault){return v}; return fixed.number(v) }
-let deposit_word = (m, address, value) { return write_word_machine(m, fixed.word(address), fixed.word(value)) }
+let pc = (m) {
+	return fixed.number(pc_word(m))
+}
+
+let set_pc = (m, value) {
+	return set_pc_word(m, fixed.word(value))
+}
+
+let sp = (m) {
+	return fixed.number(sp_word(m))
+}
+
+let set_sp = (m, value) {
+	return set_sp_word(m, fixed.word(value))
+}
+
+let psw = (m) {
+	return fixed.number(psw_word(m))
+}
+
+let set_psw = (m, value) {
+	return set_psw_word(m, fixed.word(value))
+}
+
+let running = (m) {
+	return state.running(processor_state(m))
+}
+
+let set_running = (m, value) {
+	return state.set_running(processor_state(m), value)
+}
+
+let waiting = (m) {
+	return state.waiting(processor_state(m))
+}
+
+let set_waiting = (m, value) {
+	return state.set_waiting(processor_state(m), value)
+}
+
+let suspended = (m) {
+	return state.suspended(processor_state(m))
+}
+
+let set_suspended = (m, value) {
+	return state.set_suspended(processor_state(m), value)
+}
+
+let steps = (m) {
+	return state.steps(processor_state(m))
+}
+
+let machine_time = (m) {
+	return state.machine_time(processor_state(m))
+}
+
+let snapshot = (m) {
+	return state.snapshot(processor_state(m))
+}
+
+let complete_instruction = (m, elapsed) {
+	unibus.advance(bus(m), elapsed)
+	return state.complete_instruction(processor_state(m), elapsed)
+}
+
+let reset_bus = (m) {
+	return unibus.reset_bus(bus(m))
+}
+
+let examine_byte = (m, address) {
+	let v = read_byte_machine(m, fixed.word(address))
+	if equal(shape(v), :pdp_fault) {
+		return v
+	}
+	return fixed.number(v)
+}
+
+let deposit_byte = (m, address, value) {
+	return write_byte_machine(m, fixed.word(address), fixed.byte(value))
+}
+
+let examine_word = (m, address) {
+	let v = read_word_machine(m, fixed.word(address))
+	if equal(shape(v), :pdp_fault) {
+		return v
+	}
+	return fixed.number(v)
+}
+
+let deposit_word = (m, address, value) {
+	return write_word_machine(m, fixed.word(address), fixed.word(value))
+}
+
 # Compatibility names for operator/device diagnostics remain numeric boundary calls.
-let read_byte = (m, address) { return examine_byte(m, address) }
-let write_byte = (m, address, value) { return deposit_byte(m, address, value) }
-let read_word = (m, address) { return examine_word(m, address) }
-let write_word = (m, address, value) { return deposit_word(m, address, value) }
+let read_byte = (m, address) {
+	return examine_byte(m, address)
+}
+
+let write_byte = (m, address, value) {
+	return deposit_byte(m, address, value)
+}
+
+let read_word = (m, address) {
+	return examine_word(m, address)
+}
+
+let write_word = (m, address, value) {
+	return deposit_word(m, address, value)
+}
 
 # Peripheral attachment/observation remains at the Aiki boundary for now. The
 # CPU/RAM execution path does not traverse these conversions on ordinary memory.
-let attach_tape_media = (m, media) { return unibus.attach_tape_media(bus(m), media) }
-let attach_tape_media_unit = (m, unit, media) { return unibus.attach_tape_media_unit(bus(m), unit, media) }
-let attach_tape_raw = (m, path) { return unibus.attach_tape_raw(bus(m), path) }
-let attach_tape_raw_unit = (m, unit, path) { return unibus.attach_tape_raw_unit(bus(m), unit, path) }
-let attach_disk_path = (m, unit, path) { return unibus.attach_disk_path(bus(m), unit, path) }
+let attach_tape_media = (m, media) {
+	return unibus.attach_tape_media(bus(m), media)
+}
 
-let tape_byte_count = (m) { return unibus.tape_byte_count(bus(m)) }
-let tape_current_address = (m) { return unibus.tape_current_address(bus(m)) }
-let tape_command = (m) { return unibus.tape_command(bus(m)) }
-let tape_status = (m) { return unibus.tape_status(bus(m)) }
-let tape_selected_unit = (m) { return unibus.tape_selected_unit(bus(m)) }
-let tape_media_position = (m) { return unibus.tape_media_position(bus(m)) }
-let tape_media_position_unit = (m, unit) { return unibus.tape_media_position_unit(bus(m), unit) }
-let tape_read_count = (m) { return unibus.tape_read_count(bus(m)) }
-let tape_write_count = (m) { return unibus.tape_write_count(bus(m)) }
-let tape_bytes_in = (m) { return unibus.tape_bytes_in(bus(m)) }
-let tape_bytes_out = (m) { return unibus.tape_bytes_out(bus(m)) }
-let tape_unit_attached = (m, unit) { return unibus.tape_unit_attached(bus(m), unit) }
-let tape_unit_path = (m, unit) { return unibus.tape_unit_path(bus(m), unit) }
-let unibus_dati_count = (m) { return unibus.dati_count(bus(m)) }
-let unibus_dato_count = (m) { return unibus.dato_count(bus(m)) }
-let unibus_datob_count = (m) { return unibus.datob_count(bus(m)) }
-let unibus_npr_write_count = (m) { return unibus.npr_write_count(bus(m)) }
-let unibus_npr_read_count = (m) { return unibus.npr_read_count(bus(m)) }
+let attach_tape_media_unit = (m, unit, media) {
+	return unibus.attach_tape_media_unit(bus(m), unit, media)
+}
 
-let disk_unit_attached = (m, unit) { return unibus.disk_unit_attached(bus(m), unit) }
-let disk_unit_path = (m, unit) { return unibus.disk_unit_path(bus(m), unit) }
-let disk_selected_unit = (m) { return unibus.disk_selected_unit(bus(m)) }
-let disk_drive_status = (m) { return unibus.disk_drive_status(bus(m)) }
-let disk_error = (m) { return unibus.disk_error(bus(m)) }
-let disk_control_status = (m) { return unibus.disk_control_status(bus(m)) }
-let disk_word_count = (m) { return unibus.disk_word_count(bus(m)) }
-let disk_bus_address = (m) { return unibus.disk_bus_address(bus(m)) }
-let disk_address = (m) { return unibus.disk_address(bus(m)) }
-let disk_cylinder = (m) { return unibus.disk_cylinder(bus(m)) }
-let disk_surface = (m) { return unibus.disk_surface(bus(m)) }
-let disk_sector = (m) { return unibus.disk_sector(bus(m)) }
-let disk_read_count = (m) { return unibus.disk_read_count(bus(m)) }
-let disk_write_count = (m) { return unibus.disk_write_count(bus(m)) }
-let disk_bytes_in = (m) { return unibus.disk_bytes_in(bus(m)) }
-let disk_bytes_out = (m) { return unibus.disk_bytes_out(bus(m)) }
+let attach_tape_raw = (m, path) {
+	return unibus.attach_tape_raw(bus(m), path)
+}
 
-let console_receive = (m, value) { return unibus.console_receive(bus(m), value) }
-let console_take_output = (m) { return unibus.console_take_output(bus(m)) }
-let console_receiver_status = (m) { return unibus.console_receiver_status(bus(m)) }
-let console_receiver_buffer = (m) { return unibus.console_receiver_buffer(bus(m)) }
-let console_transmitter_status = (m) { return unibus.console_transmitter_status(bus(m)) }
-let console_transmitter_buffer = (m) { return unibus.console_transmitter_buffer(bus(m)) }
-let console_rx_count = (m) { return unibus.console_rx_count(bus(m)) }
-let console_tx_count = (m) { return unibus.console_tx_count(bus(m)) }
-let console_last_rx = (m) { return unibus.console_last_rx(bus(m)) }
-let console_last_tx = (m) { return unibus.console_last_tx(bus(m)) }
-let console_receiver_done = (m) { return unibus.console_receiver_done(bus(m)) }
-let console_transmitter_ready = (m) { return unibus.console_transmitter_ready(bus(m)) }
-let console_receiver_interrupt_enabled = (m) { return unibus.console_receiver_interrupt_enabled(bus(m)) }
-let console_transmitter_interrupt_enabled = (m) { return unibus.console_transmitter_interrupt_enabled(bus(m)) }
+let attach_tape_raw_unit = (m, unit, path) {
+	return unibus.attach_tape_raw_unit(bus(m), unit, path)
+}
 
-let audit_instruction = (m, kind) { return audit.record_instruction(execution_audit(m), kind) }
-let audit_operand = (m, role, mode) { return audit.record_mode(execution_audit(m), role, mode) }
-let audit_instruction_count = (m, kind) { return audit.instruction_count(execution_audit(m), kind) }
-let audit_mode_count = (m, role, mode) { return audit.mode_count(execution_audit(m), role, mode) }
-let audit_instruction_counts = (m) { return audit.instruction_counts(execution_audit(m)) }
+let attach_disk_path = (m, unit, path) {
+	return unibus.attach_disk_path(bus(m), unit, path)
+}
+
+let tape_byte_count = (m) {
+	return unibus.tape_byte_count(bus(m))
+}
+
+let tape_current_address = (m) {
+	return unibus.tape_current_address(bus(m))
+}
+
+let tape_command = (m) {
+	return unibus.tape_command(bus(m))
+}
+
+let tape_status = (m) {
+	return unibus.tape_status(bus(m))
+}
+
+let tape_selected_unit = (m) {
+	return unibus.tape_selected_unit(bus(m))
+}
+
+let tape_media_position = (m) {
+	return unibus.tape_media_position(bus(m))
+}
+
+let tape_media_position_unit = (m, unit) {
+	return unibus.tape_media_position_unit(bus(m), unit)
+}
+
+let tape_read_count = (m) {
+	return unibus.tape_read_count(bus(m))
+}
+
+let tape_write_count = (m) {
+	return unibus.tape_write_count(bus(m))
+}
+
+let tape_bytes_in = (m) {
+	return unibus.tape_bytes_in(bus(m))
+}
+
+let tape_bytes_out = (m) {
+	return unibus.tape_bytes_out(bus(m))
+}
+
+let tape_unit_attached = (m, unit) {
+	return unibus.tape_unit_attached(bus(m), unit)
+}
+
+let tape_unit_path = (m, unit) {
+	return unibus.tape_unit_path(bus(m), unit)
+}
+
+let unibus_dati_count = (m) {
+	return unibus.dati_count(bus(m))
+}
+
+let unibus_dato_count = (m) {
+	return unibus.dato_count(bus(m))
+}
+
+let unibus_datob_count = (m) {
+	return unibus.datob_count(bus(m))
+}
+
+let unibus_npr_write_count = (m) {
+	return unibus.npr_write_count(bus(m))
+}
+
+let unibus_npr_read_count = (m) {
+	return unibus.npr_read_count(bus(m))
+}
+
+let disk_unit_attached = (m, unit) {
+	return unibus.disk_unit_attached(bus(m), unit)
+}
+
+let disk_unit_path = (m, unit) {
+	return unibus.disk_unit_path(bus(m), unit)
+}
+
+let disk_selected_unit = (m) {
+	return unibus.disk_selected_unit(bus(m))
+}
+
+let disk_drive_status = (m) {
+	return unibus.disk_drive_status(bus(m))
+}
+
+let disk_error = (m) {
+	return unibus.disk_error(bus(m))
+}
+
+let disk_control_status = (m) {
+	return unibus.disk_control_status(bus(m))
+}
+
+let disk_word_count = (m) {
+	return unibus.disk_word_count(bus(m))
+}
+
+let disk_bus_address = (m) {
+	return unibus.disk_bus_address(bus(m))
+}
+
+let disk_address = (m) {
+	return unibus.disk_address(bus(m))
+}
+
+let disk_cylinder = (m) {
+	return unibus.disk_cylinder(bus(m))
+}
+
+let disk_surface = (m) {
+	return unibus.disk_surface(bus(m))
+}
+
+let disk_sector = (m) {
+	return unibus.disk_sector(bus(m))
+}
+
+let disk_read_count = (m) {
+	return unibus.disk_read_count(bus(m))
+}
+
+let disk_write_count = (m) {
+	return unibus.disk_write_count(bus(m))
+}
+
+let disk_bytes_in = (m) {
+	return unibus.disk_bytes_in(bus(m))
+}
+
+let disk_bytes_out = (m) {
+	return unibus.disk_bytes_out(bus(m))
+}
+
+let console_receive = (m, value) {
+	return unibus.console_receive(bus(m), value)
+}
+
+let console_take_output = (m) {
+	return unibus.console_take_output(bus(m))
+}
+
+let console_receiver_status = (m) {
+	return unibus.console_receiver_status(bus(m))
+}
+
+let console_receiver_buffer = (m) {
+	return unibus.console_receiver_buffer(bus(m))
+}
+
+let console_transmitter_status = (m) {
+	return unibus.console_transmitter_status(bus(m))
+}
+
+let console_transmitter_buffer = (m) {
+	return unibus.console_transmitter_buffer(bus(m))
+}
+
+let console_rx_count = (m) {
+	return unibus.console_rx_count(bus(m))
+}
+
+let console_tx_count = (m) {
+	return unibus.console_tx_count(bus(m))
+}
+
+let console_last_rx = (m) {
+	return unibus.console_last_rx(bus(m))
+}
+
+let console_last_tx = (m) {
+	return unibus.console_last_tx(bus(m))
+}
+
+let console_receiver_done = (m) {
+	return unibus.console_receiver_done(bus(m))
+}
+
+let console_transmitter_ready = (m) {
+	return unibus.console_transmitter_ready(bus(m))
+}
+
+let console_receiver_interrupt_enabled = (m) {
+	return unibus.console_receiver_interrupt_enabled(bus(m))
+}
+
+let console_transmitter_interrupt_enabled = (m) {
+	return unibus.console_transmitter_interrupt_enabled(bus(m))
+}
+
+let audit_instruction = (m, kind) {
+	return audit.record_instruction(execution_audit(m), kind)
+}
+
+let audit_operand = (m, role, mode) {
+	return audit.record_mode(execution_audit(m), role, mode)
+}
+
+let audit_instruction_count = (m, kind) {
+	return audit.instruction_count(execution_audit(m), kind)
+}
+
+let audit_mode_count = (m, role, mode) {
+	return audit.mode_count(execution_audit(m), role, mode)
+}
+
+let audit_instruction_counts = (m) {
+	return audit.instruction_counts(execution_audit(m))
+}
+
 let audit_psw_transition = (m, kind, before, after) {
 	return audit.record_psw_transition(execution_audit(m), kind, before, after)
 }
-let audit_psw_change_count = (m, bit) { return audit.psw_change_count(execution_audit(m), bit) }
-let audit_last_psw_transition = (m) { return audit.last_psw_transition(execution_audit(m)) }
+
+let audit_psw_change_count = (m, bit) {
+	return audit.psw_change_count(execution_audit(m), bit)
+}
+
+let audit_last_psw_transition = (m) {
+	return audit.last_psw_transition(execution_audit(m))
+}
 
 export(
-:new,:reset_machine,:processor_state,:bus,:execution_audit,
-:register_word,:set_register_word,:pc_word,:set_pc_word,:sp_word,:set_sp_word,:psw_word,:set_psw_word,
-:read_byte_machine,:write_byte_machine,:read_word_machine,:write_word_machine,
-:get_register,:set_register,:pc,:set_pc,:sp,:set_sp,:psw,:set_psw,
-:running,:set_running,:waiting,:set_waiting,:suspended,:set_suspended,:steps,:machine_time,:snapshot,:complete_instruction,:reset_bus,
-:attach_tape_media,:attach_tape_media_unit,:attach_tape_raw,:attach_tape_raw_unit,:attach_disk_path,
-:tape_byte_count,:tape_current_address,:tape_command,:tape_status,:tape_selected_unit,:tape_media_position,:tape_media_position_unit,
-:tape_read_count,:tape_write_count,:tape_bytes_in,:tape_bytes_out,:tape_unit_attached,:tape_unit_path,
-:unibus_dati_count,:unibus_dato_count,:unibus_datob_count,:unibus_npr_write_count,:unibus_npr_read_count,
-:disk_unit_attached,:disk_unit_path,:disk_selected_unit,:disk_drive_status,:disk_error,:disk_control_status,:disk_word_count,:disk_bus_address,
-:disk_address,:disk_cylinder,:disk_surface,:disk_sector,:disk_read_count,:disk_write_count,:disk_bytes_in,:disk_bytes_out,
-:console_receive,:console_take_output,:console_receiver_status,:console_receiver_buffer,:console_transmitter_status,:console_transmitter_buffer,
-:console_rx_count,:console_tx_count,:console_last_rx,:console_last_tx,:console_receiver_done,:console_transmitter_ready,
-:console_receiver_interrupt_enabled,:console_transmitter_interrupt_enabled,
-:audit_instruction,:audit_operand,:audit_instruction_count,:audit_mode_count,:audit_instruction_counts,:audit_psw_transition,:audit_psw_change_count,:audit_last_psw_transition,
-:read_byte,:write_byte,:read_word,:write_word,:examine_byte,:deposit_byte,:examine_word,:deposit_word)
+	:new,
+	:reset_machine,
+	:processor_state,
+	:bus,
+	:execution_audit,
+	:register_word,
+	:set_register_word,
+	:pc_word,
+	:set_pc_word,
+	:sp_word,
+	:set_sp_word,
+	:psw_word,
+	:set_psw_word,
+	:read_byte_machine,
+	:write_byte_machine,
+	:read_word_machine,
+	:write_word_machine,
+	:get_register,
+	:set_register,
+	:pc,
+	:set_pc,
+	:sp,
+	:set_sp,
+	:psw,
+	:set_psw,
+	:running,
+	:set_running,
+	:waiting,
+	:set_waiting,
+	:suspended,
+	:set_suspended,
+	:steps,
+	:machine_time,
+	:snapshot,
+	:complete_instruction,
+	:reset_bus,
+	:attach_tape_media,
+	:attach_tape_media_unit,
+	:attach_tape_raw,
+	:attach_tape_raw_unit,
+	:attach_disk_path,
+	:tape_byte_count,
+	:tape_current_address,
+	:tape_command,
+	:tape_status,
+	:tape_selected_unit,
+	:tape_media_position,
+	:tape_media_position_unit,
+	:tape_read_count,
+	:tape_write_count,
+	:tape_bytes_in,
+	:tape_bytes_out,
+	:tape_unit_attached,
+	:tape_unit_path,
+	:unibus_dati_count,
+	:unibus_dato_count,
+	:unibus_datob_count,
+	:unibus_npr_write_count,
+	:unibus_npr_read_count,
+	:disk_unit_attached,
+	:disk_unit_path,
+	:disk_selected_unit,
+	:disk_drive_status,
+	:disk_error,
+	:disk_control_status,
+	:disk_word_count,
+	:disk_bus_address,
+	:disk_address,
+	:disk_cylinder,
+	:disk_surface,
+	:disk_sector,
+	:disk_read_count,
+	:disk_write_count,
+	:disk_bytes_in,
+	:disk_bytes_out,
+	:console_receive,
+	:console_take_output,
+	:console_receiver_status,
+	:console_receiver_buffer,
+	:console_transmitter_status,
+	:console_transmitter_buffer,
+	:console_rx_count,
+	:console_tx_count,
+	:console_last_rx,
+	:console_last_tx,
+	:console_receiver_done,
+	:console_transmitter_ready,
+	:console_receiver_interrupt_enabled,
+	:console_transmitter_interrupt_enabled,
+	:audit_instruction,
+	:audit_operand,
+	:audit_instruction_count,
+	:audit_mode_count,
+	:audit_instruction_counts,
+	:audit_psw_transition,
+	:audit_psw_change_count,
+	:audit_last_psw_transition,
+	:read_byte,
+	:write_byte,
+	:read_word,
+	:write_word,
+	:examine_byte,
+	:deposit_byte,
+	:examine_word,
+	:deposit_word
+)

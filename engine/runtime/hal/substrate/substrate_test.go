@@ -117,7 +117,7 @@ func TestRandom(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected Number, got %T", result)
 	}
-	v := n.Val.Num().Int64()
+	v := n.Int64Value()
 	if v < 0 || v >= 10 {
 		t.Errorf("random(10) returned %d, want 0-9", v)
 	}
@@ -132,7 +132,7 @@ func TestSeedReproducible(t *testing.T) {
 	rt.halSeed([]value.Value{value.NewNumber(42, 1)}, nil)
 	r2 := rt.halRandom([]value.Value{value.NewNumber(100, 1)}, nil).(*value.Number)
 
-	if r1.Val.Cmp(r2.Val) != 0 {
+	if r1.Compare(r2) != 0 {
 		t.Errorf("same seed gave different results: %s vs %s", r1.Inspect(), r2.Inspect())
 	}
 }

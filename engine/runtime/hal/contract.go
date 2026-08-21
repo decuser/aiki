@@ -17,6 +17,28 @@ type ContextCallable interface {
 	CallWithContext(args []value.Value, ctx *EvalContext) value.Value
 }
 
+// EvalContextRequired is an optional callable capability. ContextCallable
+// preserves the existing host-call ABI, while this capability tells the
+// evaluator whether constructing an EvalContext can affect the call. A
+// ContextCallable that does not require context may be invoked through Call.
+type EvalContextRequired interface {
+	NeedsEvalContext() bool
+}
+
+// ProbeCallable is a context-free callable that can consume an already-active
+// semantic probe without requiring full EvalContext construction. It exists for
+// hidden realization counters on otherwise context-free primitives.
+type ProbeCallable interface {
+	value.Callable
+	CallWithProbe(args []value.Value, probe engine.SemanticProbe) value.Value
+}
+
+// RealizationProbeRequired advertises whether a ProbeCallable has any behavior
+// to record when a semantic probe is active.
+type RealizationProbeRequired interface {
+	NeedsRealizationProbe() bool
+}
+
 // AsyncFaultSource exposes faults raised by spawned computations. Blocking
 // concurrency operations may observe this channel so a worker fault cannot
 // leave another computation waiting forever for a message that will never
@@ -63,6 +85,13 @@ type RuntimeContract interface {
 type ProfileLabeler interface {
 	SetProfileLabels(enabled bool)
 	WithProfileLabels(labels engine.ProfileLabels, restore engine.ProfileLabels, fn func())
+}
+
+// ProfileLabelState lets hot evaluator paths avoid constructing label-region
+// closures when labels are disabled. A ProfileLabeler without this optional
+// query is treated conservatively as enabled.
+type ProfileLabelState interface {
+	ProfileLabelsEnabled() bool
 }
 
 // ProfileNamed optionally supplies a stable substrate name for a callable.

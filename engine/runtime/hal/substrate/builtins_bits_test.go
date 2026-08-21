@@ -15,7 +15,7 @@ func bitsWantNumber(t *testing.T, got value.Value, want int64) {
 	if !ok {
 		t.Fatalf("expected number, got %T (%s)", got, got.Inspect())
 	}
-	if n.Val.Cmp(bitsN(want).Val) != 0 {
+	if !n.Equal(bitsN(want)) {
 		t.Fatalf("want %d, got %s", want, n.Inspect())
 	}
 }
@@ -42,8 +42,7 @@ func TestBitsNotMasksToWidth(t *testing.T) {
 }
 
 func TestBitsArbitraryPrecision(t *testing.T) {
-	bigVal := new(value.Number)
-	bigVal.Val = new(big.Rat).SetInt(new(big.Int).Lsh(big.NewInt(1), 100))
+	bigVal := value.NewNumberFromBigInt(new(big.Int).Lsh(big.NewInt(1), 100))
 	got := halBitsShr([]value.Value{bigVal, bitsN(99)}, nil)
 	bitsWantNumber(t, got, 2)
 }

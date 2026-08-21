@@ -8,5 +8,8 @@ ai/
 bootstraps/
 proposals/
 extra/editors/
-extra/profiling/BASELINE-*.md
+extra/profiling/
 test/regression/README.md
+docs/runtime-call-allocation-investigation.md
+
+docs/runtime-optimization-results.md

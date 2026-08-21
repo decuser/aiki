@@ -6,6 +6,7 @@ import (
 	"sync/atomic"
 
 	"aiki/engine"
+	"aiki/engine/semantics/value"
 )
 
 // Counters accumulates semantic operation counts at evaluator choke points.
@@ -26,6 +27,31 @@ type Counters struct {
 	Recv       int64
 	StoreRead  int64
 	StoreWrite int64
+
+	numberResultSmallInteger    int64
+	numberResultCompactRational int64
+	numberResultBinaryCarrier   int64
+	numberResultBigRational     int64
+	numberBinaryCertified       int64
+	numberBinaryFallback        int64
+	numberPromotedBigRational   int64
+
+	numberCallSmallInteger    int64
+	numberCallCompactRational int64
+	numberCallBinaryCarrier   int64
+	numberCallBigRational     int64
+
+	callUserEntry    int64
+	callSubstrate    int64
+	callTailReuse    int64
+	callTailEnvReuse int64
+
+	listFrontierPromoted      int64
+	listFrontierExtended      int64
+	listFrontierGrown         int64
+	listFrontierForked        int64
+	listElementsCopied        int64
+	listBackingSlotsAllocated int64
 
 	// Coverage maps source positions to hit counts.
 	// Key is "file:line". Only populated when coverage is enabled.
@@ -90,6 +116,166 @@ func (c *Counters) Hit(kind engine.SemanticKind, site engine.SemanticSite) {
 }
 
 // Snapshot returns a race-safe scalar snapshot.
+// NumberArithmeticResult records hidden Number realization only when profiling
+// is already active. It is deliberately called from evaluator numeric choke
+// points rather than from Number itself, so unprofiled arithmetic pays no probe
+// branch or atomic-counter cost.
+func (c *Counters) NumberArithmeticResult(left, right, result *value.Number) {
+	if c == nil || result == nil {
+		return
+	}
+	resultRep := result.ProfileRepresentation()
+	switch resultRep {
+	case value.NumberSmallInteger:
+		atomic.AddInt64(&c.numberResultSmallInteger, 1)
+	case value.NumberCompactRational:
+		atomic.AddInt64(&c.numberResultCompactRational, 1)
+	case value.NumberBinaryCarrier:
+		atomic.AddInt64(&c.numberResultBinaryCarrier, 1)
+	case value.NumberBigRational:
+		atomic.AddInt64(&c.numberResultBigRational, 1)
+	}
+	if left == nil || right == nil {
+		return
+	}
+	lrep := left.ProfileRepresentation()
+	rrep := right.ProfileRepresentation()
+	if lrep == value.NumberBinaryCarrier && rrep == value.NumberBinaryCarrier {
+		if resultRep == value.NumberBinaryCarrier || resultRep == value.NumberSmallInteger {
+			atomic.AddInt64(&c.numberBinaryCertified, 1)
+		} else {
+			atomic.AddInt64(&c.numberBinaryFallback, 1)
+		}
+	}
+	if resultRep == value.NumberBigRational && lrep != value.NumberBigRational && rrep != value.NumberBigRational {
+		atomic.AddInt64(&c.numberPromotedBigRational, 1)
+	}
+}
+
+// NumberCallResult records the hidden representation of a Number returned
+// across an Aiki call boundary. Call-return realization is kept separate from
+// arithmetic-result realization so profiling does not conflate two populations.
+func (c *Counters) NumberCallResult(result value.Value) {
+	if c == nil {
+		return
+	}
+	n, ok := result.(*value.Number)
+	if !ok || n == nil {
+		return
+	}
+	switch n.ProfileRepresentation() {
+	case value.NumberSmallInteger:
+		atomic.AddInt64(&c.numberCallSmallInteger, 1)
+	case value.NumberCompactRational:
+		atomic.AddInt64(&c.numberCallCompactRational, 1)
+	case value.NumberBinaryCarrier:
+		atomic.AddInt64(&c.numberCallBinaryCarrier, 1)
+	case value.NumberBigRational:
+		atomic.AddInt64(&c.numberCallBigRational, 1)
+	}
+}
+
+func (c *Counters) UserCallEntry() {
+	if c != nil {
+		atomic.AddInt64(&c.callUserEntry, 1)
+	}
+}
+
+func (c *Counters) SubstrateCall() {
+	if c != nil {
+		atomic.AddInt64(&c.callSubstrate, 1)
+	}
+}
+
+func (c *Counters) TailCallReuse() {
+	if c != nil {
+		atomic.AddInt64(&c.callTailReuse, 1)
+	}
+}
+
+func (c *Counters) TailEnvReuse() {
+	if c != nil {
+		atomic.AddInt64(&c.callTailEnvReuse, 1)
+	}
+}
+
+func (c *Counters) RecordListAppend(promoted, extended, grown, forked bool, copied, allocated int) {
+	if c == nil {
+		return
+	}
+	if promoted {
+		atomic.AddInt64(&c.listFrontierPromoted, 1)
+	}
+	if extended {
+		atomic.AddInt64(&c.listFrontierExtended, 1)
+	}
+	if grown {
+		atomic.AddInt64(&c.listFrontierGrown, 1)
+	}
+	if forked {
+		atomic.AddInt64(&c.listFrontierForked, 1)
+	}
+	if copied > 0 {
+		atomic.AddInt64(&c.listElementsCopied, int64(copied))
+	}
+	if allocated > 0 {
+		atomic.AddInt64(&c.listBackingSlotsAllocated, int64(allocated))
+	}
+}
+
+func (c *Counters) ListSnapshot() engine.ListRealizationCounts {
+	if c == nil {
+		return engine.ListRealizationCounts{}
+	}
+	return engine.ListRealizationCounts{
+		FrontierPromoted:      atomic.LoadInt64(&c.listFrontierPromoted),
+		FrontierExtended:      atomic.LoadInt64(&c.listFrontierExtended),
+		FrontierGrown:         atomic.LoadInt64(&c.listFrontierGrown),
+		FrontierForked:        atomic.LoadInt64(&c.listFrontierForked),
+		ElementsCopied:        atomic.LoadInt64(&c.listElementsCopied),
+		BackingSlotsAllocated: atomic.LoadInt64(&c.listBackingSlotsAllocated),
+	}
+}
+
+func (c *Counters) CallSnapshot() engine.CallRealizationCounts {
+	if c == nil {
+		return engine.CallRealizationCounts{}
+	}
+	return engine.CallRealizationCounts{
+		UserEntry:    atomic.LoadInt64(&c.callUserEntry),
+		Substrate:    atomic.LoadInt64(&c.callSubstrate),
+		TailReuse:    atomic.LoadInt64(&c.callTailReuse),
+		TailEnvReuse: atomic.LoadInt64(&c.callTailEnvReuse),
+	}
+}
+
+func (c *Counters) NumberCallSnapshot() engine.NumberRealizationCounts {
+	if c == nil {
+		return engine.NumberRealizationCounts{}
+	}
+	return engine.NumberRealizationCounts{
+		ResultSmallInteger:    atomic.LoadInt64(&c.numberCallSmallInteger),
+		ResultCompactRational: atomic.LoadInt64(&c.numberCallCompactRational),
+		ResultBinaryCarrier:   atomic.LoadInt64(&c.numberCallBinaryCarrier),
+		ResultBigRational:     atomic.LoadInt64(&c.numberCallBigRational),
+	}
+}
+
+func (c *Counters) NumberSnapshot() engine.NumberRealizationCounts {
+	if c == nil {
+		return engine.NumberRealizationCounts{}
+	}
+	return engine.NumberRealizationCounts{
+		ResultSmallInteger:    atomic.LoadInt64(&c.numberResultSmallInteger),
+		ResultCompactRational: atomic.LoadInt64(&c.numberResultCompactRational),
+		ResultBinaryCarrier:   atomic.LoadInt64(&c.numberResultBinaryCarrier),
+		ResultBigRational:     atomic.LoadInt64(&c.numberResultBigRational),
+		BinaryCertified:       atomic.LoadInt64(&c.numberBinaryCertified),
+		BinaryFallback:        atomic.LoadInt64(&c.numberBinaryFallback),
+		PromotedBigRational:   atomic.LoadInt64(&c.numberPromotedBigRational),
+	}
+}
+
 func (c *Counters) Snapshot() engine.SemanticCounts {
 	if c == nil {
 		return engine.SemanticCounts{}
@@ -109,7 +295,13 @@ func (c *Counters) Snapshot() engine.SemanticCounts {
 
 // Measurement returns scalar counts and a deterministic site snapshot.
 func (c *Counters) Measurement() engine.SemanticMeasurement {
-	m := engine.SemanticMeasurement{Counts: c.Snapshot()}
+	m := engine.SemanticMeasurement{
+		Counts:      c.Snapshot(),
+		Numbers:     c.NumberSnapshot(),
+		CallNumbers: c.NumberCallSnapshot(),
+		Calls:       c.CallSnapshot(),
+		Lists:       c.ListSnapshot(),
+	}
 	if c == nil || c.sites == nil {
 		return m
 	}

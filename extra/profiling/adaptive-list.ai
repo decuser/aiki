@@ -1,0 +1,26 @@
+# Adaptive persistent-list realization witness.
+#
+#   aiki profile --counts extra/profiling/adaptive-list.ai
+#
+# The long chain should show one promotion, overwhelmingly frontier extension,
+# geometric growth, and copied-slot volume far below quadratic copy-on-append.
+# The small branch forces one historical-prefix fork. The rest-derived append
+# must promote from a flat immutable alias rather than claiming frontier authority.
+let i = 0
+let xs = []
+while i < 100000 {
+	xs = append(xs, i)
+	i = i + 1
+}
+
+let root = []
+root = append(root, 1)
+let linear = append(root, 2)
+let branch = append(root, 3)
+let tail = rest(linear)
+let tail_next = append(tail, 9)
+
+println(length(xs))
+println(linear)
+println(branch)
+println(tail_next)

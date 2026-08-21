@@ -1,5 +1,8 @@
 #!/bin/sh
-# Pre-push hook: run rigorous before pushing
+# Pre-push hook: reject cheap-to-fix post-tag history cruft, then run rigorous.
+
+echo "Checking post-tag history hygiene..."
+make historycheck || exit 1
 
 echo "Running rigorous (this may take a minute)..."
 make rigorous

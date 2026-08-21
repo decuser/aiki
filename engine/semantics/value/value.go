@@ -3,7 +3,6 @@ package value
 
 import (
 	"fmt"
-	"math/big"
 	"os"
 	"strings"
 	"sync"
@@ -41,31 +40,6 @@ const (
 type Value interface {
 	Type() Type
 	Inspect() string
-}
-
-// Number is exact rational arithmetic.
-type Number struct {
-	Val *big.Rat
-}
-
-func (n *Number) Type() Type { return NumberType }
-func (n *Number) Inspect() string {
-	if n.Val.IsInt() {
-		return n.Val.Num().String()
-	}
-	return n.Val.RatString()
-}
-
-func NewNumber(num, denom int64) *Number {
-	return &Number{Val: big.NewRat(num, denom)}
-}
-
-func NewNumberFromString(s string) (*Number, error) {
-	r := new(big.Rat)
-	if _, ok := r.SetString(s); !ok {
-		return nil, fmt.Errorf("invalid number: %s", s)
-	}
-	return &Number{Val: r}, nil
 }
 
 // Boolean
@@ -233,12 +207,120 @@ func (s *Symbol) Type() Type      { return SymbolType }
 func (s *Symbol) Inspect() string { return ":" + s.Val }
 
 // List
+//
+// Elements is the immutable logical-prefix view retained for compatibility
+// with existing runtime readers. Adaptive append ownership is private: only
+// List methods may extend frontier backing. Callers must not reslice Elements
+// beyond len(Elements) or mutate it in place.
 type List struct {
 	Elements []Value
 	Shape    string // empty for raw list, shape name for shaped list
+
+	backing *listBacking
+}
+
+type listBacking struct {
+	mu       sync.Mutex
+	elements []Value // len == allocated slot count
+	used     int     // published frontier
+}
+
+// ListAppendRealization describes one physical append realization. It is an
+// internal profiling fact, not an Aiki semantic kind.
+type ListAppendRealization struct {
+	Promoted       bool
+	Extended       bool
+	Grown          bool
+	Forked         bool
+	ElementsCopied int
+	SlotsAllocated int
 }
 
 func (l *List) Type() Type { return ListType }
+
+// Len returns the logical list length.
+func (l *List) Len() int { return len(l.Elements) }
+
+// At returns the logical element at i. Bounds behavior intentionally matches
+// ordinary Go indexing because evaluator/substrate callers already guard it.
+func (l *List) At(i int) Value { return l.Elements[i] }
+
+// LogicalElements returns the immutable logical-prefix view. The returned
+// slice is read-only by runtime invariant; it does not grant mutation authority.
+func (l *List) LogicalElements() []Value { return l.Elements }
+
+// Append returns a persistent successor list. Flat lists promote by copying
+// their logical prefix into runtime-owned frontier storage. A frontier list may
+// extend in place only when its logical length equals the published frontier;
+// appending from a historical prefix forks to a new backing.
+func (l *List) Append(v Value) (*List, ListAppendRealization) {
+	if l == nil {
+		return &List{Elements: []Value{v}}, ListAppendRealization{Promoted: true, SlotsAllocated: 1}
+	}
+	if l.backing == nil {
+		return promoteListAppend(l, v, false)
+	}
+
+	b := l.backing
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	logical := len(l.Elements)
+	if logical != b.used {
+		return promoteListAppend(l, v, true)
+	}
+
+	if b.used < len(b.elements) {
+		b.elements[b.used] = v
+		b.used++
+		return &List{Elements: b.elements[:b.used], Shape: l.Shape, backing: b}, ListAppendRealization{Extended: true}
+	}
+
+	newCap := listGrowthCapacity(b.used + 1)
+	if doubled := len(b.elements) * 2; doubled > newCap {
+		newCap = doubled
+	}
+	if newCap < 1 {
+		newCap = 1
+	}
+	newElems := make([]Value, newCap)
+	copy(newElems, b.elements[:b.used])
+	newElems[b.used] = v
+	copied := b.used
+	b.elements = newElems
+	b.used++
+	return &List{Elements: b.elements[:b.used], Shape: l.Shape, backing: b}, ListAppendRealization{
+		Extended:       true,
+		Grown:          true,
+		ElementsCopied: copied,
+		SlotsAllocated: newCap,
+	}
+}
+
+func promoteListAppend(l *List, v Value, fork bool) (*List, ListAppendRealization) {
+	logical := len(l.Elements)
+	capacity := listGrowthCapacity(logical + 1)
+	elements := make([]Value, capacity)
+	copy(elements, l.Elements)
+	elements[logical] = v
+	b := &listBacking{elements: elements, used: logical + 1}
+	r := ListAppendRealization{
+		Promoted:       !fork,
+		Forked:         fork,
+		ElementsCopied: logical,
+		SlotsAllocated: capacity,
+	}
+	return &List{Elements: elements[:logical+1], Shape: l.Shape, backing: b}, r
+}
+
+func listGrowthCapacity(need int) int {
+	capacity := 4
+	for capacity < need {
+		capacity *= 2
+	}
+	return capacity
+}
+
 func (l *List) Inspect() string {
 	var parts []string
 	if l.Shape != "" {
@@ -252,11 +334,12 @@ func (l *List) Inspect() string {
 
 // Function
 type Function struct {
-	Name   string
-	Params []string
-	Rest   string      // rest parameter name, empty if none
-	Body   interface{} // *syntax.Node, but we don't import syntax here
-	Env    interface{} // *Env, set at runtime
+	Name            string
+	Params          []string
+	Rest            string      // rest parameter name, empty if none
+	Body            interface{} // *syntax.Node, but we don't import syntax here
+	Env             interface{} // *Env, set at runtime
+	TailEnvReusable bool        // body cannot create a closure capturing its call env
 }
 
 func (f *Function) Type() Type { return FunctionType }
@@ -541,7 +624,7 @@ func DeepEqual(a, b Value) bool {
 	switch av := a.(type) {
 	case *Number:
 		bv := b.(*Number)
-		return av.Val.Cmp(bv.Val) == 0
+		return av.Equal(bv)
 	case *String:
 		bv := b.(*String)
 		return av.Val == bv.Val

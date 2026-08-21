@@ -102,7 +102,9 @@ let record_get = (tape, data, index) {
 
 let space_forward = (tape, count) {
 	let next = position(tape) + count
-	if next > total_records(tape) { next = total_records(tape) }
+	if next > total_records(tape) {
+		next = total_records(tape)
+	}
 	store.set(state_of(tape), STATE_RECORD, next)
 	return true
 }

@@ -34,7 +34,7 @@ let new = () {
 	let state = store.new(WORDS)
 	store.set(state, RCSR, 0)
 	store.set(state, RBUF, 0)
-	store.set(state, XCSR, DONE) # transmitter READY after INIT
+	store.set(state, XCSR, DONE)  # transmitter READY after INIT
 	store.set(state, XBUF, 0)
 	store.set(state, TX_PENDING, false)
 	store.set(state, OUTPUT_READY, false)
@@ -62,27 +62,45 @@ let reset_console = (console) {
 let FIRST_ADDRESS = TKS
 let LAST_ADDRESS = TPB
 
-let handles = (address) { return (address >= FIRST_ADDRESS) and (address <= LAST_ADDRESS) }
+let handles = (address) {
+	return (address >= FIRST_ADDRESS) and (address <= LAST_ADDRESS)
+}
 
 let register_word = (console, address) {
-	if equal(address, TKS) { return store.get(console, RCSR) }
+	if equal(address, TKS) {
+		return store.get(console, RCSR)
+	}
 	if equal(address, TKB) {
 		let value = store.get(console, RBUF)
-		store.set(console, RCSR, bits.bit_and(store.get(console, RCSR), octal.parse("177577"))) # clear DONE
+		store.set(
+			console,
+			RCSR,
+			bits.bit_and(store.get(console, RCSR), octal.parse("177577"))
+		)
 		return value
 	}
-	if equal(address, TPS) { return store.get(console, XCSR) }
-	if equal(address, TPB) { return 0 }
+	if equal(address, TPS) {
+		return store.get(console, XCSR)
+	}
+	if equal(address, TPB) {
+		return 0
+	}
 	return [@pdp_fault, :bus_address, address]
 }
 
-let read_word = (console, address) { return register_word(console, address) }
+let read_word = (console, address) {
+	return register_word(console, address)
+}
 
 let read_byte = (console, address) {
 	let base = address
-	if not equal(bits.bit_and(base, 1), 0) { base = base - 1 }
+	if not equal(bits.bit_and(base, 1), 0) {
+		base = base - 1
+	}
 	let word = register_word(console, base)
-	if equal(bits.bit_and(address, 1), 0) { return bits.low(word, 8) }
+	if equal(bits.bit_and(address, 1), 0) {
+		return bits.low(word, 8)
+	}
 	return bits.extract(word, 8, 8)
 }
 
@@ -110,24 +128,38 @@ let write_xbuf = (console, value) {
 	store.set(console, XBUF, byte)
 	store.set(console, LAST_TX, byte)
 	store.set(console, TX_COUNT, store.get(console, TX_COUNT) + 1)
-	store.set(console, XCSR, bits.bit_and(store.get(console, XCSR), octal.parse("177577"))) # clear READY
+	store.set(
+		console,
+		XCSR,
+		bits.bit_and(store.get(console, XCSR), octal.parse("177577"))
+	)
 	store.set(console, TX_PENDING, true)
 	return true
 }
 
 let write_word = (console, address, value) {
-	if equal(address, TKS) { return write_rcsr(console, value) }
-	if equal(address, TPS) { return write_xcsr(console, value) }
-	if equal(address, TPB) { return write_xbuf(console, value) }
+	if equal(address, TKS) {
+		return write_rcsr(console, value)
+	}
+	if equal(address, TPS) {
+		return write_xcsr(console, value)
+	}
+	if equal(address, TPB) {
+		return write_xbuf(console, value)
+	}
 	return [@pdp_fault, :bus_address, address]
 }
 
 let write_byte = (console, address, value) {
 	let base = address
-	if not equal(bits.bit_and(base, 1), 0) { base = base - 1 }
+	if not equal(bits.bit_and(base, 1), 0) {
+		base = base - 1
+	}
 	# The console data path is eight bits. High-byte writes to the buffers have no useful effect.
 	if not equal(bits.bit_and(address, 1), 0) {
-		if equal(base, TKS) or equal(base, TPS) { return true }
+		if equal(base, TKS) or equal(base, TPS) {
+			return true
+		}
 		return true
 	}
 	return write_word(console, base, width.wrap(value, 8))
@@ -159,7 +191,10 @@ let advance = (console, elapsed) {
 
 let take_output = (console) {
 	let queue = store.get(console, OUTPUT_QUEUE)
-	if empty(queue) { store.set(console, OUTPUT_READY, false); return [@end] }
+	if empty(queue) {
+		store.set(console, OUTPUT_READY, false)
+		return [@end]
+	}
 	let value = first(queue)
 	queue = rest(queue)
 	store.set(console, OUTPUT_QUEUE, queue)
@@ -167,20 +202,57 @@ let take_output = (console) {
 	return value
 }
 
-let receiver_status = (console) { return store.get(console, RCSR) }
-let receiver_buffer = (console) { return store.get(console, RBUF) }
-let transmitter_status = (console) { return store.get(console, XCSR) }
-let transmitter_buffer = (console) { return store.get(console, XBUF) }
-let rx_count = (console) { return store.get(console, RX_COUNT) }
-let tx_count = (console) { return store.get(console, TX_COUNT) }
-let last_rx = (console) { return store.get(console, LAST_RX) }
-let last_tx = (console) { return store.get(console, LAST_TX) }
-let receiver_done = (console) { return not equal(bits.bit_and(store.get(console, RCSR), DONE), 0) }
-let transmitter_ready = (console) { return not equal(bits.bit_and(store.get(console, XCSR), DONE), 0) }
-let receiver_interrupt_enabled = (console) { return not equal(bits.bit_and(store.get(console, RCSR), INTERRUPT_ENABLE), 0) }
-let transmitter_interrupt_enabled = (console) { return not equal(bits.bit_and(store.get(console, XCSR), INTERRUPT_ENABLE), 0) }
+let receiver_status = (console) {
+	return store.get(console, RCSR)
+}
 
-let active = (console) { return store.get(console, TX_PENDING) }
+let receiver_buffer = (console) {
+	return store.get(console, RBUF)
+}
+
+let transmitter_status = (console) {
+	return store.get(console, XCSR)
+}
+
+let transmitter_buffer = (console) {
+	return store.get(console, XBUF)
+}
+
+let rx_count = (console) {
+	return store.get(console, RX_COUNT)
+}
+
+let tx_count = (console) {
+	return store.get(console, TX_COUNT)
+}
+
+let last_rx = (console) {
+	return store.get(console, LAST_RX)
+}
+
+let last_tx = (console) {
+	return store.get(console, LAST_TX)
+}
+
+let receiver_done = (console) {
+	return not equal(bits.bit_and(store.get(console, RCSR), DONE), 0)
+}
+
+let transmitter_ready = (console) {
+	return not equal(bits.bit_and(store.get(console, XCSR), DONE), 0)
+}
+
+let receiver_interrupt_enabled = (console) {
+	return not equal(bits.bit_and(store.get(console, RCSR), INTERRUPT_ENABLE), 0)
+}
+
+let transmitter_interrupt_enabled = (console) {
+	return not equal(bits.bit_and(store.get(console, XCSR), INTERRUPT_ENABLE), 0)
+}
+
+let active = (console) {
+	return store.get(console, TX_PENDING)
+}
 
 export(
 	:FIRST_ADDRESS,

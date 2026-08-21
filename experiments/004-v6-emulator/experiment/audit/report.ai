@@ -19,10 +19,18 @@ let MODE_NAMES = [
 
 let psw_flag_names = (mask) {
 	let names = []
-	if equal(bits.extract(mask, 3, 1), 1) { names = append(names, "N") }
-	if equal(bits.extract(mask, 2, 1), 1) { names = append(names, "Z") }
-	if equal(bits.extract(mask, 1, 1), 1) { names = append(names, "V") }
-	if equal(bits.extract(mask, 0, 1), 1) { names = append(names, "C") }
+	if equal(bits.extract(mask, 3, 1), 1) {
+		names = append(names, "N")
+	}
+	if equal(bits.extract(mask, 2, 1), 1) {
+		names = append(names, "Z")
+	}
+	if equal(bits.extract(mask, 1, 1), 1) {
+		names = append(names, "V")
+	}
+	if equal(bits.extract(mask, 0, 1), 1) {
+		names = append(names, "C")
+	}
 	if empty(names) {
 		return "-"
 	}
@@ -38,7 +46,10 @@ let psw_lines = (m) {
 	lines = append(lines, "  last " + to_str(transition[0]))
 	lines = append(lines, "    before " + octal.word(transition[1]))
 	lines = append(lines, "    after  " + octal.word(transition[2]))
-	lines = append(lines, "    delta  " + octal.word(transition[3]) + "  " + psw_flag_names(transition[3]))
+	lines = append(
+		lines,
+		"    delta  " + octal.word(transition[3]) + "  " + psw_flag_names(transition[3])
+	)
 	return lines
 }
 
@@ -70,7 +81,12 @@ let mode_lines = (m, role) {
 
 let render = (m) {
 	let lines = ["PDP-11 execution audit", "", "all numeric values are octal", ""]
-	let groups = [instruction_lines(m), mode_lines(m, :source), mode_lines(m, :destination), psw_lines(m)]
+	let groups = [
+		instruction_lines(m),
+		mode_lines(m, :source),
+		mode_lines(m, :destination),
+		psw_lines(m)
+	]
 	let g = 0
 	while g < length(groups) {
 		let i = 0

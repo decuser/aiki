@@ -264,3 +264,34 @@ ai/          AI working provenance
 
 Current implementation state and priorities belong in the latest session/project
 record, not here. This file should change only when the **method** changes.
+
+## Post-tag history hygiene
+
+Release tags also bound repository-working-record hygiene. Between the most
+recent release tag and the next tag, disposable AI/session artifacts should not
+accumulate in Git history.
+
+Run:
+
+```text
+make historycheck
+```
+
+The check recognizes per-session material under `ai/sessions/` (except its
+retired README tombstone) and session-like artifacts under `proposals/`.
+
+Its policy is deliberately conservative:
+
+1. **Currently tracked post-tag cruft is an error.** Remove it before the next
+   push/tag.
+2. **Historical-only cruft in unpublished post-tag commits is an error.** This is
+   the inexpensive point to excise it from private history before it becomes a
+   permanent release artifact.
+3. **Historical-only cruft already reachable from a remote ref is a warning.**
+   Do not automatically rebase/filter/force-push published history merely to
+   satisfy hygiene. Keep the current tree clean and make any rewrite an explicit
+   repository-history decision.
+
+The pre-push hook runs `make historycheck` before `make rigorous`. The source
+validation gate remains about source correctness; Git-history hygiene is kept as
+an explicit repository/push concern.

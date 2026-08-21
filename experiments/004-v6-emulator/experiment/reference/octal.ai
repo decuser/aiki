@@ -10,8 +10,12 @@ let parse = (text) {
 	let start = 0
 	if length(s) >= 2 {
 		match [ord(s[0]), ord(s[1])] {
-			[48, 111] { start = 2 }
-			[48, 79] { start = 2 }
+			[48, 111] {
+				start = 2
+			}
+			[48, 79] {
+				start = 2
+			}
 		}
 	}
 	if start >= length(s) {
@@ -60,9 +64,20 @@ let padded = (value, width) {
 	return result
 }
 
-let word = (value) { return padded(value, 6) }
-let address = (value) { return padded(value, 6) }
-let byte = (value) { return padded(value, 3) }
-let count = (value) { return unsigned(value) }
+let word = (value) {
+	return padded(value, 6)
+}
+
+let address = (value) {
+	return padded(value, 6)
+}
+
+let byte = (value) {
+	return padded(value, 3)
+}
+
+let count = (value) {
+	return unsigned(value)
+}
 
 export(:parse, :unsigned, :padded, :word, :address, :byte, :count)

@@ -28,24 +28,72 @@ let STATE_COUNTS = 2
 let new = () {
 	return [fixed.new_word(WORD_CELLS), fixed.new_counter(FLAG_CELLS), fixed.new_counter(COUNT_CELLS)]
 }
-let words = (state) { return state[STATE_WORDS] }
-let flags = (state) { return state[STATE_FLAGS] }
-let counts = (state) { return state[STATE_COUNTS] }
+
+let words = (state) {
+	return state[STATE_WORDS]
+}
+
+let flags = (state) {
+	return state[STATE_FLAGS]
+}
+
+let counts = (state) {
+	return state[STATE_COUNTS]
+}
 
 # Bound execution accessors. run_bounded resolves these three component stores
 # once; hot helpers then operate directly on the store that owns the state.
-let word_store = (state) { return words(state) }
-let flag_store = (state) { return flags(state) }
-let count_store = (state) { return counts(state) }
-let get_register_bound = (word_store, index) { return fixed.get(word_store, index) }
-let set_register_bound = (word_store, index, value) { fixed.set(word_store, index, value); return true }
-let pc_word_bound = (word_store) { return fixed.get(word_store, PC) }
-let set_pc_word_bound = (word_store, value) { fixed.set(word_store, PC, value); return true }
-let psw_word_bound = (word_store) { return fixed.get(word_store, WORD_PSW) }
-let set_psw_word_bound = (word_store, value) { fixed.set(word_store, WORD_PSW, value); return true }
-let flag_bound = (flag_store, index) { return fixed.counter_get(flag_store, index) > 0 }
-let running_bound = (flag_store) { return flag_bound(flag_store, FLAG_RUNNING) }
-let waiting_bound = (flag_store) { return flag_bound(flag_store, FLAG_WAITING) }
+let word_store = (state) {
+	return words(state)
+}
+
+let flag_store = (state) {
+	return flags(state)
+}
+
+let count_store = (state) {
+	return counts(state)
+}
+
+let get_register_bound = (word_store, index) {
+	return fixed.get(word_store, index)
+}
+
+let set_register_bound = (word_store, index, value) {
+	fixed.set(word_store, index, value)
+	return true
+}
+
+let pc_word_bound = (word_store) {
+	return fixed.get(word_store, PC)
+}
+
+let set_pc_word_bound = (word_store, value) {
+	fixed.set(word_store, PC, value)
+	return true
+}
+
+let psw_word_bound = (word_store) {
+	return fixed.get(word_store, WORD_PSW)
+}
+
+let set_psw_word_bound = (word_store, value) {
+	fixed.set(word_store, WORD_PSW, value)
+	return true
+}
+
+let flag_bound = (flag_store, index) {
+	return fixed.counter_get(flag_store, index) > 0
+}
+
+let running_bound = (flag_store) {
+	return flag_bound(flag_store, FLAG_RUNNING)
+}
+
+let waiting_bound = (flag_store) {
+	return flag_bound(flag_store, FLAG_WAITING)
+}
+
 let complete_instruction_bound = (count_store, elapsed) {
 	fixed.counter_add(count_store, COUNT_STEPS, 1)
 	fixed.counter_add(count_store, COUNT_TIME, elapsed)
@@ -53,66 +101,168 @@ let complete_instruction_bound = (count_store, elapsed) {
 }
 
 let register_index = (index) {
-	if (index < 0) or (index >= REGISTER_COUNT) { return [@error, :register, "PDP-11 register index out of range"] }
+	if (index < 0) or (index >= REGISTER_COUNT) {
+		return [@error, :register, "PDP-11 register index out of range"]
+	}
 	return index
 }
 
 # Explicit boundary conversion for monitor/tests/deposit paths.
-let word = (value) { return machine.word(width.wrap(value, WORD_BITS)) }
-let number = (value) { return machine.number(value) }
+let word = (value) {
+	return machine.word(width.wrap(value, WORD_BITS))
+}
+
+let number = (value) {
+	return machine.number(value)
+}
 
 let get_register_word = (state, index) {
 	let i = register_index(index)
-	if is_error(i) { return i }
+	if is_error(i) {
+		return i
+	}
 	return fixed.get(words(state), i)
 }
+
 let set_register_word = (state, index, value) {
 	let i = register_index(index)
-	if is_error(i) { return i }
+	if is_error(i) {
+		return i
+	}
 	fixed.set(words(state), i, value)
 	return true
 }
-let sp_word = (state) { return get_register_word(state, SP) }
-let set_sp_word = (state, value) { return set_register_word(state, SP, value) }
-let pc_word = (state) { return get_register_word(state, PC) }
-let set_pc_word = (state, value) { return set_register_word(state, PC, value) }
-let psw_word = (state) { return fixed.get(words(state), WORD_PSW) }
-let set_psw_word = (state, value) { fixed.set(words(state), WORD_PSW, value); return true }
 
-# Public/control boundary retained for diagnostics that exercise state directly.
-let get_register = (state, index) { return number(get_register_word(state, index)) }
-let set_register = (state, index, value) { return set_register_word(state, index, word(value)) }
-let sp = (state) { return number(sp_word(state)) }
-let set_sp = (state, value) { return set_sp_word(state, word(value)) }
-let pc = (state) { return number(pc_word(state)) }
-let set_pc = (state, value) { return set_pc_word(state, word(value)) }
-let psw = (state) { return number(psw_word(state)) }
-let set_psw = (state, value) { return set_psw_word(state, word(value)) }
+let sp_word = (state) {
+	return get_register_word(state, SP)
+}
 
-let flag = (state, index) { return not equal(fixed.counter_get(flags(state), index), 0) }
-let set_flag = (state, index, value) {
-	if value { fixed.counter_set(flags(state), index, 1) } else { fixed.counter_set(flags(state), index, 0) }
+let set_sp_word = (state, value) {
+	return set_register_word(state, SP, value)
+}
+
+let pc_word = (state) {
+	return get_register_word(state, PC)
+}
+
+let set_pc_word = (state, value) {
+	return set_register_word(state, PC, value)
+}
+
+let psw_word = (state) {
+	return fixed.get(words(state), WORD_PSW)
+}
+
+let set_psw_word = (state, value) {
+	fixed.set(words(state), WORD_PSW, value)
 	return true
 }
-let running = (state) { return flag(state, FLAG_RUNNING) }
-let suspended = (state) { return flag(state, FLAG_SUSPENDED) }
-let waiting = (state) { return flag(state, FLAG_WAITING) }
-let set_suspended = (state, value) { return set_flag(state, FLAG_SUSPENDED, value) }
-let set_running = (state, value) { set_flag(state, FLAG_RUNNING, value); if value { set_suspended(state, false) }; return true }
-let set_waiting = (state, value) { return set_flag(state, FLAG_WAITING, value) }
-let steps = (state) { return fixed.counter_get(counts(state), COUNT_STEPS) }
-let set_steps = (state, value) { fixed.counter_set(counts(state), COUNT_STEPS, value); return true }
-let machine_time = (state) { return fixed.counter_get(counts(state), COUNT_TIME) }
-let set_machine_time = (state, value) { fixed.counter_set(counts(state), COUNT_TIME, value); return true }
+
+# Public/control boundary retained for diagnostics that exercise state directly.
+let get_register = (state, index) {
+	return number(get_register_word(state, index))
+}
+
+let set_register = (state, index, value) {
+	return set_register_word(state, index, word(value))
+}
+
+let sp = (state) {
+	return number(sp_word(state))
+}
+
+let set_sp = (state, value) {
+	return set_sp_word(state, word(value))
+}
+
+let pc = (state) {
+	return number(pc_word(state))
+}
+
+let set_pc = (state, value) {
+	return set_pc_word(state, word(value))
+}
+
+let psw = (state) {
+	return number(psw_word(state))
+}
+
+let set_psw = (state, value) {
+	return set_psw_word(state, word(value))
+}
+
+let flag = (state, index) {
+	return not equal(fixed.counter_get(flags(state), index), 0)
+}
+
+let set_flag = (state, index, value) {
+	if value {
+		fixed.counter_set(flags(state), index, 1)
+	} else {
+		fixed.counter_set(flags(state), index, 0)
+	}
+	return true
+}
+
+let running = (state) {
+	return flag(state, FLAG_RUNNING)
+}
+
+let suspended = (state) {
+	return flag(state, FLAG_SUSPENDED)
+}
+
+let waiting = (state) {
+	return flag(state, FLAG_WAITING)
+}
+
+let set_suspended = (state, value) {
+	return set_flag(state, FLAG_SUSPENDED, value)
+}
+
+let set_running = (state, value) {
+	set_flag(state, FLAG_RUNNING, value)
+	if value {
+		set_suspended(state, false)
+	}
+	return true
+}
+
+let set_waiting = (state, value) {
+	return set_flag(state, FLAG_WAITING, value)
+}
+
+let steps = (state) {
+	return fixed.counter_get(counts(state), COUNT_STEPS)
+}
+
+let set_steps = (state, value) {
+	fixed.counter_set(counts(state), COUNT_STEPS, value)
+	return true
+}
+
+let machine_time = (state) {
+	return fixed.counter_get(counts(state), COUNT_TIME)
+}
+
+let set_machine_time = (state, value) {
+	fixed.counter_set(counts(state), COUNT_TIME, value)
+	return true
+}
+
 let complete_instruction = (state, elapsed) {
 	fixed.counter_add(counts(state), COUNT_STEPS, 1)
 	fixed.counter_add(counts(state), COUNT_TIME, elapsed)
 	return true
 }
+
 let reset_state = (state) {
 	let zero = machine.word(0)
 	let i = 0
-	while i < REGISTER_COUNT { fixed.set(words(state), i, zero); i = i + 1 }
+	while i < REGISTER_COUNT {
+		fixed.set(words(state), i, zero)
+		i = i + 1
+	}
 	set_psw_word(state, zero)
 	set_running(state, false)
 	set_waiting(state, false)
@@ -121,10 +271,72 @@ let reset_state = (state) {
 	set_machine_time(state, 0)
 	return true
 }
+
 let snapshot = (state) {
-	return [@state, fixed.snapshot(words(state), REGISTER_COUNT), machine.number(psw_word(state)), running(state), waiting(state), suspended(state), steps(state), machine_time(state)]
+	return [
+		@state,
+		fixed.snapshot(words(state), REGISTER_COUNT),
+		machine.number(psw_word(state)),
+		running(state),
+		waiting(state),
+		suspended(state),
+		steps(state),
+		machine_time(state)
+	]
 }
 
-export(:WORD_BITS,:REGISTER_COUNT,:SP,:PC,:WORD_PSW,:FLAG_RUNNING,:FLAG_WAITING,:COUNT_STEPS,:COUNT_TIME,:new,:word,:number,
-:word_store,:flag_store,:count_store,:get_register_bound,:set_register_bound,:pc_word_bound,:set_pc_word_bound,:psw_word_bound,:set_psw_word_bound,:running_bound,:waiting_bound,:complete_instruction_bound,
-:get_register_word,:set_register_word,:sp_word,:set_sp_word,:pc_word,:set_pc_word,:psw_word,:set_psw_word,:get_register,:set_register,:sp,:set_sp,:pc,:set_pc,:psw,:set_psw,:running,:set_running,:waiting,:set_waiting,:suspended,:set_suspended,:steps,:set_steps,:machine_time,:set_machine_time,:complete_instruction,:reset_state,:snapshot)
+export(
+	:WORD_BITS,
+	:REGISTER_COUNT,
+	:SP,
+	:PC,
+	:WORD_PSW,
+	:FLAG_RUNNING,
+	:FLAG_WAITING,
+	:COUNT_STEPS,
+	:COUNT_TIME,
+	:new,
+	:word,
+	:number,
+	:word_store,
+	:flag_store,
+	:count_store,
+	:get_register_bound,
+	:set_register_bound,
+	:pc_word_bound,
+	:set_pc_word_bound,
+	:psw_word_bound,
+	:set_psw_word_bound,
+	:running_bound,
+	:waiting_bound,
+	:complete_instruction_bound,
+	:get_register_word,
+	:set_register_word,
+	:sp_word,
+	:set_sp_word,
+	:pc_word,
+	:set_pc_word,
+	:psw_word,
+	:set_psw_word,
+	:get_register,
+	:set_register,
+	:sp,
+	:set_sp,
+	:pc,
+	:set_pc,
+	:psw,
+	:set_psw,
+	:running,
+	:set_running,
+	:waiting,
+	:set_waiting,
+	:suspended,
+	:set_suspended,
+	:steps,
+	:set_steps,
+	:machine_time,
+	:set_machine_time,
+	:complete_instruction,
+	:reset_state,
+	:snapshot
+)

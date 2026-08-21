@@ -1,0 +1,111 @@
+#!/bin/sh
+# Check for disposable session/proposal artifacts introduced after the most
+# recent reachable release tag. Current tracked cruft is an error. Historical-
+# only cruft in unpublished commits is also an error because this is the cheap
+# point to excise it. Historical cruft already reachable from a remote ref is a
+# warning: do not rewrite published history automatically.
+set -eu
+
+root=$(git rev-parse --show-toplevel 2>/dev/null || true)
+if [ -z "$root" ]; then
+    echo "historycheck: not inside a Git work tree" >&2
+    exit 1
+fi
+cd "$root"
+
+tag=$(git describe --tags --abbrev=0 HEAD 2>/dev/null || true)
+if [ -z "$tag" ]; then
+    echo "historycheck: no reachable tag; nothing to compare"
+    exit 0
+fi
+
+range="$tag..HEAD"
+tmp=${TMPDIR:-/tmp}/aiki-historycheck.$$
+trap 'rm -rf "$tmp"' EXIT HUP INT TERM
+mkdir -p "$tmp"
+
+is_cruft() {
+    case "$1" in
+        ai/sessions/README.md) return 1 ;;
+        ai/sessions/*) return 0 ;;
+        ai/session-*|ai/*-session-*) return 0 ;;
+        proposals/session-*|proposals/*-session*|proposals/*/session*|proposals/*/sessions/*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+# Every path that appeared in a post-tag commit.
+git log --format= --name-only "$range" -- 2>/dev/null | sed '/^$/d' | sort -u > "$tmp/history-paths"
+: > "$tmp/cruft-history"
+while IFS= read -r path; do
+    if is_cruft "$path"; then
+        printf '%s\n' "$path" >> "$tmp/cruft-history"
+    fi
+done < "$tmp/history-paths"
+
+if [ ! -s "$tmp/cruft-history" ]; then
+    echo "historycheck ok: no session/proposal cruft in $range"
+    exit 0
+fi
+
+# Split into currently tracked and historical-only paths.
+git ls-files > "$tmp/tracked"
+: > "$tmp/tracked-cruft"
+: > "$tmp/historical-only"
+while IFS= read -r path; do
+    if grep -Fqx -- "$path" "$tmp/tracked"; then
+        printf '%s\n' "$path" >> "$tmp/tracked-cruft"
+    else
+        printf '%s\n' "$path" >> "$tmp/historical-only"
+    fi
+done < "$tmp/cruft-history"
+
+fail=0
+if [ -s "$tmp/tracked-cruft" ]; then
+    echo "historycheck FAIL: post-tag session/proposal cruft is still tracked:" >&2
+    sed 's/^/  /' "$tmp/tracked-cruft" >&2
+    echo "Remove it from the tree before the next push/tag." >&2
+    fail=1
+fi
+
+# Historical-only cruft should be rewritten away while its commits are private.
+# If any commit containing the path is already reachable from a remote ref, warn
+# instead of prescribing a history rewrite/force push.
+: > "$tmp/unpublished-history"
+: > "$tmp/published-history"
+if [ -s "$tmp/historical-only" ]; then
+    while IFS= read -r path; do
+        commits=$(git log --format=%H "$range" -- "$path")
+        published=0
+        for commit in $commits; do
+            if git branch -r --contains "$commit" 2>/dev/null | grep -q .; then
+                published=1
+                break
+            fi
+        done
+        if [ "$published" -eq 1 ]; then
+            printf '%s\n' "$path" >> "$tmp/published-history"
+        else
+            printf '%s\n' "$path" >> "$tmp/unpublished-history"
+        fi
+    done < "$tmp/historical-only"
+fi
+
+if [ -s "$tmp/unpublished-history" ]; then
+    echo "historycheck FAIL: session/proposal cruft remains in unpublished post-tag history:" >&2
+    sed 's/^/  /' "$tmp/unpublished-history" >&2
+    echo "Excise it before pushing/tagging (for example by rewriting the private post-tag commits)." >&2
+    fail=1
+fi
+
+if [ -s "$tmp/published-history" ]; then
+    echo "historycheck WARN: historical session/proposal cruft is already reachable from a remote ref:" >&2
+    sed 's/^/  /' "$tmp/published-history" >&2
+    echo "Do not rewrite/force-push published history automatically; keep the current tree clean and record any deliberate rewrite decision." >&2
+fi
+
+if [ "$fail" -ne 0 ]; then
+    exit 1
+fi
+
+echo "historycheck ok: current post-tag tree is clean; only published historical traces remain"

@@ -199,6 +199,24 @@ func (e *Evaluator) semanticHitDetail(kind engine.SemanticKind, detail string, n
 	probe.Hit(kind, site)
 }
 
+func (e *Evaluator) semanticCallHit(fn value.Value, node *syntax.Node, env *value.Env) engine.SemanticProbe {
+	probe := e.activeProbe(env)
+	if probe == nil {
+		return nil
+	}
+	site := engine.SemanticSite{}
+	if attributed, ok := probe.(engine.AttributionProbe); ok && attributed.WantsSites() {
+		site = semanticSite(node, env)
+		if named, ok := fn.(*value.Function); ok && named.Name != "" {
+			site.Detail = named.Name
+		} else {
+			site.Detail = fn.Inspect()
+		}
+	}
+	probe.Hit(engine.SemanticCall, site)
+	return probe
+}
+
 func (e *Evaluator) measure(fn value.Value, args []value.Value, node *syntax.Node, env *value.Env, attributed bool) (value.Value, engine.SemanticMeasurement) {
 	var counters *Counters
 	if attributed {
@@ -210,6 +228,16 @@ func (e *Evaluator) measure(fn value.Value, args []value.Value, node *syntax.Nod
 	measureEnv.SetSemanticProbe(counters)
 	result := e.applyFunction(fn, args, node, measureEnv)
 	return result, counters.Measurement()
+}
+
+func (e *Evaluator) profileLabelsEnabled() bool {
+	if _, ok := e.runtime.(hal.ProfileLabeler); !ok {
+		return false
+	}
+	if state, ok := e.runtime.(hal.ProfileLabelState); ok {
+		return state.ProfileLabelsEnabled()
+	}
+	return true
 }
 
 func (e *Evaluator) withProfileLabels(labels engine.ProfileLabels, restore engine.ProfileLabels, fn func()) {

@@ -611,8 +611,8 @@ func (c *checker) checkAccess(node *syntax.Node) {
 	// access = '.' NAME
 	for _, ch := range node.Children {
 		if ch.Type == "NAME" {
-			if !snakeRe.MatchString(ch.Value) {
-				c.add("warning", ch.Pos, "naming: field '"+ch.Value+"' should be snake_case")
+			if !isValidCase(ch.Value) {
+				c.add("warning", ch.Pos, "naming: field '"+ch.Value+"' should be snake_case or SCREAMING_SNAKE_CASE")
 			}
 		}
 	}

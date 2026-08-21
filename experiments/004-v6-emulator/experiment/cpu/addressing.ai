@@ -16,19 +16,30 @@ let REGISTER = :register
 let MEMORY = :memory
 
 let direct_delta = (register, size) {
-	if equal(size, WORD) { return 2 }
-	if register >= 6 { return 2 }
+	if equal(size, WORD) {
+		return 2
+	}
+	if register >= 6 {
+		return 2
+	}
 	return 1
 }
-let fetch_extension = (m) { return fetch.word_machine(m) }
+
+let fetch_extension = (m) {
+	return fetch.word_machine(m)
+}
 
 let resolve_machine = (m, specification, size) {
 	let mode = decode.operand_mode(specification)
 	let register = decode.operand_register(specification)
 	let base = machine.register_word(m, register)
 	match mode {
-		0 { return [REGISTER, register, register] }
-		1 { return [MEMORY, register, base] }
+		0 {
+			return [REGISTER, register, register]
+		}
+		1 {
+			return [MEMORY, register, base]
+		}
 		2 {
 			let address = base
 			machine.set_register_word(m, register, fixed.word_add_small(base, direct_delta(register, size)))
@@ -36,7 +47,9 @@ let resolve_machine = (m, specification, size) {
 		}
 		3 {
 			let pointer = machine.read_word_machine(m, base)
-			if equal(shape(pointer), :pdp_fault) { return pointer }
+			if equal(shape(pointer), :pdp_fault) {
+				return pointer
+			}
 			machine.set_register_word(m, register, fixed.word_add_small(base, 2))
 			return [MEMORY, register, pointer]
 		}
@@ -49,52 +62,88 @@ let resolve_machine = (m, specification, size) {
 			let pointer_address = fixed.word_sub_small(base, 2)
 			machine.set_register_word(m, register, pointer_address)
 			let pointer = machine.read_word_machine(m, pointer_address)
-			if equal(shape(pointer), :pdp_fault) { return pointer }
+			if equal(shape(pointer), :pdp_fault) {
+				return pointer
+			}
 			return [MEMORY, register, pointer]
 		}
 		6 {
 			let displacement = fetch_extension(m)
-			if equal(shape(displacement), :pdp_fault) { return displacement }
+			if equal(shape(displacement), :pdp_fault) {
+				return displacement
+			}
 			let index_base = base
-			if equal(register, 7) { index_base = machine.pc_word(m) }
+			if equal(register, 7) {
+				index_base = machine.pc_word(m)
+			}
 			return [MEMORY, register, fixed.word_add(index_base, displacement)]
 		}
 		7 {
 			let displacement = fetch_extension(m)
-			if equal(shape(displacement), :pdp_fault) { return displacement }
+			if equal(shape(displacement), :pdp_fault) {
+				return displacement
+			}
 			let index_base = base
-			if equal(register, 7) { index_base = machine.pc_word(m) }
+			if equal(register, 7) {
+				index_base = machine.pc_word(m)
+			}
 			let pointer_address = fixed.word_add(index_base, displacement)
 			let pointer = machine.read_word_machine(m, pointer_address)
-			if equal(shape(pointer), :pdp_fault) { return pointer }
+			if equal(shape(pointer), :pdp_fault) {
+				return pointer
+			}
 			return [MEMORY, register, pointer]
 		}
-		_ { return [@error, :addressing, "PDP-11 addressing mode out of range"] }
+		_ {
+			return [@error, :addressing, "PDP-11 addressing mode out of range"]
+		}
 	}
 }
-let operand_kind = (operand) { return operand[OPERAND_KIND] }
-let operand_register = (operand) { return operand[OPERAND_REGISTER] }
-let operand_address = (operand) { return operand[OPERAND_ADDRESS] }
+
+let operand_kind = (operand) {
+	return operand[OPERAND_KIND]
+}
+
+let operand_register = (operand) {
+	return operand[OPERAND_REGISTER]
+}
+
+let operand_address = (operand) {
+	return operand[OPERAND_ADDRESS]
+}
+
 let read_operand_machine = (m, operand, size) {
 	if equal(operand[OPERAND_KIND], REGISTER) {
 		let value = machine.register_word(m, operand[OPERAND_REGISTER])
-		if equal(size, BYTE) { return fixed.low_byte(value) }
+		if equal(size, BYTE) {
+			return fixed.low_byte(value)
+		}
 		return value
 	}
-	if equal(size, BYTE) { return machine.read_byte_machine(m, operand[OPERAND_ADDRESS]) }
+	if equal(size, BYTE) {
+		return machine.read_byte_machine(m, operand[OPERAND_ADDRESS])
+	}
 	return machine.read_word_machine(m, operand[OPERAND_ADDRESS])
 }
+
 let write_operand_machine = (m, operand, size, value) {
 	if equal(operand[OPERAND_KIND], REGISTER) {
-		if equal(size, WORD) { return machine.set_register_word(m, operand[OPERAND_REGISTER], value) }
+		if equal(size, WORD) {
+			return machine.set_register_word(m, operand[OPERAND_REGISTER], value)
+		}
 		let old = machine.register_word(m, operand[OPERAND_REGISTER])
 		return machine.set_register_word(m, operand[OPERAND_REGISTER], fixed.with_low_byte(old, value))
 	}
-	if equal(size, BYTE) { return machine.write_byte_machine(m, operand[OPERAND_ADDRESS], value) }
+	if equal(size, BYTE) {
+		return machine.write_byte_machine(m, operand[OPERAND_ADDRESS], value)
+	}
 	return machine.write_word_machine(m, operand[OPERAND_ADDRESS], value)
 }
+
 let write_movb_machine = (m, operand, value) {
-	if equal(operand[OPERAND_KIND], REGISTER) { return machine.set_register_word(m, operand[OPERAND_REGISTER], fixed.byte_sign_word(value)) }
+	if equal(operand[OPERAND_KIND], REGISTER) {
+		return machine.set_register_word(m, operand[OPERAND_REGISTER], fixed.byte_sign_word(value))
+	}
 	return machine.write_byte_machine(m, operand[OPERAND_ADDRESS], value)
 }
 
@@ -102,38 +151,62 @@ let write_movb_machine = (m, operand, value) {
 # perform the read/write directly, so common instructions do not allocate an
 # operand descriptor list only to index it again immediately.
 let read_at_bound = (bus, bus_memory, bus_counts, address, size) {
-	if equal(size, BYTE) { return unibus.read_byte_bound(bus, bus_memory, bus_counts, address) }
+	if equal(size, BYTE) {
+		return unibus.read_byte_bound(bus, bus_memory, bus_counts, address)
+	}
 	return unibus.read_word_bound(bus, bus_memory, bus_counts, address)
 }
+
 let write_at_bound = (bus, bus_memory, bus_counts, address, size, value) {
-	if equal(size, BYTE) { return unibus.write_byte_bound(bus, bus_memory, bus_counts, address, value) }
+	if equal(size, BYTE) {
+		return unibus.write_byte_bound(bus, bus_memory, bus_counts, address, value)
+	}
 	return unibus.write_word_bound(bus, bus_memory, bus_counts, address, value)
 }
+
 let register_read_bound = (cpu_words, register, size) {
 	let value = state.get_register_bound(cpu_words, register)
-	if equal(size, BYTE) { return fixed.low_byte(value) }
+	if equal(size, BYTE) {
+		return fixed.low_byte(value)
+	}
 	return value
 }
+
 let register_write_bound = (cpu_words, register, size, value) {
-	if equal(size, WORD) { return state.set_register_bound(cpu_words, register, value) }
+	if equal(size, WORD) {
+		return state.set_register_bound(cpu_words, register, value)
+	}
 	let old = state.get_register_bound(cpu_words, register)
 	return state.set_register_bound(cpu_words, register, fixed.with_low_byte(old, value))
 }
-let fetch_extension_bound = (cpu_words, bus, bus_memory, bus_counts) { return fetch.word_bound(cpu_words, bus, bus_memory, bus_counts) }
+
+let fetch_extension_bound = (cpu_words, bus, bus_memory, bus_counts) {
+	return fetch.word_bound(cpu_words, bus, bus_memory, bus_counts)
+}
 
 let read_decoded_bound = (cpu_words, bus, bus_memory, bus_counts, mode, register, size) {
 	let base = state.get_register_bound(cpu_words, register)
 	match mode {
-		0 { return register_read_bound(cpu_words, register, size) }
-		1 { return read_at_bound(bus, bus_memory, bus_counts, base, size) }
+		0 {
+			return register_read_bound(cpu_words, register, size)
+		}
+		1 {
+			return read_at_bound(bus, bus_memory, bus_counts, base, size)
+		}
 		2 {
 			let address = base
-			state.set_register_bound(cpu_words, register, fixed.word_add_small(base, direct_delta(register, size)))
+			state.set_register_bound(
+				cpu_words,
+				register,
+				fixed.word_add_small(base, direct_delta(register, size))
+			)
 			return read_at_bound(bus, bus_memory, bus_counts, address, size)
 		}
 		3 {
 			let pointer = unibus.read_word_bound(bus, bus_memory, bus_counts, base)
-			if equal(shape(pointer), :pdp_fault) { return pointer }
+			if equal(shape(pointer), :pdp_fault) {
+				return pointer
+			}
 			state.set_register_bound(cpu_words, register, fixed.word_add_small(base, 2))
 			return read_at_bound(bus, bus_memory, bus_counts, pointer, size)
 		}
@@ -146,43 +219,67 @@ let read_decoded_bound = (cpu_words, bus, bus_memory, bus_counts, mode, register
 			let pointer_address = fixed.word_sub_small(base, 2)
 			state.set_register_bound(cpu_words, register, pointer_address)
 			let pointer = unibus.read_word_bound(bus, bus_memory, bus_counts, pointer_address)
-			if equal(shape(pointer), :pdp_fault) { return pointer }
+			if equal(shape(pointer), :pdp_fault) {
+				return pointer
+			}
 			return read_at_bound(bus, bus_memory, bus_counts, pointer, size)
 		}
 		6 {
 			let displacement = fetch_extension_bound(cpu_words, bus, bus_memory, bus_counts)
-			if equal(shape(displacement), :pdp_fault) { return displacement }
+			if equal(shape(displacement), :pdp_fault) {
+				return displacement
+			}
 			let index_base = base
-			if equal(register, 7) { index_base = state.pc_word_bound(cpu_words) }
+			if equal(register, 7) {
+				index_base = state.pc_word_bound(cpu_words)
+			}
 			return read_at_bound(bus, bus_memory, bus_counts, fixed.word_add(index_base, displacement), size)
 		}
 		7 {
 			let displacement = fetch_extension_bound(cpu_words, bus, bus_memory, bus_counts)
-			if equal(shape(displacement), :pdp_fault) { return displacement }
+			if equal(shape(displacement), :pdp_fault) {
+				return displacement
+			}
 			let index_base = base
-			if equal(register, 7) { index_base = state.pc_word_bound(cpu_words) }
+			if equal(register, 7) {
+				index_base = state.pc_word_bound(cpu_words)
+			}
 			let pointer_address = fixed.word_add(index_base, displacement)
 			let pointer = unibus.read_word_bound(bus, bus_memory, bus_counts, pointer_address)
-			if equal(shape(pointer), :pdp_fault) { return pointer }
+			if equal(shape(pointer), :pdp_fault) {
+				return pointer
+			}
 			return read_at_bound(bus, bus_memory, bus_counts, pointer, size)
 		}
-		_ { return [@error, :addressing, "PDP-11 addressing mode out of range"] }
+		_ {
+			return [@error, :addressing, "PDP-11 addressing mode out of range"]
+		}
 	}
 }
 
 let write_decoded_bound = (cpu_words, bus, bus_memory, bus_counts, mode, register, size, value) {
 	let base = state.get_register_bound(cpu_words, register)
 	match mode {
-		0 { return register_write_bound(cpu_words, register, size, value) }
-		1 { return write_at_bound(bus, bus_memory, bus_counts, base, size, value) }
+		0 {
+			return register_write_bound(cpu_words, register, size, value)
+		}
+		1 {
+			return write_at_bound(bus, bus_memory, bus_counts, base, size, value)
+		}
 		2 {
 			let address = base
-			state.set_register_bound(cpu_words, register, fixed.word_add_small(base, direct_delta(register, size)))
+			state.set_register_bound(
+				cpu_words,
+				register,
+				fixed.word_add_small(base, direct_delta(register, size))
+			)
 			return write_at_bound(bus, bus_memory, bus_counts, address, size, value)
 		}
 		3 {
 			let pointer = unibus.read_word_bound(bus, bus_memory, bus_counts, base)
-			if equal(shape(pointer), :pdp_fault) { return pointer }
+			if equal(shape(pointer), :pdp_fault) {
+				return pointer
+			}
 			state.set_register_bound(cpu_words, register, fixed.word_add_small(base, 2))
 			return write_at_bound(bus, bus_memory, bus_counts, pointer, size, value)
 		}
@@ -195,66 +292,153 @@ let write_decoded_bound = (cpu_words, bus, bus_memory, bus_counts, mode, registe
 			let pointer_address = fixed.word_sub_small(base, 2)
 			state.set_register_bound(cpu_words, register, pointer_address)
 			let pointer = unibus.read_word_bound(bus, bus_memory, bus_counts, pointer_address)
-			if equal(shape(pointer), :pdp_fault) { return pointer }
+			if equal(shape(pointer), :pdp_fault) {
+				return pointer
+			}
 			return write_at_bound(bus, bus_memory, bus_counts, pointer, size, value)
 		}
 		6 {
 			let displacement = fetch_extension_bound(cpu_words, bus, bus_memory, bus_counts)
-			if equal(shape(displacement), :pdp_fault) { return displacement }
+			if equal(shape(displacement), :pdp_fault) {
+				return displacement
+			}
 			let index_base = base
-			if equal(register, 7) { index_base = state.pc_word_bound(cpu_words) }
-			return write_at_bound(bus, bus_memory, bus_counts, fixed.word_add(index_base, displacement), size, value)
+			if equal(register, 7) {
+				index_base = state.pc_word_bound(cpu_words)
+			}
+			return write_at_bound(
+				bus,
+				bus_memory,
+				bus_counts,
+				fixed.word_add(index_base, displacement),
+				size,
+				value
+			)
 		}
 		7 {
 			let displacement = fetch_extension_bound(cpu_words, bus, bus_memory, bus_counts)
-			if equal(shape(displacement), :pdp_fault) { return displacement }
+			if equal(shape(displacement), :pdp_fault) {
+				return displacement
+			}
 			let index_base = base
-			if equal(register, 7) { index_base = state.pc_word_bound(cpu_words) }
+			if equal(register, 7) {
+				index_base = state.pc_word_bound(cpu_words)
+			}
 			let pointer_address = fixed.word_add(index_base, displacement)
 			let pointer = unibus.read_word_bound(bus, bus_memory, bus_counts, pointer_address)
-			if equal(shape(pointer), :pdp_fault) { return pointer }
+			if equal(shape(pointer), :pdp_fault) {
+				return pointer
+			}
 			return write_at_bound(bus, bus_memory, bus_counts, pointer, size, value)
 		}
-		_ { return [@error, :addressing, "PDP-11 addressing mode out of range"] }
+		_ {
+			return [@error, :addressing, "PDP-11 addressing mode out of range"]
+		}
 	}
 }
 
 let read_spec_bound = (cpu_words, bus, bus_memory, bus_counts, specification, size) {
-	return read_decoded_bound(cpu_words, bus, bus_memory, bus_counts, decode.operand_mode(specification), decode.operand_register(specification), size)
+	return read_decoded_bound(
+		cpu_words,
+		bus,
+		bus_memory,
+		bus_counts,
+		decode.operand_mode(specification),
+		decode.operand_register(specification),
+		size
+	)
 }
+
 let write_spec_bound = (cpu_words, bus, bus_memory, bus_counts, specification, size, value) {
-	return write_decoded_bound(cpu_words, bus, bus_memory, bus_counts, decode.operand_mode(specification), decode.operand_register(specification), size, value)
+	return write_decoded_bound(
+		cpu_words,
+		bus,
+		bus_memory,
+		bus_counts,
+		decode.operand_mode(specification),
+		decode.operand_register(specification),
+		size,
+		value
+	)
 }
 
 # Diagnostic/control boundary. Machine operand tuples keep opaque addresses internally.
 let boundary_operand = (operand) {
-	if equal(shape(operand), :pdp_fault) { return operand }
-	if equal(operand_kind(operand), REGISTER) { return operand }
+	if equal(shape(operand), :pdp_fault) {
+		return operand
+	}
+	if equal(operand_kind(operand), REGISTER) {
+		return operand
+	}
 	return [operand_kind(operand), operand_register(operand), fixed.number(operand_address(operand))]
 }
-let resolve = (m, specification, size) { return boundary_operand(resolve_machine(m, specification, size)) }
+
+let resolve = (m, specification, size) {
+	return boundary_operand(resolve_machine(m, specification, size))
+}
+
 let read_operand = (m, operand, size) {
 	if equal(operand_kind(operand), REGISTER) {
 		let value = machine.get_register(m, operand_register(operand))
-		if equal(size, BYTE) { return fixed.number(fixed.low_byte(fixed.word(value))) }
+		if equal(size, BYTE) {
+			return fixed.number(fixed.low_byte(fixed.word(value)))
+		}
 		return value
 	}
-	if equal(size, BYTE) { return machine.read_byte(m, operand_address(operand)) }
+	if equal(size, BYTE) {
+		return machine.read_byte(m, operand_address(operand))
+	}
 	return machine.read_word(m, operand_address(operand))
 }
+
 let write_operand = (m, operand, size, value) {
 	if equal(operand_kind(operand), REGISTER) {
-		if equal(size, WORD) { return machine.set_register(m, operand_register(operand), value) }
+		if equal(size, WORD) {
+			return machine.set_register(m, operand_register(operand), value)
+		}
 		let old = fixed.word(machine.get_register(m, operand_register(operand)))
-		return machine.set_register_word(m, operand_register(operand), fixed.with_low_byte(old, fixed.byte(value)))
+		return machine.set_register_word(
+			m,
+			operand_register(operand),
+			fixed.with_low_byte(old, fixed.byte(value))
+		)
 	}
-	if equal(size, BYTE) { return machine.write_byte(m, operand_address(operand), value) }
+	if equal(size, BYTE) {
+		return machine.write_byte(m, operand_address(operand), value)
+	}
 	return machine.write_word(m, operand_address(operand), value)
 }
+
 let write_movb = (m, operand, value) {
-	if equal(operand_kind(operand), REGISTER) { return machine.set_register_word(m, operand_register(operand), fixed.byte_sign_word(fixed.byte(value))) }
+	if equal(operand_kind(operand), REGISTER) {
+		return machine.set_register_word(
+			m,
+			operand_register(operand),
+			fixed.byte_sign_word(fixed.byte(value))
+		)
+	}
 	return machine.write_byte(m, operand_address(operand), value)
 }
-export(:WORD,:BYTE,:REGISTER,:MEMORY,:direct_delta,
-:resolve_machine,:read_operand_machine,:write_operand_machine,:write_movb_machine,:read_decoded_bound,:write_decoded_bound,:read_spec_bound,:write_spec_bound,
-:resolve,:operand_kind,:operand_register,:operand_address,:read_operand,:write_operand,:write_movb)
+
+export(
+	:WORD,
+	:BYTE,
+	:REGISTER,
+	:MEMORY,
+	:direct_delta,
+	:resolve_machine,
+	:read_operand_machine,
+	:write_operand_machine,
+	:write_movb_machine,
+	:read_decoded_bound,
+	:write_decoded_bound,
+	:read_spec_bound,
+	:write_spec_bound,
+	:resolve,
+	:operand_kind,
+	:operand_register,
+	:operand_address,
+	:read_operand,
+	:write_operand,
+	:write_movb
+)

@@ -1,89 +1,105 @@
-@preamble let store = import("store/ffi")
+@preamble use("store/ffi")
 new_byte
-Explicit store/ffi operation.
+Creates fixed-size mutable storage containing byte values.
 
-new_byte(size)
+new_byte(length)
 
+type(new_byte)    # :function
 ===
 new_word
-Explicit store/ffi operation.
+Creates fixed-size mutable storage containing word values.
 
-new_word(size)
+new_word(length)
 
+type(new_word)    # :function
 ===
 new_addr18
-Explicit store/ffi operation.
+Creates fixed-size mutable storage containing 18-bit address values.
 
-new_addr18(size)
+new_addr18(length)
 
+type(new_addr18)    # :function
 ===
 get
-Explicit store/ffi operation.
+Reads the value at an indexed store location.
 
 get(store, index)
 
+type(get)    # :function
 ===
 set
-Explicit store/ffi operation.
+Writes a value at an indexed store location.
 
 set(store, index, value)
 
+type(set)    # :function
 ===
 length
-Explicit store/ffi operation.
+Returns the number of locations in a store.
 
 length(store)
 
+type(length)    # :function
 ===
 snapshot
-Explicit store/ffi operation.
+Returns a stable snapshot of the store contents.
 
-snapshot(store, ...args)
+snapshot(store)
 
+type(snapshot)    # :function
 ===
 word_read_addr
-Explicit store/ffi operation.
+Reads a word through an 18-bit byte address.
 
 word_read_addr(store, address)
 
+type(word_read_addr)    # :function
 ===
 word_write_addr
-Explicit store/ffi operation.
+Writes a word through an 18-bit byte address.
 
 word_write_addr(store, address, value)
 
+type(word_write_addr)    # :function
 ===
 byte_read_addr
-Explicit store/ffi operation.
+Reads a byte through an 18-bit byte address.
 
 byte_read_addr(store, address)
 
+type(byte_read_addr)    # :function
 ===
 byte_write_addr
-Explicit store/ffi operation.
+Writes a byte through an 18-bit byte address.
 
 byte_write_addr(store, address, value)
 
+type(byte_write_addr)    # :function
 ===
 new_counter
-Create provider-backed mutable storage for non-negative execution counters.
+Creates fixed-size mutable counter storage.
 
-new_counter(size)
+new_counter(length)
 
+type(new_counter)    # :function
 ===
 counter_get
-Read an execution counter as an ordinary exact Aiki number at the observation/control boundary.
+Reads a counter value.
 
 counter_get(store, index)
 
+type(counter_get)    # :function
 ===
 counter_set
-Assign a non-negative execution counter.
+Sets a counter value.
 
 counter_set(store, index, value)
 
+type(counter_set)    # :function
 ===
 counter_add
-Increment an execution counter inside the provider, avoiding a get/add/set cycle in Aiki.
+Adds an amount to a counter value.
 
-counter_add(store, index, delta)
+counter_add(store, index, amount)
+
+type(counter_add)    # :function

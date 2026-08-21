@@ -1,39 +1,21 @@
-# Profiling sweep
+# Profiling workloads
 
-These drivers exercise Aiki mechanisms using Aiki's own language and library
-surface. They are intended to be rerun before and after implementation changes.
-They are not cross-language benchmark claims.
+Small, durable workloads intended for `aiki profile --counts`.
 
-Run from the repository root:
+These are not ordinary language examples. They exist to pressure particular
+runtime paths and make semantic work, Number realization, allocation, and
+substrate costs visible.
 
-```sh
-make build
-extra/profiling/sweep.sh profile-results
-```
+- `selfhost-three-level.ai` — host interpreter -> selfhost -> selfhost -> `1 + 2 * 3`
+- `adaptive-number-rational.ai` — compact exact rational arithmetic
+- `adaptive-number-host-math.ai` — host `math/ffi` binary64-return boundary
 
-The output directory also contains `manifest.txt` with the Aiki version, Go version, host, Git description, and generation time.
+## Adaptive Number acceptance witnesses
 
-Each workload produces:
+The three adaptive-number workloads are retained as durable profiling witnesses:
 
-- `<name>.txt` — Aiki semantic counts, source attribution, and measured-interval
-  Go realization totals;
-- `<name>.cpu.pprof` — Go CPU profile with Aiki correlation labels;
-- `<name>.cpu.top.txt` — a textual CPU top report;
-- `<name>.cpu.tags.txt` — the Aiki correlation labels observed in the CPU profile;
-- `<name>.allocs.pprof` — ordinary Go allocation profile;
-- `<name>.allocs.top.txt` — a textual allocation top report.
+- `selfhost-three-level.ai` demonstrates small-integer dominance through three interpreter levels;
+- `adaptive-number-rational.ai` demonstrates compact-rational coverage with no arbitrary-precision promotion;
+- `adaptive-number-host-math.ai` separates host call-return carriers from arithmetic realization and exercises certified versus fallback binary arithmetic.
 
-CPU profile labels identify `aiki_layer`, `aiki_function`, `aiki_file`,
-`aiki_line`, and `aiki_primitive`. Go's pprof labels are not attached to the
-allocation profile, so allocation correlation is intentionally not claimed.
-The measured-interval `alloc_bytes`, `mallocs`, and `gc_cycles` in the
-text report are the paired realization totals for the Aiki evaluation interval.
-
-Workloads:
-
-- `01-evaluator-loop.ai` — evaluator arithmetic/comparison/while path;
-- `02-tail-recursion.ai` — proper tail-call path;
-- `03-list-append.ai` — persistent list growth and `_append` substrate work;
-- `04-store-bits.ai` — module calls, mutable store, and bit operations;
-- `05-regex-ffi.ai` — repeated Aiki-to-Go regex boundary crossing;
-- `06-concurrency.ai` — synchronized spawn/channel/send/receive work.
+Acceptance measurements are recorded in `docs/adaptive-number-results.md`.

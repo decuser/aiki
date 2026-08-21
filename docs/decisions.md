@@ -13,17 +13,19 @@ references these by number.
 **Question:** Should Aiki numbers carry a provenance marker indicating
 that a floating-point computation was involved in producing them?
 
-**Decision:** No. Values returned through floating-point FFI are
-converted to Aiki numbers at the boundary by representing the returned
-float64 exactly as a rational. Approximation inherent in the foreign
-computation is not tracked after conversion; thereafter the resulting
-value participates in exact rational arithmetic normally.
+**Decision:** No. Values returned through floating-point FFI cross into the
+single Aiki `number` boundary as the exact finite dyadic rational denoted by the
+returned binary64 bit pattern. The runtime may retain that bit pattern as a
+compact hidden carrier instead of immediately expanding it to `big.Rat`.
+Approximation inherent in the foreign computation is not tracked after the
+boundary; thereafter ordinary Aiki arithmetic remains exact and may not silently
+round merely because the value has a binary64 carrier.
 
 **Rationale:** The meaningful event is the FFI boundary. `math/ffi`
 performs computation using host floating-point arithmetic. Once that
-result crosses into Aiki, Aiki receives a value and represents it
-exactly as a rational. From that point forward, ordinary Aiki
-arithmetic remains exact.
+result crosses into Aiki, Aiki receives one exact dyadic rational value. The
+physical carrier is not language semantics. From that point forward, ordinary
+Aiki arithmetic remains exact.
 
 Tracking provenance after the boundary would introduce a second,
 shadow numeric semantics — forcing answers to whether provenance
@@ -43,8 +45,8 @@ The module boundary already communicates the distinction cleanly:
 Provenance is expressed by which operation was called, not by a tag
 carried indefinitely by the resulting number.
 
-**Disposition:** Accepted boundary semantics. Closed. No numeric-model
-change.
+**Disposition:** Accepted boundary semantics. Closed. Adaptive Number may vary
+the hidden carrier, but there is no user-visible numeric-model change.
 
 ---
 
@@ -221,3 +223,43 @@ accelerate that contract if profiling justifies it, but the portable native path
 remains the semantic authority and bare default.
 
 **Disposition:** Accepted semantic refinement. No syntax change and no HAL change.
+
+## D6. Semantic properties are authoritative; physical representation is negotiable
+
+**Date:** 2026-08-21
+
+**Question:** When a semantically strong Aiki value representation becomes a
+measured runtime cost, should the language weaken the semantic property, keep one
+canonical physical representation regardless of cost, or allow hidden adaptive
+representations beneath the semantic boundary?
+
+**Decision:** Preserve the programmer-visible semantic property and allow hidden
+physical representations to vary when they are observationally equivalent and
+earn their complexity under evidence gates.
+
+The demonstrated instances are:
+
+- **Number:** exactness is authoritative. **The number is exact. The
+  representation is negotiable.** Small integer, compact rational, exact finite
+  binary carrier, and arbitrary-precision escape are hidden realizations of one
+  exact Aiki `number`.
+- **List:** immutability is authoritative, with persistent sequence semantics.
+  **The list is immutable. The representation is negotiable.** Flat storage,
+  synchronized frontier storage, and historical fork are hidden realizations of
+  one immutable Aiki `list`.
+
+This is not a general license to add adaptive representations. A candidate must
+first be motivated by measured cost, preserve all observable semantics, and
+survive representative workload/regression evidence. A weak representation is
+removed rather than rescued by unrelated complexity.
+
+**Rationale:** The Number and List projects independently showed that strong
+semantics need not be traded away for performance. Number retained exactness
+while representation adapted to arithmetic demands. List retained immutability
+and branch persistence while incremental construction moved from quadratic
+copied-slot volume to amortized frontier growth. In both cases the optimization
+belongs beneath the semantic boundary.
+
+**Disposition:** Accepted architectural rule: **semantic properties are
+authoritative; physical representation is negotiable.** Apply only where a
+specific semantic property and measured realization problem are both explicit.

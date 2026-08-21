@@ -96,10 +96,12 @@ func (g *GoRuntime) registerHAL() {
 	g.registerPrimitive("_send", halSend)
 	g.registerPrimitive("_recv", halRecv)
 
-	// Language/value primitives implemented natively.
+	// Language/value primitives implemented natively. Append remains context-free
+	// but accepts the active semantic probe for hidden representation counters.
+	g.registerContextFreeProbedPrimitive("_append", halAppend, halAppendWithProbe)
 	for name, fn := range map[string]BuiltinFunc{
 		"_first": halFirst, "_rest": halRest, "_length": halLength,
-		"_prepend": halPrepend, "_append": halAppend, "_empty": halEmpty, "_range": halRange,
+		"_prepend": halPrepend, "_empty": halEmpty, "_range": halRange,
 		"_type": halType, "_stack_limit": halStackLimit, "_inspect": halInspect,
 		"_equal": halEqual, "_ord": halOrd, "_chr": halChr,
 		"_floor": halFloor, "_ceil": halCeil, "_truncate": halTruncate, "_modulo": halModulo,
@@ -167,7 +169,14 @@ func (g *GoRuntime) registerHAL() {
 		"_bits_and":                   halBitsAnd, "_bits_or": halBitsOr, "_bits_xor": halBitsXor,
 		"_bits_not": halBitsNot, "_bits_shl": halBitsShl, "_bits_shr": halBitsShr,
 	} {
-		g.registerPrimitive(name, fn)
+		switch name {
+		case "_stack_limit", "_store_get", "_store_set":
+			// These operations observe evaluator context for stack state or
+			// semantic profiling. Keep the conservative context path.
+			g.registerPrimitive(name, fn)
+		default:
+			g.registerContextFreePrimitive(name, fn)
+		}
 	}
 
 	// Native/FFI library providers. Native realization does not imply host
@@ -195,7 +204,7 @@ func (g *GoRuntime) registerHAL() {
 		"_regex_find_all": halRegexFindAll, "_regex_replace": halRegexReplace,
 		"_regex_replace_first": halRegexReplaceFirst, "_regex_split": halRegexSplit,
 	} {
-		g.registerPrimitive(name, fn)
+		g.registerContextFreePrimitive(name, fn)
 	}
 
 	// Runtime/tooling/session services.

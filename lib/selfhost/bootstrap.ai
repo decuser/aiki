@@ -34,6 +34,8 @@ let hal_bindings = () {
 		["_str_to_bytes", _str_to_bytes],
 		["_bytes_to_str", _bytes_to_str],
 		["_bytes_to_str_pure", _bytes_to_str_pure],
+		["_bytes_digits_from_text", _bytes_digits_from_text],
+		["_bytes_digits_to_text", _bytes_digits_to_text],
 		["_regex_match", _regex_match],
 		["_regex_find", _regex_find],
 		["_regex_find_all", _regex_find_all],

@@ -63,6 +63,10 @@ func printMeasurement(m engine.SemanticMeasurement, showSites bool) {
 	for _, row := range rows {
 		fmt.Printf("  %-12s %d\n", row.name, row.n)
 	}
+	printNumberRealization("Number arithmetic realization", m.Numbers, true)
+	printNumberRealization("Number call-return realization", m.CallNumbers, false)
+	printCallRealization(m.Calls)
+	printListRealization(m.Lists)
 	if !showSites || len(m.Sites) == 0 {
 		return
 	}
@@ -80,6 +84,49 @@ func printMeasurement(m engine.SemanticMeasurement, showSites bool) {
 		if text := strings.TrimSpace(sc.Site.Source); text != "" {
 			fmt.Printf("            %s\n", text)
 		}
+	}
+}
+
+func printCallRealization(c engine.CallRealizationCounts) {
+	total := c.UserEntry + c.Substrate + c.TailReuse + c.TailEnvReuse
+	if total == 0 {
+		return
+	}
+	fmt.Println("\nCall realization")
+	fmt.Printf("  %-20s %d\n", "user_entry", c.UserEntry)
+	fmt.Printf("  %-20s %d\n", "substrate", c.Substrate)
+	fmt.Printf("  %-20s %d\n", "tail_reuse", c.TailReuse)
+	fmt.Printf("  %-20s %d\n", "tail_env_reuse", c.TailEnvReuse)
+}
+
+func printListRealization(c engine.ListRealizationCounts) {
+	total := c.FrontierPromoted + c.FrontierExtended + c.FrontierForked
+	if total == 0 {
+		return
+	}
+	fmt.Println("\nList realization")
+	fmt.Printf("  %-24s %d\n", "frontier_promoted", c.FrontierPromoted)
+	fmt.Printf("  %-24s %d\n", "frontier_extended", c.FrontierExtended)
+	fmt.Printf("  %-24s %d\n", "frontier_grown", c.FrontierGrown)
+	fmt.Printf("  %-24s %d\n", "frontier_forked", c.FrontierForked)
+	fmt.Printf("  %-24s %d\n", "elements_copied", c.ElementsCopied)
+	fmt.Printf("  %-24s %d\n", "backing_slots_allocated", c.BackingSlotsAllocated)
+}
+
+func printNumberRealization(title string, n engine.NumberRealizationCounts, arithmetic bool) {
+	total := n.ResultSmallInteger + n.ResultCompactRational + n.ResultBinaryCarrier + n.ResultBigRational
+	if total == 0 {
+		return
+	}
+	fmt.Printf("\n%s\n", title)
+	fmt.Printf("  %-20s %d\n", "small_integer", n.ResultSmallInteger)
+	fmt.Printf("  %-20s %d\n", "compact_rational", n.ResultCompactRational)
+	fmt.Printf("  %-20s %d\n", "binary_carrier", n.ResultBinaryCarrier)
+	fmt.Printf("  %-20s %d\n", "big_rational", n.ResultBigRational)
+	if arithmetic {
+		fmt.Printf("  %-20s %d\n", "binary_certified", n.BinaryCertified)
+		fmt.Printf("  %-20s %d\n", "binary_fallback", n.BinaryFallback)
+		fmt.Printf("  %-20s %d\n", "promoted_big", n.PromotedBigRational)
 	}
 }
 

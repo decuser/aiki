@@ -88,10 +88,10 @@ func TestM5TimeNowIsMillisecondsSinceEpoch(t *testing.T) {
 	got := halTimeNow(nil, nil)
 	after := time.Now().UnixMilli()
 	n, ok := got.(*value.Number)
-	if !ok || !n.Val.IsInt() || !n.Val.Num().IsInt64() {
+	if !ok || !n.IsInt() || !n.IsInt64() {
 		t.Fatalf("time.now = %T %v, want integer number", got, got)
 	}
-	ms := n.Val.Num().Int64()
+	ms := n.Int64Value()
 	if ms < before || ms > after {
 		t.Fatalf("time.now = %d, outside [%d,%d]", ms, before, after)
 	}

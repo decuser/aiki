@@ -57,6 +57,46 @@ type SemanticCounts struct {
 	StoreWrite int64
 }
 
+// NumberRealizationCounts describes hidden runtime representations observed
+// while evaluating numeric operations. These are realization facts, not Aiki
+// semantic units; representation remains unobservable to Aiki programs.
+type NumberRealizationCounts struct {
+	ResultSmallInteger    int64
+	ResultCompactRational int64
+	ResultBinaryCarrier   int64
+	ResultBigRational     int64
+	BinaryCertified       int64
+	BinaryFallback        int64
+	PromotedBigRational   int64
+}
+
+// CallRealizationCounts describes how semantic call events are realized by the
+// evaluator. These counters are profiling facts, not language semantics.
+type CallRealizationCounts struct {
+	UserEntry    int64
+	Substrate    int64
+	TailReuse    int64
+	TailEnvReuse int64
+}
+
+// ListRealizationCounts describes hidden persistent-list append realization.
+// These are profiling facts, not Aiki semantic units or user-visible kinds.
+type ListRealizationCounts struct {
+	FrontierPromoted      int64
+	FrontierExtended      int64
+	FrontierGrown         int64
+	FrontierForked        int64
+	ElementsCopied        int64
+	BackingSlotsAllocated int64
+}
+
+// ListRealizationProbe is an optional extension implemented by profilers that
+// want hidden list-representation facts.
+type ListRealizationProbe interface {
+	SemanticProbe
+	RecordListAppend(promoted, extended, grown, forked bool, copied, allocated int)
+}
+
 // SemanticSiteCount records the number of observations at one semantic site.
 type SemanticSiteCount struct {
 	Kind  SemanticKind
@@ -66,8 +106,12 @@ type SemanticSiteCount struct {
 
 // SemanticMeasurement is the result of one measured Aiki computation.
 type SemanticMeasurement struct {
-	Counts SemanticCounts
-	Sites  []SemanticSiteCount
+	Counts      SemanticCounts
+	Numbers     NumberRealizationCounts
+	CallNumbers NumberRealizationCounts
+	Calls       CallRealizationCounts
+	Lists       ListRealizationCounts
+	Sites       []SemanticSiteCount
 }
 
 // ProfileLabels are the stable correlation dimensions written into Go CPU

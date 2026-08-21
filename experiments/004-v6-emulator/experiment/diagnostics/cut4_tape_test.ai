@@ -46,6 +46,7 @@ run("UNIBUS maps the 16-bit CPU I/O page onto physical 18-bit addresses", () {
 	equal(unibus.cpu_physical_address(octal.parse("177776")), octal.parse("777776"))
 })
 
+
 run("raw tape media advances by fixed 512-byte records and ends at a synthetic tape mark", () {
 	let media = tape_media.from_bytes(two_records())
 	equal(tape_media.total_records(media), 2)
@@ -64,17 +65,16 @@ run("raw tape media advances by fixed 512-byte records and ends at a synthetic t
 	equal(tape_media.at_bot(media), true)
 })
 
+
 run("TM11 bootstrap register writes read one record through UNIBUS DMA", () {
 	let m = machine.new()
 	machine.reset_machine(m)
 	let media = tape_media.from_bytes(record_bytes())
 	equal(machine.attach_tape_media(m, media), true)
-
 	machine.write_word(m, octal.parse("172524"), octal.parse("172526"))
 	machine.write_word(m, octal.parse("172522"), octal.parse("060003"))
 	# Device work occurs only through the deterministic bus advancement seam.
 	machine.complete_instruction(m, 1)
-
 	equal(machine.examine_word(m, 0), octal.parse("000400"))
 	equal(machine.examine_word(m, octal.parse("000776")), octal.parse("177776"))
 	equal(machine.tape_current_address(m), octal.parse("001000"))
@@ -84,13 +84,13 @@ run("TM11 bootstrap register writes read one record through UNIBUS DMA", () {
 	equal(machine.tape_status(m), octal.parse("000105"))
 })
 
+
 run("the historical six-word V6 tape bootstrap reaches its terminal loop after loading record zero", () {
 	let m = machine.new()
 	machine.reset_machine(m)
 	let media = tape_media.from_bytes(record_bytes())
 	machine.attach_tape_media(m, media)
 	put_bootstrap(m)
-
 	equal(execute.run_bounded(m, 8), 8)
 	equal(machine.pc(m), octal.parse("100012"))
 	equal(machine.get_register(m, 0), octal.parse("172522"))

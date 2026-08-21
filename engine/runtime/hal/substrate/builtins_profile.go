@@ -31,6 +31,29 @@ func profileCountsValue(c engine.SemanticCounts) value.Value {
 	return &value.List{Elements: out}
 }
 
+func profileNumberRealizationValue(n engine.NumberRealizationCounts) value.Value {
+	pairs := []struct {
+		name string
+		n    int64
+	}{
+		{"small_integer", n.ResultSmallInteger},
+		{"compact_rational", n.ResultCompactRational},
+		{"binary_carrier", n.ResultBinaryCarrier},
+		{"big_rational", n.ResultBigRational},
+		{"binary_certified", n.BinaryCertified},
+		{"binary_fallback", n.BinaryFallback},
+		{"promoted_big", n.PromotedBigRational},
+	}
+	out := make([]value.Value, 0, len(pairs))
+	for _, p := range pairs {
+		out = append(out, &value.List{Elements: []value.Value{
+			&value.Symbol{Val: p.name},
+			value.NewNumber(p.n, 1),
+		}})
+	}
+	return &value.List{Elements: out}
+}
+
 func profileMeasurementValue(m engine.SemanticMeasurement) value.Value {
 	sites := make([]value.Value, 0, len(m.Sites))
 	for _, sc := range m.Sites {
@@ -45,7 +68,10 @@ func profileMeasurementValue(m engine.SemanticMeasurement) value.Value {
 			&value.String{Val: sc.Site.Source},
 		}})
 	}
-	return &value.List{Elements: []value.Value{profileCountsValue(m.Counts), &value.List{Elements: sites}}}
+	return &value.List{Elements: []value.Value{
+		profileCountsValue(m.Counts),
+		&value.List{Elements: sites},
+	}}
 }
 
 func halProfileMeasure(args []value.Value, ctx *hal.EvalContext) value.Value {

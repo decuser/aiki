@@ -27,7 +27,7 @@ the same detector rejects the invalid state with a useful diagnostic.
 - library export/help/doc coverage, including missing and phantom entry mutations.
 - concrete substrate dependency confinement to the composition root, including injected-import mutation.
 - runtime-owned I/O/system state, including injected ambient-process-global mutation.
-- exact-number core representation: no float path in `engine/semantics` or `engine/syntax`, including injected-float mutation.
+- exact-number semantic boundary: finite binary64 may exist only inside the Number authority as an exact dyadic carrier; injected float paths outside that authority and rounded ordinary arithmetic inside it are rejected.
 
 ## Other structural checks
 

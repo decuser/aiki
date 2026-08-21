@@ -10,10 +10,10 @@ func fixedStoreNew(args []value.Value, kind, name string) value.Value {
 		return value.NewFault("%s: want 1 argument, got %d", name, len(args))
 	}
 	n, ok := args[0].(*value.Number)
-	if !ok || !n.Val.IsInt() || n.Val.Sign() < 0 || !n.Val.Num().IsInt64() {
+	if !ok || !n.IsInt() || n.Sign() < 0 || !n.IsInt64() {
 		return value.NewFault("%s: size must be a non-negative integer", name)
 	}
-	sz := n.Val.Num().Int64()
+	sz := n.Int64Value()
 	if sz > int64(^uint(0)>>1) {
 		return value.NewFault("%s: size too large", name)
 	}
@@ -52,10 +52,10 @@ func fixedStoreArg(args []value.Value, arity int, name string) (*value.FixedStor
 		return nil, 0, value.NewFault("%s: expected store/ffi", name)
 	}
 	n, ok := args[1].(*value.Number)
-	if !ok || !n.Val.IsInt() || !n.Val.Num().IsInt64() {
+	if !ok || !n.IsInt() || !n.IsInt64() {
 		return nil, 0, value.NewFault("%s: index must be an integer", name)
 	}
-	i := n.Val.Num().Int64()
+	i := n.Int64Value()
 	if i < 0 || i >= int64(s.FixedLen()) {
 		return nil, 0, value.NewFault("%s: index out of bounds", name)
 	}
@@ -102,10 +102,10 @@ func counterStoreArg(args []value.Value, arity int, name string) (*value.FixedSt
 }
 func counterNumber(v value.Value, name string) (uint64, value.Value) {
 	n, ok := v.(*value.Number)
-	if !ok || !n.Val.IsInt() || n.Val.Sign() < 0 || !n.Val.Num().IsUint64() {
+	if !ok || !n.IsInt() || n.Sign() < 0 || !n.IsUint64() {
 		return 0, value.NewFault("%s: value must be a non-negative integer", name)
 	}
-	return n.Val.Num().Uint64(), nil
+	return n.Uint64Value(), nil
 }
 func halFixedStoreCounterGet(args []value.Value, ctx *hal.EvalContext) value.Value {
 	s, i, f := counterStoreArg(args, 2, "store/ffi.counter_get")
@@ -168,10 +168,10 @@ func halFixedStoreSnapshot(args []value.Value, ctx *hal.EvalContext) value.Value
 	count := s.FixedLen()
 	if len(args) == 2 {
 		n, ok := args[1].(*value.Number)
-		if !ok || !n.Val.IsInt() || !n.Val.Num().IsInt64() {
+		if !ok || !n.IsInt() || !n.IsInt64() {
 			return value.NewFault("store/ffi.snapshot: count must be integer")
 		}
-		x := n.Val.Num().Int64()
+		x := n.Int64Value()
 		if x < 0 || x > int64(count) {
 			return value.NewFault("store/ffi.snapshot: invalid count")
 		}

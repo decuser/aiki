@@ -12,6 +12,30 @@ import (
 	"aiki/engine/syntax/grammar"
 )
 
+func TestAccessNamingAllowsConstants(t *testing.T) {
+	for _, name := range []string{"MAX_SIZE", "N", "WORD_PSW"} {
+		c := &checker{}
+		c.checkAccess(&syntax.Node{
+			Type:     "access",
+			Children: []*syntax.Node{{Type: "NAME", Value: name}},
+		})
+		if len(c.diags) != 0 {
+			t.Fatalf("constant-style access %q should be permitted: %v", name, c.diags)
+		}
+	}
+}
+
+func TestAccessNamingRejectsMixedCase(t *testing.T) {
+	c := &checker{}
+	c.checkAccess(&syntax.Node{
+		Type:     "access",
+		Children: []*syntax.Node{{Type: "NAME", Value: "badName"}},
+	})
+	if len(c.diags) != 1 || !strings.Contains(c.diags[0].Message, "naming: field 'badName'") {
+		t.Fatalf("expected mixed-case field naming warning, got %v", c.diags)
+	}
+}
+
 func TestGenericTraversalVisitsUnknownWrapper(t *testing.T) {
 	c := &checker{scopes: []scopeFrame{make(scopeFrame)}}
 	root := &syntax.Node{Type: "future_production", Children: []*syntax.Node{{Type: "NAME", Value: "missing"}}}

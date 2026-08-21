@@ -3,10 +3,18 @@ package "aiki_pdp_bootstrap_trace"
 let octal = import("../reference/octal")
 
 let instruction_text = (pc, word) {
-	if equal(pc, octal.parse("100000")) { return "MOV #172526,R0" }
-	if equal(pc, octal.parse("100004")) { return "MOV R0,-(R0)" }
-	if equal(pc, octal.parse("100006")) { return "MOV #060003,-(R0)" }
-	if equal(pc, octal.parse("100012")) { return "BR 100012" }
+	if equal(pc, octal.parse("100000")) {
+		return "MOV #172526,R0"
+	}
+	if equal(pc, octal.parse("100004")) {
+		return "MOV R0,-(R0)"
+	}
+	if equal(pc, octal.parse("100006")) {
+		return "MOV #060003,-(R0)"
+	}
+	if equal(pc, octal.parse("100012")) {
+		return "BR 100012"
+	}
 	return "instruction"
 }
 

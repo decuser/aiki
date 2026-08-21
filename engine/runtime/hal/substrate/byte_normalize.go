@@ -19,10 +19,10 @@ func bytesFromAiki(v value.Value) ([]byte, error) {
 		out := make([]byte, len(b.Elements))
 		for i, elem := range b.Elements {
 			n, ok := elem.(*value.Number)
-			if !ok || !n.Val.IsInt() || !n.Val.Num().IsInt64() {
+			if !ok || !n.IsInt() || !n.IsInt64() {
 				return nil, fmt.Errorf("byte element %d must be an integer", i)
 			}
-			iv := n.Val.Num().Int64()
+			iv := n.Int64Value()
 			if iv < 0 || iv > 255 {
 				return nil, fmt.Errorf("byte element %d out of range (0-255): %d", i, iv)
 			}

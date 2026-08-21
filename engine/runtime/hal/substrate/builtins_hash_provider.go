@@ -22,7 +22,7 @@ func hashStringProvider(s string) *big.Int {
 func hashCodeProvider(v value.Value) *big.Int {
 	switch x := v.(type) {
 	case *value.Number:
-		return hashStringProvider(x.Val.RatString())
+		return hashStringProvider(x.RatString())
 	case *value.Boolean:
 		if x.Val {
 			return big.NewInt(1)
@@ -52,7 +52,7 @@ func hashCodeProvider(v value.Value) *big.Int {
 }
 
 func hashNumber(n *big.Int) value.Value {
-	return &value.Number{Val: new(big.Rat).SetInt(new(big.Int).Set(n))}
+	return value.NewNumberFromBigInt(new(big.Int).Set(n))
 }
 
 func hashBuckets(v value.Value, op string) (*value.List, *value.Fault) {

@@ -80,7 +80,33 @@ For summary counters without source-site attribution:
 ```
 
 The command also reports realization measurements for the same user-evaluation
-interval:
+interval. With `--counts`, adaptive Number profiling is separated into two
+populations:
+
+```text
+Number arithmetic realization
+  small_integer
+  compact_rational
+  binary_carrier
+  big_rational
+  binary_certified
+  binary_fallback
+  promoted_big
+
+Number call-return realization
+  small_integer
+  compact_rational
+  binary_carrier
+  big_rational
+```
+
+These names describe hidden runtime realization, not Aiki numeric types. The
+call-return view is separate so host-returned binary carriers can be measured
+without conflating them with arithmetic results. Representation counting is
+active only while semantic profiling is enabled; it does not add a global probe
+to ordinary Number arithmetic.
+
+The command also reports Go realization cost:
 
 ```text
 elapsed
@@ -174,7 +200,7 @@ a correlated Go CPU profile, and an ordinary Go allocation profile. See
 `extra/profiling/README.md`.
 
 The purpose of the sweep is to establish a baseline before optimization.
-Mechanisms such as a small-rational fast path, alternate list representation,
+Mechanisms such as adaptive Number realization, alternate list representation,
 or concurrency tuning should be justified by measured semantic work and
 substrate realization rather than by intuition alone.
 

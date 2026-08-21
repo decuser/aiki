@@ -20,19 +20,22 @@ type StackFrame struct {
 
 // Env holds variable bindings and scope chain.
 type Env struct {
-	store         map[string]Value
-	shapes        map[string]*ShapeDef
-	outer         *Env
-	file          string        // this env's file (not shared)
-	source        string        // this env's source (not shared)
-	sourceLines   []string      // cached source lines for diagnostics/profiling
-	stack         *[]StackFrame // shared across enclosed envs
-	stackLimit    *int          // shared recursion limit (non tail frames)
-	scope         Scope
-	authority     Authority
-	exports       []string              // exported names for modules
-	packageName   string                // package name declared by this module
-	semanticProbe observe.SemanticProbe // dynamic profiling context
+	store            map[string]Value
+	shapes           map[string]*ShapeDef
+	callParamNames   []string
+	callParamValues  []Value
+	callParamDeleted uint64
+	outer            *Env
+	file             string        // this env's file (not shared)
+	source           string        // this env's source (not shared)
+	sourceLines      []string      // cached source lines for diagnostics/profiling
+	stack            *[]StackFrame // shared across enclosed envs
+	stackLimit       *int          // shared recursion limit (non tail frames)
+	scope            Scope
+	authority        Authority
+	exports          []string              // exported names for modules
+	packageName      string                // package name declared by this module
+	semanticProbe    observe.SemanticProbe // dynamic profiling context
 }
 
 // NewEnv creates a new environment with user scope.
@@ -59,8 +62,6 @@ func NewEnvWithScope(scope Scope) *Env {
 // NewEnclosedEnv creates a child environment, inheriting scope and shared state.
 func NewEnclosedEnv(outer *Env) *Env {
 	return &Env{
-		store:         make(map[string]Value),
-		shapes:        make(map[string]*ShapeDef),
 		outer:         outer,
 		scope:         outer.scope,
 		authority:     outer.authority,
@@ -74,8 +75,6 @@ func NewEnclosedEnv(outer *Env) *Env {
 // Used to create user-scope envs enclosed by prelude-scope envs.
 func NewEnclosedEnvWithScope(outer *Env, scope Scope) *Env {
 	return &Env{
-		store:         make(map[string]Value),
-		shapes:        make(map[string]*ShapeDef),
 		outer:         outer,
 		scope:         scope,
 		authority:     outer.authority,
@@ -101,8 +100,6 @@ func NewIsolatedEnclosedEnvWithAuthority(outer *Env, authority Authority) *Env {
 	stack := make([]StackFrame, 0)
 	limit := outer.GetStackLimit()
 	return &Env{
-		store:         make(map[string]Value),
-		shapes:        make(map[string]*ShapeDef),
 		outer:         outer,
 		scope:         outer.scope,
 		authority:     authority,
@@ -119,8 +116,6 @@ func NewIsolatedEnclosedEnvWithAuthority(outer *Env, authority Authority) *Env {
 // a spawned computation to the parent's call stack.
 func NewCallEnv(lexicalOuter, caller *Env) *Env {
 	return &Env{
-		store:         make(map[string]Value),
-		shapes:        make(map[string]*ShapeDef),
 		outer:         lexicalOuter,
 		scope:         lexicalOuter.scope,
 		authority:     lexicalOuter.authority,
@@ -128,6 +123,64 @@ func NewCallEnv(lexicalOuter, caller *Env) *Env {
 		stackLimit:    caller.stackLimit,
 		semanticProbe: caller.semanticProbe,
 	}
+}
+
+// ResetCallEnv reinitializes a call environment for a proven non-escaping tail
+// frame. The caller must ensure that no closure or other value can retain this
+// Env after the current invocation.
+func (e *Env) ResetCallEnv(lexicalOuter, caller *Env) {
+	if e.store != nil {
+		clear(e.store)
+	}
+	if e.shapes != nil {
+		clear(e.shapes)
+	}
+	e.callParamNames = nil
+	e.callParamValues = nil
+	e.callParamDeleted = 0
+	e.outer = lexicalOuter
+	e.file = ""
+	e.source = ""
+	e.sourceLines = nil
+	e.stack = caller.stack
+	e.stackLimit = caller.stackLimit
+	e.scope = lexicalOuter.scope
+	e.authority = lexicalOuter.authority
+	e.exports = nil
+	e.packageName = ""
+	e.semanticProbe = caller.semanticProbe
+}
+
+// BindCallParams binds ordinary function parameters without constructing a
+// per-call map. Parameter names belong to the immutable function object and
+// values belong to the argument vector for this invocation. Calls with more
+// than 64 fixed parameters fall back to ordinary map bindings so deletion can
+// retain exact lexical semantics without auxiliary allocation.
+func (e *Env) BindCallParams(names []string, values []Value) {
+	if len(names) == 0 {
+		return
+	}
+	if len(names) > 64 {
+		if e.store == nil {
+			e.store = make(map[string]Value, len(names))
+		}
+		for i, name := range names {
+			e.store[name] = values[i]
+		}
+		return
+	}
+	e.callParamNames = names
+	e.callParamValues = values[:len(names)]
+	e.callParamDeleted = 0
+}
+
+func (e *Env) callParamIndex(name string) (int, bool) {
+	for i, candidate := range e.callParamNames {
+		if candidate == name {
+			return i, true
+		}
+	}
+	return 0, false
 }
 
 // SetSemanticProbe sets the dynamic semantic profiling context for this env.
@@ -230,15 +283,30 @@ func (e *Env) ReplaceTopFrame(name string, line int, scope Scope) {
 
 // Get retrieves a value by name.
 func (e *Env) Get(name string) (Value, bool) {
-	val, ok := e.store[name]
-	if !ok && e.outer != nil {
+	if val, ok := e.store[name]; ok {
+		return val, true
+	}
+	if i, ok := e.callParamIndex(name); ok {
+		if e.callParamDeleted&(uint64(1)<<uint(i)) == 0 {
+			return e.callParamValues[i], true
+		}
+	}
+	if e.outer != nil {
 		return e.outer.Get(name)
 	}
-	return val, ok
+	return nil, false
 }
 
 // Set binds a value to a name in current scope.
 func (e *Env) Set(name string, val Value) {
+	if i, ok := e.callParamIndex(name); ok {
+		e.callParamValues[i] = val
+		e.callParamDeleted &^= uint64(1) << uint(i)
+		return
+	}
+	if e.store == nil {
+		e.store = make(map[string]Value)
+	}
 	e.store[name] = val
 }
 
@@ -246,6 +314,10 @@ func (e *Env) Set(name string, val Value) {
 func (e *Env) Update(name string, val Value) bool {
 	if _, ok := e.store[name]; ok {
 		e.store[name] = val
+		return true
+	}
+	if i, ok := e.callParamIndex(name); ok && e.callParamDeleted&(uint64(1)<<uint(i)) == 0 {
+		e.callParamValues[i] = val
 		return true
 	}
 	if e.outer != nil {
@@ -260,6 +332,14 @@ func (e *Env) Update(name string, val Value) bool {
 func (e *Env) Delete(name string) bool {
 	if _, ok := e.store[name]; ok {
 		delete(e.store, name)
+		return true
+	}
+	if i, ok := e.callParamIndex(name); ok {
+		bit := uint64(1) << uint(i)
+		if e.callParamDeleted&bit != 0 {
+			return false
+		}
+		e.callParamDeleted |= bit
 		return true
 	}
 	return false
@@ -289,6 +369,9 @@ func (e *Env) GetPreludeEnv() *Env {
 
 // DefineShape registers a shape definition.
 func (e *Env) DefineShape(def *ShapeDef) {
+	if e.shapes == nil {
+		e.shapes = make(map[string]*ShapeDef)
+	}
 	e.shapes[def.Name] = def
 }
 

@@ -13,7 +13,7 @@ func TestMachineFFIBoundaryIsOpaqueAndExplicit(t *testing.T) {
 	if !ok || o.Type() != value.OpaqueType || o.Inspect() != "<opaque>" {
 		t.Fatalf("word = %#v", w)
 	}
-	if got := halMachineToNumber([]value.Value{w}, nil).(*value.Number).Val.Num().Int64(); got != 012700 {
+	if got := halMachineToNumber([]value.Value{w}, nil).(*value.Number).Int64Value(); got != 012700 {
 		t.Fatalf("number=%d", got)
 	}
 	if _, ok := halMachineWord([]value.Value{value.NewNumber(1, 3)}, nil).(*value.Fault); !ok {
@@ -65,10 +65,10 @@ func TestFixedWordStorePhysicalByteLanes(t *testing.T) {
 	lo := halFixedStoreByteReadAddr([]value.Value{s, a}, nil)
 	hiAddr := halMachineAddr18([]value.Value{num(3)}, nil)
 	hi := halFixedStoreByteReadAddr([]value.Value{s, hiAddr}, nil)
-	if halMachineToNumber([]value.Value{lo}, nil).(*value.Number).Val.Num().Int64() != 0x34 {
+	if halMachineToNumber([]value.Value{lo}, nil).(*value.Number).Int64Value() != 0x34 {
 		t.Fatal("low byte")
 	}
-	if halMachineToNumber([]value.Value{hi}, nil).(*value.Number).Val.Num().Int64() != 0x12 {
+	if halMachineToNumber([]value.Value{hi}, nil).(*value.Number).Int64Value() != 0x12 {
 		t.Fatal("high byte")
 	}
 }
@@ -109,14 +109,14 @@ func TestFixedCounterStoreAddsWithoutGetSetCycle(t *testing.T) {
 	if f := halFixedStoreCounterAdd([]value.Value{s, num(0), num(5)}, nil); value.IsFault(f) {
 		t.Fatal(f.Inspect())
 	}
-	got := halFixedStoreCounterGet([]value.Value{s, num(0)}, nil).(*value.Number).Val.Num().Int64()
+	got := halFixedStoreCounterGet([]value.Value{s, num(0)}, nil).(*value.Number).Int64Value()
 	if got != 12 {
 		t.Fatalf("counter=%d", got)
 	}
 	if f := halFixedStoreCounterSet([]value.Value{s, num(1), num(3)}, nil); value.IsFault(f) {
 		t.Fatal(f.Inspect())
 	}
-	got = halFixedStoreCounterGet([]value.Value{s, num(1)}, nil).(*value.Number).Val.Num().Int64()
+	got = halFixedStoreCounterGet([]value.Value{s, num(1)}, nil).(*value.Number).Int64Value()
 	if got != 3 {
 		t.Fatalf("counter set=%d", got)
 	}

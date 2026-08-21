@@ -1,0 +1,15 @@
+# Three levels of Aiki interpretation.
+#
+#     aiki profile --counts extra/profiling/selfhost-three-level.ai
+#
+# The host interpreter runs the self-hosted interpreter, which runs another
+# self-hosted interpreter, which evaluates Aiki's left-to-right arithmetic:
+#
+#     1 + 2 * 3  =>  (1 + 2) * 3  =>  9
+let bootstrap = import("selfhost/bootstrap")
+
+let inner = "let bootstrap = import(\"selfhost/bootstrap\")\nbootstrap.run(\"1 + 2 * 3\\n\", \"third.ai\")\n"
+
+let result = bootstrap.run(inner, "inner.ai")
+
+println(inspect(result))

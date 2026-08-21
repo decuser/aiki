@@ -18,10 +18,15 @@ run("KL11 host output survives more than one guest transmit before drain", () {
 	equal(machine.console_take_output(m), ord('A'))
 	equal(machine.console_take_output(m), ord('B'))
 	match machine.console_take_output(m) {
-		[@end] { is_true(true) }
-		_ { is_true(false) }
+		[@end] {
+			is_true(true)
+		}
+		_ {
+			is_true(false)
+		}
 	}
 })
+
 
 run("bounded live execution stops on architectural HALT", () {
 	let m = monitor.new()

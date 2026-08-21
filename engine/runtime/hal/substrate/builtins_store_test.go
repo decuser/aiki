@@ -25,7 +25,7 @@ func TestStoreNewZeroInitialized(t *testing.T) {
 	}
 	for i := 0; i < 3; i++ {
 		v := s.StoreGet(i).(*value.Number)
-		if v.Val.Sign() != 0 {
+		if v.Sign() != 0 {
 			t.Fatalf("cell %d: got %s", i, v.Inspect())
 		}
 	}
@@ -45,7 +45,7 @@ func TestStoreSetAndGet(t *testing.T) {
 func TestStoreLength(t *testing.T) {
 	s := halStoreNew([]value.Value{number(4)}, nil).(*value.Store)
 	got := halStoreLength([]value.Value{s}, nil).(*value.Number)
-	if got.Val.Cmp(number(4).Val) != 0 {
+	if !got.Equal(number(4)) {
 		t.Fatalf("got %s", got.Inspect())
 	}
 }

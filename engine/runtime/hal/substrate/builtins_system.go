@@ -15,13 +15,13 @@ func (g *GoRuntime) halSystemExit(args []value.Value, ctx *hal.EvalContext) valu
 	if !ok {
 		return value.NewFault("system.exit: expected number, got %s", args[0].Type())
 	}
-	if !n.Val.IsInt() {
+	if !n.IsInt() {
 		return value.NewFault("system.exit: exit code must be an integer")
 	}
-	if !n.Val.Num().IsInt64() {
+	if !n.IsInt64() {
 		return value.NewFault("system.exit: exit code must be from 0 through 255")
 	}
-	code := n.Val.Num().Int64()
+	code := n.Int64Value()
 	if code < 0 || code > 255 {
 		return value.NewFault("system.exit: exit code must be from 0 through 255")
 	}

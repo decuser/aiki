@@ -92,9 +92,9 @@ func (g *GoRuntime) halSetTurtle(args []value.Value, ctx *hal.EvalContext) value
 	}
 	clr := symbolToColor(sym.Val)
 
-	xf, _ := x.Val.Float64()
-	yf, _ := y.Val.Float64()
-	hf, _ := heading.Val.Float64()
+	xf, _ := x.Float64()
+	yf, _ := y.Float64()
+	hf, _ := heading.Float64()
 
 	SendCanvasTurtle(resource, xf, yf, hf, visible, clr)
 	return value.TRUE

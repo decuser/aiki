@@ -12,12 +12,14 @@ run("machine-width wrapping is explicit for signed and unsigned values", () {
 	equal(width.wrap(-2, 8), 254)
 })
 
+
 run("physical memory is 18-bit byte addressed", () {
 	let mem = memory.new()
 	equal(memory.ADDRESS_BITS, 18)
 	equal(memory.PHYSICAL_BYTES, 262144)
 	equal(memory.size(mem), 262144)
 })
+
 
 run("word storage is little endian and wraps to 16 bits", () {
 	let mem = memory.new()
@@ -29,6 +31,7 @@ run("word storage is little endian and wraps to 16 bits", () {
 	equal(memory.read_word(mem, 1002), 1)
 })
 
+
 run("byte writes preserve the adjacent byte", () {
 	let mem = memory.new()
 	memory.write_word(mem, 2000, 4660)
@@ -38,11 +41,13 @@ run("byte writes preserve the adjacent byte", () {
 	equal(memory.read_word(mem, 2000), 43828)
 })
 
+
 run("odd word accesses are guest architectural faults", () {
 	let mem = memory.new()
 	equal(shape(memory.read_word(mem, 1)), :pdp_fault)
 	equal(shape(memory.write_word(mem, 3, 1)), :pdp_fault)
 })
+
 
 run("processor state has eight 16-bit registers plus PSW", () {
 	let s = state.new()
@@ -56,6 +61,7 @@ run("processor state has eight 16-bit registers plus PSW", () {
 	equal(state.pc(s), 8192)
 	equal(state.psw(s), 65535)
 })
+
 
 run("reset establishes deterministic zero control state", () {
 	let m = machine.new()
@@ -76,6 +82,7 @@ run("reset establishes deterministic zero control state", () {
 	equal(machine.machine_time(m), 0)
 })
 
+
 run("operator memory access crosses the machine and UNIBUS boundary", () {
 	let m = machine.new()
 	equal(machine.deposit_word(m, 4000, 48879), true)
@@ -83,6 +90,7 @@ run("operator memory access crosses the machine and UNIBUS boundary", () {
 	equal(machine.deposit_byte(m, 4001, 18), true)
 	equal(machine.examine_word(m, 4000), 4847)
 })
+
 
 run("diagnostic fixtures establish and compare before-after state", () {
 	let f = [
