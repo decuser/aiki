@@ -34,10 +34,10 @@ func (e *Evaluator) applyFunction(fn value.Value, args []value.Value, node *synt
 				labels.Primitive = named.ProfileName()
 			}
 			e.withProfileLabels(labels, parentLabels, func() {
-				result = e.callSubstrateValue(f, args, node, env, parentLabels, needsContext)
+				result = e.callSubstrateValue(f, args, node, env, parentLabels, needsContext, probe)
 			})
 		} else {
-			result = e.callSubstrateValue(f, args, node, env, engine.ProfileLabels{}, needsContext)
+			result = e.callSubstrateValue(f, args, node, env, engine.ProfileLabels{}, needsContext, probe)
 		}
 		// Annotate HAL faults with call site location
 		if fault, ok := result.(*value.Fault); ok && fault.File == "" {
@@ -52,13 +52,19 @@ func (e *Evaluator) applyFunction(fn value.Value, args []value.Value, node *synt
 	}
 }
 
-func (e *Evaluator) callSubstrateValue(f value.Callable, args []value.Value, node *syntax.Node, env *value.Env, parentLabels engine.ProfileLabels, needsContext bool) value.Value {
+func (e *Evaluator) callSubstrateValue(f value.Callable, args []value.Value, node *syntax.Node, env *value.Env, parentLabels engine.ProfileLabels, needsContext bool, probe engine.SemanticProbe) value.Value {
 	cf, contextCallable := f.(hal.ContextCallable)
 	if !contextCallable || !needsContext {
+		if probe != nil {
+			if required, ok := f.(hal.RealizationProbeRequired); ok && required.NeedsRealizationProbe() {
+				if probed, ok := f.(hal.ProbeCallable); ok {
+					return probed.CallWithProbe(args, probe)
+				}
+			}
+		}
 		return f.Call(args)
 	}
 
-	probe := e.activeProbe(env)
 	ctx := &hal.EvalContext{
 		Env:     env,
 		Node:    node,

@@ -25,6 +25,20 @@ type EvalContextRequired interface {
 	NeedsEvalContext() bool
 }
 
+// ProbeCallable is a context-free callable that can consume an already-active
+// semantic probe without requiring full EvalContext construction. It exists for
+// hidden realization counters on otherwise context-free primitives.
+type ProbeCallable interface {
+	value.Callable
+	CallWithProbe(args []value.Value, probe engine.SemanticProbe) value.Value
+}
+
+// RealizationProbeRequired advertises whether a ProbeCallable has any behavior
+// to record when a semantic probe is active.
+type RealizationProbeRequired interface {
+	NeedsRealizationProbe() bool
+}
+
 // AsyncFaultSource exposes faults raised by spawned computations. Blocking
 // concurrency operations may observe this channel so a worker fault cannot
 // leave another computation waiting forever for a message that will never

@@ -1,6 +1,7 @@
 package substrate
 
 import (
+	"aiki/engine"
 	"aiki/engine/runtime/hal"
 	"aiki/engine/semantics/value"
 )
@@ -11,10 +12,10 @@ func halFirst(args []value.Value, ctx *hal.EvalContext) value.Value {
 	}
 	switch a := args[0].(type) {
 	case *value.List:
-		if len(a.Elements) == 0 {
+		if a.Len() == 0 {
 			return value.NewFault("first: empty list")
 		}
-		return a.Elements[0]
+		return a.At(0)
 	case *value.String:
 		runes := []rune(a.Val)
 		if len(runes) == 0 {
@@ -32,10 +33,10 @@ func halRest(args []value.Value, ctx *hal.EvalContext) value.Value {
 	}
 	switch a := args[0].(type) {
 	case *value.List:
-		if len(a.Elements) == 0 {
+		if a.Len() == 0 {
 			return &value.List{Elements: []value.Value{}}
 		}
-		return &value.List{Elements: a.Elements[1:]}
+		return &value.List{Elements: a.LogicalElements()[1:]}
 	case *value.String:
 		runes := []rune(a.Val)
 		if len(runes) == 0 {
@@ -53,7 +54,7 @@ func halLength(args []value.Value, ctx *hal.EvalContext) value.Value {
 	}
 	switch a := args[0].(type) {
 	case *value.List:
-		return value.NewNumber(int64(len(a.Elements)), 1)
+		return value.NewNumber(int64(a.Len()), 1)
 	case *value.String:
 		return value.NewNumber(int64(len([]rune(a.Val))), 1)
 	default:
@@ -69,13 +70,21 @@ func halPrepend(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if !ok {
 		return value.NewFault("prepend: first argument must be list")
 	}
-	newElems := make([]value.Value, len(list.Elements)+1)
+	newElems := make([]value.Value, list.Len()+1)
 	newElems[0] = args[1]
-	copy(newElems[1:], list.Elements)
+	copy(newElems[1:], list.LogicalElements())
 	return &value.List{Elements: newElems, Shape: list.Shape}
 }
 
 func halAppend(args []value.Value, ctx *hal.EvalContext) value.Value {
+	return halAppendRealized(args, nil)
+}
+
+func halAppendWithProbe(args []value.Value, probe engine.SemanticProbe) value.Value {
+	return halAppendRealized(args, probe)
+}
+
+func halAppendRealized(args []value.Value, probe engine.SemanticProbe) value.Value {
 	if len(args) != 2 {
 		return value.NewFault("append: want 2 arguments, got %d", len(args))
 	}
@@ -83,10 +92,18 @@ func halAppend(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if !ok {
 		return value.NewFault("append: first argument must be list")
 	}
-	newElems := make([]value.Value, len(list.Elements)+1)
-	copy(newElems, list.Elements)
-	newElems[len(list.Elements)] = args[1]
-	return &value.List{Elements: newElems, Shape: list.Shape}
+	result, realization := list.Append(args[1])
+	if p, ok := probe.(engine.ListRealizationProbe); ok {
+		p.RecordListAppend(
+			realization.Promoted,
+			realization.Extended,
+			realization.Grown,
+			realization.Forked,
+			realization.ElementsCopied,
+			realization.SlotsAllocated,
+		)
+	}
+	return result
 }
 
 func halEmpty(args []value.Value, ctx *hal.EvalContext) value.Value {
@@ -95,7 +112,7 @@ func halEmpty(args []value.Value, ctx *hal.EvalContext) value.Value {
 	}
 	switch a := args[0].(type) {
 	case *value.List:
-		if len(a.Elements) == 0 {
+		if a.Len() == 0 {
 			return value.TRUE
 		}
 		return value.FALSE
@@ -153,5 +170,5 @@ func halMakeShapedList(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if !ok {
 		return value.NewFault("make_shaped_list: expected list for elements, got %s", args[1].Type())
 	}
-	return &value.List{Elements: list.Elements, Shape: sym.Val}
+	return &value.List{Elements: list.LogicalElements(), Shape: sym.Val}
 }

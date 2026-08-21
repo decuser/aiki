@@ -177,17 +177,19 @@ func (g *GoRuntime) halFileWalkPath(args []value.Value, ctx *hal.EvalContext) va
 	g.mu.RLock()
 	cwd := g.workingDir
 	g.mu.RUnlock()
-	for i, elem := range list.Elements {
+	elements := make([]value.Value, len(list.Elements))
+	copy(elements, list.Elements)
+	for i, elem := range elements {
 		path, ok := elem.(*value.String)
 		if !ok {
 			continue
 		}
 		rel, err := filepath.Rel(cwd, path.Val)
 		if err == nil {
-			list.Elements[i] = &value.String{Val: rel}
+			elements[i] = &value.String{Val: rel}
 		}
 	}
-	return list
+	return &value.List{Elements: elements, Shape: list.Shape}
 }
 
 func (g *GoRuntime) halFileSymlinkPath(args []value.Value, ctx *hal.EvalContext) value.Value {

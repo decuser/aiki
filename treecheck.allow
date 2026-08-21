@@ -11,3 +11,5 @@ extra/editors/
 extra/profiling/
 test/regression/README.md
 docs/runtime-call-allocation-investigation.md
+
+docs/runtime-optimization-results.md

@@ -1001,3 +1001,71 @@ Before running the historical `tmrk` gate, attachment semantics were made explic
 - Next runtime investigation moves away from numeric representation and into the
   larger call/allocation/runtime-cost surface exposed by the self-host and
   PDP-11 profiling witnesses.
+
+
+### 2026-08-20 — Adaptive Persistent List project ACTIVE
+
+- New authoritative baseline is branch `runtime-optimization` at `b829e2c` (`call/allocation work finished`). Three-level self-host baseline: 14.427563993 s, 25,005,019,784 allocation bytes, 50,560,133 mallocs, 829 GC cycles. PDP-11 Cut 7 10x regression baseline: 1.562006621 s, 1,040,319,496 allocation bytes, 16,463,419 mallocs, 33 GC cycles.
+- Created project branch `adaptive-persistent-list` and accepted `proposals/adaptive-persistent-list-representation.md`. Controlling invariant: **The list is persistent. The representation is negotiable.**
+- Delivery policy is two user gates only unless a genuine semantic contradiction, baseline inconsistency, or blocking validation failure requires input: Gate 1 after complete semantic implementation; Gate 2 after workload evidence/reconciliation. Routine implementation/test fixes are not user stops.
+- Audit found 116 direct `.Elements` uses in current production/test surfaces but only one production mutation through an existing list (`builtins_workdir.go`). Tranche A will avoid a wholesale read migration: the existing `Elements` slice may remain an immutable logical-prefix view while adaptive ownership metadata stays private. Mutation authority must move behind List methods.
+- `rest`/slice aliasing is load-bearing: a flat list derived by subslicing has no mutation authority over spare capacity. Appending to a flat/rest-derived list must promote by copying its logical prefix. Tests must separately cover append-to-rest-derived and append-to-original-after-rest.
+- Rejection condition sharpened: if historical-prefix forks materially dominate frontier extensions, or copied-element volume remains high enough to erase linear-append benefit, reject/simplify the frontier representation. Do not compensate with trees/ropes/builders inside this proposal.
+- Exact next action: implement flat-to-frontier promotion, synchronized frontier extension/growth, historical fork, profiling counters, and differential/alias/concurrency tests continuously to Critical Gate 1.
+
+
+### 2026-08-20 — Adaptive Persistent List Tranche A implemented; Gate 1 pending
+
+- Implemented private synchronized frontier backing while retaining `List.Elements` as an immutable logical-prefix compatibility view. Flat lists promote by copying; frontier append extends/grows amortized; append from a historical prefix forks. Older wrappers remain semantically immutable because their logical slice length cannot observe newly published backing slots.
+- `rest` remains a flat subslice with no frontier authority. Appending to a rest-derived list therefore promotes by copying its logical prefix. Tests separately cover append-to-rest-derived and append-to-original-after-rest.
+- Removed the one production in-place `List.Elements[i]` mutation (`builtins_workdir.go`) and added a source invariant rejecting direct production List.Elements assignment outside value authority. Read-only direct consumers remain permitted during this tranche; wholesale materialization/migration was intentionally avoided.
+- Added a lightweight probe-aware substrate call capability so `_append` can report hidden realization facts without becoming EvalContext-requiring. CLI profiling now reports frontier promotions/extensions/growth/forks plus copied elements and backing slots allocated; Aiki-visible profile.measure/counts shapes remain unchanged.
+- Added randomized persistent-list differential testing, long linear history preservation, historical fork, shape preservation, rest aliasing, same-frontier concurrent append, focused substrate realization tests, and `extra/profiling/adaptive-list.ai`.
+- Disposable local compatibility evidence: Go 1.23 value/evaluator/invariant tests green; focused substrate adaptive/registration tests green with local readline/flock stubs; `go test -race ./engine/semantics/value -run TestAdaptiveList` green. Full substrate under fake flock fails only the expected lock-exclusivity test. Environment cannot fetch Go 1.24, so authoritative Gate 1 is still pending.
+- Critical Gate 1 next: apply the cumulative Tranche A overlay to the authoritative Go 1.24 tree, rebuild, run `make validate`, and run the focused adaptive-list profile once. Stop only if correctness/invariant validation fails or profile counters expose a semantic contradiction.
+
+
+### 2026-08-21 — Adaptive Persistent List COMPLETE
+
+- Critical Gate 1 passed on the authoritative Go 1.24 tree: `make validate`
+  green, adaptive-list race tests green, and the focused 100,000-append witness
+  showed 100,000 frontier extensions, 15 grows, one historical fork, and
+  linear-scale copied-element volume.
+- Critical Gate 2 passed. Three-level self-host improved from 14.4276 s,
+  25.005 GB allocated, 50.560 M mallocs, and 829 GC cycles to 10.6196 s,
+  8.902 GB allocated, 50.402 M mallocs, and 267 GC cycles.
+- Self-host list realization: 52,928 promotions; 209,407 frontier extensions;
+  4,039 grows; **0 historical forks**; 274,328 copied elements; 760,368 backing
+  slots allocated.
+- PDP-11 Cut 7 10x remained materially flat: 1.5620 s -> 1.5694 s and
+  1.040319 GB -> 1.040368 GB, with unchanged semantic/call counts.
+- Final `make validate` passed.
+- The adaptive persistent-list proposal is `COMPLETE`. The surviving
+  representation set is flat + synchronized frontier + historical fork.
+  No trees, ropes, builders, small-list inline form, or parser-specific
+  machinery were admitted.
+- Architectural invariant: **The list is persistent. The representation is
+  negotiable.**
+
+### 2026-08-21 — Runtime optimization synthesis and post-tag history hygiene
+
+- Added `docs/runtime-optimization-results.md` as the cumulative runtime record.
+  It distinguishes the call/runtime tranche's allocation-frequency problem from
+  adaptive lists' allocation-volume problem and records the overall self-host
+  improvement from 19.3947 s / 28.291 GB / 110.604 M mallocs / 899 GC cycles to
+  10.6196 s / 8.902 GB / 50.402 M mallocs / 267 GC cycles: about 45.2% lower
+  elapsed, 68.5% lower allocated bytes, 54.4% fewer mallocs, and 70.3% fewer GC
+  cycles for unchanged semantic work.
+- Recorded the general architectural rule in `docs/decisions.md`: semantic
+  properties are authoritative; physical representation is negotiable. Current
+  demonstrated drivers are **the number is exact; the representation is
+  negotiable** and **the list is immutable; the representation is negotiable**.
+  Persistence remains the list append/branch property the hidden representation
+  must preserve.
+- Added `make historycheck` and pre-push enforcement for disposable post-tag
+  session/proposal artifacts. Tracked cruft and unpublished historical-only
+  cruft fail; historical-only cruft already reachable from remote refs warns
+  rather than triggering automatic history rewriting.
+- `ai/sessions/` is retired except for its README tombstone. Per-session folders
+  belong in neither the current tree nor private post-tag history before the next
+  release tag.

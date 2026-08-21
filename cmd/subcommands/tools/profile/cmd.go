@@ -66,6 +66,7 @@ func printMeasurement(m engine.SemanticMeasurement, showSites bool) {
 	printNumberRealization("Number arithmetic realization", m.Numbers, true)
 	printNumberRealization("Number call-return realization", m.CallNumbers, false)
 	printCallRealization(m.Calls)
+	printListRealization(m.Lists)
 	if !showSites || len(m.Sites) == 0 {
 		return
 	}
@@ -96,6 +97,20 @@ func printCallRealization(c engine.CallRealizationCounts) {
 	fmt.Printf("  %-20s %d\n", "substrate", c.Substrate)
 	fmt.Printf("  %-20s %d\n", "tail_reuse", c.TailReuse)
 	fmt.Printf("  %-20s %d\n", "tail_env_reuse", c.TailEnvReuse)
+}
+
+func printListRealization(c engine.ListRealizationCounts) {
+	total := c.FrontierPromoted + c.FrontierExtended + c.FrontierForked
+	if total == 0 {
+		return
+	}
+	fmt.Println("\nList realization")
+	fmt.Printf("  %-24s %d\n", "frontier_promoted", c.FrontierPromoted)
+	fmt.Printf("  %-24s %d\n", "frontier_extended", c.FrontierExtended)
+	fmt.Printf("  %-24s %d\n", "frontier_grown", c.FrontierGrown)
+	fmt.Printf("  %-24s %d\n", "frontier_forked", c.FrontierForked)
+	fmt.Printf("  %-24s %d\n", "elements_copied", c.ElementsCopied)
+	fmt.Printf("  %-24s %d\n", "backing_slots_allocated", c.BackingSlotsAllocated)
 }
 
 func printNumberRealization(title string, n engine.NumberRealizationCounts, arithmetic bool) {

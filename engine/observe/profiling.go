@@ -79,6 +79,24 @@ type CallRealizationCounts struct {
 	TailEnvReuse int64
 }
 
+// ListRealizationCounts describes hidden persistent-list append realization.
+// These are profiling facts, not Aiki semantic units or user-visible kinds.
+type ListRealizationCounts struct {
+	FrontierPromoted      int64
+	FrontierExtended      int64
+	FrontierGrown         int64
+	FrontierForked        int64
+	ElementsCopied        int64
+	BackingSlotsAllocated int64
+}
+
+// ListRealizationProbe is an optional extension implemented by profilers that
+// want hidden list-representation facts.
+type ListRealizationProbe interface {
+	SemanticProbe
+	RecordListAppend(promoted, extended, grown, forked bool, copied, allocated int)
+}
+
 // SemanticSiteCount records the number of observations at one semantic site.
 type SemanticSiteCount struct {
 	Kind  SemanticKind
@@ -92,6 +110,7 @@ type SemanticMeasurement struct {
 	Numbers     NumberRealizationCounts
 	CallNumbers NumberRealizationCounts
 	Calls       CallRealizationCounts
+	Lists       ListRealizationCounts
 	Sites       []SemanticSiteCount
 }
 

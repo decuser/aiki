@@ -1,4 +1,4 @@
-.PHONY: build clean dist dist-linux-amd64 dist-windows-amd64 distcheck baseline run test fmt lint treecheck check bless validate smoke smokegold visual aikitest runsamples enginesmoke enginesmokegold enginecoverage conformance selfhost rigorous fuzz hooks profilesweep install-xed-plugin uninstall-xed-plugin install-vscode-plugin uninstall-vscode-plugin
+.PHONY: build clean dist dist-linux-amd64 dist-windows-amd64 distcheck baseline run test fmt lint treecheck historycheck check bless validate smoke smokegold visual aikitest runsamples enginesmoke enginesmokegold enginecoverage conformance selfhost rigorous fuzz hooks profilesweep install-xed-plugin uninstall-xed-plugin install-vscode-plugin uninstall-vscode-plugin
 
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 LDFLAGS := -ldflags "-X main.Version=$(VERSION)"
@@ -151,6 +151,9 @@ lint:
 
 treecheck: build
 	./aiki treecheck
+
+historycheck:
+	@hooks/check-history-cruft
 
 smoke:
 	./aiki smoke test/behavior/

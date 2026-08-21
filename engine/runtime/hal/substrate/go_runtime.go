@@ -25,6 +25,7 @@ import (
 // BuiltinFunc is a HAL-level function that may use evaluation context.
 // Simple builtins ignore ctx; intrinsics (import, export, apply, etc.) use it.
 type BuiltinFunc func(args []value.Value, ctx *hal.EvalContext) value.Value
+type ProbeBuiltinFunc func(args []value.Value, probe engine.SemanticProbe) value.Value
 
 // Builtin is a HAL-level function implementing value.Callable.
 type Builtin struct {
@@ -32,6 +33,7 @@ type Builtin struct {
 	fn           BuiltinFunc
 	runtime      *GoRuntime // back-reference for context access
 	needsContext bool
+	probeFn      ProbeBuiltinFunc
 }
 
 func (b *Builtin) Type() value.Type { return value.FunctionType }
@@ -46,12 +48,21 @@ func (b *Builtin) CallWithContext(args []value.Value, ctx *hal.EvalContext) valu
 	return b.fn(args, ctx)
 }
 
-func (b *Builtin) NeedsEvalContext() bool { return b.needsContext }
+func (b *Builtin) NeedsEvalContext() bool      { return b.needsContext }
+func (b *Builtin) NeedsRealizationProbe() bool { return b.probeFn != nil }
+func (b *Builtin) CallWithProbe(args []value.Value, probe engine.SemanticProbe) value.Value {
+	if b.probeFn != nil {
+		return b.probeFn(args, probe)
+	}
+	return b.Call(args)
+}
 
 // Verify Builtin implements Callable
 var _ value.Callable = (*Builtin)(nil)
 var _ hal.ContextCallable = (*Builtin)(nil)
 var _ hal.EvalContextRequired = (*Builtin)(nil)
+var _ hal.ProbeCallable = (*Builtin)(nil)
+var _ hal.RealizationProbeRequired = (*Builtin)(nil)
 
 // GoRuntime implements hal.RuntimeContract using Go substrate bindings. Native
 // machinery is separated by architectural role, and only canonical host

@@ -50,6 +50,19 @@ func (g *GoRuntime) registerContextFreePrimitive(name string, fn BuiltinFunc) {
 	g.registerPrimitiveWithContextPolicy(name, fn, false)
 }
 
+func (g *GoRuntime) registerContextFreeProbedPrimitive(name string, fn BuiltinFunc, probeFn ProbeBuiltinFunc) {
+	g.registerPrimitiveWithContextPolicy(name, fn, false)
+	g.registryFor(mustPrimitiveRole(name))[name].probeFn = probeFn
+}
+
+func mustPrimitiveRole(name string) primitives.Role {
+	role, ok := primitives.RoleOf(name)
+	if !ok {
+		panic("runtime primitive has no architectural role: " + name)
+	}
+	return role
+}
+
 func (g *GoRuntime) registerPrimitiveWithContextPolicy(name string, fn BuiltinFunc, needsContext bool) {
 	if fn == nil {
 		panic("runtime primitive registration has nil function: " + name)

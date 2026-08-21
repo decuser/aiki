@@ -46,6 +46,13 @@ type Counters struct {
 	callTailReuse    int64
 	callTailEnvReuse int64
 
+	listFrontierPromoted      int64
+	listFrontierExtended      int64
+	listFrontierGrown         int64
+	listFrontierForked        int64
+	listElementsCopied        int64
+	listBackingSlotsAllocated int64
+
 	// Coverage maps source positions to hit counts.
 	// Key is "file:line". Only populated when coverage is enabled.
 	mu       sync.Mutex
@@ -192,6 +199,44 @@ func (c *Counters) TailEnvReuse() {
 	}
 }
 
+func (c *Counters) RecordListAppend(promoted, extended, grown, forked bool, copied, allocated int) {
+	if c == nil {
+		return
+	}
+	if promoted {
+		atomic.AddInt64(&c.listFrontierPromoted, 1)
+	}
+	if extended {
+		atomic.AddInt64(&c.listFrontierExtended, 1)
+	}
+	if grown {
+		atomic.AddInt64(&c.listFrontierGrown, 1)
+	}
+	if forked {
+		atomic.AddInt64(&c.listFrontierForked, 1)
+	}
+	if copied > 0 {
+		atomic.AddInt64(&c.listElementsCopied, int64(copied))
+	}
+	if allocated > 0 {
+		atomic.AddInt64(&c.listBackingSlotsAllocated, int64(allocated))
+	}
+}
+
+func (c *Counters) ListSnapshot() engine.ListRealizationCounts {
+	if c == nil {
+		return engine.ListRealizationCounts{}
+	}
+	return engine.ListRealizationCounts{
+		FrontierPromoted:      atomic.LoadInt64(&c.listFrontierPromoted),
+		FrontierExtended:      atomic.LoadInt64(&c.listFrontierExtended),
+		FrontierGrown:         atomic.LoadInt64(&c.listFrontierGrown),
+		FrontierForked:        atomic.LoadInt64(&c.listFrontierForked),
+		ElementsCopied:        atomic.LoadInt64(&c.listElementsCopied),
+		BackingSlotsAllocated: atomic.LoadInt64(&c.listBackingSlotsAllocated),
+	}
+}
+
 func (c *Counters) CallSnapshot() engine.CallRealizationCounts {
 	if c == nil {
 		return engine.CallRealizationCounts{}
@@ -255,6 +300,7 @@ func (c *Counters) Measurement() engine.SemanticMeasurement {
 		Numbers:     c.NumberSnapshot(),
 		CallNumbers: c.NumberCallSnapshot(),
 		Calls:       c.CallSnapshot(),
+		Lists:       c.ListSnapshot(),
 	}
 	if c == nil || c.sites == nil {
 		return m
