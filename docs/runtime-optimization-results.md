@@ -242,3 +242,136 @@ initial response is deliberately narrower than an adaptive representation:
 
 Whole-string `[]rune` materialization is removed from observation operations
 before any alternate string representation is considered.
+
+
+## Immutable string observation — COMPLETE
+
+The alpha-37 string-observation wave removed whole-string rune materialization
+from immutable observation without introducing a second string representation.
+
+Three-level self-host:
+
+```text
+                         pre-fix          post-fix
+elapsed                  10.6196 s        9.2246 s
+allocated                 8.902 GB        2.396 GB
+mallocs                  50.402 M        50.297 M
+GC cycles                267             79
+```
+
+The former `evalStringIndex` site (~6.17 GB / 73.2% of allocation space)
+disappeared from the leaders. PDP-11 Cut 7 10x remained materially flat.
+
+Driver:
+
+> **The string is immutable. Observation need not materialize it.**
+
+Cumulative self-host change from the original post-Number baseline:
+
+```text
+elapsed      19.3947 s -> 9.2246 s
+allocated    28.291 GB -> 2.396 GB
+mallocs      110.604 M -> 50.297 M
+GC cycles    899 -> 79
+```
+
+
+## Environment realization and binding storage — COMPLETE
+
+The alpha-37 post-string allocation survey selected the environment subsystem:
+
+```text
+NewCallEnv   ~979.7 MB
+Env.Set      ~155.0 MB
+```
+
+The project separated two costs:
+
+1. hot physical Env footprint;
+2. ordinary local-binding storage.
+
+Cold module/source/shape metadata moved behind a lazy sidecar. Measurement then
+showed that 88.9% of logical call environments acquire no ordinary locals and,
+among stateful call environments, about 96% peak at four or fewer locals.
+
+That evidence admitted a lazy external four-binding block, promoting to a Go map
+on the fifth distinct ordinary local.
+
+Final three-level self-host:
+
+```text
+                         alpha-37         final
+elapsed                  9.2246 s         8.7924 s
+allocated                2.396 GB         1.928 GB
+mallocs                  50.297 M         49.812 M
+GC cycles                79               64
+```
+
+Approximate environment-wave change:
+
+- elapsed: -4.7%;
+- allocated bytes: -19.5%;
+- mallocs: -1.0%;
+- GC cycles: -19.0%.
+
+Final realization evidence:
+
+```text
+logical_call                 4809241
+call_local_max_0             4276125
+call_local_max_1              338033
+call_local_max_2              119289
+call_local_max_3_4             54570
+call_local_max_5_plus          21224
+call_compact_allocations      526837
+call_map_promotions            21224
+```
+
+The promotion count exactly matches the measured five-plus population.
+
+PDP-11 Cut 7 10x remained materially flat/slightly improved:
+
+```text
+elapsed      1.545114031s
+allocated    1.016470360 GB
+mallocs      16.440547 M
+GC cycles    33
+```
+
+Driver:
+
+> **Scope and binding semantics are authoritative. Environment storage is
+> negotiable.**
+
+### Updated cumulative self-host improvement
+
+Across the runtime optimization sequence:
+
+```text
+                         original          current
+elapsed                  19.3947 s         8.7924 s
+allocated                28.291 GB         1.928 GB
+mallocs                  110.604 M         49.812 M
+GC cycles                899               64
+```
+
+Approximate cumulative improvement:
+
+- elapsed: 54.7% lower;
+- allocated bytes: 93.2% lower;
+- mallocs: 55.0% lower;
+- GC cycles: 92.9% lower.
+
+The sequence now exposes four distinct realization pathologies:
+
+1. call/runtime work reduced allocation **frequency**;
+2. adaptive persistent lists reduced container allocation **volume**;
+3. immutable string observation removed whole-value **observation
+   materialization**;
+4. environment realization reduced hot-frame **object footprint** and
+   local-binding **storage volume**.
+
+The common discipline remains:
+
+> Optimize realization beneath the semantic boundary rather than weakening the
+> semantic boundary to obtain performance.

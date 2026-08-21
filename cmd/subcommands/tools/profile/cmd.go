@@ -67,6 +67,7 @@ func printMeasurement(m engine.SemanticMeasurement, showSites bool) {
 	printNumberRealization("Number call-return realization", m.CallNumbers, false)
 	printCallRealization(m.Calls)
 	printListRealization(m.Lists)
+	printEnvRealization(m.Envs)
 	if !showSites || len(m.Sites) == 0 {
 		return
 	}
@@ -111,6 +112,53 @@ func printListRealization(c engine.ListRealizationCounts) {
 	fmt.Printf("  %-24s %d\n", "frontier_forked", c.FrontierForked)
 	fmt.Printf("  %-24s %d\n", "elements_copied", c.ElementsCopied)
 	fmt.Printf("  %-24s %d\n", "backing_slots_allocated", c.BackingSlotsAllocated)
+}
+
+func printEnvRealization(c engine.EnvRealizationCounts) {
+	total := c.PhysicalCall + c.PhysicalEnclosed + c.PhysicalIsolated + c.LogicalCall
+	if total == 0 {
+		return
+	}
+
+	call0 := c.LogicalCall - c.CallReached1
+	call1 := c.CallReached1 - c.CallReached2
+	call2 := c.CallReached2 - c.CallReached3
+	call34 := c.CallReached3 - c.CallReached5
+
+	enclosed0 := c.PhysicalEnclosed - c.EnclosedReached1
+	if enclosed0 < 0 {
+		enclosed0 = 0
+	}
+	enclosed1 := c.EnclosedReached1 - c.EnclosedReached2
+	enclosed2 := c.EnclosedReached2 - c.EnclosedReached3
+	enclosed34 := c.EnclosedReached3 - c.EnclosedReached5
+
+	fmt.Println("\nEnvironment realization")
+	fmt.Printf("  %-28s %d\n", "physical_call", c.PhysicalCall)
+	fmt.Printf("  %-28s %d\n", "logical_call", c.LogicalCall)
+	fmt.Printf("  %-28s %d\n", "physical_enclosed", c.PhysicalEnclosed)
+	fmt.Printf("  %-28s %d\n", "physical_isolated", c.PhysicalIsolated)
+
+	fmt.Printf("  %-28s %d\n", "call_local_max_0", call0)
+	fmt.Printf("  %-28s %d\n", "call_local_max_1", call1)
+	fmt.Printf("  %-28s %d\n", "call_local_max_2", call2)
+	fmt.Printf("  %-28s %d\n", "call_local_max_3_4", call34)
+	fmt.Printf("  %-28s %d\n", "call_local_max_5_plus", c.CallReached5)
+
+	fmt.Printf("  %-28s %d\n", "enclosed_local_max_0", enclosed0)
+	fmt.Printf("  %-28s %d\n", "enclosed_local_max_1", enclosed1)
+	fmt.Printf("  %-28s %d\n", "enclosed_local_max_2", enclosed2)
+	fmt.Printf("  %-28s %d\n", "enclosed_local_max_3_4", enclosed34)
+	fmt.Printf("  %-28s %d\n", "enclosed_local_max_5_plus", c.EnclosedReached5)
+
+	fmt.Printf("  %-28s %d\n", "call_compact_allocations", c.CallCompactAllocations)
+	fmt.Printf("  %-28s %d\n", "enclosed_compact_allocations", c.EnclosedCompactAllocations)
+	fmt.Printf("  %-28s %d\n", "call_map_promotions", c.CallMapPromotions)
+	fmt.Printf("  %-28s %d\n", "enclosed_map_promotions", c.EnclosedMapPromotions)
+	fmt.Printf("  %-28s %d\n", "call_local_new", c.CallLocalNew)
+	fmt.Printf("  %-28s %d\n", "call_local_update", c.CallLocalUpdate)
+	fmt.Printf("  %-28s %d\n", "enclosed_local_new", c.EnclosedLocalNew)
+	fmt.Printf("  %-28s %d\n", "enclosed_local_update", c.EnclosedLocalUpdate)
 }
 
 func printNumberRealization(title string, n engine.NumberRealizationCounts, arithmetic bool) {

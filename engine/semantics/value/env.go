@@ -18,24 +18,192 @@ type StackFrame struct {
 	Scope Scope
 }
 
+const envCompactBindingCapacity = 4
+
+// envBindings owns ordinary local bindings for one Env. The object itself is
+// allocated lazily on first ordinary local binding, so environments with no
+// locals pay no storage footprint. Up to four bindings remain compact; the
+// fifth promotes the block to a Go map.
+type envBindings struct {
+	n      uint8
+	names  [envCompactBindingCapacity]string
+	values [envCompactBindingCapacity]Value
+	spill  map[string]Value
+}
+
+func (b *envBindings) get(name string) (Value, bool) {
+	if b == nil {
+		return nil, false
+	}
+	if b.spill != nil {
+		v, ok := b.spill[name]
+		return v, ok
+	}
+	for i := 0; i < int(b.n); i++ {
+		if b.names[i] == name {
+			return b.values[i], true
+		}
+	}
+	return nil, false
+}
+
+func (b *envBindings) has(name string) bool {
+	_, ok := b.get(name)
+	return ok
+}
+
+func (b *envBindings) set(name string, val Value) (existed bool, count int, promoted bool) {
+	if b.spill != nil {
+		_, existed = b.spill[name]
+		b.spill[name] = val
+		return existed, len(b.spill), false
+	}
+
+	for i := 0; i < int(b.n); i++ {
+		if b.names[i] == name {
+			b.values[i] = val
+			return true, int(b.n), false
+		}
+	}
+
+	if int(b.n) < envCompactBindingCapacity {
+		i := int(b.n)
+		b.names[i] = name
+		b.values[i] = val
+		b.n++
+		return false, int(b.n), false
+	}
+
+	m := make(map[string]Value, envCompactBindingCapacity+1)
+	for i := 0; i < int(b.n); i++ {
+		m[b.names[i]] = b.values[i]
+		b.names[i] = ""
+		b.values[i] = nil
+	}
+	b.n = 0
+	m[name] = val
+	b.spill = m
+	return false, len(m), true
+}
+
+func (b *envBindings) update(name string, val Value) bool {
+	if b == nil {
+		return false
+	}
+	if b.spill != nil {
+		if _, ok := b.spill[name]; !ok {
+			return false
+		}
+		b.spill[name] = val
+		return true
+	}
+	for i := 0; i < int(b.n); i++ {
+		if b.names[i] == name {
+			b.values[i] = val
+			return true
+		}
+	}
+	return false
+}
+
+func (b *envBindings) delete(name string) bool {
+	if b == nil {
+		return false
+	}
+	if b.spill != nil {
+		if _, ok := b.spill[name]; !ok {
+			return false
+		}
+		delete(b.spill, name)
+		return true
+	}
+	for i := 0; i < int(b.n); i++ {
+		if b.names[i] != name {
+			continue
+		}
+		last := int(b.n) - 1
+		for j := i; j < last; j++ {
+			b.names[j] = b.names[j+1]
+			b.values[j] = b.values[j+1]
+		}
+		b.names[last] = ""
+		b.values[last] = nil
+		b.n--
+		return true
+	}
+	return false
+}
+
+func (b *envBindings) length() int {
+	if b == nil {
+		return 0
+	}
+	if b.spill != nil {
+		return len(b.spill)
+	}
+	return int(b.n)
+}
+
+// reset retains the external block allocation for a physically reused tail
+// frame but returns it to compact-empty realization, even if the prior logical
+// invocation had promoted to a map.
+func (b *envBindings) reset() {
+	if b == nil {
+		return
+	}
+	if b.spill != nil {
+		clear(b.spill)
+		b.spill = nil
+	}
+	for i := 0; i < int(b.n); i++ {
+		b.names[i] = ""
+		b.values[i] = nil
+	}
+	b.n = 0
+}
+
+func (b *envBindings) forceMap(capacity int) map[string]Value {
+	if b.spill == nil {
+		b.spill = make(map[string]Value, capacity)
+		for i := 0; i < int(b.n); i++ {
+			b.spill[b.names[i]] = b.values[i]
+			b.names[i] = ""
+			b.values[i] = nil
+		}
+		b.n = 0
+	}
+	return b.spill
+}
+
 // Env holds variable bindings and scope chain.
+type envCold struct {
+	shapes      map[string]*ShapeDef
+	file        string
+	sourceLines []string
+	exports     []string
+	packageName string
+}
+
+// Env holds variable bindings and scope chain.
+//
+// The hot object deliberately contains only execution/binding state. Module,
+// source, diagnostic, and shape metadata live behind cold and are allocated
+// only for environments that actually own such metadata.
 type Env struct {
-	store            map[string]Value
-	shapes           map[string]*ShapeDef
+	bindings         *envBindings
 	callParamNames   []string
 	callParamValues  []Value
 	callParamDeleted uint64
 	outer            *Env
-	file             string        // this env's file (not shared)
-	source           string        // this env's source (not shared)
-	sourceLines      []string      // cached source lines for diagnostics/profiling
 	stack            *[]StackFrame // shared across enclosed envs
 	stackLimit       *int          // shared recursion limit (non tail frames)
 	scope            Scope
 	authority        Authority
-	exports          []string              // exported names for modules
-	packageName      string                // package name declared by this module
 	semanticProbe    observe.SemanticProbe // dynamic profiling context
+	cold             *envCold
+
+	envKind          observe.EnvKind
+	bindingHighwater uint8
 }
 
 // NewEnv creates a new environment with user scope.
@@ -43,12 +211,11 @@ func NewEnv() *Env {
 	stack := make([]StackFrame, 0)
 	limit := 10000
 	return &Env{
-		store:      make(map[string]Value),
-		shapes:     make(map[string]*ShapeDef),
 		scope:      ScopeUser,
 		authority:  NoAuthority(),
 		stack:      &stack,
 		stackLimit: &limit,
+		envKind:    observe.EnvKindRoot,
 	}
 }
 
@@ -61,27 +228,33 @@ func NewEnvWithScope(scope Scope) *Env {
 
 // NewEnclosedEnv creates a child environment, inheriting scope and shared state.
 func NewEnclosedEnv(outer *Env) *Env {
-	return &Env{
+	env := &Env{
 		outer:         outer,
 		scope:         outer.scope,
 		authority:     outer.authority,
 		stack:         outer.stack,
 		stackLimit:    outer.stackLimit,
 		semanticProbe: outer.semanticProbe,
+		envKind:       observe.EnvKindEnclosed,
 	}
+	env.recordPhysical()
+	return env
 }
 
 // NewEnclosedEnvWithScope creates a child environment with an explicit scope.
 // Used to create user-scope envs enclosed by prelude-scope envs.
 func NewEnclosedEnvWithScope(outer *Env, scope Scope) *Env {
-	return &Env{
+	env := &Env{
 		outer:         outer,
 		scope:         scope,
 		authority:     outer.authority,
 		stack:         outer.stack,
 		stackLimit:    outer.stackLimit,
 		semanticProbe: outer.semanticProbe,
+		envKind:       observe.EnvKindEnclosed,
 	}
+	env.recordPhysical()
+	return env
 }
 
 // NewIsolatedEnclosedEnv creates a child that can read through outer but owns
@@ -99,14 +272,17 @@ func NewIsolatedEnclosedEnv(outer *Env) *Env {
 func NewIsolatedEnclosedEnvWithAuthority(outer *Env, authority Authority) *Env {
 	stack := make([]StackFrame, 0)
 	limit := outer.GetStackLimit()
-	return &Env{
+	env := &Env{
 		outer:         outer,
 		scope:         outer.scope,
 		authority:     authority,
 		stack:         &stack,
 		stackLimit:    &limit,
 		semanticProbe: outer.semanticProbe,
+		envKind:       observe.EnvKindIsolated,
 	}
+	env.recordPhysical()
+	return env
 }
 
 // NewCallEnv creates a function-call environment. Name lookup is lexical and
@@ -115,40 +291,40 @@ func NewIsolatedEnclosedEnvWithAuthority(outer *Env, authority Authority) *Env {
 // essential for isolated spawn: calling a prelude function must not reconnect
 // a spawned computation to the parent's call stack.
 func NewCallEnv(lexicalOuter, caller *Env) *Env {
-	return &Env{
+	env := &Env{
 		outer:         lexicalOuter,
 		scope:         lexicalOuter.scope,
 		authority:     lexicalOuter.authority,
 		stack:         caller.stack,
 		stackLimit:    caller.stackLimit,
 		semanticProbe: caller.semanticProbe,
+		envKind:       observe.EnvKindCall,
 	}
+	env.recordPhysical()
+	env.recordLogicalCall()
+	return env
 }
 
 // ResetCallEnv reinitializes a call environment for a proven non-escaping tail
 // frame. The caller must ensure that no closure or other value can retain this
 // Env after the current invocation.
 func (e *Env) ResetCallEnv(lexicalOuter, caller *Env) {
-	if e.store != nil {
-		clear(e.store)
-	}
-	if e.shapes != nil {
-		clear(e.shapes)
+	if e.bindings != nil {
+		e.bindings.reset()
 	}
 	e.callParamNames = nil
 	e.callParamValues = nil
 	e.callParamDeleted = 0
 	e.outer = lexicalOuter
-	e.file = ""
-	e.source = ""
-	e.sourceLines = nil
 	e.stack = caller.stack
 	e.stackLimit = caller.stackLimit
 	e.scope = lexicalOuter.scope
 	e.authority = lexicalOuter.authority
-	e.exports = nil
-	e.packageName = ""
 	e.semanticProbe = caller.semanticProbe
+	e.cold = nil
+	e.envKind = observe.EnvKindCall
+	e.bindingHighwater = 0
+	e.recordLogicalCall()
 }
 
 // BindCallParams binds ordinary function parameters without constructing a
@@ -161,11 +337,12 @@ func (e *Env) BindCallParams(names []string, values []Value) {
 		return
 	}
 	if len(names) > 64 {
-		if e.store == nil {
-			e.store = make(map[string]Value, len(names))
+		if e.bindings == nil {
+			e.bindings = &envBindings{}
 		}
+		store := e.bindings.forceMap(len(names))
 		for i, name := range names {
-			e.store[name] = values[i]
+			store[name] = values[i]
 		}
 		return
 	}
@@ -181,6 +358,60 @@ func (e *Env) callParamIndex(name string) (int, bool) {
 		}
 	}
 	return 0, false
+}
+
+func (e *Env) ensureCold() *envCold {
+	if e.cold == nil {
+		e.cold = &envCold{}
+	}
+	return e.cold
+}
+
+func (e *Env) ensureBindings() *envBindings {
+	if e.bindings == nil {
+		e.bindings = &envBindings{}
+		if probe := e.envProbe(); probe != nil {
+			probe.RecordEnvCompactAllocation(e.envKind)
+		}
+	}
+	return e.bindings
+}
+
+func (e *Env) envProbe() observe.EnvRealizationProbe {
+	if e == nil || e.semanticProbe == nil {
+		return nil
+	}
+	probe, _ := e.semanticProbe.(observe.EnvRealizationProbe)
+	return probe
+}
+
+func (e *Env) recordPhysical() {
+	if probe := e.envProbe(); probe != nil {
+		probe.RecordEnvPhysical(e.envKind)
+	}
+}
+
+func (e *Env) recordLogicalCall() {
+	if probe := e.envProbe(); probe != nil {
+		probe.RecordEnvLogicalCall()
+	}
+}
+
+func (e *Env) recordBindingHighwater(n int) {
+	if n <= int(e.bindingHighwater) {
+		return
+	}
+	old := int(e.bindingHighwater)
+	e.bindingHighwater = uint8(n)
+	probe := e.envProbe()
+	if probe == nil {
+		return
+	}
+	for _, threshold := range []int{1, 2, 3, 5} {
+		if old < threshold && n >= threshold {
+			probe.RecordEnvBindingThreshold(e.envKind, threshold)
+		}
+	}
 }
 
 // SetSemanticProbe sets the dynamic semantic profiling context for this env.
@@ -283,7 +514,7 @@ func (e *Env) ReplaceTopFrame(name string, line int, scope Scope) {
 
 // Get retrieves a value by name.
 func (e *Env) Get(name string) (Value, bool) {
-	if val, ok := e.store[name]; ok {
+	if val, ok := e.bindings.get(name); ok {
 		return val, true
 	}
 	if i, ok := e.callParamIndex(name); ok {
@@ -304,16 +535,25 @@ func (e *Env) Set(name string, val Value) {
 		e.callParamDeleted &^= uint64(1) << uint(i)
 		return
 	}
-	if e.store == nil {
-		e.store = make(map[string]Value)
+
+	bindings := e.ensureBindings()
+	existed, count, promoted := bindings.set(name, val)
+	if promoted {
+		if probe := e.envProbe(); probe != nil {
+			probe.RecordEnvMapPromotion(e.envKind)
+		}
 	}
-	e.store[name] = val
+	if probe := e.envProbe(); probe != nil {
+		probe.RecordEnvLocalSet(e.envKind, existed)
+	}
+	if !existed {
+		e.recordBindingHighwater(count)
+	}
 }
 
 // Update updates an existing binding, searching outer scopes.
 func (e *Env) Update(name string, val Value) bool {
-	if _, ok := e.store[name]; ok {
-		e.store[name] = val
+	if e.bindings.update(name, val) {
 		return true
 	}
 	if i, ok := e.callParamIndex(name); ok && e.callParamDeleted&(uint64(1)<<uint(i)) == 0 {
@@ -330,8 +570,7 @@ func (e *Env) Update(name string, val Value) bool {
 // Returns true if the binding existed and was deleted.
 // This allows shadowed outer bindings (e.g., prelude) to show through again.
 func (e *Env) Delete(name string) bool {
-	if _, ok := e.store[name]; ok {
-		delete(e.store, name)
+	if e.bindings.delete(name) {
 		return true
 	}
 	if i, ok := e.callParamIndex(name); ok {
@@ -347,8 +586,7 @@ func (e *Env) Delete(name string) bool {
 
 // HasOwn checks if a binding exists in this scope only (not outer scopes).
 func (e *Env) HasOwn(name string) bool {
-	_, ok := e.store[name]
-	return ok
+	return e.bindings.has(name)
 }
 
 // GetPreludeEnv walks up the outer chain to find the prelude env.
@@ -369,10 +607,11 @@ func (e *Env) GetPreludeEnv() *Env {
 
 // DefineShape registers a shape definition.
 func (e *Env) DefineShape(def *ShapeDef) {
-	if e.shapes == nil {
-		e.shapes = make(map[string]*ShapeDef)
+	cold := e.ensureCold()
+	if cold.shapes == nil {
+		cold.shapes = make(map[string]*ShapeDef)
 	}
-	e.shapes[def.Name] = def
+	cold.shapes[def.Name] = def
 }
 
 // CollectShapes returns the shape definitions visible from this environment,
@@ -383,10 +622,14 @@ func (e *Env) CollectShapes() map[string]*ShapeDef {
 		return nil
 	}
 	out := e.outer.CollectShapes()
-	if out == nil {
-		out = make(map[string]*ShapeDef, len(e.shapes))
+	var shapes map[string]*ShapeDef
+	if e.cold != nil {
+		shapes = e.cold.shapes
 	}
-	for name, def := range e.shapes {
+	if out == nil {
+		out = make(map[string]*ShapeDef, len(shapes))
+	}
+	for name, def := range shapes {
 		out[name] = def
 	}
 	return out
@@ -394,22 +637,26 @@ func (e *Env) CollectShapes() map[string]*ShapeDef {
 
 // GetShape retrieves a shape definition.
 func (e *Env) GetShape(name string) (*ShapeDef, bool) {
-	def, ok := e.shapes[name]
-	if !ok && e.outer != nil {
+	if e.cold != nil {
+		if def, ok := e.cold.shapes[name]; ok {
+			return def, true
+		}
+	}
+	if e.outer != nil {
 		return e.outer.GetShape(name)
 	}
-	return def, ok
+	return nil, false
 }
 
 // SetFile sets the current file name for this env.
 func (e *Env) SetFile(file string) {
-	e.file = file
+	e.ensureCold().file = file
 }
 
 // GetFile returns the file name, chaining up if not set.
 func (e *Env) GetFile() string {
-	if e.file != "" {
-		return e.file
+	if e.cold != nil && e.cold.file != "" {
+		return e.cold.file
 	}
 	if e.outer != nil {
 		return e.outer.GetFile()
@@ -419,15 +666,14 @@ func (e *Env) GetFile() string {
 
 // SetSource sets the source code for this env.
 func (e *Env) SetSource(source string) {
-	e.source = source
-	e.sourceLines = splitLines(source)
+	e.ensureCold().sourceLines = splitLines(source)
 }
 
 // GetSourceLine returns a specific line from source, chaining up if needed.
 func (e *Env) GetSourceLine(line int) string {
-	if len(e.sourceLines) > 0 {
-		if line >= 1 && line <= len(e.sourceLines) {
-			return e.sourceLines[line-1]
+	if e.cold != nil && len(e.cold.sourceLines) > 0 {
+		if line >= 1 && line <= len(e.cold.sourceLines) {
+			return e.cold.sourceLines[line-1]
 		}
 	}
 	if e.outer != nil {
@@ -453,20 +699,26 @@ func splitLines(s string) []string {
 
 // SetExports sets the list of exported names for this module.
 func (e *Env) SetExports(names []string) {
-	e.exports = names
+	e.ensureCold().exports = names
 }
 
 // GetExports returns the list of exported names.
 func (e *Env) GetExports() []string {
-	return e.exports
+	if e.cold == nil {
+		return nil
+	}
+	return e.cold.exports
 }
 
 // SetPackageName sets the package name for this module.
 func (e *Env) SetPackageName(name string) {
-	e.packageName = name
+	e.ensureCold().packageName = name
 }
 
 // GetPackageName returns the package name declared by this module.
 func (e *Env) GetPackageName() string {
-	return e.packageName
+	if e.cold == nil {
+		return ""
+	}
+	return e.cold.packageName
 }

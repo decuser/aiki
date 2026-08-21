@@ -26,6 +26,17 @@ type NumberRealizationCounts = observe.NumberRealizationCounts
 type CallRealizationCounts = observe.CallRealizationCounts
 type ListRealizationCounts = observe.ListRealizationCounts
 type ListRealizationProbe = observe.ListRealizationProbe
+type EnvKind = observe.EnvKind
+
+const (
+	EnvKindRoot     = observe.EnvKindRoot
+	EnvKindEnclosed = observe.EnvKindEnclosed
+	EnvKindCall     = observe.EnvKindCall
+	EnvKindIsolated = observe.EnvKindIsolated
+)
+
+type EnvRealizationCounts = observe.EnvRealizationCounts
+type EnvRealizationProbe = observe.EnvRealizationProbe
 type SemanticSiteCount = observe.SemanticSiteCount
 type SemanticMeasurement = observe.SemanticMeasurement
 type ProfileLabels = observe.ProfileLabels
