@@ -7,14 +7,70 @@ let storage = import("store/ffi")
 # This is a factual workload manifest, not a claim that other PDP-11 instructions
 # do not exist.
 let INSTRUCTIONS = [
-	:adc, :adcb, :add, :ash, :ashc, :asl, :aslb, :asr, :asrb,
-	:beq, :bge, :bgt, :bhi, :bhis, :bic, :bicb, :bis, :bisb, :bit, :bitb,
-	:ble, :blo, :blos, :blt, :bmi, :bne, :bpl, :br, :bvc, :bvs,
-	:clc, :clr, :clrb, :cmp, :cmpb, :dec, :div, :halt, :inc, :incb,
-	:jmp, :jsr, :mfpi, :mov, :movb, :mtpi, :mul, :nop,
-	:reset, :ror, :rorb, :rts, :rtt, :sbc, :sbcb, :sob, :sub, :swab,
-	:tst, :tstb, :wait, :condition_code
+	:adc,
+	:adcb,
+	:add,
+	:ash,
+	:ashc,
+	:asl,
+	:aslb,
+	:asr,
+	:asrb,
+	:beq,
+	:bge,
+	:bgt,
+	:bhi,
+	:bhis,
+	:bic,
+	:bicb,
+	:bis,
+	:bisb,
+	:bit,
+	:bitb,
+	:ble,
+	:blo,
+	:blos,
+	:blt,
+	:bmi,
+	:bne,
+	:bpl,
+	:br,
+	:bvc,
+	:bvs,
+	:clc,
+	:clr,
+	:clrb,
+	:cmp,
+	:cmpb,
+	:dec,
+	:div,
+	:halt,
+	:inc,
+	:incb,
+	:jmp,
+	:jsr,
+	:mfpi,
+	:mov,
+	:movb,
+	:mtpi,
+	:mul,
+	:nop,
+	:reset,
+	:ror,
+	:rorb,
+	:rts,
+	:rtt,
+	:sbc,
+	:sbcb,
+	:sob,
+	:sub,
+	:swab,
+	:tst,
+	:tstb,
+	:wait,
+	:condition_code
 ]
+
 
 # Manifest indexes used directly by the bound CPU path. These are tied back to
 # INSTRUCTIONS by validate_instruction_index(); public audit APIs remain symbol-based.
@@ -65,91 +121,236 @@ let new = () {
 # factual vocabulary authority rather than relying on an unchecked duplicate.
 let instruction_index = (kind) {
 	match kind {
-		:adc { return 0 }
-		:adcb { return 1 }
-		:add { return 2 }
-		:ash { return 3 }
-		:ashc { return 4 }
-		:asl { return 5 }
-		:aslb { return 6 }
-		:asr { return 7 }
-		:asrb { return 8 }
-		:beq { return 9 }
-		:bge { return 10 }
-		:bgt { return 11 }
-		:bhi { return 12 }
-		:bhis { return 13 }
-		:bic { return 14 }
-		:bicb { return 15 }
-		:bis { return 16 }
-		:bisb { return 17 }
-		:bit { return 18 }
-		:bitb { return 19 }
-		:ble { return 20 }
-		:blo { return 21 }
-		:blos { return 22 }
-		:blt { return 23 }
-		:bmi { return 24 }
-		:bne { return 25 }
-		:bpl { return 26 }
-		:br { return 27 }
-		:bvc { return 28 }
-		:bvs { return 29 }
-		:clc { return 30 }
-		:clr { return 31 }
-		:clrb { return 32 }
-		:cmp { return 33 }
-		:cmpb { return 34 }
-		:dec { return 35 }
-		:div { return 36 }
-		:halt { return 37 }
-		:inc { return 38 }
-		:incb { return 39 }
-		:jmp { return 40 }
-		:jsr { return 41 }
-		:mfpi { return 42 }
-		:mov { return 43 }
-		:movb { return 44 }
-		:mtpi { return 45 }
-		:mul { return 46 }
-		:nop { return 47 }
-		:reset { return 48 }
-		:ror { return 49 }
-		:rorb { return 50 }
-		:rts { return 51 }
-		:rtt { return 52 }
-		:sbc { return 53 }
-		:sbcb { return 54 }
-		:sob { return 55 }
-		:sub { return 56 }
-		:swab { return 57 }
-		:tst { return 58 }
-		:tstb { return 59 }
-		:wait { return 60 }
-		:condition_code { return 61 }
-		_ { return -1 }
+		:adc {
+			return 0
+		}
+		:adcb {
+			return 1
+		}
+		:add {
+			return 2
+		}
+		:ash {
+			return 3
+		}
+		:ashc {
+			return 4
+		}
+		:asl {
+			return 5
+		}
+		:aslb {
+			return 6
+		}
+		:asr {
+			return 7
+		}
+		:asrb {
+			return 8
+		}
+		:beq {
+			return 9
+		}
+		:bge {
+			return 10
+		}
+		:bgt {
+			return 11
+		}
+		:bhi {
+			return 12
+		}
+		:bhis {
+			return 13
+		}
+		:bic {
+			return 14
+		}
+		:bicb {
+			return 15
+		}
+		:bis {
+			return 16
+		}
+		:bisb {
+			return 17
+		}
+		:bit {
+			return 18
+		}
+		:bitb {
+			return 19
+		}
+		:ble {
+			return 20
+		}
+		:blo {
+			return 21
+		}
+		:blos {
+			return 22
+		}
+		:blt {
+			return 23
+		}
+		:bmi {
+			return 24
+		}
+		:bne {
+			return 25
+		}
+		:bpl {
+			return 26
+		}
+		:br {
+			return 27
+		}
+		:bvc {
+			return 28
+		}
+		:bvs {
+			return 29
+		}
+		:clc {
+			return 30
+		}
+		:clr {
+			return 31
+		}
+		:clrb {
+			return 32
+		}
+		:cmp {
+			return 33
+		}
+		:cmpb {
+			return 34
+		}
+		:dec {
+			return 35
+		}
+		:div {
+			return 36
+		}
+		:halt {
+			return 37
+		}
+		:inc {
+			return 38
+		}
+		:incb {
+			return 39
+		}
+		:jmp {
+			return 40
+		}
+		:jsr {
+			return 41
+		}
+		:mfpi {
+			return 42
+		}
+		:mov {
+			return 43
+		}
+		:movb {
+			return 44
+		}
+		:mtpi {
+			return 45
+		}
+		:mul {
+			return 46
+		}
+		:nop {
+			return 47
+		}
+		:reset {
+			return 48
+		}
+		:ror {
+			return 49
+		}
+		:rorb {
+			return 50
+		}
+		:rts {
+			return 51
+		}
+		:rtt {
+			return 52
+		}
+		:sbc {
+			return 53
+		}
+		:sbcb {
+			return 54
+		}
+		:sob {
+			return 55
+		}
+		:sub {
+			return 56
+		}
+		:swab {
+			return 57
+		}
+		:tst {
+			return 58
+		}
+		:tstb {
+			return 59
+		}
+		:wait {
+			return 60
+		}
+		:condition_code {
+			return 61
+		}
+		_ {
+			return -1
+		}
 	}
 }
-
 
 # Bound execution accessors. run_bounded resolves these once; hot audit
 # operations receive the owning stores directly rather than re-indexing the
 # audit aggregate on every instruction.
-let instruction_store = (audit) { return audit[AUDIT_INSTRUCTIONS] }
-let source_mode_store = (audit) { return audit[AUDIT_SOURCE_MODES] }
-let destination_mode_store = (audit) { return audit[AUDIT_DESTINATION_MODES] }
-let psw_change_store = (audit) { return audit[AUDIT_PSW_CHANGES] }
-let last_kind_store = (audit) { return audit[AUDIT_LAST_KIND] }
-let last_word_store = (audit) { return audit[AUDIT_LAST_WORDS] }
+let instruction_store = (audit) {
+	return audit[AUDIT_INSTRUCTIONS]
+}
+
+let source_mode_store = (audit) {
+	return audit[AUDIT_SOURCE_MODES]
+}
+
+let destination_mode_store = (audit) {
+	return audit[AUDIT_DESTINATION_MODES]
+}
+
+let psw_change_store = (audit) {
+	return audit[AUDIT_PSW_CHANGES]
+}
+
+let last_kind_store = (audit) {
+	return audit[AUDIT_LAST_KIND]
+}
+
+let last_word_store = (audit) {
+	return audit[AUDIT_LAST_WORDS]
+}
 
 let validate_instruction_index = () {
 	let i = 0
 	while i < length(INSTRUCTIONS) {
-		if not equal(instruction_index(INSTRUCTIONS[i]), i) { return false }
+		if not equal(instruction_index(INSTRUCTIONS[i]), i) {
+			return false
+		}
 		i = i + 1
 	}
 	return true
 }
+
 let increment = (counter_store, index) {
 	storage.counter_add(counter_store, index, 1)
 	return true
@@ -161,6 +362,7 @@ let record_instruction_index_bound = (counter_store, i) {
 	}
 	return increment(counter_store, i)
 }
+
 let record_instruction_bound = (counter_store, kind) {
 	let i = instruction_index(kind)
 	if i < 0 {
@@ -168,21 +370,35 @@ let record_instruction_bound = (counter_store, kind) {
 	}
 	return record_instruction_index_bound(counter_store, i)
 }
-let record_instruction = (audit, kind) { return record_instruction_bound(instruction_store(audit), kind) }
+
+let record_instruction = (audit, kind) {
+	return record_instruction_bound(instruction_store(audit), kind)
+}
 
 let record_source_mode_bound = (source_store, mode) {
-	if (mode < 0) or (mode > 7) { return [@error, :audit, "PDP-11 addressing mode out of range"] }
+	if (mode < 0) or (mode > 7) {
+		return [@error, :audit, "PDP-11 addressing mode out of range"]
+	}
 	return increment(source_store, mode)
 }
+
 let record_destination_mode_bound = (destination_store, mode) {
-	if (mode < 0) or (mode > 7) { return [@error, :audit, "PDP-11 addressing mode out of range"] }
+	if (mode < 0) or (mode > 7) {
+		return [@error, :audit, "PDP-11 addressing mode out of range"]
+	}
 	return increment(destination_store, mode)
 }
+
 let record_mode_bound = (source_store, destination_store, role, mode) {
-	if equal(role, :source) { return record_source_mode_bound(source_store, mode) }
-	if equal(role, :destination) { return record_destination_mode_bound(destination_store, mode) }
+	if equal(role, :source) {
+		return record_source_mode_bound(source_store, mode)
+	}
+	if equal(role, :destination) {
+		return record_destination_mode_bound(destination_store, mode)
+	}
 	return [@error, :audit, "operand role must be source or destination"]
 }
+
 let record_mode = (audit, role, mode) {
 	return record_mode_bound(source_mode_store(audit), destination_mode_store(audit), role, mode)
 }
@@ -208,7 +424,6 @@ let mode_count = (audit, role, mode) {
 	return 0
 }
 
-
 let ZERO_WORD = fixed.word(0)
 
 # Instructions known not to alter PSW can record the full observable transition
@@ -220,22 +435,40 @@ let record_psw_unchanged_index_bound = (kind_store, word_store, instruction_inde
 	storage.set(word_store, LAST_MASK, ZERO_WORD)
 	return true
 }
+
 let record_psw_unchanged_bound = (kind_store, word_store, kind, current) {
 	return record_psw_unchanged_index_bound(kind_store, word_store, instruction_index(kind), current)
 }
 
-let record_psw_transition_index_bound = (change_store, kind_store, word_store, instruction_index_value, before, after) {
+let record_psw_transition_index_bound = (
+	change_store,
+	kind_store,
+	word_store,
+	instruction_index_value,
+	before,
+	after
+) {
 	let mask = fixed.bit_xor(before, after)
 	# NZVC is the normal hot path. Upper PSW bits are inspected only when the
 	# mask says one changed, preserving all 16 counters without rationalizing PSW.
-	if fixed.word_bit(mask, 0) { increment(change_store, 0) }
-	if fixed.word_bit(mask, 1) { increment(change_store, 1) }
-	if fixed.word_bit(mask, 2) { increment(change_store, 2) }
-	if fixed.word_bit(mask, 3) { increment(change_store, 3) }
+	if fixed.word_bit(mask, 0) {
+		increment(change_store, 0)
+	}
+	if fixed.word_bit(mask, 1) {
+		increment(change_store, 1)
+	}
+	if fixed.word_bit(mask, 2) {
+		increment(change_store, 2)
+	}
+	if fixed.word_bit(mask, 3) {
+		increment(change_store, 3)
+	}
 	if fixed.word_any_mask(mask, 65520) {
 		let bit = 4
 		while bit < 16 {
-			if fixed.word_bit(mask, bit) { increment(change_store, bit) }
+			if fixed.word_bit(mask, bit) {
+				increment(change_store, bit)
+			}
 			bit = bit + 1
 		}
 	}
@@ -245,11 +478,27 @@ let record_psw_transition_index_bound = (change_store, kind_store, word_store, i
 	storage.set(word_store, LAST_MASK, mask)
 	return true
 }
+
 let record_psw_transition_bound = (change_store, kind_store, word_store, kind, before, after) {
-	return record_psw_transition_index_bound(change_store, kind_store, word_store, instruction_index(kind), before, after)
+	return record_psw_transition_index_bound(
+		change_store,
+		kind_store,
+		word_store,
+		instruction_index(kind),
+		before,
+		after
+	)
 }
+
 let record_psw_transition = (audit, kind, before, after) {
-	return record_psw_transition_bound(psw_change_store(audit), last_kind_store(audit), last_word_store(audit), kind, before, after)
+	return record_psw_transition_bound(
+		psw_change_store(audit),
+		last_kind_store(audit),
+		last_word_store(audit),
+		kind,
+		before,
+		after
+	)
 }
 
 let psw_change_count = (audit, bit) {
@@ -262,7 +511,9 @@ let psw_change_count = (audit, bit) {
 let last_psw_transition = (audit) {
 	let code = storage.counter_get(audit[AUDIT_LAST_KIND], 0)
 	let kind = :none
-	if code > 0 { kind = INSTRUCTIONS[code - 1] }
+	if code > 0 {
+		kind = INSTRUCTIONS[code - 1]
+	}
 	let last = audit[AUDIT_LAST_WORDS]
 	return [
 		kind,
@@ -311,9 +562,40 @@ export(
 	:INSTRUCTIONS,
 	:validate_instruction_index,
 	:new,
-	:instruction_store,:source_mode_store,:destination_mode_store,:psw_change_store,:last_kind_store,:last_word_store,
-	:INDEX_BEQ,:INDEX_BGE,:INDEX_BGT,:INDEX_BHI,:INDEX_BHIS,:INDEX_BLE,:INDEX_BLO,:INDEX_BLOS,:INDEX_BLT,:INDEX_BMI,:INDEX_BNE,:INDEX_BPL,:INDEX_BR,:INDEX_BVC,:INDEX_BVS,:INDEX_CLR,:INDEX_CLRB,:INDEX_CMP,:INDEX_CMPB,
-	:record_instruction_index_bound,:record_instruction_bound,:record_source_mode_bound,:record_destination_mode_bound,:record_mode_bound,:record_psw_unchanged_index_bound,:record_psw_unchanged_bound,:record_psw_transition_index_bound,:record_psw_transition_bound,
+	:instruction_store,
+	:source_mode_store,
+	:destination_mode_store,
+	:psw_change_store,
+	:last_kind_store,
+	:last_word_store,
+	:INDEX_BEQ,
+	:INDEX_BGE,
+	:INDEX_BGT,
+	:INDEX_BHI,
+	:INDEX_BHIS,
+	:INDEX_BLE,
+	:INDEX_BLO,
+	:INDEX_BLOS,
+	:INDEX_BLT,
+	:INDEX_BMI,
+	:INDEX_BNE,
+	:INDEX_BPL,
+	:INDEX_BR,
+	:INDEX_BVC,
+	:INDEX_BVS,
+	:INDEX_CLR,
+	:INDEX_CLRB,
+	:INDEX_CMP,
+	:INDEX_CMPB,
+	:record_instruction_index_bound,
+	:record_instruction_bound,
+	:record_source_mode_bound,
+	:record_destination_mode_bound,
+	:record_mode_bound,
+	:record_psw_unchanged_index_bound,
+	:record_psw_unchanged_bound,
+	:record_psw_transition_index_bound,
+	:record_psw_transition_bound,
 	:record_instruction,
 	:record_mode,
 	:instruction_count,

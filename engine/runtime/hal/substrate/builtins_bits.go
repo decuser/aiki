@@ -9,10 +9,10 @@ import (
 
 func bitsNonNegativeInteger(v value.Value, what string) (*big.Int, *value.Fault) {
 	n, ok := v.(*value.Number)
-	if !ok || !n.Val.IsInt() {
+	if !ok || !n.IsInt() {
 		return nil, value.NewFault("%s must be a non-negative integer", what)
 	}
-	z := new(big.Int).Set(n.Val.Num())
+	z := new(big.Int).Set(n.Numerator())
 	if z.Sign() < 0 {
 		return nil, value.NewFault("%s must be a non-negative integer", what)
 	}
@@ -35,7 +35,7 @@ func bitsShift(v value.Value, what string) (uint, *value.Fault) {
 }
 
 func bitsNumber(z *big.Int) value.Value {
-	return &value.Number{Val: new(big.Rat).SetInt(z)}
+	return value.NewNumberFromBigInt(z)
 }
 
 func halBitsAnd(args []value.Value, ctx *hal.EvalContext) value.Value {

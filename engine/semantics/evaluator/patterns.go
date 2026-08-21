@@ -98,7 +98,7 @@ func (e *Evaluator) valuesEqual(a, b value.Value) bool {
 	switch av := a.(type) {
 	case *value.Number:
 		bv := b.(*value.Number)
-		return av.Val.Cmp(bv.Val) == 0
+		return av.Equal(bv)
 	case *value.String:
 		bv := b.(*value.String)
 		return av.Val == bv.Val

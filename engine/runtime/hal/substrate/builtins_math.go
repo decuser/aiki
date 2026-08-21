@@ -16,15 +16,15 @@ func halFloor(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if !ok {
 		return value.NewFault("floor: expected number")
 	}
-	num := n.Val.Num()
-	denom := n.Val.Denom()
+	num := n.Numerator()
+	denom := n.Denominator()
 	q := new(big.Int)
 	rem := new(big.Int)
 	q.QuoRem(num, denom, rem)
 	if num.Sign() < 0 && rem.Sign() != 0 {
 		q.Sub(q, big.NewInt(1))
 	}
-	return &value.Number{Val: new(big.Rat).SetInt(q)}
+	return value.NewNumberFromBigInt(q)
 }
 
 func halCeil(args []value.Value, ctx *hal.EvalContext) value.Value {
@@ -35,15 +35,15 @@ func halCeil(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if !ok {
 		return value.NewFault("ceil: expected number")
 	}
-	num := n.Val.Num()
-	denom := n.Val.Denom()
+	num := n.Numerator()
+	denom := n.Denominator()
 	q := new(big.Int)
 	rem := new(big.Int)
 	q.QuoRem(num, denom, rem)
 	if num.Sign() > 0 && rem.Sign() != 0 {
 		q.Add(q, big.NewInt(1))
 	}
-	return &value.Number{Val: new(big.Rat).SetInt(q)}
+	return value.NewNumberFromBigInt(q)
 }
 
 func halTruncate(args []value.Value, ctx *hal.EvalContext) value.Value {
@@ -55,10 +55,10 @@ func halTruncate(args []value.Value, ctx *hal.EvalContext) value.Value {
 		return value.NewFault("truncate: expected number")
 	}
 	// Truncate toward zero: just integer division
-	num := n.Val.Num()
-	denom := n.Val.Denom()
+	num := n.Numerator()
+	denom := n.Denominator()
 	q := new(big.Int).Quo(num, denom)
-	return &value.Number{Val: new(big.Rat).SetInt(q)}
+	return value.NewNumberFromBigInt(q)
 }
 
 func halModulo(args []value.Value, ctx *hal.EvalContext) value.Value {
@@ -70,16 +70,16 @@ func halModulo(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if !ok1 || !ok2 {
 		return value.NewFault("modulo: expected numbers")
 	}
-	if !left.Val.IsInt() || !right.Val.IsInt() {
+	if !left.IsInt() || !right.IsInt() {
 		return value.NewFault("modulo: requires integers")
 	}
-	if right.Val.Sign() == 0 {
+	if right.Sign() == 0 {
 		return value.NewFault("modulo: division by zero")
 	}
-	l := left.Val.Num()
-	r := right.Val.Num()
+	l := left.Numerator()
+	r := right.Numerator()
 	result := new(big.Int).Mod(l, r)
-	return &value.Number{Val: new(big.Rat).SetInt(result)}
+	return value.NewNumberFromBigInt(result)
 }
 
 func halSqrt(args []value.Value, ctx *hal.EvalContext) value.Value {
@@ -90,19 +90,19 @@ func halSqrt(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if !ok {
 		return value.NewFault("sqrt: expected number")
 	}
-	if n.Val.Sign() < 0 {
+	if n.Sign() < 0 {
 		return value.NewFault("sqrt: negative number")
 	}
-	f, exact := n.Val.Float64()
+	f, exact := n.Float64()
 	if !exact && (math.IsInf(f, 0) || math.IsNaN(f)) {
 		return value.NewFault("sqrt: argument out of float64 range")
 	}
 	result := math.Sqrt(f)
-	r := new(big.Rat).SetFloat64(result)
-	if r == nil {
+	out, ok := value.NewNumberFromFloat64(result)
+	if !ok {
 		return value.NewFault("sqrt: result is not finite")
 	}
-	return &value.Number{Val: r}
+	return out
 }
 
 func (g *GoRuntime) halSeed(args []value.Value, ctx *hal.EvalContext) value.Value {
@@ -113,10 +113,10 @@ func (g *GoRuntime) halSeed(args []value.Value, ctx *hal.EvalContext) value.Valu
 	if !ok {
 		return value.NewFault("seed: expected number")
 	}
-	if !n.Val.IsInt() {
+	if !n.IsInt() {
 		return value.NewFault("seed: expected integer")
 	}
-	seed := n.Val.Num().Int64()
+	seed := n.Int64Value()
 	g.mu.Lock()
 	g.rng.Seed(seed)
 	g.mu.Unlock()
@@ -131,15 +131,15 @@ func (g *GoRuntime) halRandom(args []value.Value, ctx *hal.EvalContext) value.Va
 	if !ok {
 		return value.NewFault("random: expected number")
 	}
-	if !n.Val.IsInt() {
+	if !n.IsInt() {
 		return value.NewFault("random: expected integer")
 	}
-	max := n.Val.Num().Int64()
+	max := n.Int64Value()
 	if max <= 0 {
 		return value.NewFault("random: max must be positive")
 	}
 	g.mu.Lock()
 	result := g.rng.Int63n(max)
 	g.mu.Unlock()
-	return &value.Number{Val: big.NewRat(result, 1)}
+	return value.NewNumber(result, 1)
 }

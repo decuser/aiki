@@ -1,0 +1,31 @@
+# Host-math binary-carrier realization witness.
+#
+#     aiki profile --counts extra/profiling/adaptive-number-host-math.ai
+#
+# Use math/ffi explicitly: this workload crosses the host binary64
+# approximation boundary. Call-return realization should therefore show
+# binary carriers. Arithmetic realization is measured separately.
+#
+# The loop deliberately performs carrier/carrier operations:
+#
+#     x + y       usually requires exact fallback when rounding would occur
+#     x * half    certifiably exact for ordinary finite x
+#     x - x       certifiably exact zero
+#
+# No operation is permitted to accept a rounded result as exact Aiki arithmetic.
+let math = import("math/ffi")
+
+let half = math.sqrt(0.25)
+let i = 0
+let last = 0
+
+while i < 100000 {
+	let x = math.sin(i)
+	let y = math.cos(i)
+	let sum = x + y
+	let scaled = x * half
+	last = x - x
+	i = i + 1
+}
+
+println(last)

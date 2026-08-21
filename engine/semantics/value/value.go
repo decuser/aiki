@@ -3,7 +3,6 @@ package value
 
 import (
 	"fmt"
-	"math/big"
 	"os"
 	"strings"
 	"sync"
@@ -41,31 +40,6 @@ const (
 type Value interface {
 	Type() Type
 	Inspect() string
-}
-
-// Number is exact rational arithmetic.
-type Number struct {
-	Val *big.Rat
-}
-
-func (n *Number) Type() Type { return NumberType }
-func (n *Number) Inspect() string {
-	if n.Val.IsInt() {
-		return n.Val.Num().String()
-	}
-	return n.Val.RatString()
-}
-
-func NewNumber(num, denom int64) *Number {
-	return &Number{Val: big.NewRat(num, denom)}
-}
-
-func NewNumberFromString(s string) (*Number, error) {
-	r := new(big.Rat)
-	if _, ok := r.SetString(s); !ok {
-		return nil, fmt.Errorf("invalid number: %s", s)
-	}
-	return &Number{Val: r}, nil
 }
 
 // Boolean
@@ -541,7 +515,7 @@ func DeepEqual(a, b Value) bool {
 	switch av := a.(type) {
 	case *Number:
 		bv := b.(*Number)
-		return av.Val.Cmp(bv.Val) == 0
+		return av.Equal(bv)
 	case *String:
 		bv := b.(*String)
 		return av.Val == bv.Val

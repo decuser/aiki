@@ -19,7 +19,7 @@ func halAfter(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if !ok {
 		return value.NewFault("after: expected number (milliseconds)")
 	}
-	ms, _ := n.Val.Float64()
+	ms, _ := n.Float64()
 	if math.IsInf(ms, 0) || math.IsNaN(ms) {
 		return value.NewFault("after: milliseconds out of range")
 	}

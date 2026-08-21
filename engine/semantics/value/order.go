@@ -12,7 +12,7 @@ func CompareNatural(left, right Value) (cmp int, ok bool) {
 		if !same {
 			return 0, false
 		}
-		return l.Val.Cmp(r.Val), true
+		return l.Compare(r), true
 	case *String:
 		r, same := right.(*String)
 		if !same {

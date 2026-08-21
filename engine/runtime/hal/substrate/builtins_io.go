@@ -29,10 +29,10 @@ func (g *GoRuntime) halIORead(args []value.Value, ctx *hal.EvalContext) value.Va
 		return value.NewFault("io.read: want 2 arguments, got %d", len(args))
 	}
 	count, ok := args[1].(*value.Number)
-	if !ok || !count.Val.IsInt() || count.Val.Sign() < 0 {
+	if !ok || !count.IsInt() || count.Sign() < 0 {
 		return value.NewFault("io.read: count must be a non-negative integer")
 	}
-	n := count.Val.Num().Int64()
+	n := count.Int64Value()
 	if n == 0 {
 		return &value.Bytes{Val: []byte{}}
 	}

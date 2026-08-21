@@ -932,3 +932,72 @@ Before running the historical `tmrk` gate, attachment semantics were made explic
 - New `cut7_live_slice_test.ai` proves queued A/B output ordering and architectural HALT within a 128-instruction slice (16/16 assertions).
 - Disposable semantic profile at 10x: calls 1,040,917 -> 541,586; index 246 -> 258; general store 9 reads / 119 writes (setup-level). Wall-clock from the disposable Go 1.23/stub build is not acceptance evidence.
 - Preserve as a separate runtime-design follow-on: `store` was intended as isolated mutable mapped memory. The current general store permits crossing `spawn` and therefore uses mutexes. Reconcile the sharing/isolation contract before removing synchronization; do not conflate that language/runtime correction with PDP emulator tuning.
+
+### 2026-08-20 — Adaptive exact Number proposal accepted; Cut 0 ACTIVE
+
+- Accepted `proposals/adaptive-exact-number-representation.md` as the controlling numeric optimization proposal. `proposals/aiki-small-rational-fast-path-proposal.md` is now `SUPERSEDED` and retained as design history.
+- Locked the semantic distinction: the binary64 carrier is not a user-visible float or permission to round. A finite host binary64 bit pattern may be retained as an exact dyadic rational representation of the value already returned by the host; ordinary arithmetic must promote rather than round unless exactness is cheaply certified.
+- Locked the systems boundary: adaptive ordinary `Number` and the fixed-width machine FFI domain are complementary. PDP-11/7094 interiors remain opaque machine values and must not be routed back through ordinary Number semantics.
+- Representation candidates remain evidence-gated. Any candidate tier that does not justify its complexity by measured coverage/performance is removed.
+- Cut 0 inventory is recorded in `docs/adaptive-number-cut0-audit.md`: 26 production files and 10 test files currently depend directly on the `Number.Val`/`big.Rat` representation. The leakage is broad in location but narrow in semantic operations, making a Number-owned authority surface feasible.
+- Added a durable baseline benchmark surface for construction, integer/rational arithmetic, comparison, and division. A disposable Go 1.23.2 diagnostic run confirms substantial allocation on current `big.Rat` common paths, but it is not authoritative project evidence.
+- Critical-path gate remains user-side: repository requires Go 1.24 and the analysis environment cannot download that toolchain/dependencies. Run the focused semantic corpus and the Go 1.24 baseline benchmark recorded in the audit; if green, Cut 0 becomes `GATED` and Cut 1 becomes `ACTIVE`.
+
+### 2026-08-20 — Adaptive Number implementation tranche ACTIVE
+
+- Cut 0 is now `GATED` on the authoritative Go 1.24 project host. Focused semantic tests passed. Baseline measurements: integer construction ~78 ns / 40 B / 5 allocs; integer add ~190 ns / 216 B / 7 allocs; rational add ~193 ns / 216 B / 7 allocs; integer multiply ~128 ns / 120 B / 5 allocs; integer compare ~67 ns / 96 B / 2 allocs; rational division ~136 ns / 120 B / 5 allocs.
+- Cut 1 implementation candidate establishes `Number` as the semantic authority. The concrete `*big.Rat` field is private; evaluator, ordering/equality, indexing, HAL consumers, contract tests, and property tests no longer depend on `Number.Val`. Explicit Number-owned operations now cover exact arithmetic, compare/equality, sign/zero, integer extraction, numerator/denominator, host binary64 conversion, construction, and canonical rational inspection.
+- Cut 2/3 implementation candidate adds hidden small-integer and compact-rational representations. Machine overflow or unsafe compact-rational arithmetic promotes to arbitrary precision rather than wrapping. Randomized differential tests compare compact arithmetic and ordering against `big.Rat`.
+- Disposable Go 1.23 value-package evidence after compact representation: integer construction ~29 ns / 32 B / 1 alloc; integer add ~38 ns / 32 B / 1 alloc; rational add ~59 ns / 32 B / 1 alloc; integer multiply ~40 ns / 32 B / 1 alloc; integer compare ~6 ns / 0 alloc; rational division ~53 ns / 32 B / 1 alloc. These figures are directional only; authoritative Go 1.24 evidence is still required.
+- Cut 4/6 implementation candidate adds the finite binary64 carrier strictly inside `Number`. It stores the exact dyadic rational denoted by a host-returned finite bit pattern; `sin`, `cos`, and `sqrt` may return that carrier without immediate `big.Rat` expansion. NaN and infinities are rejected. Ordinary `+`, `-`, `*`, `/` do not use rounded binary64 arithmetic; binary-carrier operands fall back to exact rational computation unless a later exactness certification is accepted.
+- The old no-float representation invariant is being replaced by the semantic invariant actually intended: float machinery may exist only inside Number authority as an exact carrier/host boundary; float paths outside Number and rounded ordinary arithmetic inside Number are rejected. Representation-specific contract/property docs are being reconciled accordingly.
+- Cut 5 remains conservative: no certified binary arithmetic has been admitted. This is intentional, not a missing optimization. The carrier itself does not authorize arithmetic rounding.
+- Local environment can compile/test `engine/semantics/value` under a temporary Go 1.23 compatibility check; full repository validation remains authoritative on the user's Go 1.24 tree because this environment lacks cached external dependencies. Continue implementation without per-cut interruption, but do not mark Cuts 1+ `GATED` until the integrated Go 1.24 gate is supplied.
+- Focused disposable compile/test with local stubs for unavailable `readline`/`flock` dependencies is green for `engine/semantics/value`, evaluator, numeric substrate consumers, contract, property, boundary, and exact-number invariant. The unrelated file-lock exclusivity test is not meaningful under the stub and is excluded from this evidence.
+- Critical path is now authoritative Go 1.24 integration on the real tree. Apply the adaptive-number tranche, rebuild, then run the focused semantic/invariant gate and adaptive benchmarks before full `make validate`. Do not admit certified binary arithmetic unless later measurement proves both exactness and value.
+
+### 2026-08-20 — Adaptive Number Cuts 1–4/6 gated; Cut 5 candidate
+
+- Authoritative Go 1.24 focused integration is green across value, evaluator, substrate, contract, property, boundary, and invariant packages after the adaptive-number tranche.
+- Authoritative adaptive benchmarks on the Ryzen 7 7840HS: integer construction ~22 ns / 32 B / 1 alloc; integer add ~28 ns / 32 B / 1 alloc; rational add ~41 ns / 32 B / 1 alloc; integer multiply ~29 ns / 32 B / 1 alloc; integer compare ~4.7 ns / 0 alloc; rational division ~38 ns / 32 B / 1 alloc; binary carrier construction ~21 ns / 32 B / 1 alloc. Cuts 1–4 and host-boundary Cut 6 are therefore gated.
+- The first binary64 ordinary-arithmetic fallback measured ~713 ns / 840 B / 25 allocs because failed certification expanded both exact dyadic carriers immediately through `big.Rat`. The Cut 5 candidate now first re-expresses a binary carrier as a compact exact rational when its exact numerator/denominator fit machine storage. Common host values such as binary64 0.1 therefore fall back exactly through compact rational rather than arbitrary precision.
+- Disposable directional evidence after that change: common rounded binary add fallback ~70–72 ns / 32 B / 1 alloc; certified exact binary add ~30 ns / 32 B / 1 alloc; certified exact binary multiply ~34 ns / 32 B / 1 alloc. Truly extreme carriers that cannot fit compact rational still use `big.Rat` (~2.2 us / 2600 B / 29 allocs locally), preserving the intended arbitrary-precision escape path.
+- Cut 5 exactness certification currently admits binary64 addition/subtraction only when TwoSum proves zero rounding residue, and multiplication only when exact dyadic significand/exponent analysis proves the product is binary64-representable. A prior FMA-based multiplication certificate was rejected after differential testing exposed underflow false positives.
+- Randomized differential tests compare every certified binary operation and every compact binary64 conversion against `big.Rat`; subnormal boundary tests are included. Rounded ordinary arithmetic such as binary64-carrier 0.1 + 0.2 remains forbidden from retaining a rounded binary64 result.
+- Cut 5 remains ACTIVE pending authoritative Go 1.24 integration of this delta. Cut 7 workload coverage follows; do not add certified binary division unless measured coverage justifies it.
+
+### 2026-08-20 — Adaptive Number Cut 5 gated; Cut 7 realization profiling ACTIVE
+
+- Authoritative Go 1.24 binary measurements gate Cut 5: binary carrier construction ~21 ns / 32 B / 1 allocation; certified exact add ~22 ns / 32 B / 1 allocation; certified exact multiply ~27 ns / 32 B / 1 allocation. Common failed certification now falls exactly through compact rational at ~52 ns / 32 B / 1 allocation rather than immediately expanding through `big.Rat`; only genuinely large dyadic cases pay the arbitrary-precision escape (~1.85 us / 2209 B / 26 allocations on the measured host).
+- Certified division remains deliberately unshipped. Local directional evidence says it can be faster, but Cut 7 must first show that binary division is common enough in representative Aiki workloads to justify another exactness-proof path.
+- Cut 7 adds hidden Number-realization observation to the existing profiler. The probe is evaluator-side and executes only when profiling counters are enabled; ordinary Number operations acquire no global hook, atomic counter, or representation-check overhead.
+- Profile output now distinguishes arithmetic results carried as small integer, compact rational, binary carrier, or big rational, plus certified binary operations, binary fallbacks, and promotions into big rational. These are runtime realization facts, not new Aiki semantic kinds or user-visible numeric types.
+- Exact next evidence: rebuild and run representative `aiki profile --counts` workloads, including the PDP diagnostic as a stress witness. Use representation distribution to decide whether certified division or any further representation mechanism earns its complexity.
+
+### 2026-08-20 — Adaptive Number Cut 7 gated; representation set frozen
+
+- Authoritative workload coverage gates Cut 7. The three-level self-host witness recorded 1,122,252 small-integer arithmetic results and no other Number realization while executing 1,289,910 arithmetic events and 8,701,738 calls. This establishes small integer as the dominant realization for ordinary interpreter machinery.
+- Experiment 004 PDP-11 Cut 7 at 10x / 7,680 guest instructions recorded 20,834 small-integer Number results and no rational/binary/big results while the machine interior remained in the distinct fixed-width FFI domain. Against the same 541,586-call workload before adaptive Number, elapsed fell from ~2.534 s to ~1.924 s, allocation from ~1.667 GB to ~1.302 GB, and mallocs from ~26.47 M to ~21.12 M. Adaptive Number and the machine domain are therefore complementary rather than competing.
+- The rational witness recorded 300,001 small-integer and 200,004 compact-rational arithmetic results with zero big-rational promotion while preserving exact outputs `0`, `3/10`, and `1`. Compact rational survives its evidence gate.
+- The corrected `math/ffi` witness recorded 399,998 binary-carrier call returns. Arithmetic realization was 200,002 small integer, 54,486 compact rational, 145,436 binary carrier, and 76 big rational. Of 299,997 binary attempts, 245,435 were certified exact and 54,562 fell back exactly; only 76 promoted to arbitrary precision. The binary carrier and certified add/subtract/multiply survive their evidence gate.
+- Certified binary division is explicitly not admitted. Common exact fallback is already ~52 ns / 32 B / 1 allocation on the authoritative host, and workload coverage does not justify another exactness-proof path.
+- Durable measurements and interpretation are recorded in `docs/adaptive-number-results.md`. `extra/profiling/` now owns the self-host, rational, and host-math witness programs.
+- Cut 8 is ACTIVE for documentation/invariant reconciliation. The remaining critical path is the strongest whole-tree validation; no further representation machinery is planned.
+- Historical Aug 19 notes rejecting a transparent small/fast Number describe the decision at that time, before the semantic-boundary distinction was clarified and the adaptive proposal was accepted. They are retained as history, not current architecture.
+
+
+### 2026-08-20 — Adaptive Number COMPLETE
+
+- Whole-tree `make validate` passed after final profiling/treecheck
+  reconciliation. Cuts 8 and 9 are `GATED`; the controlling Adaptive Exact
+  Number proposal is `COMPLETE`.
+- Surviving realizations are small integer, compact rational, exact finite
+  binary64 carrier, and `big.Rat` escape. Certified binary add/subtract/multiply
+  remain; certified division was not admitted because workload evidence did not
+  justify it.
+- The final architectural invariant is: **The number is exact. The
+  representation is negotiable.**
+- The fixed-width machine FFI domain remains distinct from ordinary Number.
+- Next runtime investigation moves away from numeric representation and into the
+  larger call/allocation/runtime-cost surface exposed by the self-host and
+  PDP-11 profiling witnesses.

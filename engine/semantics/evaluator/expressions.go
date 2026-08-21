@@ -2,7 +2,6 @@ package evaluator
 
 import (
 	"aiki/engine"
-	"math/big"
 
 	"aiki/engine/semantics/value"
 	"aiki/engine/syntax"
@@ -99,8 +98,7 @@ func (e *Evaluator) evalUnary(node *syntax.Node, env *value.Env) value.Value {
 		case "-":
 			if num, ok := operand.(*value.Number); ok {
 				e.semanticHit(engine.SemanticArithmetic, node, env)
-				neg := new(big.Rat).Neg(num.Val)
-				operand = &value.Number{Val: neg}
+				operand = num.Neg()
 			} else {
 				return e.makeFault(node, env, "cannot negate %s", operand.Type())
 			}

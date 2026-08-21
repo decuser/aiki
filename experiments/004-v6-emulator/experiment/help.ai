@@ -12,4 +12,5 @@ if is_error(result) {
 	println(inspect(result))
 	system.exit(1)
 }
+
 println(result)

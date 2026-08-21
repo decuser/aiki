@@ -10,8 +10,8 @@ let str = import("string/native")
 let fresh = () {
 	let m = machine.new()
 	machine.reset_machine(m)
-	machine.set_pc(m, 4096) # 010000
-	machine.set_sp(m, 12288) # 030000
+	machine.set_pc(m, 4096)  # 010000
+	machine.set_sp(m, 12288)  # 030000
 	return m
 }
 
@@ -21,20 +21,59 @@ let put = (m, address, word) {
 }
 
 let representative_words = [
-	[:adc, 2880], [:add, 24577], [:ash, 29697], [:ashc, 30209], [:asl, 3264], [:asr, 3200],
-	[:beq, 768], [:bge, 1024], [:bhi, 33280], [:bhis, 34304], [:bic, 16385], [:bis, 20481],
-	[:bisb, 53249], [:bit, 12289], [:ble, 1792], [:blo, 34560], [:bne, 512], [:br, 256],
-	[:clc, 161], [:clr, 2560], [:clrb, 35328], [:cmp, 8193], [:cmpb, 40961], [:dec, 2752],
-	[:div, 29185], [:inc, 2688], [:incb, 35456], [:jmp, 72], [:jsr, 2056], [:mfpi, 3392],
-	[:mov, 4097], [:movb, 36865], [:mtpi, 3456], [:mul, 28673], [:reset, 5], [:ror, 3072],
-	[:rts, 135], [:rtt, 6], [:sbc, 2944], [:sob, 32257], [:sub, 57345], [:swab, 192],
-	[:tst, 3008], [:tstb, 35776], [:wait, 1]
+	[:adc, 2880],
+	[:add, 24577],
+	[:ash, 29697],
+	[:ashc, 30209],
+	[:asl, 3264],
+	[:asr, 3200],
+	[:beq, 768],
+	[:bge, 1024],
+	[:bhi, 33280],
+	[:bhis, 34304],
+	[:bic, 16385],
+	[:bis, 20481],
+	[:bisb, 53249],
+	[:bit, 12289],
+	[:ble, 1792],
+	[:blo, 34560],
+	[:bne, 512],
+	[:br, 256],
+	[:clc, 161],
+	[:clr, 2560],
+	[:clrb, 35328],
+	[:cmp, 8193],
+	[:cmpb, 40961],
+	[:dec, 2752],
+	[:div, 29185],
+	[:inc, 2688],
+	[:incb, 35456],
+	[:jmp, 72],
+	[:jsr, 2056],
+	[:mfpi, 3392],
+	[:mov, 4097],
+	[:movb, 36865],
+	[:mtpi, 3456],
+	[:mul, 28673],
+	[:reset, 5],
+	[:ror, 3072],
+	[:rts, 135],
+	[:rtt, 6],
+	[:sbc, 2944],
+	[:sob, 32257],
+	[:sub, 57345],
+	[:swab, 192],
+	[:tst, 3008],
+	[:tstb, 35776],
+	[:wait, 1]
 ]
+
 
 run("m40 contract contains exactly the 45 instruction forms Lions names", () {
 	equal(length(contract.INSTRUCTIONS), 45)
 	equal(length(representative_words), length(contract.INSTRUCTIONS))
 })
+
 
 run("decoder recognizes every m40 contracted instruction form", () {
 	let i = 0
@@ -44,55 +83,59 @@ run("decoder recognizes every m40 contracted instruction form", () {
 	}
 })
 
+
 run("ADC and SBC implement carry arithmetic used by dpadd and dpcmp", () {
 	let m = fresh()
-	machine.set_register(m, 0, 65535) # 0177777
+	machine.set_register(m, 0, 65535)  # 0177777
 	machine.set_psw(m, 1)
-	put(m, 4096, 2880) # 005500 ADC R0
+	put(m, 4096, 2880)  # 005500 ADC R0
 	equal(execute.step(m), true)
 	equal(machine.get_register(m, 0), 0)
-	equal(machine.psw(m), 5) # Z,C
+	equal(machine.psw(m), 5)  # Z,C
 	machine.set_register(m, 0, 0)
 	machine.set_psw(m, 1)
-	put(m, 4098, 2944) # 005600 SBC R0
+	put(m, 4098, 2944)  # 005600 SBC R0
 	equal(execute.step(m), true)
 	equal(machine.get_register(m, 0), 65535)
-	equal(machine.psw(m), 9) # N,C
+	equal(machine.psw(m), 9)  # N,C
 })
+
 
 run("ASL ASR and ROR preserve PDP shift and rotate relationships", () {
 	let m = fresh()
-	machine.set_register(m, 0, 32769) # 0100001
-	put(m, 4096, 3264) # 006300 ASL R0
+	machine.set_register(m, 0, 32769)  # 0100001
+	put(m, 4096, 3264)  # 006300 ASL R0
 	equal(execute.step(m), true)
 	equal(machine.get_register(m, 0), 2)
-	equal(machine.psw(m), 3) # V,C
+	equal(machine.psw(m), 3)  # V,C
 	machine.set_register(m, 0, 32769)
-	put(m, 4098, 3200) # 006200 ASR R0
+	put(m, 4098, 3200)  # 006200 ASR R0
 	equal(execute.step(m), true)
-	equal(machine.get_register(m, 0), 49152) # 0140000
-	equal(machine.psw(m), 9) # N,C
+	equal(machine.get_register(m, 0), 49152)  # 0140000
+	equal(machine.psw(m), 9)  # N,C
 	machine.set_register(m, 0, 1)
 	machine.set_psw(m, 1)
-	put(m, 4100, 3072) # 006000 ROR R0
+	put(m, 4100, 3072)  # 006000 ROR R0
 	equal(execute.step(m), true)
 	equal(machine.get_register(m, 0), 32768)
-	equal(machine.psw(m), 9) # N,C; V=N xor C=0
+	equal(machine.psw(m), 9)  # N,C; V=N xor C=0
 })
+
 
 run("SWAB exchanges bytes and takes NZ from resulting low byte", () {
 	let m = fresh()
-	machine.set_register(m, 0, 33023) # 0100377
-	put(m, 4096, 192) # 000300 SWAB R0
+	machine.set_register(m, 0, 33023)  # 0100377
+	put(m, 4096, 192)  # 000300 SWAB R0
 	equal(execute.step(m), true)
-	equal(machine.get_register(m, 0), 65408) # 0177600
+	equal(machine.get_register(m, 0), 65408)  # 0177600
 	equal(machine.psw(m), 8)
 })
+
 
 run("SOB decrements then branches backward in words", () {
 	let m = fresh()
 	machine.set_register(m, 0, 2)
-	put(m, 4096, 32257) # 077001 SOB R0,1
+	put(m, 4096, 32257)  # 077001 SOB R0,1
 	equal(execute.step(m), true)
 	equal(machine.get_register(m, 0), 1)
 	equal(machine.pc(m), 4096)
@@ -101,89 +144,96 @@ run("SOB decrements then branches backward in words", () {
 	equal(machine.pc(m), 4098)
 })
 
+
 run("MUL deposits a signed 32-bit product in an even register pair", () {
 	let m = fresh()
-	machine.set_register(m, 0, 65534) # -2
+	machine.set_register(m, 0, 65534)  # -2
 	machine.set_register(m, 1, 3)
-	put(m, 4096, 28673) # 070001 MUL R1,R0
+	put(m, 4096, 28673)  # 070001 MUL R1,R0
 	equal(execute.step(m), true)
 	equal(machine.get_register(m, 0), 65535)
 	equal(machine.get_register(m, 1), 65530)
 	equal(machine.psw(m), 8)
 })
 
+
 run("DIV divides signed register pair and leaves quotient remainder", () {
 	let m = fresh()
 	machine.set_register(m, 0, 0)
 	machine.set_register(m, 1, 10)
 	machine.set_register(m, 2, 3)
-	put(m, 4096, 29186) # 071002 DIV R2,R0
+	put(m, 4096, 29186)  # 071002 DIV R2,R0
 	equal(execute.step(m), true)
 	equal(machine.get_register(m, 0), 3)
 	equal(machine.get_register(m, 1), 1)
 	equal(machine.psw(m), 0)
 })
 
+
 run("ASH uses signed six-bit count and ASHC spans an even pair", () {
 	let m = fresh()
 	machine.set_register(m, 0, 64)
-	machine.set_register(m, 1, 65535) # count low six = 077 = -1
-	put(m, 4096, 29697) # 072001 ASH R1,R0
+	machine.set_register(m, 1, 65535)  # count low six = 077 = -1
+	put(m, 4096, 29697)  # 072001 ASH R1,R0
 	equal(execute.step(m), true)
 	equal(machine.get_register(m, 0), 32)
 	machine.set_register(m, 0, 0)
 	machine.set_register(m, 1, 1)
 	machine.set_register(m, 2, 1)
-	put(m, 4098, 30210) # 073002 ASHC R2,R0
+	put(m, 4098, 30210)  # 073002 ASHC R2,R0
 	equal(execute.step(m), true)
 	equal(machine.get_register(m, 0), 0)
 	equal(machine.get_register(m, 1), 2)
 })
 
+
 run("MFPI and MTPI preserve their stack transfer contract before MMU translation is inserted", () {
 	let m = fresh()
-	machine.set_register(m, 0, 8192) # 020000
-	put(m, 8192, 4660) # 011064
-	put(m, 4096, 3400) # 006510 MFPI (R0)
+	machine.set_register(m, 0, 8192)  # 020000
+	put(m, 8192, 4660)  # 011064
+	put(m, 4096, 3400)  # 006510 MFPI (R0)
 	equal(execute.step(m), true)
 	equal(machine.sp(m), 12286)
 	equal(machine.examine_word(m, 12286), 4660)
-	put(m, 4098, 3464) # 006610 MTPI (R0)
-	machine.deposit_word(m, 12286, 22136) # 053170
+	put(m, 4098, 3464)  # 006610 MTPI (R0)
+	machine.deposit_word(m, 12286, 22136)  # 053170
 	equal(execute.step(m), true)
 	equal(machine.sp(m), 12288)
 	equal(machine.examine_word(m, 8192), 22136)
 })
 
+
 run("RTT restores PC and PS from the current stack", () {
 	let m = fresh()
 	machine.set_sp(m, 12284)
 	put(m, 12284, 8192)
-	put(m, 12286, 232) # 000350
-	put(m, 4096, 6) # RTT
+	put(m, 12286, 232)  # 000350
+	put(m, 4096, 6)  # RTT
 	equal(execute.step(m), true)
 	equal(machine.pc(m), 8192)
 	equal(machine.psw(m), 232)
 	equal(machine.sp(m), 12288)
 })
 
+
 run("WAIT suspends instruction issue and RESET uses the UNIBUS reset seam", () {
 	let m = fresh()
-	put(m, 4096, 1) # WAIT
+	put(m, 4096, 1)  # WAIT
 	equal(execute.step(m), true)
 	equal(machine.waiting(m), true)
 	equal(execute.step(m), false)
 	machine.set_waiting(m, false)
-	put(m, 4098, 5) # RESET
+	put(m, 4098, 5)  # RESET
 	equal(execute.step(m), true)
 	equal(machine.pc(m), 4100)
 })
+
 
 run("runtime audit counts instruction use and addressing modes", () {
 	let m = fresh()
 	machine.set_register(m, 1, 8192)
 	put(m, 8192, 7)
-	put(m, 4096, 4608) # 011000 MOV (R0),R0 -- source mode 1, destination mode 0
+	put(m, 4096, 4608)  # 011000 MOV (R0),R0 -- source mode 1, destination mode 0
 	machine.set_register(m, 0, 8192)
 	equal(execute.step(m), true)
 	equal(machine.audit_instruction_count(m, :mov), 1)
@@ -191,9 +241,10 @@ run("runtime audit counts instruction use and addressing modes", () {
 	equal(machine.audit_mode_count(m, :destination, 0), 1)
 })
 
+
 run("audit report and machine formatting are octal-first", () {
 	let m = fresh()
-	put(m, octal.parse("010000"), octal.parse("005000")) # CLR R0
+	put(m, octal.parse("010000"), octal.parse("005000"))  # CLR R0
 	equal(execute.step(m), true)
 	let report = audit_report.render(m)
 	equal(octal.word(octal.parse("010000")), "010000")

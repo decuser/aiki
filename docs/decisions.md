@@ -13,17 +13,19 @@ references these by number.
 **Question:** Should Aiki numbers carry a provenance marker indicating
 that a floating-point computation was involved in producing them?
 
-**Decision:** No. Values returned through floating-point FFI are
-converted to Aiki numbers at the boundary by representing the returned
-float64 exactly as a rational. Approximation inherent in the foreign
-computation is not tracked after conversion; thereafter the resulting
-value participates in exact rational arithmetic normally.
+**Decision:** No. Values returned through floating-point FFI cross into the
+single Aiki `number` boundary as the exact finite dyadic rational denoted by the
+returned binary64 bit pattern. The runtime may retain that bit pattern as a
+compact hidden carrier instead of immediately expanding it to `big.Rat`.
+Approximation inherent in the foreign computation is not tracked after the
+boundary; thereafter ordinary Aiki arithmetic remains exact and may not silently
+round merely because the value has a binary64 carrier.
 
 **Rationale:** The meaningful event is the FFI boundary. `math/ffi`
 performs computation using host floating-point arithmetic. Once that
-result crosses into Aiki, Aiki receives a value and represents it
-exactly as a rational. From that point forward, ordinary Aiki
-arithmetic remains exact.
+result crosses into Aiki, Aiki receives one exact dyadic rational value. The
+physical carrier is not language semantics. From that point forward, ordinary
+Aiki arithmetic remains exact.
 
 Tracking provenance after the boundary would introduce a second,
 shadow numeric semantics — forcing answers to whether provenance
@@ -43,8 +45,8 @@ The module boundary already communicates the distinction cleanly:
 Provenance is expressed by which operation was called, not by a tag
 carried indefinitely by the resulting number.
 
-**Disposition:** Accepted boundary semantics. Closed. No numeric-model
-change.
+**Disposition:** Accepted boundary semantics. Closed. Adaptive Number may vary
+the hidden carrier, but there is no user-visible numeric-model change.
 
 ---
 

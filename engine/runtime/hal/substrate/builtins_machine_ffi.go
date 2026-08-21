@@ -13,13 +13,13 @@ func exactNonNegative(args []value.Value, name string, max uint64) (uint64, valu
 		return 0, value.NewFault("%s: want 1 argument, got %d", name, len(args))
 	}
 	n, ok := args[0].(*value.Number)
-	if !ok || !n.Val.IsInt() || n.Val.Sign() < 0 {
+	if !ok || !n.IsInt() || n.Sign() < 0 {
 		return 0, value.NewFault("%s: expected non-negative integral number", name)
 	}
-	if !n.Val.Num().IsUint64() {
+	if !n.IsUint64() {
 		return 0, value.NewFault("%s: value out of range", name)
 	}
-	v := n.Val.Num().Uint64()
+	v := n.Uint64Value()
 	if v > max {
 		return 0, value.NewFault("%s: value out of range", name)
 	}
@@ -86,7 +86,7 @@ func halMachineToNumber(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if !ok || o.Provider != machineProvider {
 		return value.NewFault("machine.number: expected opaque machine value")
 	}
-	return &value.Number{Val: new(big.Rat).SetInt(new(big.Int).SetUint64(uint64(o.Bits)))}
+	return value.NewNumberFromBigInt(new(big.Int).SetUint64(uint64(o.Bits)))
 }
 func halMachineSame(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 2 {
@@ -460,10 +460,10 @@ func halMachineWordAddSmall(args []value.Value, ctx *hal.EvalContext) value.Valu
 		return f
 	}
 	n, ok := args[1].(*value.Number)
-	if !ok || !n.Val.IsInt() || !n.Val.Num().IsInt64() {
+	if !ok || !n.IsInt() || !n.IsInt64() {
 		return value.NewFault("machine.word_add_small: amount must be integer")
 	}
-	return newWord(uint32(int64(w) + n.Val.Num().Int64()))
+	return newWord(uint32(int64(w) + n.Int64Value()))
 }
 func halMachineWordSubSmall(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 2 {
@@ -474,10 +474,10 @@ func halMachineWordSubSmall(args []value.Value, ctx *hal.EvalContext) value.Valu
 		return f
 	}
 	n, ok := args[1].(*value.Number)
-	if !ok || !n.Val.IsInt() || !n.Val.Num().IsInt64() {
+	if !ok || !n.IsInt() || !n.IsInt64() {
 		return value.NewFault("machine.word_sub_small: amount must be integer")
 	}
-	return newWord(uint32(int64(w) - n.Val.Num().Int64()))
+	return newWord(uint32(int64(w) - n.Int64Value()))
 }
 func halMachineWordAddCarry(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 2 {
@@ -707,10 +707,10 @@ func halMachineAddSmall(args []value.Value, ctx *hal.EvalContext) value.Value {
 		return f
 	}
 	n, ok := args[1].(*value.Number)
-	if !ok || !n.Val.IsInt() || !n.Val.Num().IsInt64() {
+	if !ok || !n.IsInt() || !n.IsInt64() {
 		return value.NewFault("machine.add_small: amount must be integer")
 	}
-	return newSame(a.Kind, uint32(int64(a.Bits)+n.Val.Num().Int64()))
+	return newSame(a.Kind, uint32(int64(a.Bits)+n.Int64Value()))
 }
 func halMachineSubSmall(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 2 {
@@ -721,10 +721,10 @@ func halMachineSubSmall(args []value.Value, ctx *hal.EvalContext) value.Value {
 		return f
 	}
 	n, ok := args[1].(*value.Number)
-	if !ok || !n.Val.IsInt() || !n.Val.Num().IsInt64() {
+	if !ok || !n.IsInt() || !n.IsInt64() {
 		return value.NewFault("machine.sub_small: amount must be integer")
 	}
-	return newSame(a.Kind, uint32(int64(a.Bits)-n.Val.Num().Int64()))
+	return newSame(a.Kind, uint32(int64(a.Bits)-n.Int64Value()))
 }
 func halMachineLT(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if len(args) != 2 {

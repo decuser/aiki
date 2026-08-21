@@ -57,10 +57,17 @@ let new = () {
 	return state
 }
 
-let selected_unit = (tape) { return bits.extract(store.get(tape, COMMAND), 8, 3) }
+let selected_unit = (tape) {
+	return bits.extract(store.get(tape, COMMAND), 8, 3)
+}
 
-let device = (tape, unit) { return store.get(tape, DEVICE_BASE + unit) }
-let attached = (tape, unit) { return tu10.attached(device(tape, unit)) }
+let device = (tape, unit) {
+	return store.get(tape, DEVICE_BASE + unit)
+}
+
+let attached = (tape, unit) {
+	return tu10.attached(device(tape, unit))
+}
 
 let refresh_status = (tape) {
 	let status = 0
@@ -85,20 +92,34 @@ let finish_attach = (tape) {
 }
 
 let attach_media_unit = (tape, unit, tape_media) {
-	if (unit < 0) or (unit >= MEDIA_UNITS) { return [@pdp_fault, :tape_unit, unit] }
+	if (unit < 0) or (unit >= MEDIA_UNITS) {
+		return [@pdp_fault, :tape_unit, unit]
+	}
 	let result = tu10.attach_media(device(tape, unit), tape_media, "<memory>")
-	if is_error(result) { return result }
+	if is_error(result) {
+		return result
+	}
 	return finish_attach(tape)
 }
-let attach_media = (tape, tape_media) { return attach_media_unit(tape, 0, tape_media) }
+
+let attach_media = (tape, tape_media) {
+	return attach_media_unit(tape, 0, tape_media)
+}
 
 let attach_raw_unit = (tape, unit, path) {
-	if (unit < 0) or (unit >= MEDIA_UNITS) { return [@pdp_fault, :tape_unit, unit] }
+	if (unit < 0) or (unit >= MEDIA_UNITS) {
+		return [@pdp_fault, :tape_unit, unit]
+	}
 	let result = tu10.attach_raw(device(tape, unit), path)
-	if is_error(result) { return result }
+	if is_error(result) {
+		return result
+	}
 	return finish_attach(tape)
 }
-let attach_raw = (tape, path) { return attach_raw_unit(tape, 0, path) }
+
+let attach_raw = (tape, path) {
+	return attach_raw_unit(tape, 0, path)
+}
 
 let reset_tape = (tape) {
 	store.set(tape, COMMAND, COMMAND_READY)
@@ -118,10 +139,18 @@ let handles = (address) {
 }
 
 let register_word = (tape, address) {
-	if equal(address, MTS) { return store.get(tape, STATUS) }
-	if equal(address, MTC) { return store.get(tape, COMMAND) }
-	if equal(address, MTBRC) { return store.get(tape, BYTE_COUNT) }
-	if equal(address, MTCMA) { return store.get(tape, CURRENT_ADDRESS) }
+	if equal(address, MTS) {
+		return store.get(tape, STATUS)
+	}
+	if equal(address, MTC) {
+		return store.get(tape, COMMAND)
+	}
+	if equal(address, MTBRC) {
+		return store.get(tape, BYTE_COUNT)
+	}
+	if equal(address, MTCMA) {
+		return store.get(tape, CURRENT_ADDRESS)
+	}
 	return [@pdp_fault, :bus_address, address]
 }
 
@@ -142,7 +171,7 @@ let read_byte = (tape, address) {
 }
 
 let start_command = (tape, command) {
-	store.set(tape, COMMAND, bits.bit_and(command, octal.parse("177577"))) # clear CU READY
+	store.set(tape, COMMAND, bits.bit_and(command, octal.parse("177577")))  # clear CU READY
 	store.set(tape, ACTIVE, 1)
 	return true
 }
@@ -151,7 +180,7 @@ let write_command = (tape, value) {
 	let command = width.wrap(value, 16)
 	if not equal(bits.bit_and(command, COMMAND_PCLR), 0) {
 		reset_tape(tape)
-		command = bits.bit_and(command, octal.parse("167777")) # PCLR reads as zero
+		command = bits.bit_and(command, octal.parse("167777"))  # PCLR reads as zero
 	}
 	store.set(tape, COMMAND, command)
 	if not equal(bits.bit_and(command, COMMAND_GO), 0) {
@@ -161,7 +190,9 @@ let write_command = (tape, value) {
 }
 
 let write_word = (tape, address, value) {
-	if equal(address, MTC) { return write_command(tape, value) }
+	if equal(address, MTC) {
+		return write_command(tape, value)
+	}
 	if equal(address, MTBRC) {
 		store.set(tape, BYTE_COUNT, width.wrap(value, 16))
 		return true
@@ -236,39 +267,82 @@ let advance = (tape, elapsed, dma_write_byte) {
 	}
 	if equal(function, FUNCTION_SPACE_FORWARD) {
 		let unit = selected_unit(tape)
-		if not attached(tape, unit) { return finish_operation(tape) }
+		if not attached(tape, unit) {
+			return finish_operation(tape)
+		}
 		let count = 0
 		let counter = store.get(tape, BYTE_COUNT)
-		if not equal(counter, 0) { count = 65536 - counter }
+		if not equal(counter, 0) {
+			count = 65536 - counter
+		}
 		tu10.space_forward(device(tape, unit), count)
 		store.set(tape, BYTE_COUNT, 0)
 		return finish_operation(tape)
 	}
 	if equal(function, FUNCTION_REWIND) {
 		let unit = selected_unit(tape)
-		if attached(tape, unit) { tu10.rewind(device(tape, unit)) }
+		if attached(tape, unit) {
+			tu10.rewind(device(tape, unit))
+		}
 		return finish_operation(tape)
 	}
 	return finish_operation(tape)
 }
 
-let byte_count = (tape) { return store.get(tape, BYTE_COUNT) }
-let current_address = (tape) { return store.get(tape, CURRENT_ADDRESS) }
-let command = (tape) { return store.get(tape, COMMAND) }
-let status = (tape) { return store.get(tape, STATUS) }
+let byte_count = (tape) {
+	return store.get(tape, BYTE_COUNT)
+}
+
+let current_address = (tape) {
+	return store.get(tape, CURRENT_ADDRESS)
+}
+
+let command = (tape) {
+	return store.get(tape, COMMAND)
+}
+
+let status = (tape) {
+	return store.get(tape, STATUS)
+}
+
 let media_position_unit = (tape, unit) {
-	if not attached(tape, unit) { return 0 }
+	if not attached(tape, unit) {
+		return 0
+	}
 	return tu10.position(device(tape, unit))
 }
-let media_position = (tape) { return media_position_unit(tape, selected_unit(tape)) }
-let read_count = (tape) { return store.get(tape, READS) }
-let write_count = (tape) { return store.get(tape, WRITES) }
-let bytes_in = (tape) { return store.get(tape, BYTES_IN) }
-let bytes_out = (tape) { return store.get(tape, BYTES_OUT) }
-let unit_attached = (tape, unit) { return attached(tape, unit) }
-let unit_path = (tape, unit) { return tu10.path(device(tape, unit)) }
 
-let active = (tape) { return not equal(store.get(tape, ACTIVE), 0) }
+let media_position = (tape) {
+	return media_position_unit(tape, selected_unit(tape))
+}
+
+let read_count = (tape) {
+	return store.get(tape, READS)
+}
+
+let write_count = (tape) {
+	return store.get(tape, WRITES)
+}
+
+let bytes_in = (tape) {
+	return store.get(tape, BYTES_IN)
+}
+
+let bytes_out = (tape) {
+	return store.get(tape, BYTES_OUT)
+}
+
+let unit_attached = (tape, unit) {
+	return attached(tape, unit)
+}
+
+let unit_path = (tape, unit) {
+	return tu10.path(device(tape, unit))
+}
+
+let active = (tape) {
+	return not equal(store.get(tape, ACTIVE), 0)
+}
 
 export(
 	:FIRST_ADDRESS,

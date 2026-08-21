@@ -24,7 +24,7 @@ func TestCanvasWidthHeight(t *testing.T) {
 	if !ok {
 		t.Fatalf("canvas_width: expected Number, got %T", w)
 	}
-	wVal, _ := wNum.Val.Float64()
+	wVal, _ := wNum.Float64()
 	if int(wVal) != 800 {
 		t.Errorf("canvas_width: expected 800, got %v", wVal)
 	}
@@ -34,7 +34,7 @@ func TestCanvasWidthHeight(t *testing.T) {
 	if !ok {
 		t.Fatalf("canvas_height: expected Number, got %T", h)
 	}
-	hVal, _ := hNum.Val.Float64()
+	hVal, _ := hNum.Float64()
 	if int(hVal) != 600 {
 		t.Errorf("canvas_height: expected 600, got %v", hVal)
 	}

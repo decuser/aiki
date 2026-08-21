@@ -356,10 +356,10 @@ func halFileWriteAt(args []value.Value, ctx *hal.EvalContext) value.Value {
 
 func fileNonNegativeInt64(v value.Value) (int64, bool) {
 	n, ok := v.(*value.Number)
-	if !ok || !n.Val.IsInt() || !n.Val.Num().IsInt64() {
+	if !ok || !n.IsInt() || !n.IsInt64() {
 		return 0, false
 	}
-	i := n.Val.Num().Int64()
+	i := n.Int64Value()
 	return i, i >= 0
 }
 
@@ -605,10 +605,10 @@ func halFileChmod(args []value.Value, ctx *hal.EvalContext) value.Value {
 		return value.NewFault("_file_chmod: expected string path, got %s", args[0].Type())
 	}
 	mode, ok := args[1].(*value.Number)
-	if !ok || !mode.Val.IsInt() {
+	if !ok || !mode.IsInt() {
 		return value.NewFault("_file_chmod: mode must be an integer")
 	}
-	m := mode.Val.Num().Int64()
+	m := mode.Int64Value()
 	if m < 0 || m > 0777 {
 		return value.NewShapedError("io", "permission mode out of range: %d", m)
 	}

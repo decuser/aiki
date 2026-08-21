@@ -45,10 +45,10 @@ func stringIntArg(args []value.Value, at int, name, what string) (int, *value.Fa
 		return 0, value.NewFault("%s: missing %s", name, what)
 	}
 	n, ok := args[at].(*value.Number)
-	if !ok || !n.Val.IsInt() || !n.Val.Num().IsInt64() {
+	if !ok || !n.IsInt() || !n.IsInt64() {
 		return 0, value.NewFault("%s: %s must be an integer", name, what)
 	}
-	return int(n.Val.Num().Int64()), nil
+	return int(n.Int64Value()), nil
 }
 
 func halStringSubstring(args []value.Value, ctx *hal.EvalContext) value.Value {

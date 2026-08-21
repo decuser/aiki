@@ -6,7 +6,9 @@ let octal = import("../reference/octal")
 
 let instruction_name = (word) {
 	let kind = decode.instruction_kind(word)
-	if equal(kind, :other) { return "???" }
+	if equal(kind, :other) {
+		return "???"
+	}
 	return to_str(kind)
 }
 
@@ -46,8 +48,11 @@ let tape = (m) {
 	let unit = 0
 	while unit < 8 {
 		text = text + "  " + octal.count(unit) + "  "
-		if machine.tape_unit_attached(m, unit) { text = text + machine.tape_unit_path(m, unit) }
-		else { text = text + "--" }
+		if machine.tape_unit_attached(m, unit) {
+			text = text + machine.tape_unit_path(m, unit)
+		} else {
+			text = text + "--"
+		}
 		text = text + "\n"
 		unit = unit + 1
 	}
@@ -64,15 +69,17 @@ let tape = (m) {
 	return text
 }
 
-
 let rk = (m) {
 	let text = "Aiki PDP-11/40 — RK11 Disk\n\n"
 	text = text + "drives\n"
 	let unit = 0
 	while unit < 8 {
 		text = text + "  " + octal.count(unit) + "  "
-		if machine.disk_unit_attached(m, unit) { text = text + machine.disk_unit_path(m, unit) }
-		else { text = text + "--" }
+		if machine.disk_unit_attached(m, unit) {
+			text = text + machine.disk_unit_path(m, unit)
+		} else {
+			text = text + "--"
+		}
 		text = text + "\n"
 		unit = unit + 1
 	}
@@ -92,9 +99,15 @@ let rk = (m) {
 }
 
 let printable = (value) {
-	if (value >= 32) and (value <= 126) { return to_str(chr(value)) }
-	if equal(value, 10) { return "\n" }
-	if equal(value, 13) { return "\r" }
+	if (value >= 32) and (value <= 126) {
+		return to_str(chr(value))
+	}
+	if equal(value, 10) {
+		return "\n"
+	}
+	if equal(value, 13) {
+		return "\r"
+	}
 	return "."
 }
 
@@ -124,8 +137,12 @@ let unibus = (m, last_event) {
 	text = text + "  KL11 console\n"
 	let unit = 0
 	while unit < 8 {
-		if machine.tape_unit_attached(m, unit) { text = text + "  tape " + octal.count(unit) + "  " + machine.tape_unit_path(m, unit) + "\n" }
-		if machine.disk_unit_attached(m, unit) { text = text + "  disk " + octal.count(unit) + "  " + machine.disk_unit_path(m, unit) + "\n" }
+		if machine.tape_unit_attached(m, unit) {
+			text = text + "  tape " + octal.count(unit) + "  " + machine.tape_unit_path(m, unit) + "\n"
+		}
+		if machine.disk_unit_attached(m, unit) {
+			text = text + "  disk " + octal.count(unit) + "  " + machine.disk_unit_path(m, unit) + "\n"
+		}
 		unit = unit + 1
 	}
 	text = text + "\n"

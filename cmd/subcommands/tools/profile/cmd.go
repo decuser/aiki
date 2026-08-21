@@ -63,6 +63,8 @@ func printMeasurement(m engine.SemanticMeasurement, showSites bool) {
 	for _, row := range rows {
 		fmt.Printf("  %-12s %d\n", row.name, row.n)
 	}
+	printNumberRealization("Number arithmetic realization", m.Numbers, true)
+	printNumberRealization("Number call-return realization", m.CallNumbers, false)
 	if !showSites || len(m.Sites) == 0 {
 		return
 	}
@@ -80,6 +82,23 @@ func printMeasurement(m engine.SemanticMeasurement, showSites bool) {
 		if text := strings.TrimSpace(sc.Site.Source); text != "" {
 			fmt.Printf("            %s\n", text)
 		}
+	}
+}
+
+func printNumberRealization(title string, n engine.NumberRealizationCounts, arithmetic bool) {
+	total := n.ResultSmallInteger + n.ResultCompactRational + n.ResultBinaryCarrier + n.ResultBigRational
+	if total == 0 {
+		return
+	}
+	fmt.Printf("\n%s\n", title)
+	fmt.Printf("  %-20s %d\n", "small_integer", n.ResultSmallInteger)
+	fmt.Printf("  %-20s %d\n", "compact_rational", n.ResultCompactRational)
+	fmt.Printf("  %-20s %d\n", "binary_carrier", n.ResultBinaryCarrier)
+	fmt.Printf("  %-20s %d\n", "big_rational", n.ResultBigRational)
+	if arithmetic {
+		fmt.Printf("  %-20s %d\n", "binary_certified", n.BinaryCertified)
+		fmt.Printf("  %-20s %d\n", "binary_fallback", n.BinaryFallback)
+		fmt.Printf("  %-20s %d\n", "promoted_big", n.PromotedBigRational)
 	}
 }
 

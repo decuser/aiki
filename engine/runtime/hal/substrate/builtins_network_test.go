@@ -13,7 +13,7 @@ func addressParts(t *testing.T, v value.Value) (string, int64) {
 		t.Fatalf("address = %T %v", v, v.Inspect())
 	}
 	host := list.Elements[0].(*value.String).Val
-	port := list.Elements[1].(*value.Number).Val.Num().Int64()
+	port := list.Elements[1].(*value.Number).Int64Value()
 	return host, port
 }
 

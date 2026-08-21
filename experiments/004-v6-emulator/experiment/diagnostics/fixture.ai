@@ -6,6 +6,7 @@ let machine = import("../machine/machine")
 let @memory_word [address, value]
 let @memory_byte [address, value]
 let @fixture [name, before_registers, before_psw, before_memory, program, steps, after_registers, after_psw, after_memory]
+
 let @diagnostic_result [name, passed, differences]
 
 let set_registers = (m, registers) {

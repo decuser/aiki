@@ -53,7 +53,7 @@ func valuesEqual(a, b value.Value) bool {
 	switch av := a.(type) {
 	case *value.Number:
 		bv := b.(*value.Number)
-		return av.Val.Cmp(bv.Val) == 0
+		return av.Compare(bv) == 0
 	case *value.String:
 		bv := b.(*value.String)
 		return av.Val == bv.Val
@@ -81,10 +81,10 @@ func halStackLimit(args []value.Value, ctx *hal.EvalContext) value.Value {
 		return value.NewFault("stack_limit: environment not available")
 	}
 	num, ok := args[0].(*value.Number)
-	if !ok || !num.Val.IsInt() {
+	if !ok || !num.IsInt() {
 		return value.NewFault("stack_limit: n must be integer >= 1")
 	}
-	n := num.Val.Num().Int64()
+	n := num.Int64Value()
 	if n < 1 {
 		return value.NewFault("stack_limit: n must be integer >= 1")
 	}

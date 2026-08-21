@@ -1,7 +1,6 @@
 package contract
 
 import (
-	"math/big"
 	"testing"
 
 	"aiki/engine/runtime/hal/substrate"
@@ -28,8 +27,8 @@ func eval(t *testing.T, source string) value.Value {
 	return ev.Eval(ast, env)
 }
 
-// TestNumbersAreBigRat verifies all number operations return *big.Rat, not float64.
-func TestNumbersAreBigRat(t *testing.T) {
+// TestNumbersKeepExactSemanticBoundary verifies representation changes do not alter Number semantics.
+func TestNumbersKeepExactSemanticBoundary(t *testing.T) {
 	tests := []struct {
 		name   string
 		expr   string
@@ -39,16 +38,16 @@ func TestNumbersAreBigRat(t *testing.T) {
 			name: "integer literal",
 			expr: "42",
 			verify: func(t *testing.T, v value.Value) {
-				assertBigRat(t, v)
+				assertNumber(t, v)
 			},
 		},
 		{
 			name: "rational literal",
 			expr: "1/3",
 			verify: func(t *testing.T, v value.Value) {
-				n := assertBigRat(t, v)
-				if n != nil && n.Val.Cmp(big.NewRat(1, 3)) != 0 {
-					t.Errorf("expected 1/3, got %s", n.Val.RatString())
+				n := assertNumber(t, v)
+				if n != nil && !n.Equal(value.NewNumber(1, 3)) {
+					t.Errorf("expected 1/3, got %s", n.RatString())
 				}
 			},
 		},
@@ -56,9 +55,9 @@ func TestNumbersAreBigRat(t *testing.T) {
 			name: "addition preserves rational",
 			expr: "1/3 + 1/3",
 			verify: func(t *testing.T, v value.Value) {
-				n := assertBigRat(t, v)
-				if n != nil && n.Val.Cmp(big.NewRat(2, 3)) != 0 {
-					t.Errorf("expected 2/3, got %s", n.Val.RatString())
+				n := assertNumber(t, v)
+				if n != nil && !n.Equal(value.NewNumber(2, 3)) {
+					t.Errorf("expected 2/3, got %s", n.RatString())
 				}
 			},
 		},
@@ -66,9 +65,9 @@ func TestNumbersAreBigRat(t *testing.T) {
 			name: "division creates rational",
 			expr: "1 / 3",
 			verify: func(t *testing.T, v value.Value) {
-				n := assertBigRat(t, v)
-				if n != nil && n.Val.Cmp(big.NewRat(1, 3)) != 0 {
-					t.Errorf("expected 1/3, got %s", n.Val.RatString())
+				n := assertNumber(t, v)
+				if n != nil && !n.Equal(value.NewNumber(1, 3)) {
+					t.Errorf("expected 1/3, got %s", n.RatString())
 				}
 			},
 		},
@@ -76,24 +75,24 @@ func TestNumbersAreBigRat(t *testing.T) {
 			name: "multiplication preserves rational",
 			expr: "(1/3) * 3",
 			verify: func(t *testing.T, v value.Value) {
-				n := assertBigRat(t, v)
-				if n != nil && n.Val.Cmp(big.NewRat(1, 1)) != 0 {
-					t.Errorf("expected 1, got %s", n.Val.RatString())
+				n := assertNumber(t, v)
+				if n != nil && !n.Equal(value.NewNumber(1, 1)) {
+					t.Errorf("expected 1, got %s", n.RatString())
 				}
 			},
 		},
 		{
-			name: "sqrt returns big.Rat (via SetFloat64)",
+			name: "sqrt returns number",
 			expr: "_sqrt_inexact(4)",
 			verify: func(t *testing.T, v value.Value) {
-				assertBigRat(t, v)
+				assertNumber(t, v)
 			},
 		},
 		{
-			name: "trig returns big.Rat (via SetFloat64)",
+			name: "trig returns number",
 			expr: "_cos_inexact(0)",
 			verify: func(t *testing.T, v value.Value) {
-				assertBigRat(t, v)
+				assertNumber(t, v)
 			},
 		},
 	}
@@ -106,8 +105,8 @@ func TestNumbersAreBigRat(t *testing.T) {
 	}
 }
 
-// assertBigRat verifies v is a *value.Number with *big.Rat inside.
-func assertBigRat(t *testing.T, v value.Value) *value.Number {
+// assertNumber verifies only the semantic boundary, never a hidden representation.
+func assertNumber(t *testing.T, v value.Value) *value.Number {
 	t.Helper()
 	if v == nil {
 		t.Error("value is nil")
@@ -118,9 +117,8 @@ func assertBigRat(t *testing.T, v value.Value) *value.Number {
 		t.Errorf("expected *value.Number, got %T", v)
 		return nil
 	}
-	if n.Val == nil {
-		t.Error("Number.Val is nil, expected *big.Rat")
-		return nil
+	if n.Type() != value.NumberType {
+		t.Errorf("expected number type, got %s", n.Type())
 	}
 	return n
 }

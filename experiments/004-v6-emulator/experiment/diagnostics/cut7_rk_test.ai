@@ -17,14 +17,12 @@ let new_pack_path = () {
 
 run("media attachment policy keeps tape read-only and creates missing RK05 packs", () {
 	let m = monitor.new()
-
 	# Tape is existing immutable distribution media: a missing path must fail and
 	# must not be created as a side effect of attach.
 	let missing_tape = new_pack_path()
 	is_false(file.exists(missing_tape))
 	is_error(monitor.attach_tape_unit(m, 0, missing_tape))
 	is_false(file.exists(missing_tape))
-
 	# Disk is writable removable media: a missing path is a request to create a
 	# blank RK05 pack of the exact hardware geometry.
 	let missing_disk = new_pack_path()
@@ -32,7 +30,6 @@ run("media attachment policy keeps tape read-only and creates missing RK05 packs
 	equal(monitor.attach_disk_unit(m, 0, missing_disk), true)
 	is_true(file.exists(missing_disk))
 	equal(file.size(missing_disk), 2457600)
-
 	# Existing media of the wrong size is rejected rather than resized/truncated.
 	let wrong = new_pack_path()
 	let wf = file.open(wrong, :write)
@@ -41,10 +38,10 @@ run("media attachment policy keeps tape read-only and creates missing RK05 packs
 	equal(file.size(wrong), 1)
 	is_error(monitor.attach_disk_unit(m, 1, wrong))
 	equal(file.size(wrong), 1)
-
 	file.delete(missing_disk)
 	file.delete(wrong)
 })
+
 
 run("RK11 exposes eight drive slots and creates an RK05-sized pack", () {
 	let m = monitor.new()
@@ -55,6 +52,7 @@ run("RK11 exposes eight drive slots and creates an RK05-sized pack", () {
 	equal(file.size(path), 2457600)
 	file.delete(path)
 })
+
 
 run("RK11 WRITE and READ transfer one sector through UNIBUS NPR", () {
 	let m = monitor.new()
@@ -77,9 +75,11 @@ run("RK11 WRITE and READ transfer one sector through UNIBUS NPR", () {
 	equal(machine.disk_word_count(m), 0)
 	# one complete sector advances RKDA from sector 0 to sector 1
 	equal(machine.disk_sector(m), 1)
-
 	i = 0
-	while i < 256 { machine.deposit_word(m, base + (i * 2), 0); i = i + 1 }
+	while i < 256 {
+		machine.deposit_word(m, base + (i * 2), 0)
+		i = i + 1
+	}
 	equal(machine.write_word(m, octal.parse("177412"), 0), true)
 	equal(machine.write_word(m, octal.parse("177410"), base), true)
 	equal(machine.write_word(m, octal.parse("177406"), octal.parse("177400")), true)
@@ -94,11 +94,15 @@ run("RK11 WRITE and READ transfer one sector through UNIBUS NPR", () {
 	file.delete(path)
 })
 
+
 run("TM11 space-forward uses MTBRC as a two's-complement record count", () {
 	let m = monitor.new()
 	let values = []
 	let i = 0
-	while i < 1536 { values = append(values, i - (truncate(i / 256) * 256)); i = i + 1 }
+	while i < 1536 {
+		values = append(values, i - (truncate(i / 256) * 256))
+		i = i + 1
+	}
 	let media = v6_tape.from_bytes(bytes.bytes_new(values))
 	equal(machine.attach_tape_media_unit(m, 0, media), true)
 	equal(machine.write_word(m, octal.parse("172524"), octal.parse("177776")), true)
@@ -108,6 +112,7 @@ run("TM11 space-forward uses MTBRC as a two's-complement record count", () {
 	equal(machine.tape_media_position(m), 2)
 	equal(machine.tape_byte_count(m), 0)
 })
+
 
 run("device and UNIBUS observers expose connected media topology", () {
 	let m = monitor.new()
@@ -122,11 +127,13 @@ run("device and UNIBUS observers expose connected media topology", () {
 	file.delete(path)
 })
 
+
 run("monitor help exposes disk attachment and RK observer", () {
 	let text = monitor.help_text("monitor")
 	is_true(str.contains(text, "attach disk UNIT FILE"))
 	is_true(str.contains(text, "tape|rk|kl11"))
 })
+
 
 run("demo setup fails safely on missing tape before creating disk", () {
 	let m = monitor.new()

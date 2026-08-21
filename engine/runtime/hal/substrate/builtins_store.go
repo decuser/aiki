@@ -8,10 +8,10 @@ import (
 
 func storeInteger(v value.Value, what string) (int64, *value.Fault) {
 	n, ok := v.(*value.Number)
-	if !ok || !n.Val.IsInt() || !n.Val.Num().IsInt64() {
+	if !ok || !n.IsInt() || !n.IsInt64() {
 		return 0, value.NewFault("%s must be an integer", what)
 	}
-	return n.Val.Num().Int64(), nil
+	return n.Int64Value(), nil
 }
 
 func halStoreNew(args []value.Value, ctx *hal.EvalContext) value.Value {

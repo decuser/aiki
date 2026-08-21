@@ -14,13 +14,17 @@ let endpoint = [@error, :observer, "not connected"]
 let attempts = 0
 while is_error(endpoint) and (attempts < 100) {
 	endpoint = net.connect("127.0.0.1", to_number(args[1]))
-	if is_error(endpoint) { time.sleep(50) }
+	if is_error(endpoint) {
+		time.sleep(50)
+	}
 	attempts = attempts + 1
 }
+
 if is_error(endpoint) {
 	io.write(:stderr, "observer: connect failed: " + inspect(endpoint) + "\n")
 	system.exit(1)
 }
+
 io.write(endpoint, kind + "\n")
 
 let alive = true
@@ -34,4 +38,5 @@ while alive {
 		io.write(:stdout, data)
 	}
 }
+
 io.close(endpoint)

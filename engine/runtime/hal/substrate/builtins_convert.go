@@ -36,7 +36,7 @@ func halToStr(args []value.Value, ctx *hal.EvalContext) value.Value {
 	case *value.String:
 		return v
 	case *value.Number:
-		return &value.String{Val: v.Val.RatString()}
+		return &value.String{Val: v.RatString()}
 	case *value.Boolean:
 		if v.Val {
 			return &value.String{Val: "true"}
@@ -59,23 +59,23 @@ func halToDecimal(args []value.Value, ctx *hal.EvalContext) value.Value {
 		return value.NewFault("to_decimal: first argument must be number")
 	}
 	places, ok := args[1].(*value.Number)
-	if !ok || !places.Val.IsInt() {
+	if !ok || !places.IsInt() {
 		return value.NewFault("to_decimal: second argument must be integer")
 	}
-	if places.Val.Sign() < 0 {
+	if places.Sign() < 0 {
 		return value.NewFault("to_decimal: places must not be negative")
 	}
-	if !places.Val.Num().IsInt64() {
+	if !places.IsInt64() {
 		return value.NewFault("to_decimal: places out of range")
 	}
-	p := int(places.Val.Num().Int64())
+	p := int(places.Int64Value())
 
 	// The exact rational is formatted by long division. No floating-point
 	// value appears in this path: a float64 round-trip would misreport
 	// digits for magnitudes, place counts, or denominators outside its range.
-	neg := n.Val.Sign() < 0
-	num := new(big.Int).Abs(n.Val.Num())
-	den := new(big.Int).Set(n.Val.Denom())
+	neg := n.Sign() < 0
+	num := new(big.Int).Abs(n.Numerator())
+	den := new(big.Int).Set(n.Denominator())
 
 	scale := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(p)), nil)
 	scaled := new(big.Int).Mul(num, scale)
@@ -137,10 +137,10 @@ func halChr(args []value.Value, ctx *hal.EvalContext) value.Value {
 		return value.NewFault("chr: want 1 argument, got %d", len(args))
 	}
 	n, ok := args[0].(*value.Number)
-	if !ok || !n.Val.IsInt() {
+	if !ok || !n.IsInt() {
 		return value.NewFault("chr: expected integer")
 	}
-	code := n.Val.Num().Int64()
+	code := n.Int64Value()
 	if code < 0 || code > 0x10FFFF {
 		return value.NewShapedError("range", "chr: code point out of range: %d", code)
 	}

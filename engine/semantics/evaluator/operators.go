@@ -3,7 +3,6 @@ package evaluator
 import (
 	"aiki/engine"
 	"fmt"
-	"math/big"
 
 	"aiki/engine/semantics/value"
 	"aiki/engine/syntax"
@@ -129,11 +128,18 @@ func (e *Evaluator) applyOperator(op string, left, right value.Value, node *synt
 	}
 }
 
+func (e *Evaluator) numberArithmeticResult(left, right, result *value.Number, env *value.Env) *value.Number {
+	probe := e.activeProbe(env)
+	if counters, ok := probe.(*Counters); ok {
+		counters.NumberArithmeticResult(left, right, result)
+	}
+	return result
+}
+
 func (e *Evaluator) opAdd(left, right value.Value, node *syntax.Node, env *value.Env) value.Value {
 	if ln, ok := left.(*value.Number); ok {
 		if rn, ok := right.(*value.Number); ok {
-			result := new(big.Rat).Add(ln.Val, rn.Val)
-			return &value.Number{Val: result}
+			return e.numberArithmeticResult(ln, rn, ln.Add(rn), env)
 		}
 	}
 	if ls, ok := left.(*value.String); ok {
@@ -147,8 +153,7 @@ func (e *Evaluator) opAdd(left, right value.Value, node *syntax.Node, env *value
 func (e *Evaluator) opSub(left, right value.Value, node *syntax.Node, env *value.Env) value.Value {
 	if ln, ok := left.(*value.Number); ok {
 		if rn, ok := right.(*value.Number); ok {
-			result := new(big.Rat).Sub(ln.Val, rn.Val)
-			return &value.Number{Val: result}
+			return e.numberArithmeticResult(ln, rn, ln.Sub(rn), env)
 		}
 	}
 	return e.makeFault(node, env, "cannot subtract %s and %s", left.Type(), right.Type())
@@ -157,8 +162,7 @@ func (e *Evaluator) opSub(left, right value.Value, node *syntax.Node, env *value
 func (e *Evaluator) opMul(left, right value.Value, node *syntax.Node, env *value.Env) value.Value {
 	if ln, ok := left.(*value.Number); ok {
 		if rn, ok := right.(*value.Number); ok {
-			result := new(big.Rat).Mul(ln.Val, rn.Val)
-			return &value.Number{Val: result}
+			return e.numberArithmeticResult(ln, rn, ln.Mul(rn), env)
 		}
 	}
 	return e.makeFault(node, env, "cannot multiply %s and %s", left.Type(), right.Type())
@@ -167,11 +171,10 @@ func (e *Evaluator) opMul(left, right value.Value, node *syntax.Node, env *value
 func (e *Evaluator) opDiv(left, right value.Value, node *syntax.Node, env *value.Env) value.Value {
 	if ln, ok := left.(*value.Number); ok {
 		if rn, ok := right.(*value.Number); ok {
-			if rn.Val.Sign() == 0 {
+			if rn.IsZero() {
 				return e.makeFault(node, env, "division by zero")
 			}
-			result := new(big.Rat).Quo(ln.Val, rn.Val)
-			return &value.Number{Val: result}
+			return e.numberArithmeticResult(ln, rn, ln.Quo(rn), env)
 		}
 	}
 	return e.makeFault(node, env, "cannot divide %s and %s", left.Type(), right.Type())

@@ -115,7 +115,11 @@ Apply the same treatment to grammar/evaluator, prelude/help/docs, modules/export
 
 ### Phase 5 — Representation Guardrails
 
-Protect exact rationals, prohibit float-backed numeric paths, preserve runtime-owned state, and identify other never-regress engine contracts.
+Protect the exact Number semantic boundary, confine finite binary64 carriers to
+Number authority, prohibit rounded ordinary arithmetic and float-backed numeric
+paths outside that authority, preserve runtime-owned state, and identify other
+never-regress engine contracts. The adaptive hidden-representation detail is
+governed by `proposals/adaptive-exact-number-representation.md`.
 
 ### Phase 6 — Reconcile
 

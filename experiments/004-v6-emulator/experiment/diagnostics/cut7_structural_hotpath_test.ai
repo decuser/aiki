@@ -24,14 +24,12 @@ let prepare = () {
 run("bound CLR/CMP/BLO path matches single-step machine semantics", () {
 	let stepped = prepare()
 	let bounded = prepare()
-
 	let i = 0
 	while i < 12 {
 		equal(execute.step(stepped), true)
 		i = i + 1
 	}
 	equal(execute.run_bounded(bounded, 12), 12)
-
 	equal(machine.get_register(bounded, 0), machine.get_register(stepped, 0))
 	equal(machine.get_register(bounded, 6), machine.get_register(stepped, 6))
 	equal(machine.pc(bounded), machine.pc(stepped))
@@ -40,10 +38,25 @@ run("bound CLR/CMP/BLO path matches single-step machine semantics", () {
 	equal(machine.machine_time(bounded), machine.machine_time(stepped))
 	equal(machine.examine_word(bounded, 0), machine.examine_word(stepped, 0))
 	equal(machine.examine_word(bounded, 6), machine.examine_word(stepped, 6))
-	equal(machine.audit_instruction_count(bounded, :clr), machine.audit_instruction_count(stepped, :clr))
-	equal(machine.audit_instruction_count(bounded, :cmp), machine.audit_instruction_count(stepped, :cmp))
-	equal(machine.audit_instruction_count(bounded, :blo), machine.audit_instruction_count(stepped, :blo))
-	equal(machine.audit_mode_count(bounded, :destination, 2), machine.audit_mode_count(stepped, :destination, 2))
+	equal(
+		machine.audit_instruction_count(bounded, :clr),
+		machine.audit_instruction_count(stepped, :clr)
+	)
+	equal(
+		machine.audit_instruction_count(bounded, :cmp),
+		machine.audit_instruction_count(stepped, :cmp)
+	)
+	equal(
+		machine.audit_instruction_count(bounded, :blo),
+		machine.audit_instruction_count(stepped, :blo)
+	)
+	equal(
+		machine.audit_mode_count(bounded, :destination, 2),
+		machine.audit_mode_count(stepped, :destination, 2)
+	)
 	equal(machine.audit_mode_count(bounded, :source, 0), machine.audit_mode_count(stepped, :source, 0))
-	equal(machine.audit_mode_count(bounded, :destination, 0), machine.audit_mode_count(stepped, :destination, 0))
+	equal(
+		machine.audit_mode_count(bounded, :destination, 0),
+		machine.audit_mode_count(stepped, :destination, 0)
+	)
 })

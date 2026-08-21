@@ -174,35 +174,153 @@ let double_instruction = (name, code, operation, flags) {
 
 let topic = (name) {
 	match name {
-		"" { return index() }
-		"help" { return index() }
-		"address" { return addressing() }
-		"addressing" { return addressing() }
-		"register" { return registers() }
-		"registers" { return registers() }
-		"ps" { return psw() }
-		"psw" { return psw() }
-		"instruction" { return instructions() }
-		"instructions" { return instructions() }
-		"opcode" { return instructions() }
-		"opcodes" { return instructions() }
-		"branch" { return branches() }
-		"branches" { return branches() }
-		"trap" { return traps() }
-		"traps" { return traps() }
-		"mov" { return double_instruction("MOV", "01SSDD", "source -> destination", "N,Z from result; V=0; C unchanged") }
-		"movb" { return double_instruction("MOVB", "11SSDD", "source byte -> destination byte", "N,Z from byte result; V=0; C unchanged") }
-		"cmp" { return double_instruction("CMP", "02SSDD", "source - destination for condition codes; no stored result", "N,Z,V,C from subtraction") }
-		"cmpb" { return double_instruction("CMPB", "12SSDD", "source byte - destination byte for condition codes", "N,Z,V,C from byte subtraction") }
-		"bit" { return double_instruction("BIT", "03SSDD", "source AND destination for condition codes; no stored result", "N,Z from result; V=0; C unchanged") }
-		"bitb" { return double_instruction("BITB", "13SSDD", "source byte AND destination byte for condition codes", "N,Z from byte result; V=0; C unchanged") }
-		"bic" { return double_instruction("BIC", "04SSDD", "destination AND NOT source -> destination", "N,Z from result; V=0; C unchanged") }
-		"bicb" { return double_instruction("BICB", "14SSDD", "destination byte AND NOT source byte -> destination", "N,Z from byte result; V=0; C unchanged") }
-		"bis" { return double_instruction("BIS", "05SSDD", "destination OR source -> destination", "N,Z from result; V=0; C unchanged") }
-		"bisb" { return double_instruction("BISB", "15SSDD", "destination byte OR source byte -> destination", "N,Z from byte result; V=0; C unchanged") }
-		"add" { return double_instruction("ADD", "06SSDD", "source + destination -> destination", "N,Z,V,C from addition") }
-		"sub" { return double_instruction("SUB", "16SSDD", "destination - source -> destination", "N,Z,V,C from subtraction") }
-		_ { return [@error, :pdp_help, "unknown PDP-11 help topic: " + name] }
+		"" {
+			return index()
+		}
+		"help" {
+			return index()
+		}
+		"address" {
+			return addressing()
+		}
+		"addressing" {
+			return addressing()
+		}
+		"register" {
+			return registers()
+		}
+		"registers" {
+			return registers()
+		}
+		"ps" {
+			return psw()
+		}
+		"psw" {
+			return psw()
+		}
+		"instruction" {
+			return instructions()
+		}
+		"instructions" {
+			return instructions()
+		}
+		"opcode" {
+			return instructions()
+		}
+		"opcodes" {
+			return instructions()
+		}
+		"branch" {
+			return branches()
+		}
+		"branches" {
+			return branches()
+		}
+		"trap" {
+			return traps()
+		}
+		"traps" {
+			return traps()
+		}
+		"mov" {
+			return double_instruction(
+				"MOV",
+				"01SSDD",
+				"source -> destination",
+				"N,Z from result; V=0; C unchanged"
+			)
+		}
+		"movb" {
+			return double_instruction(
+				"MOVB",
+				"11SSDD",
+				"source byte -> destination byte",
+				"N,Z from byte result; V=0; C unchanged"
+			)
+		}
+		"cmp" {
+			return double_instruction(
+				"CMP",
+				"02SSDD",
+				"source - destination for condition codes; no stored result",
+				"N,Z,V,C from subtraction"
+			)
+		}
+		"cmpb" {
+			return double_instruction(
+				"CMPB",
+				"12SSDD",
+				"source byte - destination byte for condition codes",
+				"N,Z,V,C from byte subtraction"
+			)
+		}
+		"bit" {
+			return double_instruction(
+				"BIT",
+				"03SSDD",
+				"source AND destination for condition codes; no stored result",
+				"N,Z from result; V=0; C unchanged"
+			)
+		}
+		"bitb" {
+			return double_instruction(
+				"BITB",
+				"13SSDD",
+				"source byte AND destination byte for condition codes",
+				"N,Z from byte result; V=0; C unchanged"
+			)
+		}
+		"bic" {
+			return double_instruction(
+				"BIC",
+				"04SSDD",
+				"destination AND NOT source -> destination",
+				"N,Z from result; V=0; C unchanged"
+			)
+		}
+		"bicb" {
+			return double_instruction(
+				"BICB",
+				"14SSDD",
+				"destination byte AND NOT source byte -> destination",
+				"N,Z from byte result; V=0; C unchanged"
+			)
+		}
+		"bis" {
+			return double_instruction(
+				"BIS",
+				"05SSDD",
+				"destination OR source -> destination",
+				"N,Z from result; V=0; C unchanged"
+			)
+		}
+		"bisb" {
+			return double_instruction(
+				"BISB",
+				"15SSDD",
+				"destination byte OR source byte -> destination",
+				"N,Z from byte result; V=0; C unchanged"
+			)
+		}
+		"add" {
+			return double_instruction(
+				"ADD",
+				"06SSDD",
+				"source + destination -> destination",
+				"N,Z,V,C from addition"
+			)
+		}
+		"sub" {
+			return double_instruction(
+				"SUB",
+				"16SSDD",
+				"destination - source -> destination",
+				"N,Z,V,C from subtraction"
+			)
+		}
+		_ {
+			return [@error, :pdp_help, "unknown PDP-11 help topic: " + name]
+		}
 	}
 }
 

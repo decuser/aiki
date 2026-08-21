@@ -20,8 +20,9 @@ run("NEG word implements two's-complement NZVC semantics", () {
 	machine.deposit_word(m, octal.parse("010000"), octal.parse("005400"))
 	equal(execute.step(m), true)
 	equal(machine.get_register(m, 0), octal.parse("177770"))
-	equal(machine.psw(m), octal.parse("000011")) # N,C
+	equal(machine.psw(m), octal.parse("000011"))  # N,C
 })
+
 
 run("NEG sets V and C for the most-negative word", () {
 	let m = fresh()
@@ -29,8 +30,9 @@ run("NEG sets V and C for the most-negative word", () {
 	machine.deposit_word(m, octal.parse("010000"), octal.parse("005400"))
 	equal(execute.step(m), true)
 	equal(machine.get_register(m, 0), octal.parse("100000"))
-	equal(machine.psw(m), octal.parse("000013")) # N,V,C
+	equal(machine.psw(m), octal.parse("000013"))  # N,V,C
 })
+
 
 run("NEG clears carry when the result is zero", () {
 	let m = fresh()
@@ -38,22 +40,24 @@ run("NEG clears carry when the result is zero", () {
 	machine.deposit_word(m, octal.parse("010000"), octal.parse("005400"))
 	equal(execute.step(m), true)
 	equal(machine.get_register(m, 0), 0)
-	equal(machine.psw(m), octal.parse("000004")) # Z only
+	equal(machine.psw(m), octal.parse("000004"))  # Z only
 })
+
 
 run("NEGB changes only the low register byte and uses byte overflow", () {
 	let m = fresh()
-	machine.set_register(m, 0, octal.parse("021200")) # high byte 021, low byte 0200
+	machine.set_register(m, 0, octal.parse("021200"))  # high byte 021, low byte 0200
 	machine.deposit_word(m, octal.parse("010000"), octal.parse("105400"))
 	equal(execute.step(m), true)
 	equal(machine.get_register(m, 0), octal.parse("021200"))
-	equal(machine.psw(m), octal.parse("000013")) # N,V,C
+	equal(machine.psw(m), octal.parse("000013"))  # N,V,C
 })
 
 
 run("audit fast instruction index remains tied to manifest order", () {
 	is_true(audit.validate_instruction_index())
 })
+
 
 run("reserved-instruction rendering reports octal fault PC and IR", () {
 	let m = fresh()

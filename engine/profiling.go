@@ -22,6 +22,7 @@ type SemanticSite = observe.SemanticSite
 type SemanticProbe = observe.SemanticProbe
 type AttributionProbe = observe.AttributionProbe
 type SemanticCounts = observe.SemanticCounts
+type NumberRealizationCounts = observe.NumberRealizationCounts
 type SemanticSiteCount = observe.SemanticSiteCount
 type SemanticMeasurement = observe.SemanticMeasurement
 type ProfileLabels = observe.ProfileLabels

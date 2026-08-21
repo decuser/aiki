@@ -26,10 +26,14 @@ func (e *Evaluator) evalIndex(val value.Value, node *syntax.Node, env *value.Env
 			if !ok {
 				return e.makeFault(node, env, "index must be a number")
 			}
-			if !num.Val.IsInt() {
+			if !num.IsInt() {
 				return e.makeFault(node, env, "index must be an integer")
 			}
-			i := int(num.Val.Num().Int64())
+			iv, ok := num.Int64()
+			if !ok {
+				return e.makeFault(node, env, "index must fit machine integer range")
+			}
+			i := int(iv)
 			if i < 0 || i >= len(list.Elements) {
 				return e.makeFault(node, env, "index out of bounds: %d", i)
 			}
@@ -51,10 +55,14 @@ func (e *Evaluator) evalStringIndex(s *value.String, node *syntax.Node, env *val
 			if !ok {
 				return e.makeFault(node, env, "index must be a number")
 			}
-			if !num.Val.IsInt() {
+			if !num.IsInt() {
 				return e.makeFault(node, env, "index must be an integer")
 			}
-			i := int(num.Val.Num().Int64())
+			iv, ok := num.Int64()
+			if !ok {
+				return e.makeFault(node, env, "index must fit machine integer range")
+			}
+			i := int(iv)
 			runes := []rune(s.Val)
 			if i < 0 || i >= len(runes) {
 				return e.makeFault(node, env, "index out of bounds: %d", i)

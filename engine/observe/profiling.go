@@ -57,6 +57,19 @@ type SemanticCounts struct {
 	StoreWrite int64
 }
 
+// NumberRealizationCounts describes hidden runtime representations observed
+// while evaluating numeric operations. These are realization facts, not Aiki
+// semantic units; representation remains unobservable to Aiki programs.
+type NumberRealizationCounts struct {
+	ResultSmallInteger    int64
+	ResultCompactRational int64
+	ResultBinaryCarrier   int64
+	ResultBigRational     int64
+	BinaryCertified       int64
+	BinaryFallback        int64
+	PromotedBigRational   int64
+}
+
 // SemanticSiteCount records the number of observations at one semantic site.
 type SemanticSiteCount struct {
 	Kind  SemanticKind
@@ -66,8 +79,10 @@ type SemanticSiteCount struct {
 
 // SemanticMeasurement is the result of one measured Aiki computation.
 type SemanticMeasurement struct {
-	Counts SemanticCounts
-	Sites  []SemanticSiteCount
+	Counts      SemanticCounts
+	Numbers     NumberRealizationCounts
+	CallNumbers NumberRealizationCounts
+	Sites       []SemanticSiteCount
 }
 
 // ProfileLabels are the stable correlation dimensions written into Go CPU

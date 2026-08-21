@@ -1,0 +1,19 @@
+# Compact-rational realization witness.
+#
+#     aiki profile --counts extra/profiling/adaptive-number-rational.ai
+let x = 1 / 3
+let y = 2 / 5
+let total = 0
+let i = 0
+
+while i < 100000 {
+	total = total + x
+	total = total - x
+	total = total + y
+	total = total - y
+	i = i + 1
+}
+
+println(total)
+println(0.1 + 0.2)
+println((1 / 3) * 3)

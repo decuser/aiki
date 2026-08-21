@@ -12,18 +12,34 @@ import (
 	"testing"
 )
 
-func TestExactNumberCoreContainsNoFloatPath(t *testing.T) {
-	if err := validateNoCoreFloatPath(loadCoreGoSources(t)); err != nil {
+func TestExactNumberCoreKeepsFloatAtNumberBoundary(t *testing.T) {
+	if err := validateExactNumberBoundary(loadCoreGoSources(t)); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func TestExactNumberInvariantRejectsFloatReintroduction(t *testing.T) {
+func TestExactNumberInvariantRejectsFloatOutsideNumberAuthority(t *testing.T) {
 	sources := loadCoreGoSources(t)
-	sources["engine/semantics/value/forbidden.go"] = "package value\nfunc forbiddenRegression(x float64) float64 { return x }\n"
-	err := validateNoCoreFloatPath(sources)
+	sources["engine/semantics/evaluator/forbidden.go"] = "package evaluator\nfunc forbiddenRegression(x float64) float64 { return x + 1 }\n"
+	err := validateExactNumberBoundary(sources)
 	if err == nil || !strings.Contains(err.Error(), "float64") {
-		t.Fatalf("expected float-path invariant failure, got %v", err)
+		t.Fatalf("expected float-boundary invariant failure, got %v", err)
+	}
+}
+
+func TestExactNumberInvariantRejectsRoundedArithmeticPath(t *testing.T) {
+	sources := loadCoreGoSources(t)
+	sources["engine/semantics/value/number.go"] += `
+func (n *Number) forbiddenRoundedAdd(other *Number) *Number {
+	a, _ := n.Float64()
+	b, _ := other.Float64()
+	out, _ := NewNumberFromFloat64(a + b)
+	return out
+}
+`
+	err := validateExactNumberBoundary(sources)
+	if err == nil || !strings.Contains(err.Error(), "forbiddenRoundedAdd") {
+		t.Fatalf("expected rounded-arithmetic invariant failure, got %v", err)
 	}
 }
 
@@ -58,26 +74,69 @@ func loadCoreGoSources(t *testing.T) map[string]string {
 	return out
 }
 
-func validateNoCoreFloatPath(sources map[string]string) error {
+func validateExactNumberBoundary(sources map[string]string) error {
+	const numberPath = "engine/semantics/value/number.go"
 	var problems []string
 	for path, source := range sources {
 		f, err := parser.ParseFile(token.NewFileSet(), path, source, 0)
 		if err != nil {
 			return fmt.Errorf("parse %s: %w", path, err)
 		}
-		ast.Inspect(f, func(n ast.Node) bool {
-			switch x := n.(type) {
-			case *ast.Ident:
-				if x.Name == "float32" || x.Name == "float64" {
-					problems = append(problems, fmt.Sprintf("%s: forbidden float type %s", path, x.Name))
+		if path != numberPath {
+			ast.Inspect(f, func(n ast.Node) bool {
+				switch x := n.(type) {
+				case *ast.Ident:
+					if x.Name == "float32" || x.Name == "float64" {
+						problems = append(problems, fmt.Sprintf("%s: float type %s outside Number authority", path, x.Name))
+					}
+				case *ast.SelectorExpr:
+					if x.Sel.Name == "ParseFloat" || x.Sel.Name == "SetFloat64" || x.Sel.Name == "Float64" || x.Sel.Name == "Float64bits" || x.Sel.Name == "Float64frombits" {
+						problems = append(problems, fmt.Sprintf("%s: float conversion %s outside Number authority", path, x.Sel.Name))
+					}
 				}
-			case *ast.SelectorExpr:
-				if x.Sel.Name == "ParseFloat" || x.Sel.Name == "SetFloat64" || x.Sel.Name == "Float64" {
-					problems = append(problems, fmt.Sprintf("%s: forbidden float conversion %s", path, x.Sel.Name))
-				}
+				return true
+			})
+			continue
+		}
+
+		// The Number authority may carry finite binary64 bits and cross explicit
+		// host boundaries. Ordinary arithmetic methods may not use that path.
+		for _, decl := range f.Decls {
+			fn, ok := decl.(*ast.FuncDecl)
+			if !ok || fn.Body == nil {
+				continue
 			}
-			return true
-		})
+			forbiddenArithmetic := fn.Name.Name == "Add" || fn.Name.Name == "Sub" || fn.Name.Name == "Mul" || fn.Name.Name == "Quo" || fn.Name.Name == "Neg"
+			if strings.Contains(fn.Name.Name, "forbiddenRounded") {
+				forbiddenArithmetic = true
+			}
+			if !forbiddenArithmetic {
+				continue
+			}
+			ast.Inspect(fn.Body, func(n ast.Node) bool {
+				switch x := n.(type) {
+				case *ast.Ident:
+					if x.Name == "float32" || x.Name == "float64" {
+						problems = append(problems, fmt.Sprintf("%s:%s: rounded numeric type %s in exact arithmetic", path, fn.Name.Name, x.Name))
+					}
+					// Ordinary arithmetic may decode an existing binary64 carrier and
+					// pass it through a separately certified exact-operation helper. It
+					// may not construct a Number from an arbitrary host float result.
+					if x.Name == "NewNumberFromFloat64" {
+						problems = append(problems, fmt.Sprintf("%s:%s: host float construction in exact arithmetic", path, fn.Name.Name))
+					}
+				case *ast.SelectorExpr:
+					// Float64frombits/Float64bits are representation operations on the
+					// exact dyadic carrier. They do not themselves round. Conversions
+					// through Float64/SetFloat64 remain forbidden on ordinary exact
+					// arithmetic paths.
+					if x.Sel.Name == "Float64" || x.Sel.Name == "SetFloat64" || x.Sel.Name == "ParseFloat" {
+						problems = append(problems, fmt.Sprintf("%s:%s: float conversion %s in exact arithmetic", path, fn.Name.Name, x.Sel.Name))
+					}
+				}
+				return true
+			})
+		}
 	}
 	if len(problems) == 0 {
 		return nil

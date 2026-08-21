@@ -16,7 +16,7 @@ func (e *Evaluator) applyFunction(fn value.Value, args []value.Value, node *synt
 	e.semanticHitDetail(engine.SemanticCall, callName, node, env)
 	switch f := fn.(type) {
 	case *value.Function:
-		return e.applyUserFunction(f, args, node, env)
+		return e.numberCallResult(e.applyUserFunction(f, args, node, env), env)
 	case value.Callable:
 		probe := e.activeProbe(env)
 		parentLabels := semanticProfileLabels(env)
@@ -59,10 +59,18 @@ func (e *Evaluator) applyFunction(fn value.Value, args []value.Value, node *synt
 			fault.Source = env.GetSourceLine(node.Pos.Line)
 			fault.Stack = env.CopyStack()
 		}
-		return result
+		return e.numberCallResult(result, env)
 	default:
 		return e.makeFault(node, env, "not a function: %s", fn.Type())
 	}
+}
+
+func (e *Evaluator) numberCallResult(result value.Value, env *value.Env) value.Value {
+	probe := e.activeProbe(env)
+	if counters, ok := probe.(*Counters); ok {
+		counters.NumberCallResult(result)
+	}
+	return result
 }
 
 func (e *Evaluator) applyUserFunction(fn *value.Function, args []value.Value, node *syntax.Node, env *value.Env) value.Value {

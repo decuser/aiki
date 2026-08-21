@@ -1,16 +1,15 @@
 package property
 
 import (
-	"math/big"
 	"testing"
 	"testing/quick"
 
 	"aiki/engine/semantics/value"
 )
 
-// TestNumberArithmeticPreservesRat verifies arithmetic on Numbers always returns *big.Rat.
-func TestNumberArithmeticPreservesRat(t *testing.T) {
-	// Property: adding two numbers produces a number with *big.Rat
+// TestNumberArithmeticPreservesSemanticType verifies arithmetic stays in the Number boundary.
+func TestNumberArithmeticPreservesSemanticType(t *testing.T) {
+	// Property: adding two numbers produces the same semantic Number type regardless of representation
 	add := func(a, b int64) bool {
 		if b == 0 {
 			b = 1 // avoid division issues in later tests
@@ -19,10 +18,9 @@ func TestNumberArithmeticPreservesRat(t *testing.T) {
 		n2 := value.NewNumber(b, 1)
 
 		// Simulate addition (what evaluator does)
-		result := new(big.Rat).Add(n1.Val, n2.Val)
-		n3 := &value.Number{Val: result}
+		n3 := n1.Add(n2)
 
-		return n3.Val != nil && n3.Type() == value.NumberType
+		return n3 != nil && n3.Type() == value.NumberType
 	}
 
 	if err := quick.Check(add, nil); err != nil {
@@ -30,8 +28,8 @@ func TestNumberArithmeticPreservesRat(t *testing.T) {
 	}
 }
 
-// TestNumberDivisionPreservesRat verifies division produces rational, not float.
-func TestNumberDivisionPreservesRat(t *testing.T) {
+// TestNumberDivisionRemainsExact verifies division preserves exact rational semantics.
+func TestNumberDivisionRemainsExact(t *testing.T) {
 	div := func(a, b int64) bool {
 		if b == 0 {
 			return true // skip division by zero
@@ -39,11 +37,10 @@ func TestNumberDivisionPreservesRat(t *testing.T) {
 		n1 := value.NewNumber(a, 1)
 		n2 := value.NewNumber(b, 1)
 
-		result := new(big.Rat).Quo(n1.Val, n2.Val)
-		n3 := &value.Number{Val: result}
+		n3 := n1.Quo(n2)
 
 		// Key property: result is exact rational, not float approximation
-		return n3.Val != nil && n3.Val.IsInt() == (a%b == 0)
+		return n3 != nil && n3.IsInt() == (a%b == 0)
 	}
 
 	if err := quick.Check(div, nil); err != nil {

@@ -27,10 +27,10 @@ func halBytesGet(args []value.Value, ctx *hal.EvalContext) value.Value {
 		return value.NewFault("bytes_get: expected bytes, got %s", args[0].Type())
 	}
 	idx, ok := args[1].(*value.Number)
-	if !ok || !idx.Val.IsInt() {
+	if !ok || !idx.IsInt() {
 		return value.NewFault("bytes_get: index must be integer")
 	}
-	i := int(idx.Val.Num().Int64())
+	i := int(idx.Int64Value())
 	if i < 0 || i >= len(b.Val) {
 		return value.NewFault("bytes_get: index %d out of bounds (length %d)", i, len(b.Val))
 	}
@@ -47,15 +47,15 @@ func halBytesSlice(args []value.Value, ctx *hal.EvalContext) value.Value {
 		return value.NewFault("bytes_slice: expected bytes, got %s", args[0].Type())
 	}
 	startNum, ok := args[1].(*value.Number)
-	if !ok || !startNum.Val.IsInt() {
+	if !ok || !startNum.IsInt() {
 		return value.NewFault("bytes_slice: start must be integer")
 	}
 	endNum, ok := args[2].(*value.Number)
-	if !ok || !endNum.Val.IsInt() {
+	if !ok || !endNum.IsInt() {
 		return value.NewFault("bytes_slice: end must be integer")
 	}
-	start := int(startNum.Val.Num().Int64())
-	end := int(endNum.Val.Num().Int64())
+	start := int(startNum.Int64Value())
+	end := int(endNum.Int64Value())
 	if start < 0 || end > len(b.Val) || start > end {
 		return value.NewFault("bytes_slice: invalid range [%d:%d] for length %d", start, end, len(b.Val))
 	}
@@ -101,10 +101,10 @@ func halBytesToStrPure(args []value.Value, ctx *hal.EvalContext) value.Value {
 	bytes := make([]byte, len(list.Elements))
 	for i, elem := range list.Elements {
 		num, ok := elem.(*value.Number)
-		if !ok || !num.Val.IsInt() {
+		if !ok || !num.IsInt() {
 			return value.NewFault("bytes_to_str_pure: element %d must be integer", i)
 		}
-		n := num.Val.Num().Int64()
+		n := num.Int64Value()
 		if n < 0 || n > 255 {
 			return value.NewFault("bytes_to_str_pure: element %d out of range (0-255): %d", i, n)
 		}
@@ -125,10 +125,10 @@ func halBytesNew(args []value.Value, ctx *hal.EvalContext) value.Value {
 	result := make([]byte, len(list.Elements))
 	for i, elem := range list.Elements {
 		num, ok := elem.(*value.Number)
-		if !ok || !num.Val.IsInt() {
+		if !ok || !num.IsInt() {
 			return value.NewFault("bytes_new: element %d must be integer", i)
 		}
-		n := num.Val.Num().Int64()
+		n := num.Int64Value()
 		if n < 0 || n > 255 {
 			return value.NewFault("bytes_new: element %d out of range (0-255): %d", i, n)
 		}

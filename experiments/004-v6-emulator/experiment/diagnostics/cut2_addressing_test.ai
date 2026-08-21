@@ -16,6 +16,7 @@ run("operand field decodes mode and register", () {
 	equal(decode.operand_register(23), 7)
 })
 
+
 run("double operand fields decode independently", () {
 	# 012700 = MOV #...,R0; decimal 5568
 	let instruction = 5568
@@ -24,6 +25,7 @@ run("double operand fields decode independently", () {
 	equal(decode.destination_spec(instruction), 0)
 })
 
+
 run("fetch reads at PC and advances PC by one word", () {
 	let m = fresh()
 	machine.set_pc(m, 4096)
@@ -31,6 +33,7 @@ run("fetch reads at PC and advances PC by one word", () {
 	equal(fetch.word(m), 4660)
 	equal(machine.pc(m), 4098)
 })
+
 
 run("mode 0 register addressing names the register without side effect", () {
 	let m = fresh()
@@ -41,6 +44,7 @@ run("mode 0 register addressing names the register without side effect", () {
 	equal(addressing.read_operand(m, operand, addressing.WORD), 4660)
 	equal(machine.get_register(m, 3), 4660)
 })
+
 
 run("mode 1 register deferred reads memory through register address", () {
 	let m = fresh()
@@ -53,6 +57,7 @@ run("mode 1 register deferred reads memory through register address", () {
 	equal(machine.get_register(m, 1), 8192)
 })
 
+
 run("mode 2 word autoincrement uses then advances by two", () {
 	let m = fresh()
 	machine.set_register(m, 1, 8192)
@@ -63,6 +68,7 @@ run("mode 2 word autoincrement uses then advances by two", () {
 	equal(machine.get_register(m, 1), 8194)
 })
 
+
 run("mode 2 byte autoincrement advances R0-R5 by one", () {
 	let m = fresh()
 	machine.set_register(m, 1, 8192)
@@ -72,6 +78,7 @@ run("mode 2 byte autoincrement advances R0-R5 by one", () {
 	equal(machine.get_register(m, 1), 8193)
 })
 
+
 run("mode 2 byte autoincrement keeps SP word aligned", () {
 	let m = fresh()
 	machine.set_sp(m, 8192)
@@ -80,6 +87,7 @@ run("mode 2 byte autoincrement keeps SP word aligned", () {
 	equal(addressing.read_operand(m, operand, addressing.BYTE), 171)
 	equal(machine.sp(m), 8194)
 })
+
 
 run("mode 3 autoincrement deferred fetches pointer and advances by two", () {
 	let m = fresh()
@@ -92,6 +100,7 @@ run("mode 3 autoincrement deferred fetches pointer and advances by two", () {
 	equal(machine.get_register(m, 1), 8194)
 })
 
+
 run("mode 4 word autodecrement decrements before use", () {
 	let m = fresh()
 	machine.set_register(m, 1, 8194)
@@ -102,6 +111,7 @@ run("mode 4 word autodecrement decrements before use", () {
 	equal(machine.get_register(m, 1), 8192)
 })
 
+
 run("mode 4 byte autodecrement decrements R0-R5 by one", () {
 	let m = fresh()
 	machine.set_register(m, 1, 8193)
@@ -110,6 +120,7 @@ run("mode 4 byte autodecrement decrements R0-R5 by one", () {
 	equal(addressing.operand_address(operand), 8192)
 	equal(machine.get_register(m, 1), 8192)
 })
+
 
 run("mode 5 autodecrement deferred decrements pointer register by two", () {
 	let m = fresh()
@@ -121,6 +132,7 @@ run("mode 5 autodecrement deferred decrements pointer register by two", () {
 	equal(addressing.read_operand(m, operand, addressing.WORD), 4660)
 	equal(machine.get_register(m, 1), 8192)
 })
+
 
 run("mode 6 indexed uses signed extension and preserves base register", () {
 	let m = fresh()
@@ -135,6 +147,7 @@ run("mode 6 indexed uses signed extension and preserves base register", () {
 	equal(machine.pc(m), 4098)
 })
 
+
 run("mode 6 indexed sign extends negative displacement", () {
 	let m = fresh()
 	machine.set_register(m, 1, 8192)
@@ -144,6 +157,7 @@ run("mode 6 indexed sign extends negative displacement", () {
 	equal(addressing.operand_address(operand), 8190)
 	equal(machine.get_register(m, 1), 8192)
 })
+
 
 run("mode 7 indexed deferred fetches effective address through pointer", () {
 	let m = fresh()
@@ -158,6 +172,7 @@ run("mode 7 indexed deferred fetches effective address through pointer", () {
 	equal(machine.get_register(m, 1), 8192)
 })
 
+
 run("PC mode 2 is immediate and consumes following word", () {
 	let m = fresh()
 	machine.set_pc(m, 4096)
@@ -167,6 +182,7 @@ run("PC mode 2 is immediate and consumes following word", () {
 	equal(addressing.read_operand(m, operand, addressing.WORD), 4660)
 	equal(machine.pc(m), 4098)
 })
+
 
 run("PC mode 3 is absolute deferred and consumes address word", () {
 	let m = fresh()
@@ -179,6 +195,7 @@ run("PC mode 3 is absolute deferred and consumes address word", () {
 	equal(machine.pc(m), 4098)
 })
 
+
 run("PC mode 6 is relative to PC after extension word", () {
 	let m = fresh()
 	machine.set_pc(m, 4096)
@@ -189,6 +206,7 @@ run("PC mode 6 is relative to PC after extension word", () {
 	equal(addressing.operand_address(operand), 4104)
 	equal(addressing.read_operand(m, operand, addressing.WORD), 4660)
 })
+
 
 run("PC mode 7 is relative deferred", () {
 	let m = fresh()

@@ -8,5 +8,5 @@ ai/
 bootstraps/
 proposals/
 extra/editors/
-extra/profiling/BASELINE-*.md
+extra/profiling/
 test/regression/README.md

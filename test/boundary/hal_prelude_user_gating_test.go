@@ -2,7 +2,6 @@ package boundary
 
 import (
 	"fmt"
-	"math/big"
 	"testing"
 
 	"aiki/engine/runtime/hal/substrate"
@@ -192,7 +191,7 @@ func TestChrOrdRoundTrip(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected number, got: %s", result.Inspect())
 	}
-	if num.Val.Cmp(big.NewRat(8364, 1)) != 0 {
+	if !num.Equal(value.NewNumber(8364, 1)) {
 		t.Errorf("expected 8364, got: %s", result.Inspect())
 	}
 }

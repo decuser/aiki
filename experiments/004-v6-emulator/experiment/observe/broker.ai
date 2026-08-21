@@ -62,7 +62,9 @@ let sender = (endpoint, state) {
 
 let start = (requested_port) {
 	let listener = net.listen("127.0.0.1", requested_port)
-	if is_error(listener) { return listener }
+	if is_error(listener) {
+		return listener
+	}
 	let accepted = channel()
 	spawn(accept_loop, listener, accepted)
 	return [listener, accepted]
@@ -73,7 +75,9 @@ let port = (broker) {
 	return address[1]
 }
 
-let accepted = (broker) { return broker[1] }
+let accepted = (broker) {
+	return broker[1]
+}
 
 # A view is an observation-only mailbox. Execution replaces the latest text;
 # a separate sender performs potentially blocking host I/O. Intermediate views
@@ -87,15 +91,24 @@ let attach = (kind, endpoint, initial_text) {
 	return [kind, state]
 }
 
-let kind = (view) { return view[0] }
-let alive = (view) { return store.get(view[1], VIEW_ALIVE) }
+let kind = (view) {
+	return view[0]
+}
+
+let alive = (view) {
+	return store.get(view[1], VIEW_ALIVE)
+}
 
 let update = (view, text) {
-	if not alive(view) { return false }
+	if not alive(view) {
+		return false
+	}
 	# Stable instruments do not repaint unchanged snapshots. Besides reducing
 	# observation overhead, this preserves terminal selection while the guest
 	# spins in a stable state such as the V6 tape-bootstrap BR loop.
-	if equal(store.get(view[1], VIEW_TEXT), text) { return true }
+	if equal(store.get(view[1], VIEW_TEXT), text) {
+		return true
+	}
 	store.set(view[1], VIEW_TEXT, text)
 	store.set(view[1], VIEW_VERSION, store.get(view[1], VIEW_VERSION) + 1)
 	return true

@@ -14,6 +14,7 @@ run("monitor deposits and examines octal words through the machine boundary", ()
 	equal(monitor.examine(m, octal.parse("100000"), 1), "100000  012700")
 })
 
+
 run("monitor can reproduce the six-word V6 tape bootstrap setup", () {
 	let m = monitor.new()
 	let base = octal.parse("100000")
@@ -28,6 +29,7 @@ run("monitor can reproduce the six-word V6 tape bootstrap setup", () {
 	equal(machine.examine_word(m, base + 10), octal.parse("000777"))
 })
 
+
 run("observer views are read-only projections of one machine", () {
 	let m = monitor.new()
 	monitor.deposit(m, octal.parse("100000"), octal.parse("012700"))
@@ -41,6 +43,7 @@ run("observer views are read-only projections of one machine", () {
 	equal(machine.pc(m), octal.parse("100000"))
 })
 
+
 run("monitor step executes one architectural instruction", () {
 	let m = monitor.new()
 	monitor.deposit(m, octal.parse("001000"), octal.parse("000240"))
@@ -49,6 +52,7 @@ run("monitor step executes one architectural instruction", () {
 	equal(machine.pc(m), octal.parse("001002"))
 	equal(machine.steps(m), 1)
 })
+
 
 run("monitor help exposes control-key contract", () {
 	let text = monitor.help_text("monitor")
@@ -66,6 +70,7 @@ run("suspension is distinct from architectural HALT in status and CPU view", () 
 	is_true(str.contains(views.cpu(m), "state SUSPENDED"))
 })
 
+
 run("resuming clears the suspended state", () {
 	let m = monitor.new()
 	machine.set_suspended(m, true)
@@ -81,18 +86,21 @@ run("boot tape unit encodes the TM11 unit select field and starts at 100000", ()
 	equal(machine.examine_word(m, octal.parse("100010")), octal.parse("060003"))
 	equal(machine.pc(m), octal.parse("100000"))
 	is_true(machine.running(m))
-
 	machine.set_running(m, false)
 	equal(monitor.boot_tape(m, 1), true)
 	equal(machine.examine_word(m, octal.parse("100010")), octal.parse("060403"))
 	equal(machine.pc(m), octal.parse("100000"))
 })
 
+
 run("unit-aware tape bootstrap reads from the selected transport and counts activity", () {
 	let m = monitor.new()
 	let values = []
 	let i = 0
-	while i < 512 { values = append(values, i - (truncate(i / 256) * 256)); i = i + 1 }
+	while i < 512 {
+		values = append(values, i - (truncate(i / 256) * 256))
+		i = i + 1
+	}
 	let media = v6_tape.from_bytes(bytes.bytes_new(values))
 	equal(machine.attach_tape_media_unit(m, 1, media), true)
 	equal(monitor.boot_tape(m, 1), true)
@@ -111,6 +119,7 @@ run("unit-aware tape bootstrap reads from the selected transport and counts acti
 	is_true(str.contains(views.tape(m), "reads     1"))
 	is_true(str.contains(views.unibus(m, "tape DMA"), "NPR writes 1000"))
 })
+
 
 run("monitor help documents restartable suspension and unit-aware tape boot", () {
 	let text = monitor.help_text("monitor")

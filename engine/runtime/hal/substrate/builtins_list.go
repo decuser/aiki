@@ -116,22 +116,22 @@ func halRange(args []value.Value, ctx *hal.EvalContext) value.Value {
 	var start, end int64
 	if len(args) == 1 {
 		n, ok := args[0].(*value.Number)
-		if !ok || !n.Val.IsInt() {
+		if !ok || !n.IsInt() {
 			return value.NewFault("range: expected integer")
 		}
 		start = 0
-		end = n.Val.Num().Int64()
+		end = n.Int64Value()
 	} else {
 		s, ok := args[0].(*value.Number)
-		if !ok || !s.Val.IsInt() {
+		if !ok || !s.IsInt() {
 			return value.NewFault("range: expected integer")
 		}
 		e, ok := args[1].(*value.Number)
-		if !ok || !e.Val.IsInt() {
+		if !ok || !e.IsInt() {
 			return value.NewFault("range: expected integer")
 		}
-		start = s.Val.Num().Int64()
-		end = e.Val.Num().Int64()
+		start = s.Int64Value()
+		end = e.Int64Value()
 	}
 	var elems []value.Value
 	for i := start; i < end; i++ {

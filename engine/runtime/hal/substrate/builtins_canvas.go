@@ -457,7 +457,7 @@ func toInt(v value.Value) (int, bool) {
 	// fractional values are expected from computed positions (e.g. turtle
 	// geometry) and truncation is the correct behavior at the display
 	// boundary. Out-of-range and non-finite values are rejected.
-	f, exact := n.Val.Float64()
+	f, exact := n.Float64()
 	if !exact && (math.IsInf(f, 0) || math.IsNaN(f)) {
 		return 0, false
 	}

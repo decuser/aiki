@@ -74,8 +74,8 @@ func halAbs(args []value.Value, ctx *hal.EvalContext) value.Value {
         return value.NewError("abs: expected number, got %s", args[0].Type())
     }
     
-    if num.Val.Sign() < 0 {
-        return &value.Number{Val: new(big.Rat).Neg(num.Val)}
+    if num.Sign() < 0 {
+        return num.Neg()
     }
     return num
 }
