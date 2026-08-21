@@ -204,7 +204,7 @@ func TestEnvCompactBindingsPromoteAtFifthLocal(t *testing.T) {
 	env.bindings = nil
 
 	for i, name := range []string{"a", "b", "c", "d"} {
-		env.Set(name, &Number{Val: big.NewRat(int64(i+1), 1)})
+		env.Set(name, NewNumber(int64(i+1), 1))
 		if env.bindings == nil {
 			t.Fatalf("binding block missing after %s", name)
 		}
@@ -213,7 +213,7 @@ func TestEnvCompactBindingsPromoteAtFifthLocal(t *testing.T) {
 		}
 	}
 
-	env.Set("e", &Number{Val: big.NewRat(5, 1)})
+	env.Set("e", NewNumber(5, 1))
 	if env.bindings.spill == nil {
 		t.Fatal("fifth local must promote compact bindings to map")
 	}
@@ -224,7 +224,7 @@ func TestEnvCompactBindingsPromoteAtFifthLocal(t *testing.T) {
 			t.Fatalf("missing %s after promotion", name)
 		}
 		n, ok := got.(*Number)
-		if !ok || n.Val.Cmp(big.NewRat(int64(i+1), 1)) != 0 {
+		if !ok || n.Inspect() != NewNumber(int64(i+1), 1).Inspect() {
 			t.Fatalf("%s = %v, want %d", name, got, i+1)
 		}
 	}
