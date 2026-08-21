@@ -151,3 +151,125 @@ func TestResetCallEnvClearsInvocationState(t *testing.T) {
 		t.Fatalf("scope not reset: %v", env.GetScope())
 	}
 }
+
+func TestEnvColdMetadataPreservesInheritanceAndReset(t *testing.T) {
+	root := NewEnv()
+	root.SetFile("root.ai")
+	root.SetSource("one\ntwo\n")
+	root.SetExports([]string{"x"})
+	root.SetPackageName("pkg")
+	root.DefineShape(&ShapeDef{Name: "point"})
+
+	child := NewEnclosedEnv(root)
+	if got := child.GetFile(); got != "root.ai" {
+		t.Fatalf("child file = %q, want root.ai", got)
+	}
+	if got := child.GetSourceLine(2); got != "two" {
+		t.Fatalf("child source line = %q, want two", got)
+	}
+	if _, ok := child.GetShape("point"); !ok {
+		t.Fatal("child must inherit root shape")
+	}
+
+	call := NewCallEnv(root, child)
+	call.SetFile("call.ai")
+	call.SetSource("call\nsource\n")
+	call.SetExports([]string{"temp"})
+	call.SetPackageName("temporary")
+	call.DefineShape(&ShapeDef{Name: "temp"})
+	call.ResetCallEnv(root, child)
+
+	if got := call.GetFile(); got != "root.ai" {
+		t.Fatalf("reset call file = %q, want inherited root.ai", got)
+	}
+	if got := call.GetSourceLine(2); got != "two" {
+		t.Fatalf("reset call source line = %q, want inherited two", got)
+	}
+	if got := call.GetExports(); got != nil {
+		t.Fatalf("reset call exports = %#v, want nil", got)
+	}
+	if got := call.GetPackageName(); got != "" {
+		t.Fatalf("reset call package = %q, want empty", got)
+	}
+	if _, ok := call.GetShape("temp"); ok {
+		t.Fatal("reset call must discard invocation-local shape")
+	}
+	if _, ok := call.GetShape("point"); !ok {
+		t.Fatal("reset call must retain inherited shape lookup")
+	}
+}
+
+func TestEnvCompactBindingsPromoteAtFifthLocal(t *testing.T) {
+	env := NewEnv()
+	env.bindings = nil
+
+	for i, name := range []string{"a", "b", "c", "d"} {
+		env.Set(name, &Number{Val: big.NewRat(int64(i+1), 1)})
+		if env.bindings == nil {
+			t.Fatalf("binding block missing after %s", name)
+		}
+		if env.bindings.spill != nil {
+			t.Fatalf("binding %s promoted before fifth local", name)
+		}
+	}
+
+	env.Set("e", &Number{Val: big.NewRat(5, 1)})
+	if env.bindings.spill == nil {
+		t.Fatal("fifth local must promote compact bindings to map")
+	}
+
+	for i, name := range []string{"a", "b", "c", "d", "e"} {
+		got, ok := env.Get(name)
+		if !ok {
+			t.Fatalf("missing %s after promotion", name)
+		}
+		n, ok := got.(*Number)
+		if !ok || n.Val.Cmp(big.NewRat(int64(i+1), 1)) != 0 {
+			t.Fatalf("%s = %v, want %d", name, got, i+1)
+		}
+	}
+}
+
+func TestEnvCompactBindingsDeleteUpdateAndOuterReveal(t *testing.T) {
+	outer := NewEnv()
+	outer.Set("x", &String{Val: "outer"})
+	inner := NewEnclosedEnv(outer)
+	inner.Set("x", &String{Val: "inner"})
+	inner.Set("y", &String{Val: "one"})
+
+	if !inner.Update("y", &String{Val: "two"}) {
+		t.Fatal("compact local update failed")
+	}
+	if got, _ := inner.Get("y"); got.(*String).Val != "two" {
+		t.Fatalf("updated y = %v", got)
+	}
+	if !inner.Delete("x") {
+		t.Fatal("compact local delete failed")
+	}
+	if got, ok := inner.Get("x"); !ok || got.(*String).Val != "outer" {
+		t.Fatalf("delete must reveal outer x, got %v %v", got, ok)
+	}
+}
+
+func TestResetCallEnvReturnsPromotedBindingsToCompactEmpty(t *testing.T) {
+	root := NewEnv()
+	call := NewCallEnv(root, root)
+	for _, name := range []string{"a", "b", "c", "d", "e"} {
+		call.Set(name, EMPTY)
+	}
+	if call.bindings == nil || call.bindings.spill == nil {
+		t.Fatal("setup must promote")
+	}
+
+	call.ResetCallEnv(root, root)
+	if call.bindings == nil {
+		t.Fatal("tail reset should retain external binding block allocation")
+	}
+	if call.bindings.spill != nil || call.bindings.n != 0 {
+		t.Fatal("tail reset must return retained block to compact-empty state")
+	}
+	call.Set("z", EMPTY)
+	if call.bindings.spill != nil || call.bindings.n != 1 {
+		t.Fatal("post-reset first local must use compact representation")
+	}
+}

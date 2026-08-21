@@ -53,6 +53,30 @@ type Counters struct {
 	listElementsCopied        int64
 	listBackingSlotsAllocated int64
 
+	envPhysicalRoot     int64
+	envPhysicalEnclosed int64
+	envPhysicalCall     int64
+	envPhysicalIsolated int64
+	envLogicalCall      int64
+
+	envCallReached1     int64
+	envCallReached2     int64
+	envCallReached3     int64
+	envCallReached5     int64
+	envEnclosedReached1 int64
+	envEnclosedReached2 int64
+	envEnclosedReached3 int64
+	envEnclosedReached5 int64
+
+	envCallCompactAllocations     int64
+	envEnclosedCompactAllocations int64
+	envCallMapPromotions          int64
+	envEnclosedMapPromotions      int64
+	envCallLocalNew               int64
+	envCallLocalUpdate            int64
+	envEnclosedLocalNew           int64
+	envEnclosedLocalUpdate        int64
+
 	// Coverage maps source positions to hit counts.
 	// Key is "file:line". Only populated when coverage is enabled.
 	mu       sync.Mutex
@@ -223,6 +247,135 @@ func (c *Counters) RecordListAppend(promoted, extended, grown, forked bool, copi
 	}
 }
 
+func (c *Counters) RecordEnvPhysical(kind engine.EnvKind) {
+	if c == nil {
+		return
+	}
+	switch kind {
+	case engine.EnvKindRoot:
+		atomic.AddInt64(&c.envPhysicalRoot, 1)
+	case engine.EnvKindEnclosed:
+		atomic.AddInt64(&c.envPhysicalEnclosed, 1)
+	case engine.EnvKindCall:
+		atomic.AddInt64(&c.envPhysicalCall, 1)
+	case engine.EnvKindIsolated:
+		atomic.AddInt64(&c.envPhysicalIsolated, 1)
+	}
+}
+
+func (c *Counters) RecordEnvLogicalCall() {
+	if c != nil {
+		atomic.AddInt64(&c.envLogicalCall, 1)
+	}
+}
+
+func (c *Counters) RecordEnvBindingThreshold(kind engine.EnvKind, threshold int) {
+	if c == nil {
+		return
+	}
+	var target *int64
+	switch kind {
+	case engine.EnvKindCall:
+		switch threshold {
+		case 1:
+			target = &c.envCallReached1
+		case 2:
+			target = &c.envCallReached2
+		case 3:
+			target = &c.envCallReached3
+		case 5:
+			target = &c.envCallReached5
+		}
+	case engine.EnvKindEnclosed:
+		switch threshold {
+		case 1:
+			target = &c.envEnclosedReached1
+		case 2:
+			target = &c.envEnclosedReached2
+		case 3:
+			target = &c.envEnclosedReached3
+		case 5:
+			target = &c.envEnclosedReached5
+		}
+	}
+	if target != nil {
+		atomic.AddInt64(target, 1)
+	}
+}
+
+func (c *Counters) RecordEnvCompactAllocation(kind engine.EnvKind) {
+	if c == nil {
+		return
+	}
+	switch kind {
+	case engine.EnvKindCall:
+		atomic.AddInt64(&c.envCallCompactAllocations, 1)
+	case engine.EnvKindEnclosed:
+		atomic.AddInt64(&c.envEnclosedCompactAllocations, 1)
+	}
+}
+
+func (c *Counters) RecordEnvMapPromotion(kind engine.EnvKind) {
+	if c == nil {
+		return
+	}
+	switch kind {
+	case engine.EnvKindCall:
+		atomic.AddInt64(&c.envCallMapPromotions, 1)
+	case engine.EnvKindEnclosed:
+		atomic.AddInt64(&c.envEnclosedMapPromotions, 1)
+	}
+}
+
+func (c *Counters) RecordEnvLocalSet(kind engine.EnvKind, update bool) {
+	if c == nil {
+		return
+	}
+	switch kind {
+	case engine.EnvKindCall:
+		if update {
+			atomic.AddInt64(&c.envCallLocalUpdate, 1)
+		} else {
+			atomic.AddInt64(&c.envCallLocalNew, 1)
+		}
+	case engine.EnvKindEnclosed:
+		if update {
+			atomic.AddInt64(&c.envEnclosedLocalUpdate, 1)
+		} else {
+			atomic.AddInt64(&c.envEnclosedLocalNew, 1)
+		}
+	}
+}
+
+func (c *Counters) EnvSnapshot() engine.EnvRealizationCounts {
+	if c == nil {
+		return engine.EnvRealizationCounts{}
+	}
+	return engine.EnvRealizationCounts{
+		PhysicalRoot:          atomic.LoadInt64(&c.envPhysicalRoot),
+		PhysicalEnclosed:      atomic.LoadInt64(&c.envPhysicalEnclosed),
+		PhysicalCall:          atomic.LoadInt64(&c.envPhysicalCall),
+		PhysicalIsolated:      atomic.LoadInt64(&c.envPhysicalIsolated),
+		LogicalCall:           atomic.LoadInt64(&c.envLogicalCall),
+		CallReached1:          atomic.LoadInt64(&c.envCallReached1),
+		CallReached2:          atomic.LoadInt64(&c.envCallReached2),
+		CallReached3:          atomic.LoadInt64(&c.envCallReached3),
+		CallReached5:          atomic.LoadInt64(&c.envCallReached5),
+		EnclosedReached1:      atomic.LoadInt64(&c.envEnclosedReached1),
+		EnclosedReached2:      atomic.LoadInt64(&c.envEnclosedReached2),
+		EnclosedReached3:      atomic.LoadInt64(&c.envEnclosedReached3),
+		EnclosedReached5:            atomic.LoadInt64(&c.envEnclosedReached5),
+		CallCompactAllocations:       atomic.LoadInt64(&c.envCallCompactAllocations),
+		EnclosedCompactAllocations:   atomic.LoadInt64(&c.envEnclosedCompactAllocations),
+		CallMapPromotions:            atomic.LoadInt64(&c.envCallMapPromotions),
+		EnclosedMapPromotions:        atomic.LoadInt64(&c.envEnclosedMapPromotions),
+		CallLocalNew:          atomic.LoadInt64(&c.envCallLocalNew),
+		CallLocalUpdate:       atomic.LoadInt64(&c.envCallLocalUpdate),
+		EnclosedLocalNew:      atomic.LoadInt64(&c.envEnclosedLocalNew),
+		EnclosedLocalUpdate:   atomic.LoadInt64(&c.envEnclosedLocalUpdate),
+	}
+}
+
 func (c *Counters) ListSnapshot() engine.ListRealizationCounts {
 	if c == nil {
 		return engine.ListRealizationCounts{}
@@ -301,6 +454,7 @@ func (c *Counters) Measurement() engine.SemanticMeasurement {
 		CallNumbers: c.NumberCallSnapshot(),
 		Calls:       c.CallSnapshot(),
 		Lists:       c.ListSnapshot(),
+		Envs:        c.EnvSnapshot(),
 	}
 	if c == nil || c.sites == nil {
 		return m

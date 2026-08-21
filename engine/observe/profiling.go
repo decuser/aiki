@@ -97,6 +97,60 @@ type ListRealizationProbe interface {
 	RecordListAppend(promoted, extended, grown, forked bool, copied, allocated int)
 }
 
+// EnvKind classifies hidden environment realizations for profiling.
+// These are runtime/storage categories, not Aiki scope kinds.
+type EnvKind uint8
+
+const (
+	EnvKindRoot EnvKind = iota
+	EnvKindEnclosed
+	EnvKindCall
+	EnvKindIsolated
+)
+
+// EnvRealizationCounts describes physical environment allocation and logical
+// local-binding pressure. Binding thresholds record the maximum number of
+// ordinary local store bindings reached during one logical environment
+// lifetime; borrowed call parameters are not included.
+type EnvRealizationCounts struct {
+	PhysicalRoot     int64
+	PhysicalEnclosed int64
+	PhysicalCall     int64
+	PhysicalIsolated int64
+	LogicalCall      int64
+
+	CallReached1 int64
+	CallReached2 int64
+	CallReached3 int64
+	CallReached5 int64
+
+	EnclosedReached1 int64
+	EnclosedReached2 int64
+	EnclosedReached3 int64
+	EnclosedReached5 int64
+
+	CallCompactAllocations     int64
+	EnclosedCompactAllocations int64
+	CallMapPromotions          int64
+	EnclosedMapPromotions      int64
+	CallLocalNew               int64
+	CallLocalUpdate            int64
+	EnclosedLocalNew           int64
+	EnclosedLocalUpdate        int64
+}
+
+// EnvRealizationProbe is an optional profiling extension used by the semantic
+// value layer. Implementations must be safe for concurrent use.
+type EnvRealizationProbe interface {
+	SemanticProbe
+	RecordEnvPhysical(kind EnvKind)
+	RecordEnvLogicalCall()
+	RecordEnvBindingThreshold(kind EnvKind, threshold int)
+	RecordEnvCompactAllocation(kind EnvKind)
+	RecordEnvMapPromotion(kind EnvKind)
+	RecordEnvLocalSet(kind EnvKind, update bool)
+}
+
 // SemanticSiteCount records the number of observations at one semantic site.
 type SemanticSiteCount struct {
 	Kind  SemanticKind
@@ -111,6 +165,7 @@ type SemanticMeasurement struct {
 	CallNumbers NumberRealizationCounts
 	Calls       CallRealizationCounts
 	Lists       ListRealizationCounts
+	Envs        EnvRealizationCounts
 	Sites       []SemanticSiteCount
 }
 

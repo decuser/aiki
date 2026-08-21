@@ -1153,3 +1153,72 @@ Before running the historical `tmrk` gate, attachment semantics were made explic
   `evalCallArgs` 210 MB, parser failure bookkeeping 193 MB, and
   `NewNumberFromString` 160 MB. These are survey candidates only, not current
   work.
+
+
+### 2026-08-21 — Environment realization wave begins
+
+- New branch: `environment-optimization`, based on release
+  `v0.4.0-alpha-37`.
+- Alpha-37 authoritative self-host baseline: 9.224568502 s,
+  2,395,612,824 allocated bytes, 50,296,696 mallocs, 79 GC cycles.
+- PDP-11 Cut 7 10x baseline: 1.556346663 s, 1,040,471,456 allocated bytes,
+  16,463,422 mallocs, 33 GC cycles.
+- Post-string allocation leaders select environment realization:
+  `NewCallEnv` ~979.7 MB / 42.9% and `Env.Set` ~155.0 MB / 6.8%.
+- `NewCallEnv` corresponds to roughly 4.52 million fresh physical call
+  environments after subtracting tail-env reuse, implying about 227 bytes per
+  physical call frame.
+- Started `proposals/environment-realization-and-binding-storage.md`.
+- Tranche A moves cold module/source/shape metadata behind a lazy sidecar and
+  instruments physical versus logical Env realization plus maximum ordinary
+  local-binding cardinality.
+- Tail-reset invocations count as new logical call lifetimes but not new
+  physical Env allocations.
+- Compact binding storage is not admitted yet. The binding histogram must earn
+  it, and any compact storage must be external rather than fattening every Env.
+- Next critical stop: Tranche A whole-tree/self-host/PDP gate and histogram
+  interpretation.
+
+
+### 2026-08-21 — Environment Gate 1 PASS; compact bindings admitted
+
+- Cold Env metadata sidecar improved self-host from 9.2246 s / 2.396 GB to
+  8.8645 s / 2.022 GB, with malloc count essentially flat.
+- PDP remained materially flat at 1.5701 s / 1.021 GB / 16.464 M mallocs.
+- Logical call-binding histogram: 4,809,241 lifetimes; 4,276,125 reached zero
+  ordinary locals; 338,033 peaked at one; 119,289 at two; 54,570 at three-four;
+  21,224 at five-plus.
+- About 88.9% of call lifetimes therefore need no local-binding storage; about
+  96% of the stateful remainder peak at four or fewer locals.
+- Gate 1 passed and Tranche B is admitted: external four-binding compact
+  storage, promoting to Go map on the fifth distinct ordinary local. Env itself
+  is not enlarged.
+- Tail-reset frames retain the external binding block allocation but reset it
+  to compact-empty state so one large invocation does not permanently force a
+  recycled frame onto the map path.
+- Fixed the profiling denominator for the top-level user environment, which is
+  created before the profile probe is attached.
+
+
+### 2026-08-21 — Environment realization COMPLETE
+
+- Final self-host: 8.792440682 s, 1,928,120,376 allocated bytes,
+  49,812,106 mallocs, 64 GC cycles.
+- Relative to alpha-37: elapsed -4.7%, allocated bytes -19.5%, mallocs -1.0%,
+  GC cycles -19.0%.
+- Final call histogram remained stable: 4,809,241 logical calls; 4,276,125
+  zero-local; 338,033 max-one; 119,289 max-two; 54,570 max-three/four;
+  21,224 max-five-plus.
+- Final compact realization: 526,837 compact-block allocations and exactly
+  21,224 map promotions. Promotion count therefore equals the measured
+  five-plus population exactly.
+- Stateful logical calls total 533,116; the lower 526,837 compact allocations
+  reflect retained external block reuse across tail-reset logical lifetimes.
+- PDP-11 Cut 7 10x remained materially flat/slightly improved at
+  1.545114031 s, 1,016,470,360 allocated bytes, 16,440,547 mallocs,
+  33 GC cycles.
+- Proposal `environment-realization-and-binding-storage.md` marked COMPLETE.
+- Surviving driver: **Scope and binding semantics are authoritative.
+  Environment storage is negotiable.**
+- No further environment pooling/arena/symbol-ID/frame-specialization machinery
+  admitted.

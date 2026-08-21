@@ -93,6 +93,10 @@ func RunProfileDetailed(filename string, opts ProfileOptions) (ProfileRun, error
 		counters = evaluator.NewCounters()
 	}
 	userEnv.SetSemanticProbe(counters)
+	// userEnv is constructed before the measurement probe exists. Register that
+	// one already-live enclosed environment so the physical-enclosed
+	// denominator reconciles with binding thresholds observed during execution.
+	counters.RecordEnvPhysical(engine.EnvKindEnclosed)
 
 	ev := evaluator.New(rt, nil)
 	ev.SetGrammar(g)
