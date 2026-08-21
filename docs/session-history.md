@@ -1342,3 +1342,26 @@ Before running the historical `tmrk` gate, attachment semantics were made explic
   promote. Release clears only active slots / active spill length.
 - Recursion-safe exclusive ownership and tail-call transfer semantics are
   unchanged.
+
+
+### 2026-08-21 — Call argument realization COMPLETE
+
+- Corrected arity measurement showed self-host overwhelmingly uses arity one
+  and two calls, earning a two-slot compact external argument frame with
+  promotion at arity three.
+- Recursion/tail evidence remained bounded: roughly 500-600 physical reusable
+  frames served about 4.807 million self-host frame reuses, with 143,766 tail
+  ownership transfers; PDP required only single-digit physical frames for
+  roughly 192.7k reuses and 28,214 tail transfers.
+- Reusable frames materially reduced allocation: representative self-host
+  movement was about 1.342 GB -> 1.211 GB and 29.23 M -> 24.43 M mallocs.
+- Focused CPU profiling showed acquire/release/sync.Pool mechanics were small.
+- Same-binary unprofiled A/B medians: self-host store ON 7.74 s vs OFF 7.70 s;
+  PDP ON 0.94 s vs OFF 0.94 s. No material normal-execution CPU penalty was
+  established.
+- Temporary `AIKI_ARG_STORE` diagnostic switch removed before closeout.
+- Proposal moved to `proposals/completed/call-argument-realization.md`.
+- Surviving rule: **Argument values are ephemeral; argument capacity may be
+  reused only when call lifetime is proven bounded.**
+- Recursion invariant: active recursive calls never alias argument storage;
+  tail replacement may transfer ownership at bounded depth.

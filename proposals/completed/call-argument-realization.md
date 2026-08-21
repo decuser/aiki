@@ -2,7 +2,7 @@
 
 ## Status
 
-**ACTIVE — measurement tranche**
+**COMPLETE**
 
 ## Selection evidence
 
@@ -322,3 +322,140 @@ model is unchanged.
 Gate 1 remains open until this realization is rerun across self-host, PDP, and
 Four-Way Life. The objective is to retain the allocation win without the
 systematic elapsed-time tax seen in the provisional four-slot realization.
+
+
+## Gate 1 CPU isolation
+
+CPU profiling showed the reusable-store mechanics themselves are small:
+
+```text
+self-host
+  acquireArgValues   ~0.10 s cumulative
+  releaseArgFrame    ~0.08 s cumulative
+  sync.Pool.Put      ~0.06 s cumulative
+```
+
+PDP shows the same qualitative result. `sync.Pool` is therefore not established
+as the source of the observed wall-clock difference.
+
+A temporary evaluator-construction switch, `AIKI_ARG_STORE=0`, disables reusable
+argument frames while leaving the rest of the current call path intact. It is
+diagnostic scaffolding only and must be removed before project completion.
+
+`extra/profiling/argument-store-ab.sh` alternates normal, unprofiled ON/OFF runs
+of self-host and PDP from the same binary. This isolates reusable argument
+storage from profiler labels/counters and from build-to-build variation.
+
+
+## Final Gate — PASSED
+
+The measured arity distribution justified a two-slot compact external frame:
+
+```text
+self-host
+  arity 1     3,126,534
+  arity 2     5,411,979
+  arity 3       102,165
+  arity 4           249
+  arity 5+        59,341
+```
+
+The final realization is therefore:
+
+```text
+arity 0      no reusable carrier
+arity 1-2    two-slot compact external frame
+arity 3+     promoted spill slice
+```
+
+Eligibility remains deliberately narrow:
+
+```text
+user Function
+AND TailEnvReusable == true
+AND Rest == ""
+```
+
+Closure-capable functions, rest-parameter functions, and substrate calls retain
+durable argument slices.
+
+### Recursion and tail recursion
+
+The ownership model survived direct profiling:
+
+```text
+self-host
+  arg_frame_new        ~500-600
+  arg_frame_reused     ~4.807 M
+  arg_tail_transfer     143,766
+
+PDP-11 Cut 7 10x
+  arg_frame_new        single digits
+  arg_frame_reused     ~192.7 k
+  arg_tail_transfer     28,214
+```
+
+This demonstrates that ordinary recursion grows storage only to active call
+depth, while tail recursion transfers ownership without unbounded frame growth.
+
+### Allocation effect
+
+The reusable argument store materially reduced allocation in the three-leg
+survey. Representative self-host movement was approximately:
+
+```text
+allocated    1.342 GB -> 1.211 GB
+mallocs      29.23 M  -> 24.43 M
+```
+
+PDP and Four-Way Life coordinator also improved allocation.
+
+### CPU isolation
+
+CPU profiling showed the frame mechanics themselves were small. A same-binary
+A/B gate then alternated normal unprofiled execution with the reusable store
+enabled and disabled:
+
+```text
+self-host median
+  store ON   7.74 s
+  store OFF  7.70 s
+
+PDP median
+  store ON   0.94 s
+  store OFF  0.94 s
+```
+
+The self-host difference is about 0.5% and within observed run-to-run spread;
+PDP is identical at the reported precision. The previously observed larger
+elapsed differences were therefore not attributable to a material reusable
+store CPU tax.
+
+The temporary `AIKI_ARG_STORE` A/B switch is removed from the surviving
+implementation.
+
+## Completion decision
+
+Completed 2026-08-21.
+
+Surviving realization:
+
+- external reusable argument frames;
+- two compact argument slots;
+- promotion at arity three;
+- exclusive ownership for simultaneous recursive calls;
+- explicit frame ownership transfer across tail calls;
+- durable fallback where closure/rest/substrate lifetime cannot be proven;
+- no argument-value caching;
+- no enlargement of Env.
+
+The governing rule is:
+
+> **Argument values are ephemeral; argument capacity may be reused only when
+> call lifetime is proven bounded.**
+
+And the recursion invariant is:
+
+> **Every simultaneously active call owns stable argument storage for its
+> lifetime. Tail replacement may transfer ownership, but active recursive
+> levels never alias argument storage.**
