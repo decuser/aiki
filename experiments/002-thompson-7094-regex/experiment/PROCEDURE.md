@@ -20,7 +20,7 @@ Phase IV   operator monitor and observability
 ```
 
 The exact cut structure and machine scope are specified in
-`../../../proposals/thompson-7094-regex.md`.
+`../../../proposals/completed/thompson-7094-regex.md`.
 
 ## Current procedure
 

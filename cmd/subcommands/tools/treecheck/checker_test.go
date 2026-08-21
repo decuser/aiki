@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -98,7 +99,8 @@ func TestSmokePairIsJustified(t *testing.T) {
 func TestAllowPrefixSuppressesIntentionalStandaloneTree(t *testing.T) {
 	root := t.TempDir()
 	writeTestFile(t, root, "treecheck.allow", "proposals/\n")
-	path := "proposals/idea.md"
+	writeTestFile(t, root, "proposals/README.md", "# Proposals\n")
+	path := "proposals/active/idea.md"
 	writeTestFile(t, root, path, "# idea\n")
 
 	result, err := Check(root, "treecheck.allow")
@@ -401,5 +403,39 @@ func TestDistributedExperimentRequiresReadmeAndRunner(t *testing.T) {
 	}
 	if !hasFinding(result.Errors, "experiments/002-scale") {
 		t.Fatalf("experiment without required hierarchy should be structural error: errors=%#v", result.Errors)
+	}
+}
+
+func TestProposalMustLiveUnderDispositionDirectory(t *testing.T) {
+	root := minimalTree(t)
+	writeTestFile(t, root, "treecheck.allow", "proposals/\n")
+	writeTestFile(t, root, "proposals/README.md", "# Proposals\n")
+	writeTestFile(t, root, "proposals/live-work.md", "# Proposal\n")
+
+	result, err := Check(root, "treecheck.allow")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !hasFinding(result.Errors, "proposals/live-work.md") {
+		t.Fatalf("expected proposal disposition error, got %#v", result.Errors)
+	}
+}
+
+func TestProposalDispositionDirectoriesAccepted(t *testing.T) {
+	root := minimalTree(t)
+	writeTestFile(t, root, "treecheck.allow", "proposals/\n")
+	writeTestFile(t, root, "proposals/README.md", "# Proposals\n")
+	for _, disposition := range []string{"active", "completed", "superseded", "parked"} {
+		writeTestFile(t, root, "proposals/"+disposition+"/example.md", "# Proposal\n")
+	}
+
+	result, err := Check(root, "treecheck.allow")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, finding := range result.Errors {
+		if strings.HasPrefix(finding.Path, "proposals/") {
+			t.Fatalf("unexpected proposal disposition error: %#v", finding)
+		}
 	}
 }

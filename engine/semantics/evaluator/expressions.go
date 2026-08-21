@@ -124,13 +124,14 @@ func (e *Evaluator) evalPostfix(node *syntax.Node, env *value.Env) value.Value {
 
 		switch child.Type {
 		case "call":
-			args := e.evalCallArgs(child, env)
-			for _, a := range args {
+			args := e.evalCallArgsFor(result, child, env, nil, false)
+			for _, a := range args.Values {
 				if shouldHalt(a) {
+					e.releaseEvaluatedArgs(args)
 					return a
 				}
 			}
-			result = e.applyFunction(result, args, child, env)
+			result = e.applyEvaluatedFunction(result, args, child, env)
 		case "index":
 			result = e.evalIndex(result, child, env)
 		case "access":
@@ -151,12 +152,8 @@ func (e *Evaluator) applyPipe(node *syntax.Node, arg value.Value, env *value.Env
 		return fn
 	}
 
-	callArgs := e.collectCallArgs(node, env)
-	args := make([]value.Value, 1+len(callArgs))
-	args[0] = arg
-	copy(args[1:], callArgs)
-
-	return e.applyFunction(fn, args, node, env)
+	args := e.evalCallArgsFor(fn, callNode(node), env, arg, true)
+	return e.applyEvaluatedFunction(fn, args, node, env)
 }
 
 func (e *Evaluator) evalInfix(node *syntax.Node, env *value.Env) value.Value {
@@ -307,13 +304,4 @@ func (e *Evaluator) evalPostfixToFunction(node *syntax.Node, env *value.Env) val
 		return e.Eval(node, env)
 	}
 	return result
-}
-
-func (e *Evaluator) collectCallArgs(node *syntax.Node, env *value.Env) []value.Value {
-	for _, child := range node.Children {
-		if child.Type == "call" {
-			return e.evalCallArgs(child, env)
-		}
-	}
-	return nil
 }

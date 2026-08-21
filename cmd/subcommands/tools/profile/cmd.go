@@ -98,6 +98,18 @@ func printCallRealization(c engine.CallRealizationCounts) {
 	fmt.Printf("  %-20s %d\n", "substrate", c.Substrate)
 	fmt.Printf("  %-20s %d\n", "tail_reuse", c.TailReuse)
 	fmt.Printf("  %-20s %d\n", "tail_env_reuse", c.TailEnvReuse)
+	fmt.Printf("  %-20s %d\n", "arg_arity_0", c.ArgArity0)
+	fmt.Printf("  %-20s %d\n", "arg_arity_1", c.ArgArity1)
+	fmt.Printf("  %-20s %d\n", "arg_arity_2", c.ArgArity2)
+	fmt.Printf("  %-20s %d\n", "arg_arity_3", c.ArgArity3)
+	fmt.Printf("  %-20s %d\n", "arg_arity_4", c.ArgArity4)
+	fmt.Printf("  %-20s %d\n", "arg_arity_5_plus", c.ArgArity5Plus)
+	fmt.Printf("  %-20s %d\n", "args_evaluated", c.ArgsEvaluated)
+	fmt.Printf("  %-20s %d\n", "arg_frame_new", c.ArgFrameNew)
+	fmt.Printf("  %-20s %d\n", "arg_frame_reused", c.ArgFrameReused)
+	fmt.Printf("  %-20s %d\n", "arg_frame_promoted", c.ArgFramePromoted)
+	fmt.Printf("  %-20s %d\n", "arg_durable", c.ArgDurable)
+	fmt.Printf("  %-20s %d\n", "arg_tail_transfer", c.ArgTailTransfer)
 }
 
 func printListRealization(c engine.ListRealizationCounts) {

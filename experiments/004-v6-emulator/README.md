@@ -7,7 +7,7 @@ commentary.
 The governing contract is:
 
 ```text
-../../proposals/pdp11-40-v6-lions.md
+../../proposals/completed/pdp11-40-v6-lions.md
 ```
 
 The first campaign is intentionally historical and end-to-end:

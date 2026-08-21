@@ -46,6 +46,19 @@ type Counters struct {
 	callTailReuse    int64
 	callTailEnvReuse int64
 
+	callArgArity0        int64
+	callArgArity1        int64
+	callArgArity2        int64
+	callArgArity3        int64
+	callArgArity4        int64
+	callArgArity5Plus    int64
+	callArgsEvaluated    int64
+	callArgFrameNew      int64
+	callArgFrameReused   int64
+	callArgFramePromoted int64
+	callArgDurable       int64
+	callArgTailTransfer  int64
+
 	listFrontierPromoted      int64
 	listFrontierExtended      int64
 	listFrontierGrown         int64
@@ -223,6 +236,59 @@ func (c *Counters) TailEnvReuse() {
 	}
 }
 
+func (c *Counters) RecordCallArity(arity int) {
+	if c == nil {
+		return
+	}
+	switch arity {
+	case 0:
+		atomic.AddInt64(&c.callArgArity0, 1)
+	case 1:
+		atomic.AddInt64(&c.callArgArity1, 1)
+	case 2:
+		atomic.AddInt64(&c.callArgArity2, 1)
+	case 3:
+		atomic.AddInt64(&c.callArgArity3, 1)
+	case 4:
+		atomic.AddInt64(&c.callArgArity4, 1)
+	default:
+		atomic.AddInt64(&c.callArgArity5Plus, 1)
+	}
+	atomic.AddInt64(&c.callArgsEvaluated, int64(arity))
+}
+
+func (c *Counters) RecordArgFrameNew(promoted bool) {
+	if c == nil {
+		return
+	}
+	atomic.AddInt64(&c.callArgFrameNew, 1)
+	if promoted {
+		atomic.AddInt64(&c.callArgFramePromoted, 1)
+	}
+}
+
+func (c *Counters) RecordArgFrameReused(promoted bool) {
+	if c == nil {
+		return
+	}
+	atomic.AddInt64(&c.callArgFrameReused, 1)
+	if promoted {
+		atomic.AddInt64(&c.callArgFramePromoted, 1)
+	}
+}
+
+func (c *Counters) RecordArgDurable() {
+	if c != nil {
+		atomic.AddInt64(&c.callArgDurable, 1)
+	}
+}
+
+func (c *Counters) RecordArgTailTransfer() {
+	if c != nil {
+		atomic.AddInt64(&c.callArgTailTransfer, 1)
+	}
+}
+
 func (c *Counters) RecordListAppend(promoted, extended, grown, forked bool, copied, allocated int) {
 	if c == nil {
 		return
@@ -395,10 +461,22 @@ func (c *Counters) CallSnapshot() engine.CallRealizationCounts {
 		return engine.CallRealizationCounts{}
 	}
 	return engine.CallRealizationCounts{
-		UserEntry:    atomic.LoadInt64(&c.callUserEntry),
-		Substrate:    atomic.LoadInt64(&c.callSubstrate),
-		TailReuse:    atomic.LoadInt64(&c.callTailReuse),
-		TailEnvReuse: atomic.LoadInt64(&c.callTailEnvReuse),
+		UserEntry:        atomic.LoadInt64(&c.callUserEntry),
+		Substrate:        atomic.LoadInt64(&c.callSubstrate),
+		TailReuse:        atomic.LoadInt64(&c.callTailReuse),
+		TailEnvReuse:     atomic.LoadInt64(&c.callTailEnvReuse),
+		ArgArity0:        atomic.LoadInt64(&c.callArgArity0),
+		ArgArity1:        atomic.LoadInt64(&c.callArgArity1),
+		ArgArity2:        atomic.LoadInt64(&c.callArgArity2),
+		ArgArity3:        atomic.LoadInt64(&c.callArgArity3),
+		ArgArity4:        atomic.LoadInt64(&c.callArgArity4),
+		ArgArity5Plus:    atomic.LoadInt64(&c.callArgArity5Plus),
+		ArgsEvaluated:    atomic.LoadInt64(&c.callArgsEvaluated),
+		ArgFrameNew:      atomic.LoadInt64(&c.callArgFrameNew),
+		ArgFrameReused:   atomic.LoadInt64(&c.callArgFrameReused),
+		ArgFramePromoted: atomic.LoadInt64(&c.callArgFramePromoted),
+		ArgDurable:       atomic.LoadInt64(&c.callArgDurable),
+		ArgTailTransfer:  atomic.LoadInt64(&c.callArgTailTransfer),
 	}
 }
 

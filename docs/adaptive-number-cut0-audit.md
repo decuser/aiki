@@ -2,7 +2,7 @@
 
 Status: **GATED**
 
-Controlling proposal: `proposals/adaptive-exact-number-representation.md`
+Controlling proposal: `proposals/completed/adaptive-exact-number-representation.md`
 
 Baseline commit: `cbddead`
 

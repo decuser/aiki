@@ -77,6 +77,20 @@ type CallRealizationCounts struct {
 	Substrate    int64
 	TailReuse    int64
 	TailEnvReuse int64
+
+	ArgArity0     int64
+	ArgArity1     int64
+	ArgArity2     int64
+	ArgArity3     int64
+	ArgArity4     int64
+	ArgArity5Plus int64
+	ArgsEvaluated int64
+
+	ArgFrameNew      int64
+	ArgFrameReused   int64
+	ArgFramePromoted int64
+	ArgDurable       int64
+	ArgTailTransfer  int64
 }
 
 // ListRealizationCounts describes hidden persistent-list append realization.

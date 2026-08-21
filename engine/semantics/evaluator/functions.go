@@ -9,12 +9,21 @@ import (
 )
 
 func (e *Evaluator) applyFunction(fn value.Value, args []value.Value, node *syntax.Node, env *value.Env) value.Value {
+	return e.applyFunctionOwned(fn, args, nil, node, env)
+}
+
+// applyFunctionOwned is the internal call boundary for argument-frame ownership.
+// argFrame is non-nil only for a proven non-escaping user function.
+func (e *Evaluator) applyFunctionOwned(fn value.Value, args []value.Value, argFrame *argFrame, node *syntax.Node, env *value.Env) value.Value {
 	probe := e.semanticCallHit(fn, node, env)
 	switch f := fn.(type) {
 	case *value.Function:
 		e.callUserEntry(probe)
-		return e.numberCallResult(e.applyUserFunction(f, args, node, env), probe)
+		return e.numberCallResult(e.applyUserFunctionOwned(f, args, argFrame, node, env), probe)
 	case value.Callable:
+		if argFrame != nil {
+			defer e.releaseArgFrame(argFrame)
+		}
 		e.callSubstrate(probe)
 		var result value.Value
 
@@ -48,6 +57,9 @@ func (e *Evaluator) applyFunction(fn value.Value, args []value.Value, node *synt
 		}
 		return e.numberCallResult(result, probe)
 	default:
+		if argFrame != nil {
+			e.releaseArgFrame(argFrame)
+		}
 		return e.makeFault(node, env, "not a function: %s", fn.Type())
 	}
 }
@@ -115,9 +127,10 @@ func (e *Evaluator) numberCallResult(result value.Value, probe engine.SemanticPr
 	return result
 }
 
-func (e *Evaluator) applyUserFunction(fn *value.Function, args []value.Value, node *syntax.Node, env *value.Env) value.Value {
+func (e *Evaluator) applyUserFunctionOwned(fn *value.Function, args []value.Value, initialArgFrame *argFrame, node *syntax.Node, env *value.Env) value.Value {
 	currentFn := fn
 	currentArgs := args
+	currentArgFrame := initialArgFrame
 	callSite := node
 	pushed := false
 	var reusableCallEnv *value.Env
@@ -125,11 +138,17 @@ func (e *Evaluator) applyUserFunction(fn *value.Function, args []value.Value, no
 	for {
 		fnEnv, ok := currentFn.Env.(*value.Env)
 		if !ok {
+			if currentArgFrame != nil {
+				e.releaseArgFrame(currentArgFrame)
+			}
 			return e.makeFault(callSite, env, "invalid function environment")
 		}
 
 		// Check argument count (excluding rest params)
 		if len(currentArgs) < len(currentFn.Params) {
+			if currentArgFrame != nil {
+				e.releaseArgFrame(currentArgFrame)
+			}
 			return e.makeFault(callSite, env, "%s: want %d arguments, got %d", currentFn.Name, len(currentFn.Params), len(currentArgs))
 		}
 
@@ -155,6 +174,10 @@ func (e *Evaluator) applyUserFunction(fn *value.Function, args []value.Value, no
 
 		body, ok := currentFn.Body.(*syntax.Node)
 		if !ok {
+			if currentArgFrame != nil {
+				callEnv.ClearCallParams()
+				e.releaseArgFrame(currentArgFrame)
+			}
 			return e.makeFault(callSite, env, "invalid function body")
 		}
 
@@ -169,6 +192,10 @@ func (e *Evaluator) applyUserFunction(fn *value.Function, args []value.Value, no
 		if !pushed {
 			limit := callEnv.GetStackLimit()
 			if limit > 0 && callEnv.StackDepth() >= limit {
+				if currentArgFrame != nil {
+					callEnv.ClearCallParams()
+					e.releaseArgFrame(currentArgFrame)
+				}
 				return e.makeFault(callSite, callEnv, "stack overflow")
 			}
 			callEnv.PushFrame(funcName, line, scope)
@@ -196,8 +223,13 @@ func (e *Evaluator) applyUserFunction(fn *value.Function, args []value.Value, no
 			if currentFn.TailEnvReusable {
 				reusableCallEnv = callEnv
 			}
+			if currentArgFrame != nil {
+				callEnv.ClearCallParams()
+				e.releaseArgFrame(currentArgFrame)
+			}
 			currentFn = tc.Fn
 			currentArgs = tc.Args
+			currentArgFrame = tc.ArgFrame
 			callSite = tc.Node
 			continue
 		}
@@ -210,20 +242,37 @@ func (e *Evaluator) applyUserFunction(fn *value.Function, args []value.Value, no
 				if currentFn.TailEnvReusable {
 					reusableCallEnv = callEnv
 				}
+				if currentArgFrame != nil {
+					callEnv.ClearCallParams()
+					e.releaseArgFrame(currentArgFrame)
+				}
 				currentFn = tc.Fn
 				currentArgs = tc.Args
+				currentArgFrame = tc.ArgFrame
 				callSite = tc.Node
 				continue
+			}
+			if currentArgFrame != nil {
+				callEnv.ClearCallParams()
+				e.releaseArgFrame(currentArgFrame)
 			}
 			callEnv.PopFrame()
 			return ret.Val
 		}
 
 		if shouldHalt(result) {
+			if currentArgFrame != nil {
+				callEnv.ClearCallParams()
+				e.releaseArgFrame(currentArgFrame)
+			}
 			callEnv.PopFrame()
 			return result
 		}
 
+		if currentArgFrame != nil {
+			callEnv.ClearCallParams()
+			e.releaseArgFrame(currentArgFrame)
+		}
 		callEnv.PopFrame()
 		return result
 	}
@@ -280,27 +329,4 @@ func (e *Evaluator) extractParams(node *syntax.Node) ([]string, string) {
 	}
 
 	return params, rest
-}
-
-func (e *Evaluator) evalCallArgs(node *syntax.Node, env *value.Env) []value.Value {
-	arity := 0
-	for _, child := range node.Children {
-		if child.Type != "TERMINAL" {
-			arity++
-		}
-	}
-	if arity == 0 {
-		return nil
-	}
-
-	args := make([]value.Value, arity)
-	i := 0
-	for _, child := range node.Children {
-		if child.Type == "TERMINAL" {
-			continue
-		}
-		args[i] = e.Eval(child, env)
-		i++
-	}
-	return args
 }

@@ -1222,3 +1222,146 @@ Before running the historical `tmrk` gate, attachment semantics were made explic
   Environment storage is negotiable.**
 - No further environment pooling/arena/symbol-ID/frame-specialization machinery
   admitted.
+
+### 2026-08-21 — Alpha-38 survey selects speculative parser failures
+
+- Fresh `v0.4.0-alpha-38` survey reranked allocation sites after environment
+  optimization.
+- Self-host leaders: `NewCallEnv` ~589.6 MB, `evalCallArgs` ~207.5 MB,
+  `Parser.recordFailure` ~191.6 MB. PDP Cut 7 10x is dominated by
+  `Parser.recordFailure` at ~617.7 MB / 60.9% of allocation space.
+- Selected parser failure realization because it is material in self-host and
+  dominant in the systems workload.
+- Inspection showed the parser production stack exists only to copy into each
+  speculative `ParseFailure`; final rendering uses it solely to locate the
+  innermost active production carrying grammar `@error` metadata.
+- Active proposal: `proposals/parser-failure-realization.md`.
+- Tranche replaces the diagnostic production stack with one incrementally
+  maintained relevant-production scalar and stores the best failure by value
+  inside `Parser`.
+- `ParseFailure.Stack` remains as a legacy compatibility field but normal
+  parser operation no longer materializes it.
+- Next and only critical gate: `make validate` plus fresh self-host/PDP pprof
+  survey. No parser memoization, grammar redesign, or arenas are in scope.
+
+
+### 2026-08-21 — Four-Way Life selects speculative parser mismatch realization
+
+- Expanded alpha-38 survey added deterministic Five-Way Life as a third
+  permanent evidence family beside three-level self-host and PDP-11 Cut 7.
+- Post-parser-failure survey shows parser startup as the strongest common
+  residual family across PDP and every Life process.
+- PDP allocation objects are led by `parseTerminal` (~3.0 M),
+  `fmt.errorf` (~1.79 M), and `errors.New` (~1.77 M).
+- Life workers show the same terminal-mismatch/error-object pattern, often
+  accounting for a majority of all allocation objects.
+- New proposal: `parser-speculative-mismatch-realization.md`.
+- Tranche A replaces per-mismatch Go errors with one shared internal no-match
+  signal and defers quoted terminal expectation materialization until final
+  diagnostic rendering.
+- Lexer/token and AST representations remain out of scope until this tranche is
+  independently gated.
+
+
+### 2026-08-21 — Parser mismatch closes; startup/execution split adopted
+
+- Speculative parser mismatch realization passed across the three-leg evidence
+  suite.
+- PDP Cut 7 10x improved from 1.1985 s / 431.4 MB / 13.65 M mallocs to
+  1.0279 s / 337.1 MB / 6.85 M mallocs.
+- Four-Way Life workers fell from roughly 26–28 MB / 0.85–0.89 M mallocs each
+  to roughly 19–20 MB / 0.32–0.37 M mallocs.
+- Remaining lexer/parser/module-scan allocation is now classified primarily as
+  startup rather than steady execution. Ordinary one-shot AST/token
+  construction is not a current optimization target.
+- New survey rule: report startup and execution families separately; a startup
+  site must be pathological rather than merely large in a short-lived process
+  to justify work.
+- Execution-side inspection selected repeated NUMBER literal parsing:
+  `evalNumber` calls `NewNumberFromString(node.Value)` on every observation of
+  immutable source text.
+- Started `proposals/immutable-number-literal-realization.md`.
+- Tranche A uses evaluator-local, concurrency-safe literal-text interning;
+  dynamic `to_number(string)` remains unchanged.
+
+
+### 2026-08-21 — Number literal realization COMPLETE; call-arity measurement begins
+
+- Immutable source-number literal interning passed the three-leg runtime gate.
+- Self-host improved from 8.4151 s / 1.772 GB / 47.88 M mallocs / 53 GC to
+  7.6945 s / 1.342 GB / 29.23 M mallocs / 40 GC.
+- PDP Cut 7 10x improved from 1.0279 s / 337.1 MB / 6.85 M mallocs to
+  0.9288 s / 266.2 MB / 3.66 M mallocs.
+- Four-Way Life coordinator improved from 584.9 ms / 73.6 MB / 2.05 M mallocs
+  to 532.3 ms / 51.9 MB / 1.08 M mallocs; all four workers also improved.
+- `NewNumberFromString` disappeared from the dominant self-host profile.
+- Number-literal proposal marked COMPLETE.
+- Next steady-execution candidate is `evalCallArgs`, but prior failed carrier
+  experiments make representation changes evidence-gated.
+- Started `proposals/call-argument-realization.md` as a measurement tranche.
+- Added argument-arity counters 0,1,2,3,4,5+ plus total arguments evaluated.
+- No argument representation change has been admitted yet.
+
+### 2026-08-21 — Recursion-first argument-frame Gate 1 prepared
+
+- Call-argument work moved from measurement-only into a bounded experimental
+  realization while preserving the public `[]Value` callable ABI.
+- Reuse eligibility is restricted to user functions with
+  `TailEnvReusable == true` and no rest parameter. Closure-capable, rest, and
+  substrate calls remain on the durable exact-sized slice path.
+- Added evaluator-local external argument frames: arity 1-4 uses inline slots;
+  5+ promotes within the frame. The threshold 4 is provisional pending the
+  arity histogram.
+- Active ordinary recursion owns one exclusive frame per active level.
+- Proper tail recursion uses two-frame ping-pong: incoming arguments are built
+  in a second frame before the outgoing environment releases its borrowed
+  parameter view. Tail depth therefore does not grow argument-frame depth.
+- The internal tail-call sentinel now transfers argument-frame ownership across
+  the evaluator jump.
+- No argument values are cached; only storage capacity is reused.
+- Added realization counters for frame creation/reuse/promotion, durable calls,
+  and tail-frame transfers, plus direct recursion/retention tests.
+- Next critical gate: `make validate` and the complete self-host/PDP/Four-Way
+  Life survey. The frame design is reverted if it only moves allocation or
+  harms systems/application workloads.
+
+
+### 2026-08-21 — Argument store Gate 1 arity refinement
+
+- Corrected arity accounting showed self-host calls are overwhelmingly arity
+  one or two: 3,126,534 arity-one and 5,411,979 arity-two calls versus 161,755
+  calls at arity three or greater.
+- PDP and Four-Way Life coordinator also strongly favor small arities.
+- Recursion/tail ownership evidence is excellent: self-host allocated only 509
+  reusable frames while reusing them 4,806,909 times and transferring ownership
+  across 143,766 tail calls; PDP allocated only two frames while reusing them
+  192,710 times and transferring across 28,214 tail calls.
+- Provisional four-slot compact realization saved allocation but carried a
+  systematic CPU tax. Gate 1 is therefore refined rather than accepted.
+- Compact argument capacity reduced from four to two; arity three and above now
+  promote. Release clears only active slots / active spill length.
+- Recursion-safe exclusive ownership and tail-call transfer semantics are
+  unchanged.
+
+
+### 2026-08-21 — Call argument realization COMPLETE
+
+- Corrected arity measurement showed self-host overwhelmingly uses arity one
+  and two calls, earning a two-slot compact external argument frame with
+  promotion at arity three.
+- Recursion/tail evidence remained bounded: roughly 500-600 physical reusable
+  frames served about 4.807 million self-host frame reuses, with 143,766 tail
+  ownership transfers; PDP required only single-digit physical frames for
+  roughly 192.7k reuses and 28,214 tail transfers.
+- Reusable frames materially reduced allocation: representative self-host
+  movement was about 1.342 GB -> 1.211 GB and 29.23 M -> 24.43 M mallocs.
+- Focused CPU profiling showed acquire/release/sync.Pool mechanics were small.
+- Same-binary unprofiled A/B medians: self-host store ON 7.74 s vs OFF 7.70 s;
+  PDP ON 0.94 s vs OFF 0.94 s. No material normal-execution CPU penalty was
+  established.
+- Temporary `AIKI_ARG_STORE` diagnostic switch removed before closeout.
+- Proposal moved to `proposals/completed/call-argument-realization.md`.
+- Surviving rule: **Argument values are ephemeral; argument capacity may be
+  reused only when call lifetime is proven bounded.**
+- Recursion invariant: active recursive calls never alias argument storage;
+  tail replacement may transfer ownership at bounded depth.

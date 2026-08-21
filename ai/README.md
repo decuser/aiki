@@ -92,8 +92,9 @@ These artifacts have different jobs:
 - `docs/audit-findings.md` is the repository-wide ledger of credible engineering
   findings from audits and reviews. Findings receive stable IDs and a disposition
   such as `OPEN`, `PLANNED`, `RESOLVED`, `ACCEPTED`, or `DEFERRED`.
-- `proposals/` defines bounded intended work: what will change, why, constraints,
-  acceptance criteria, planned cuts, and which audit findings it addresses.
+- `proposals/` contains bounded design contracts organized by disposition.
+  `proposals/active/` is the only live-work surface; completed, superseded, and
+  parked proposals move out of the active set as part of project closeout.
 - `buglist.md` contains current unresolved defects. It is not a history of every
   observation, accepted limitation, or resolved audit finding.
 - `docs/session-history.md` records durable execution history: decisions,
@@ -259,7 +260,7 @@ cmd/         command-line tools
 engine/      syntax, evaluator, runtime, runners
 lib/         Aiki standard-library modules
 docs/        user-facing and architectural documentation
-proposals/   bounded design contracts
+proposals/   bounded design contracts organized by disposition
 test/        behavioral, structural, invariant, fuzz, and property tests
 ai/          AI working provenance
 ```
@@ -280,7 +281,8 @@ make historycheck
 ```
 
 The check recognizes per-session material under `ai/sessions/` (except its
-retired README tombstone) and session-like artifacts under `proposals/`.
+retired README tombstone) and session-like artifacts anywhere under the
+proposal disposition tree.
 
 Its policy is deliberately conservative:
 

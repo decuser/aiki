@@ -49,6 +49,6 @@ Status vocabulary:
 
 ## Current disposition
 
-`proposals/post-grammar-hardening.md` resolved AF-001, AF-005, AF-006, AF-007,
+`proposals/completed/post-grammar-hardening.md` resolved AF-001, AF-005, AF-006, AF-007,
 AF-014, AF-015, and AF-016. All other findings retain the disposition shown
 above and remain visible for future projects.

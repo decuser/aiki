@@ -4,7 +4,7 @@
 
 SUPERSEDED.
 
-Superseded by `proposals/adaptive-exact-number-representation.md`. The original document is retained as design history.
+Superseded by `proposals/completed/adaptive-exact-number-representation.md`. The original document is retained as design history.
 
 ## Summary
 

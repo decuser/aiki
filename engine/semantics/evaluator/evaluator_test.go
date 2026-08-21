@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"sync"
 	"testing"
 
 	"aiki/engine/runtime/hal/substrate"
@@ -269,5 +270,80 @@ func TestBinaryOperatorMembershipComesFromGrammar(t *testing.T) {
 	}
 	if ev.isBinaryOperator("fake-op") {
 		t.Fatal("unexpected operator not declared by grammar")
+	}
+}
+
+func TestNumberLiteralRealizedOncePerEvaluator(t *testing.T) {
+	ev := New(nil, nil)
+	node := &syntax.Node{Type: "NUMBER", Value: "123456789/7"}
+
+	first, ok := ev.evalNumber(node, nil).(*value.Number)
+	if !ok {
+		t.Fatal("first literal realization is not Number")
+	}
+	second, ok := ev.evalNumber(node, nil).(*value.Number)
+	if !ok {
+		t.Fatal("second literal realization is not Number")
+	}
+	if first != second {
+		t.Fatal("same immutable source literal must reuse semantic Number realization")
+	}
+	if got := second.Inspect(); got != "123456789/7" {
+		t.Fatalf("literal value = %s, want 123456789/7", got)
+	}
+}
+
+func TestNumberLiteralCacheKeysBySpellingWithoutRetainingASTIdentity(t *testing.T) {
+	ev := New(nil, nil)
+	a := &syntax.Node{Type: "NUMBER", Value: "42"}
+	b := &syntax.Node{Type: "NUMBER", Value: "42"}
+
+	first := ev.evalNumber(a, nil).(*value.Number)
+	second := ev.evalNumber(b, nil).(*value.Number)
+	if first != second {
+		t.Fatal("equal source spellings should share evaluator-local literal realization")
+	}
+}
+
+func TestNumberLiteralCacheConcurrentReads(t *testing.T) {
+	ev := New(nil, nil)
+	node := &syntax.Node{Type: "NUMBER", Value: "987654321/13"}
+	want := ev.evalNumber(node, nil).(*value.Number)
+
+	const goroutines = 32
+	const iterations = 1000
+	var wg sync.WaitGroup
+	errs := make(chan string, goroutines)
+
+	for range goroutines {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for range iterations {
+				got, ok := ev.evalNumber(node, nil).(*value.Number)
+				if !ok || got != want {
+					errs <- "concurrent literal realization changed identity"
+					return
+				}
+			}
+		}()
+	}
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		t.Fatal(err)
+	}
+}
+
+func TestNumberLiteralWarmObservationDoesNotAllocate(t *testing.T) {
+	ev := New(nil, nil)
+	node := &syntax.Node{Type: "NUMBER", Value: "314159265358979323846/100000000000000000000"}
+	_ = ev.evalNumber(node, nil)
+
+	allocs := testing.AllocsPerRun(1000, func() {
+		_ = ev.evalNumber(node, nil)
+	})
+	if allocs != 0 {
+		t.Fatalf("warm number literal observation allocated %.2f objects/run, want 0", allocs)
 	}
 }

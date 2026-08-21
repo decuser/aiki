@@ -8,7 +8,7 @@
 
 Baseline: `cbddead`, on the `runtime-optimization` project line.
 
-This proposal supersedes `proposals/aiki-small-rational-fast-path-proposal.md`.
+This proposal supersedes `proposals/superseded/aiki-small-rational-fast-path-proposal.md`.
 
 ## Summary
 

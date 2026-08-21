@@ -351,6 +351,15 @@ func (e *Env) BindCallParams(names []string, values []Value) {
 	e.callParamDeleted = 0
 }
 
+// ClearCallParams releases this environment's borrowed argument-vector view.
+// It is used only after a proven non-escaping invocation has finished with a
+// reusable argument frame; ordinary call semantics are unchanged.
+func (e *Env) ClearCallParams() {
+	e.callParamNames = nil
+	e.callParamValues = nil
+	e.callParamDeleted = 0
+}
+
 func (e *Env) callParamIndex(name string) (int, bool) {
 	for i, candidate := range e.callParamNames {
 		if candidate == name {
