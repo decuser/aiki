@@ -182,7 +182,7 @@ environments, bytes, or another family dominate, establish that with evidence
 before proposing a new representation.
 
 The controlling next-step contract is
-`proposals/runtime-realization-survey.md`. It intentionally has one critical
+`proposals/completed/runtime-realization-survey.md`. It intentionally has one critical
 gate: select the next semantic realization family only after self-host/PDP
 allocation-space and allocation-object attribution is reconciled.
 

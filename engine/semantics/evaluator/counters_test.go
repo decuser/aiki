@@ -267,3 +267,30 @@ func TestCallRealizationSnapshot(t *testing.T) {
 		t.Fatalf("call realization = %+v, want user=2 substrate=1 tail=1", got)
 	}
 }
+
+func TestTailRecursiveArgumentFramesTransfer(t *testing.T) {
+	ev, g := makeEvalWithCounters(t)
+	result := evalSource(t, ev, g, `
+let sum_tail = (n, acc) {
+    if n <= 0 { return acc }
+    return sum_tail(n - 1, acc + n)
+}
+sum_tail(5000, 0)
+`)
+	if value.IsFault(result) {
+		t.Fatalf("tail recursion faulted: %s", result.Inspect())
+	}
+	if result.Inspect() != "12502500" {
+		t.Fatalf("tail recursion result = %s, want 12502500", result.Inspect())
+	}
+	calls := ev.Counters.CallSnapshot()
+	if calls.ArgTailTransfer < 4999 {
+		t.Fatalf("tail transfers = %d, want at least 4999", calls.ArgTailTransfer)
+	}
+	if calls.ArgFrameReused == 0 {
+		t.Fatal("deep tail recursion never reused an argument frame")
+	}
+	if calls.ArgFrameNew >= calls.ArgTailTransfer {
+		t.Fatalf("tail recursion did not bound frame growth: new=%d transfers=%d", calls.ArgFrameNew, calls.ArgTailTransfer)
+	}
+}

@@ -325,9 +325,41 @@ func isNamedPackageSource(path string) bool {
 	return strings.HasPrefix(path, "lib/") || strings.HasPrefix(path, "vendor/")
 }
 
+func hasProposalFiles(files map[string]bool) bool {
+	for p := range files {
+		if strings.HasPrefix(p, "proposals/") {
+			return true
+		}
+	}
+	return false
+}
+
 func (c *Checker) structuralErrors() []Finding {
 	var out []Finding
 	packages := make(map[string][]string)
+
+	proposalDispositions := map[string]bool{
+		"active":     true,
+		"completed":  true,
+		"superseded": true,
+		"parked":     true,
+	}
+	for p := range c.files {
+		if p == "proposals/README.md" || !strings.HasPrefix(p, "proposals/") {
+			continue
+		}
+		parts := strings.Split(filepath.ToSlash(p), "/")
+		if len(parts) < 3 {
+			out = append(out, Finding{Path: p, Reason: "proposal must live under a disposition directory"})
+			continue
+		}
+		if !proposalDispositions[parts[1]] {
+			out = append(out, Finding{Path: p, Reason: "unknown proposal disposition " + parts[1]})
+		}
+	}
+	if hasProposalFiles(c.files) && !c.files["proposals/README.md"] {
+		out = append(out, Finding{Path: "proposals", Reason: "proposal disposition tree missing README.md"})
+	}
 	experimentDirs := make(map[string]bool)
 	for p := range c.files {
 		parts := strings.Split(filepath.ToSlash(p), "/")

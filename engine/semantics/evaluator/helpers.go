@@ -43,6 +43,6 @@ func (e *Evaluator) resolveTailCalls(v value.Value, env *value.Env) value.Value 
 		if !ok {
 			return v
 		}
-		v = e.applyUserFunction(tc.Fn, tc.Args, tc.Node, env)
+		v = e.applyUserFunctionOwned(tc.Fn, tc.Args, tc.ArgFrame, tc.Node, env)
 	}
 }

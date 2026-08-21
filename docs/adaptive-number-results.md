@@ -1,6 +1,6 @@
 # Adaptive Exact Number — Evidence Record
 
-Controlling proposal: `proposals/adaptive-exact-number-representation.md`
+Controlling proposal: `proposals/completed/adaptive-exact-number-representation.md`
 
 Date: 2026-08-20
 

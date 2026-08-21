@@ -387,3 +387,93 @@ func TestParserNewlineContinuationDiagnosticUsesGrammarHelp(t *testing.T) {
 		}
 	}
 }
+
+func TestRecordFailureStoresRelevantProductionWithoutStackMaterialization(t *testing.T) {
+	p := &Parser{errorProduction: "expression"}
+	pos := engine.Position{File: "test.ai", Line: 3, Col: 7}
+	p.pos = 11
+	p.recordFailure(pos, "+", "term")
+
+	if !p.hasFailure {
+		t.Fatal("recordFailure did not retain failure")
+	}
+	if got := p.failure.Production; got != "expression" {
+		t.Fatalf("failure production = %q, want expression", got)
+	}
+	if p.failure.Stack != nil {
+		t.Fatalf("parser materialized legacy failure stack: %#v", p.failure.Stack)
+	}
+	if p.failure.Pos != pos || p.failure.Got != "+" || p.failure.Expected != "term" {
+		t.Fatalf("failure payload changed: %#v", p.failure)
+	}
+}
+
+func TestRecordFailureSpeculativeReplacementAllocatesZero(t *testing.T) {
+	p := &Parser{errorProduction: "expression"}
+	pos := engine.Position{File: "test.ai", Line: 1, Col: 1}
+	p.pos = 1
+
+	allocs := testing.AllocsPerRun(1000, func() {
+		p.recordFailure(pos, "x", "term")
+	})
+	if allocs != 0 {
+		t.Fatalf("recordFailure allocations = %v, want 0", allocs)
+	}
+}
+
+func TestTerminalMismatchUsesZeroAllocationControlFlow(t *testing.T) {
+	p := &Parser{
+		tokens: []Token{{
+			Type:   "IDENT",
+			Lexeme: "actual",
+			Pos:    engine.Position{File: "test.ai", Line: 1, Col: 1},
+		}},
+		observer: engine.SilentObserver{},
+	}
+	term := &grammar.Terminal{Value: "expected"}
+
+	allocs := testing.AllocsPerRun(1000, func() {
+		p.pos = 0
+		p.furthest = 0
+		p.hasFailure = false
+		if _, err := p.parseTerminal(term); err != errParserNoMatch {
+			t.Fatalf("terminal mismatch error = %v, want internal no-match", err)
+		}
+	})
+	if allocs != 0 {
+		t.Fatalf("terminal mismatch allocations = %v, want 0", allocs)
+	}
+
+	if got := p.failure.expectedText(); got != "'expected'" {
+		t.Fatalf("recorded terminal expectation = %q, want %q", got, "'expected'")
+	}
+	if p.failure.Expected != "" {
+		t.Fatalf("speculative terminal mismatch materialized Expected = %q", p.failure.Expected)
+	}
+}
+
+func TestTerminalMismatchRenderingPreservesQuotedExpectation(t *testing.T) {
+	g := loadTestGrammar(t)
+	source := "actual"
+	parser := &Parser{
+		grammar: g,
+		tokens: []Token{{
+			Type:   "IDENT",
+			Lexeme: "actual",
+			Pos:    engine.Position{File: "test.ai", Line: 1, Col: 1},
+		}},
+		source:   source,
+		observer: engine.SilentObserver{},
+	}
+
+	parser.recordTerminalFailure(
+		engine.Position{File: "test.ai", Line: 1, Col: 1},
+		"actual",
+		"=",
+	)
+
+	err := parser.renderFailure()
+	if !strings.Contains(err.Error(), "expected '='") {
+		t.Fatalf("terminal diagnostic lost quoted expectation:\n%s", err)
+	}
+}

@@ -5,7 +5,7 @@ Four independent Aiki worker processes compute competing Conway-Life populations
 The governing design and implementation gates are recorded in:
 
 ```text
-../../proposals/four-way-life.md
+../../proposals/completed/four-way-life.md
 ```
 
 The experiment is intentionally multiprocess. Workers never share the coordinator's Store. Generation N is immutable while workers compute proposals for N+1; the coordinator commits only after all four replies arrive.

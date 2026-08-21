@@ -9,9 +9,10 @@ import (
 // tailCallValue is an internal sentinel used to implement proper tail calls.
 // It must never escape to user code.
 type tailCallValue struct {
-	Fn   *value.Function
-	Args []value.Value
-	Node *syntax.Node // call site for line attribution
+	Fn       *value.Function
+	Args     []value.Value
+	ArgFrame *argFrame
+	Node     *syntax.Node // call site for line attribution
 }
 
 func (t *tailCallValue) Type() value.Type { return value.Type("tailcall") }
@@ -231,14 +232,11 @@ func (e *Evaluator) evalPipeTail(node *syntax.Node, env *value.Env) value.Value 
 			if shouldHalt(fn) {
 				return fn
 			}
-			callArgs := e.collectCallArgs(part, env)
-			args := make([]value.Value, 1+len(callArgs))
-			args[0] = result
-			copy(args[1:], callArgs)
+			args := e.evalCallArgsFor(fn, callNode(part), env, result, true)
 			if uf, ok := fn.(*value.Function); ok {
-				return &tailCallValue{Fn: uf, Args: args, Node: part}
+				return e.tailCallWithArgs(uf, args, part, env)
 			}
-			return e.applyFunction(fn, args, part, env)
+			return e.applyEvaluatedFunction(fn, args, part, env)
 		}
 
 		result = e.applyPipe(part, result, env)
@@ -271,27 +269,31 @@ func (e *Evaluator) tryTailCall(node *syntax.Node, env *value.Env) value.Value {
 		case "access":
 			result = e.evalAccess(result, child, env)
 		case "call":
-			// intermediate call is not tail, evaluate normally
-			args := e.evalCallArgs(child, env)
-			for _, a := range args {
+			// Intermediate call is not tail, but the callee is already known so
+			// argument lifetime can be selected before values are evaluated.
+			args := e.evalCallArgsFor(result, child, env, nil, false)
+			for _, a := range args.Values {
 				if shouldHalt(a) {
+					e.releaseEvaluatedArgs(args)
 					return a
 				}
 			}
-			result = e.applyFunction(result, args, child, env)
+			result = e.applyEvaluatedFunction(result, args, child, env)
 		}
 		if shouldHalt(result) {
 			return result
 		}
 	}
-	args := e.evalCallArgs(last, env)
-	for _, a := range args {
+	args := e.evalCallArgsFor(result, last, env, nil, false)
+	for _, a := range args.Values {
 		if shouldHalt(a) {
+			e.releaseEvaluatedArgs(args)
 			return a
 		}
 	}
 	if uf, ok := result.(*value.Function); ok {
-		return &tailCallValue{Fn: uf, Args: args, Node: last}
+		return e.tailCallWithArgs(uf, args, last, env)
 	}
+	e.releaseEvaluatedArgs(args)
 	return nil
 }

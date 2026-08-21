@@ -8,13 +8,32 @@ import (
 	"aiki/engine/syntax/grammar"
 )
 
+// parserNoMatch is the internal speculative mismatch signal. It carries no
+// diagnostic payload; the Parser records the best failure separately.
+type parserNoMatch struct{}
+
+func (parserNoMatch) Error() string { return "no match" }
+
+var errParserNoMatch error = parserNoMatch{}
+
+type failureExpectationKind uint8
+
+const (
+	failureExpectationText failureExpectationKind = iota
+	failureExpectationTerminal
+)
+
 // ParseFailure captures the best error context for reporting.
 type ParseFailure struct {
 	Pos               engine.Position // where failure occurred
 	Got               string          // actual token
 	Expected          string          // what was expected
-	Stack             []string        // production stack (outermost first)
+	Production        string          // innermost production carrying @error metadata
+	Stack             []string        // legacy compatibility; parser no longer materializes this stack
 	NewlineTerminated bool            // a grammar-declared newline boundary caused this leftover continuation
+
+	expectationKind failureExpectationKind
+	terminal        string
 }
 
 type Parser struct {
@@ -24,9 +43,10 @@ type Parser struct {
 	furthest             int // furthest position reached
 	source               string
 	observer             engine.Observer
-	stack                []string      // current production stack
-	failure              *ParseFailure // best failure so far
-	syntheticTerminators map[int]bool  // filtered-token indexes inserted by the newline policy
+	errorProduction      string       // innermost active production carrying @error metadata
+	failure              ParseFailure // best failure so far, stored in-place
+	hasFailure           bool
+	syntheticTerminators map[int]bool // filtered-token indexes inserted by the newline policy
 	continuationTokens   map[string]bool
 	continuationLexemes  map[string]bool
 }
@@ -87,7 +107,7 @@ func (p *Parser) Parse() (*Node, error) {
 		// so the diagnostic can explain the actual surface rule.
 		tok := p.tokens[p.pos]
 		p.recordFailure(tok.Pos, tok.Lexeme, "end of input")
-		if p.failure != nil && p.pos > 0 && p.syntheticTerminators[p.pos-1] && p.isContinuation(tok) {
+		if p.hasFailure && p.pos > 0 && p.syntheticTerminators[p.pos-1] && p.isContinuation(tok) {
 			p.failure.NewlineTerminated = true
 		}
 		return nil, p.renderFailure()
@@ -99,24 +119,39 @@ func (p *Parser) isContinuation(tok Token) bool {
 	return p.continuationTokens[tok.Type] || p.continuationLexemes[tok.Lexeme]
 }
 
+func (f *ParseFailure) expectedText() string {
+	if f.expectationKind == failureExpectationTerminal {
+		return "'" + f.terminal + "'"
+	}
+	return f.Expected
+}
+
 // renderFailure formats the best failure using grammar metadata.
 func (p *Parser) renderFailure() error {
-	if p.failure == nil {
+	if !p.hasFailure {
 		return &SourceError{Kind: "parse", Message: "parse error", Rendered: "parse error"}
 	}
 
-	f := p.failure
+	f := &p.failure
 	line := engine.GetSourceLine(p.source, f.Pos.Line)
 	caret := engine.FormatCaret(f.Pos.Col)
 
-	// Find the most relevant production in stack with @error.
-	// Search from innermost (end) to outermost (start) - prefer specific errors.
-	var prodName string
+	// The parser records the innermost active production carrying @error
+	// metadata at failure time. This is the only production-stack fact needed
+	// for rendering, so speculative parsing does not materialize stack copies.
+	prodName := f.Production
 	var meta grammar.Meta
-	for i := len(f.Stack) - 1; i >= 0; i-- {
-		name := f.Stack[i]
-		if prod, ok := p.grammar.GetProduction(name); ok {
-			if prod.Meta.Error != "" {
+	if prodName != "" {
+		if prod, ok := p.grammar.GetProduction(prodName); ok {
+			meta = prod.Meta
+		}
+	}
+	// Preserve rendering compatibility for ParseFailure values manually built
+	// with the legacy Stack field. Normal parser operation never populates it.
+	if prodName == "" {
+		for i := len(f.Stack) - 1; i >= 0; i-- {
+			name := f.Stack[i]
+			if prod, ok := p.grammar.GetProduction(name); ok && prod.Meta.Error != "" {
 				prodName = name
 				meta = prod.Meta
 				break
@@ -124,9 +159,11 @@ func (p *Parser) renderFailure() error {
 		}
 	}
 
+	expected := f.expectedText()
+
 	// For closing delimiters like '}' or ')', use the raw terminal error
 	// since "expected '}'" is clearer than a production error.
-	isClosingDelim := f.Expected == "'}'" || f.Expected == "')'" || f.Expected == "']'"
+	isClosingDelim := expected == "'}'" || expected == "')'" || expected == "']'"
 
 	var detail strings.Builder
 	if f.NewlineTerminated && p.grammar.Newline != nil {
@@ -142,7 +179,7 @@ func (p *Parser) renderFailure() error {
 			detail.WriteString(fmt.Sprintf("\n\nSyntax: %s", meta.Template))
 		}
 	} else {
-		detail.WriteString(fmt.Sprintf("expected %s", f.Expected))
+		detail.WriteString(fmt.Sprintf("expected %s", expected))
 		if f.Got != "" && f.Got != "EOF" && f.Got != "end of input" {
 			detail.WriteString(fmt.Sprintf(", got '%s'", f.Got))
 		}
@@ -168,23 +205,43 @@ func (p *Parser) getFile() string {
 
 // recordFailure records a failure if it's at or beyond the furthest position.
 func (p *Parser) recordFailure(pos engine.Position, got, expected string) {
-	// Only update if this is further than previous best
-	// Use >= to prefer later failures at the same position (more context)
+	// Only update if this is further than previous best. Use >= to prefer later
+	// failures at the same position, preserving the existing context rule.
 	tokenPos := p.pos
-	if p.failure != nil && tokenPos < p.furthest {
+	if p.hasFailure && tokenPos < p.furthest {
 		return
 	}
 
-	// Copy current stack
-	stack := make([]string, len(p.stack))
-	copy(stack, p.stack)
+	// Keep the best failure in-place. The current @error-bearing production is
+	// maintained incrementally by parseProduction, so speculative failure
+	// recording performs no production-stack copy and no failure allocation.
+	p.failure.Pos = pos
+	p.failure.Got = got
+	p.failure.Expected = expected
+	p.failure.expectationKind = failureExpectationText
+	p.failure.terminal = ""
+	p.failure.Production = p.errorProduction
+	p.failure.Stack = nil
+	p.failure.NewlineTerminated = false
+	p.hasFailure = true
+	p.furthest = tokenPos
+}
 
-	p.failure = &ParseFailure{
-		Pos:      pos,
-		Got:      got,
-		Expected: expected,
-		Stack:    stack,
+func (p *Parser) recordTerminalFailure(pos engine.Position, got, terminal string) {
+	tokenPos := p.pos
+	if p.hasFailure && tokenPos < p.furthest {
+		return
 	}
+
+	p.failure.Pos = pos
+	p.failure.Got = got
+	p.failure.Expected = ""
+	p.failure.expectationKind = failureExpectationTerminal
+	p.failure.terminal = terminal
+	p.failure.Production = p.errorProduction
+	p.failure.Stack = nil
+	p.failure.NewlineTerminated = false
+	p.hasFailure = true
 	p.furthest = tokenPos
 }
 
@@ -194,9 +251,14 @@ func (p *Parser) parseProduction(name string) (*Node, error) {
 		return nil, fmt.Errorf("undefined production: %s", name)
 	}
 
-	// Push onto stack
-	p.stack = append(p.stack, name)
-	defer func() { p.stack = p.stack[:len(p.stack)-1] }()
+	// Track only the innermost active production whose metadata can affect a
+	// rendered failure. The former full production stack existed solely to
+	// recover this one fact after speculative parsing.
+	previousErrorProduction := p.errorProduction
+	if prod.Meta.Error != "" {
+		p.errorProduction = name
+	}
+	defer func() { p.errorProduction = previousErrorProduction }()
 
 	startPos := p.pos
 	startTok := p.peek()
@@ -258,7 +320,7 @@ func (p *Parser) parseAlternative(alt *grammar.Alternative) ([]*Node, error) {
 	}
 	// Don't record failure here - let the deeper failures stand
 	// They have more specific information about what was expected
-	return nil, fmt.Errorf("no alternative matched")
+	return nil, errParserNoMatch
 }
 
 func (p *Parser) parseRepetition(rep *grammar.Repetition) ([]*Node, error) {
@@ -288,13 +350,13 @@ func (p *Parser) parseOption(opt *grammar.Option) ([]*Node, error) {
 func (p *Parser) parseTerminal(term *grammar.Terminal) ([]*Node, error) {
 	if p.pos >= len(p.tokens) {
 		tok := p.peek()
-		p.recordFailure(tok.Pos, "end of input", fmt.Sprintf("'%s'", term.Value))
-		return nil, fmt.Errorf("unexpected end of input")
+		p.recordTerminalFailure(tok.Pos, "end of input", term.Value)
+		return nil, errParserNoMatch
 	}
 	tok := p.tokens[p.pos]
 	if tok.Lexeme != term.Value {
-		p.recordFailure(tok.Pos, tok.Lexeme, fmt.Sprintf("'%s'", term.Value))
-		return nil, fmt.Errorf("expected '%s'", term.Value)
+		p.recordTerminalFailure(tok.Pos, tok.Lexeme, term.Value)
+		return nil, errParserNoMatch
 	}
 	p.advance()
 	return []*Node{{Type: "TERMINAL", Value: tok.Lexeme, Pos: tok.Pos}}, nil
@@ -312,12 +374,12 @@ func (p *Parser) parseTokenRef(ref *grammar.TokenRef) ([]*Node, error) {
 	if p.pos >= len(p.tokens) {
 		tok := p.peek()
 		p.recordFailure(tok.Pos, "end of input", ref.Name)
-		return nil, fmt.Errorf("unexpected end of input")
+		return nil, errParserNoMatch
 	}
 	tok := p.tokens[p.pos]
 	if !p.matchesToken(tok, ref.Name) {
 		p.recordFailure(tok.Pos, tok.Lexeme, ref.Name)
-		return nil, fmt.Errorf("expected %s", ref.Name)
+		return nil, errParserNoMatch
 	}
 	p.advance()
 	return []*Node{{Type: ref.Name, Value: tok.Lexeme, Pos: tok.Pos}}, nil

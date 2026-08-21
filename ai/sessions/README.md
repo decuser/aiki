@@ -6,7 +6,8 @@ Durable execution state belongs in:
 
 ```text
 ai/README.md               working method
-proposals/                 bounded design contracts
+proposals/active/          live bounded design contracts
+proposals/completed/       completed design history
 docs/session-history.md    concise cumulative execution history
 ```
 

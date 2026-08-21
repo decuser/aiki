@@ -3,6 +3,7 @@ package evaluator
 
 import (
 	"fmt"
+	"sync"
 
 	"aiki/engine"
 	"aiki/engine/runtime/hal"
@@ -79,6 +80,17 @@ type Evaluator struct {
 	grammar         *grammar.Grammar
 	binaryOperators map[string]struct{}
 	Counters        *Counters // nil = probes disabled
+
+	// numberLiterals interns semantic realizations of immutable source NUMBER
+	// tokens by their literal spelling. sync.Map is required because spawn may
+	// evaluate through the same Evaluator concurrently. The key is text rather
+	// than *syntax.Node so persistent evaluators do not retain old ASTs.
+	numberLiterals sync.Map // map[string]*value.Number
+
+	// argFrames reuses exclusively-owned argument carriers for user functions
+	// whose call environments are structurally proven not to escape. sync.Pool
+	// keeps acquisition concurrency-safe for spawn without a shared depth index.
+	argFrames sync.Pool // *argFrame
 }
 
 // New creates an evaluator with a runtime.

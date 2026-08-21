@@ -25,11 +25,21 @@ trap 'rm -rf "$tmp"' EXIT HUP INT TERM
 mkdir -p "$tmp"
 
 is_cruft() {
-    case "$1" in
+    path=$1
+    case "$path" in
         ai/sessions/README.md) return 1 ;;
         ai/sessions/*) return 0 ;;
         ai/session-*|ai/*-session-*) return 0 ;;
-        proposals/session-*|proposals/*-session*|proposals/*/session*|proposals/*/sessions/*) return 0 ;;
+        proposals/*)
+            base=${path##*/}
+            case "$base" in
+                session-*|*-session*|sessions) return 0 ;;
+            esac
+            case "$path" in
+                */sessions/*) return 0 ;;
+            esac
+            return 1
+            ;;
         *) return 1 ;;
     esac
 }

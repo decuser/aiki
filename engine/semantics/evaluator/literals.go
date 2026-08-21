@@ -9,11 +9,19 @@ import (
 )
 
 func (e *Evaluator) evalNumber(node *syntax.Node, env *value.Env) value.Value {
+	if cached, ok := e.numberLiterals.Load(node.Value); ok {
+		return cached.(*value.Number)
+	}
+
 	num, err := value.NewNumberFromString(node.Value)
 	if err != nil {
 		return e.makeFault(node, env, "invalid number: %s", node.Value)
 	}
-	return num
+
+	// Concurrent first observations may both parse, but only one immutable
+	// Number becomes authoritative for this evaluator/literal spelling.
+	actual, _ := e.numberLiterals.LoadOrStore(node.Value, num)
+	return actual.(*value.Number)
 }
 
 func (e *Evaluator) evalString(node *syntax.Node, env *value.Env) value.Value {

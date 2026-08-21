@@ -8,7 +8,7 @@ compiler.
 The governing design and phase gates are recorded in:
 
 ```text
-../../proposals/thompson-7094-regex.md
+../../proposals/completed/thompson-7094-regex.md
 ```
 
 The experiment proceeds in three phases:
