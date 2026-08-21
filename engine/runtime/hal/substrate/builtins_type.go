@@ -37,10 +37,11 @@ func halOrd(args []value.Value, ctx *hal.EvalContext) value.Value {
 	case *value.Rune:
 		return value.NewNumber(int64(v.Val), 1)
 	case *value.String:
-		if len(v.Val) == 0 {
+		r, ok := v.FirstRune()
+		if !ok {
 			return value.NewNumber(0, 1)
 		}
-		return value.NewNumber(int64([]rune(v.Val)[0]), 1)
+		return value.NewNumber(int64(r), 1)
 	default:
 		return value.NewFault("ord: expected rune or string")
 	}

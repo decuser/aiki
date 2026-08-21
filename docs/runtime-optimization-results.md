@@ -181,7 +181,64 @@ First attribute the remaining allocation bytes/objects. If strings, AST values,
 environments, bytes, or another family dominate, establish that with evidence
 before proposing a new representation.
 
+The controlling next-step contract is
+`proposals/runtime-realization-survey.md`. It intentionally has one critical
+gate: select the next semantic realization family only after self-host/PDP
+allocation-space and allocation-object attribution is reconciled.
+
 The reusable lesson is:
 
 > **Optimize realization beneath the semantic boundary rather than weakening the
 > semantic boundary to obtain performance.**
+
+
+## Alpha-36 runtime-realization survey
+
+The first post-list allocation survey changed the diagnosis again.
+
+Three-level self-host allocation-space ownership:
+
+```text
+evalStringIndex                  6171.30 MB   73.20%
+NewCallEnv                        931.20 MB   11.04%
+evalCallArgs                      210.01 MB    2.49%
+Parser.recordFailure              192.56 MB    2.28%
+```
+
+The remaining self-host byte volume is therefore dominated by **string
+observation materialization**: rune indexing converts the complete immutable
+string to `[]rune` to retrieve one rune.
+
+This is distinct from both earlier pathologies:
+
+```text
+call/runtime       allocation frequency
+persistent lists   allocation volume from copy-on-append
+string indexing    observation-time whole-value materialization
+```
+
+The initial string response is deliberately not adaptive representation.
+Flat UTF-8 remains authoritative while rune-aware observation becomes
+allocation-free.
+
+The PDP-11 survey independently identifies parser failure bookkeeping as its
+dominant allocation family (`Parser.recordFailure`, about 60% of allocation
+space). That remains a separate future parser-realization concern.
+
+
+## String observation survey selection
+
+The alpha-36 allocation survey identified `evalStringIndex` as the dominant
+remaining self-host allocation-space site:
+
+```text
+evalStringIndex   ~6.17 GB   ~73.2% of allocated bytes
+```
+
+This selected immutable string observation as the next runtime family. The
+initial response is deliberately narrower than an adaptive representation:
+
+> **The string is immutable. Observation need not materialize it.**
+
+Whole-string `[]rune` materialization is removed from observation operations
+before any alternate string representation is considered.

@@ -1069,3 +1069,87 @@ Before running the historical `tmrk` gate, attachment semantics were made explic
 - `ai/sessions/` is retired except for its README tombstone. Per-session folders
   belong in neither the current tree nor private post-tag history before the next
   release tag.
+
+
+### 2026-08-21 — Alpha-36 runtime realization survey ACTIVE
+
+- New authoritative baseline is release `v0.4.0-alpha-36` at merge commit
+  `875bdf0`. Three-level self-host baseline remains 10.619609147 s,
+  8,901,681,936 allocated bytes, 50,401,888 mallocs, and 267 GC cycles; PDP-11
+  Cut 7 10x remains the systems comparison witness at 1.569385077 s,
+  1,040,367,792 allocated bytes, 16,463,466 mallocs, and 34 GC cycles.
+- Started `proposals/runtime-realization-survey.md`. This is an attribution
+  project, not an implementation project: it must account for the dominant
+  remaining allocation-space and allocation-object families before proposing
+  another adaptive representation. Strings/runes are a static candidate, not a
+  conclusion.
+- Added `extra/profiling/runtime-realization-survey.sh` to collect self-host and
+  PDP allocation profiles plus flat/cumulative `alloc_space` and
+  `alloc_objects` tables. The survey has one planned critical gate: semantic
+  family selection after attribution.
+- Reviewed `ai/README.md` against the retired-session policy and corrected stale
+  handoff language that still referred to per-session `README.md`/`summary.md`
+  artifacts and an `ai-session.tgz` handoff. Durable restart state remains in
+  `docs/session-history.md`; no per-session directories are to be created.
+- Exact next action: run the allocation survey on the authoritative alpha-36
+  build, classify the leading self-host/PDP sites into semantic realization
+  families, and stop only when the family-selection gate is ready.
+- Local validation limitation for this survey setup: the extracted alpha-36 tree
+  requires Go 1.24 and this sandbox cannot fetch the toolchain, so repository
+  `make treecheck`/build could not run here. The survey helper passed shell
+  syntax validation and the tree passed `git diff --check`; authoritative
+  profiling and repository validation remain on the project host.
+
+
+### 2026-08-21 — Alpha-36 runtime realization survey selects string observation
+
+- Runtime-realization survey completed on the alpha-36 baseline.
+- Three-level self-host: `evalStringIndex` owns 6.171 GB / 73.2% of allocation
+  space by repeatedly materializing `[]rune` for single-rune indexing.
+- Selected next project: `proposals/immutable-string-observation-realization.md`.
+- Initial design keeps flat immutable UTF-8 strings. Rune indexing, length,
+  first-rune access, `ord`, and rune-wise comparison are centralized as
+  non-materializing observations.
+- No rune cache or adaptive string representation is admitted yet. Such a
+  representation requires post-fix evidence that scanning rather than
+  allocation is the remaining bottleneck.
+- PDP-11 survey separately exposes parser failure bookkeeping as its dominant
+  allocation family; defer that concern rather than mixing it into the string
+  project.
+- Governing statement: **The string is immutable. Observation need not
+  materialize it.**
+
+
+### 2026-08-21 — Immutable string observation focused witness PASS
+
+- Runtime realization survey selected string indexing because
+  `evalStringIndex` accounted for about 6.17 GB / 73.2% of self-host allocated
+  bytes.
+- The implementation centralizes rune-aware observation without introducing a
+  second string representation.
+- Corrected focused witness returned 1,538 expected hits over 100,000 indexed
+  observations of a 65-rune mixed-width UTF-8 string.
+- Semantic distinction recorded: string indexing and `first(string)` return
+  `rune`; a one-character literal remains `string`.
+- Focused run: 385.94 ms, 106.96 MB allocated, 4.020 M mallocs, 8 GC cycles.
+- Final gate remains the post-change self-host/PDP allocation survey and
+  whole-tree validation.
+
+
+### 2026-08-21 — String observation static closure complete
+
+- Audited remaining `[]rune` conversions after the immutable-observation
+  tranche. Remaining conversions are transformation/materialization operations,
+  rune-literal decoding, symbol ordering, or separate string APIs; the measured
+  observation paths no longer materialize whole strings.
+- Added an invariant covering string indexing, `first`, `length`, `ord`, and
+  `value.String` rune observation methods, plus natural string ordering
+  delegation through `CompareRunes`.
+- No alternate string representation has been introduced.
+- Final evidence gate remains the post-fix self-host/PDP allocation survey and
+  `make validate`.
+- If the former 6.17 GB `evalStringIndex` site disappears, the old residual
+  self-host candidates are approximately: `NewCallEnv` 931 MB,
+  `evalCallArgs` 210 MB, parser failure bookkeeping 193 MB, and
+  `NewNumberFromString` 160 MB. These are survey candidates only, not current
+  work.

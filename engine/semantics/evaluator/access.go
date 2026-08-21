@@ -63,11 +63,11 @@ func (e *Evaluator) evalStringIndex(s *value.String, node *syntax.Node, env *val
 				return e.makeFault(node, env, "index must fit machine integer range")
 			}
 			i := int(iv)
-			runes := []rune(s.Val)
-			if i < 0 || i >= len(runes) {
+			r, ok := s.RuneAt(i)
+			if !ok {
 				return e.makeFault(node, env, "index out of bounds: %d", i)
 			}
-			return &value.Rune{Val: runes[i]}
+			return &value.Rune{Val: r}
 		}
 	}
 	return value.EMPTY

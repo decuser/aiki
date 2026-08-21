@@ -17,11 +17,11 @@ func halFirst(args []value.Value, ctx *hal.EvalContext) value.Value {
 		}
 		return a.At(0)
 	case *value.String:
-		runes := []rune(a.Val)
-		if len(runes) == 0 {
+		r, ok := a.FirstRune()
+		if !ok {
 			return value.NewFault("first: empty string")
 		}
-		return &value.Rune{Val: runes[0]}
+		return &value.Rune{Val: r}
 	default:
 		return value.NewFault("first: expected list or string")
 	}
@@ -56,7 +56,7 @@ func halLength(args []value.Value, ctx *hal.EvalContext) value.Value {
 	case *value.List:
 		return value.NewNumber(int64(a.Len()), 1)
 	case *value.String:
-		return value.NewNumber(int64(len([]rune(a.Val))), 1)
+		return value.NewNumber(int64(a.RuneLen()), 1)
 	default:
 		return value.NewFault("length: expected list or string")
 	}

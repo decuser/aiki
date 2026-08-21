@@ -1,0 +1,25 @@
+# Immutable string observation witness.
+#
+#   aiki profile --counts extra/profiling/string-observation.ai
+#
+# Repeatedly index a mixed-width UTF-8 string. String indexing returns an Aiki
+# rune, so compare it with first("猫"), which is the same semantic type.
+let text = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZé猫🙂"
+let target = first("猫")
+let i = 0
+let idx = 0
+let hits = 0
+
+while i < 100000 {
+	let r = text[idx]
+	if equal(r, target) {
+		hits = hits + 1
+	}
+	idx = idx + 1
+	if idx >= 65 {
+		idx = 0
+	}
+	i = i + 1
+}
+
+println(hits)

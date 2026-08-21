@@ -396,26 +396,7 @@ func halStringCompare(args []value.Value, ctx *hal.EvalContext) value.Value {
 	if fault != nil {
 		return fault
 	}
-	ar, br := []rune(a.Val), []rune(b.Val)
-	limit := len(ar)
-	if len(br) < limit {
-		limit = len(br)
-	}
-	for i := 0; i < limit; i++ {
-		if ar[i] < br[i] {
-			return value.NewNumber(-1, 1)
-		}
-		if ar[i] > br[i] {
-			return value.NewNumber(1, 1)
-		}
-	}
-	if len(ar) < len(br) {
-		return value.NewNumber(-1, 1)
-	}
-	if len(ar) > len(br) {
-		return value.NewNumber(1, 1)
-	}
-	return value.NewNumber(0, 1)
+	return value.NewNumber(int64(a.CompareRunes(b)), 1)
 }
 
 func stringRuneArg(args []value.Value, at int, name string) (rune, *value.Fault) {
@@ -426,11 +407,11 @@ func stringRuneArg(args []value.Value, at int, name string) (rune, *value.Fault)
 	case *value.Rune:
 		return v.Val, nil
 	case *value.String:
-		runes := []rune(v.Val)
-		if len(runes) == 0 {
+		r, ok := v.FirstRune()
+		if !ok {
 			return 0, nil
 		}
-		return runes[0], nil
+		return r, nil
 	default:
 		return 0, value.NewFault("%s: expected rune or string, got %s", name, args[at].Type())
 	}

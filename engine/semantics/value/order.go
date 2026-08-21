@@ -18,7 +18,7 @@ func CompareNatural(left, right Value) (cmp int, ok bool) {
 		if !same {
 			return 0, false
 		}
-		return compareRunes([]rune(l.Val), []rune(r.Val)), true
+		return l.CompareRunes(r), true
 	case *Rune:
 		r, same := right.(*Rune)
 		if !same {

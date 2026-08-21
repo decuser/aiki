@@ -233,16 +233,18 @@ Before a project/session ends or work is handed off:
 - update any referenced audit findings and unresolved bugs;
 - record gated and blocked cuts accurately;
 - distinguish intentional behavior changes from baseline-preserving work;
-- update the session `README.md` and `summary.md`;
+- update `docs/session-history.md` with durable decisions, evidence, and exact restart state;
 - ensure the working tree contains no unexplained generated files;
 - state the exact next Git or engineering action if the project is not complete.
 
-When delivering only the AI working record, package it rooted at `ai/` so it can
-merge directly into the repository:
+When delivering only the AI working method/evidence record, package it rooted at
+`ai/` so it can merge directly into the repository:
 
 ```bash
-tar czf ai-session.tgz ai/
+tar czf ai-record.tgz ai/
 ```
+
+Do not create a session archive or per-session directory as part of handoff.
 
 Do not overwrite durable working-method files unless they were intentionally
 changed as part of the project.
