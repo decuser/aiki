@@ -1,0 +1,145 @@
+use("test")
+
+let fixed = import("machine/ffi")
+let execute = import("../cpu/execute")
+let machine = import("../machine/machine")
+let octal = import("../reference/octal")
+
+let set_full_page = (m, par_addr, pdr_addr, page_block) {
+	machine.deposit_word(m, par_addr, page_block)
+	machine.deposit_word(m, pdr_addr, octal.parse("077406"))
+	return true
+}
+
+run("four-instruction MFPI fault recovery preserves both stacks", () {
+	let m = machine.new()
+	# Kernel page 0 stays identity-mapped after MMU enable.
+	set_full_page(m, octal.parse("172340"), octal.parse("172300"), 0)
+	# KSP begins at 030000, so trap pushes land in Kernel virtual page 1.
+	# Map page 1 identity as well (020000 virtual -> 020000 physical).
+	set_full_page(m, octal.parse("172342"), octal.parse("172302"), octal.parse("000200"))
+	# User page 0 maps to physical 140000, the first absent byte in 24K core.
+	set_full_page(m, octal.parse("177640"), octal.parse("177600"), octal.parse("001400"))
+	# Bus-error vector -> tiny Kernel handler at 000200.
+	machine.deposit_word(m, octal.parse("000004"), octal.parse("000200"))
+	machine.deposit_word(m, octal.parse("000006"), octal.parse("000340"))
+	# Tiny guest program.
+	machine.deposit_word(m, octal.parse("010000"), octal.parse("006511"))  # MFPI (R1)
+	machine.deposit_word(m, octal.parse("010004"), octal.parse("000240"))  # NOP
+	# Tiny trap handler. R2 contains the recovery PC.
+	machine.deposit_word(m, octal.parse("000200"), octal.parse("010216"))  # MOV R2,(SP)
+	machine.deposit_word(m, octal.parse("000202"), octal.parse("000006"))  # RTT
+	machine.set_sp_mode_word(m, 0, fixed.word(octal.parse("030000")))
+	machine.set_sp_mode_word(m, 3, fixed.word(octal.parse("020000")))
+	machine.set_register(m, 1, 0)
+	machine.set_register(m, 2, octal.parse("010004"))
+	machine.set_psw(m, octal.parse("030000"))  # Kernel current, User previous.
+	machine.set_pc(m, octal.parse("010000"))
+	machine.deposit_word(m, octal.parse("177572"), 1)
+	# 1. MFPI faults through vector 4 and stacks old PC/PS on KSP.
+	equal(execute.step(m), true)
+	equal(machine.pc(m), octal.parse("000200"))
+	equal(machine.sp(m), octal.parse("027774"))
+	equal(fixed.number(machine.sp_mode_word(m, 3)), octal.parse("020000"))
+	equal(machine.examine_word(m, octal.parse("027774")), octal.parse("010002"))
+	equal(machine.examine_word(m, octal.parse("027776")), octal.parse("030000"))
+	# 2. Handler substitutes the recovery PC without moving SP.
+	equal(execute.step(m), true)
+	equal(machine.examine_word(m, octal.parse("027774")), octal.parse("010004"))
+	equal(machine.sp(m), octal.parse("027774"))
+	# 3. RTT restores PC/PS and fully unwinds KSP; USP is untouched.
+	equal(execute.step(m), true)
+	equal(machine.pc(m), octal.parse("010004"))
+	equal(machine.psw(m), octal.parse("030000"))
+	equal(machine.sp(m), octal.parse("030000"))
+	equal(fixed.number(machine.sp_mode_word(m, 3)), octal.parse("020000"))
+	# 4. Execution really resumed at the local recovery target.
+	equal(execute.step(m), true)
+	equal(machine.pc(m), octal.parse("010006"))
+})
+
+
+run("gword-shaped fault recovery restores sentinel and PS on the same KSP", () {
+	let m = machine.new()
+	# Kernel page 0 is identity mapped. The Kernel stack starts at 030000,
+	# so page 1 must also be resident for trap frames and the gword saves.
+	set_full_page(m, octal.parse("172340"), octal.parse("172300"), 0)
+	set_full_page(m, octal.parse("172342"), octal.parse("172302"), octal.parse("000200"))
+	# User page 0 deliberately targets the first absent byte of the default
+	# 24K-word machine.
+	set_full_page(m, octal.parse("177640"), octal.parse("177600"), octal.parse("001400"))
+	# Kernel virtual page 7 maps the processor/UNIBUS I/O page so the test can
+	# execute the same PS save/restore memory references used by V6 gword.
+	set_full_page(
+		m,
+		octal.parse("172356"),
+		octal.parse("172316"),
+		octal.parse("007600")
+	)
+	# Bus-error vector -> tiny Kernel handler. R3 names a local stand-in for
+	# V6 nofault; R4 names PS at 177776.
+	machine.deposit_word(m, octal.parse("000004"), octal.parse("000200"))
+	machine.deposit_word(m, octal.parse("000006"), octal.parse("000340"))
+	machine.deposit_word(m, octal.parse("011000"), octal.parse("012345"))
+	# Tiny gword-shaped sequence at 010000:
+	#   mov (r4),-(sp)          ; save PS
+	#   mov (r3),-(sp)          ; save old nofault sentinel
+	#   mov $010016,(r3)        ; install recovery PC
+	#   mfpi (r1)               ; User page 0 -> absent physical 140000
+	machine.deposit_word(m, octal.parse("010000"), octal.parse("011446"))
+	machine.deposit_word(m, octal.parse("010002"), octal.parse("011346"))
+	machine.deposit_word(m, octal.parse("010004"), octal.parse("012713"))
+	machine.deposit_word(m, octal.parse("010006"), octal.parse("010016"))
+	machine.deposit_word(m, octal.parse("010010"), octal.parse("006511"))
+	# Trap handler equivalent to V6's `mov nofault,(sp); rtt`.
+	machine.deposit_word(m, octal.parse("000200"), octal.parse("011316"))
+	machine.deposit_word(m, octal.parse("000202"), octal.parse("000006"))
+	# Local recovery equivalent to the first half of V6 err:
+	#   mov (sp)+,(r3)          ; restore old nofault
+	#   mov (sp)+,(r4)          ; restore PS
+	#   nop
+	machine.deposit_word(m, octal.parse("010016"), octal.parse("012613"))
+	machine.deposit_word(m, octal.parse("010020"), octal.parse("012614"))
+	machine.deposit_word(m, octal.parse("010022"), octal.parse("000240"))
+	machine.set_sp_mode_word(m, 0, fixed.word(octal.parse("030000")))
+	machine.set_sp_mode_word(m, 3, fixed.word(octal.parse("020000")))
+	machine.set_register(m, 1, 0)
+	machine.set_register(m, 3, octal.parse("011000"))
+	machine.set_register(m, 4, octal.parse("177776"))
+	machine.set_psw(m, octal.parse("030000"))  # Kernel current, User previous.
+	machine.set_pc(m, octal.parse("010000"))
+	machine.deposit_word(m, octal.parse("177572"), 1)
+	# Save PS and the old sentinel on KSP.
+	equal(execute.step(m), true)
+	equal(machine.sp(m), octal.parse("027776"))
+	equal(machine.examine_word(m, octal.parse("027776")), octal.parse("030000"))
+	equal(execute.step(m), true)
+	equal(machine.sp(m), octal.parse("027774"))
+	equal(machine.examine_word(m, octal.parse("027774")), octal.parse("012345"))
+	# Install local recovery PC, then fault in previous User space.
+	equal(execute.step(m), true)
+	equal(machine.examine_word(m, octal.parse("011000")), octal.parse("010016"))
+	equal(execute.step(m), true)
+	equal(machine.pc(m), octal.parse("000200"))
+	equal(machine.sp(m), octal.parse("027770"))
+	equal(fixed.number(machine.sp_mode_word(m, 3)), octal.parse("020000"))
+	# Handler substitutes recovery PC and RTT returns to it. KSP must again
+	# point at the saved old sentinel, exactly as it did before the fault.
+	equal(execute.step(m), true)
+	equal(machine.examine_word(m, octal.parse("027770")), octal.parse("010016"))
+	equal(execute.step(m), true)
+	equal(machine.pc(m), octal.parse("010016"))
+	equal(machine.psw(m), octal.parse("030000"))
+	equal(machine.sp(m), octal.parse("027774"))
+	# Recovery unwinds the same KSP: sentinel first, then saved PS. Neither the
+	# User stack nor the nofault stand-in may acquire any stack-frame value.
+	equal(execute.step(m), true)
+	equal(machine.examine_word(m, octal.parse("011000")), octal.parse("012345"))
+	equal(machine.sp(m), octal.parse("027776"))
+	equal(execute.step(m), true)
+	equal(machine.psw(m), octal.parse("030000"))
+	equal(machine.sp(m), octal.parse("030000"))
+	equal(fixed.number(machine.sp_mode_word(m, 3)), octal.parse("020000"))
+	equal(execute.step(m), true)
+	equal(machine.pc(m), octal.parse("010024"))
+})

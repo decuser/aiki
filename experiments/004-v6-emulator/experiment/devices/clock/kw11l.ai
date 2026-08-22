@@ -1,0 +1,159 @@
+package "aiki_pdp_kw11l"
+
+let bits = import("bits/ffi")
+let octal = import("../../reference/octal")
+let store = import("store")
+
+# KW11-L line-time clock status register, physical UNIBUS address.
+let LKS = octal.parse("777546")
+let FIRST_ADDRESS = LKS
+let LAST_ADDRESS = LKS
+let VECTOR = octal.parse("000100")
+let PRIORITY = 6
+
+# The emulator's machine-time unit is one architectural instruction/wait tick.
+# Host wall-clock time never drives guest ordering. This explicit deterministic
+# scale realizes one nominal 60 Hz line event every 10,000 machine ticks.
+let TICKS_PER_LINE = 10000
+
+let CSR = 0
+let PHASE = 1
+let TICKS = 2
+let INTERRUPTS = 3
+let IRQ_PENDING = 4
+let WORDS = 5
+
+let MONITOR = bits.shl(1, 7)  # line clock monitor/done bit
+let INTERRUPT_ENABLE = bits.shl(1, 6)
+
+let new = () {
+	let state = store.new(WORDS)
+	store.set(state, CSR, MONITOR)
+	store.set(state, PHASE, 0)
+	store.set(state, TICKS, 0)
+	store.set(state, INTERRUPTS, 0)
+	store.set(state, IRQ_PENDING, false)
+	return state
+}
+
+let reset_clock = (clock) {
+	store.set(clock, CSR, MONITOR)
+	store.set(clock, PHASE, 0)
+	store.set(clock, IRQ_PENDING, false)
+	return true
+}
+
+let handles = (address) {
+	return equal(address, LKS) or equal(address, LKS + 1)
+}
+
+let read_word = (clock, address) {
+	if equal(address, LKS) {
+		return store.get(clock, CSR)
+	}
+	return [@pdp_fault, :bus_address, address]
+}
+
+let read_byte = (clock, address) {
+	let word = read_word(clock, LKS)
+	if is_error(word) {
+		return word
+	}
+	if equal(address, LKS) {
+		return bits.low(word, 8)
+	}
+	if equal(address, LKS + 1) {
+		return bits.extract(word, 8, 8)
+	}
+	return [@pdp_fault, :bus_address, address]
+}
+
+let write_word = (clock, address, value) {
+	if not equal(address, LKS) {
+		return [@pdp_fault, :bus_address, address]
+	}
+	# A DATO updates interrupt enable and clears the monitor flag/request. The
+	# next line event sets MONITOR again and requests BR6 when enabled.
+	let enabled = bits.bit_and(value, INTERRUPT_ENABLE)
+	store.set(clock, CSR, enabled)
+	store.set(clock, IRQ_PENDING, false)
+	return true
+}
+
+let write_byte = (clock, address, value) {
+	if equal(address, LKS) {
+		return write_word(clock, LKS, value)
+	}
+	# High byte carries no writable KW11-L state in the modeled contract.
+	if equal(address, LKS + 1) {
+		return true
+	}
+	return [@pdp_fault, :bus_address, address]
+}
+
+let advance = (clock, elapsed) {
+	let phase = store.get(clock, PHASE) + elapsed
+	store.set(clock, TICKS, store.get(clock, TICKS) + elapsed)
+	while phase >= TICKS_PER_LINE {
+		phase = phase - TICKS_PER_LINE
+		store.set(clock, CSR, bits.bit_or(store.get(clock, CSR), MONITOR))
+		if not equal(bits.bit_and(store.get(clock, CSR), INTERRUPT_ENABLE), 0) {
+			store.set(clock, IRQ_PENDING, true)
+			store.set(clock, INTERRUPTS, store.get(clock, INTERRUPTS) + 1)
+		}
+	}
+	store.set(clock, PHASE, phase)
+	return true
+}
+
+let interrupt_pending = (clock) {
+	return store.get(clock, IRQ_PENDING)
+}
+
+let acknowledge_interrupt = (clock) {
+	store.set(clock, IRQ_PENDING, false)
+	return true
+}
+
+let status = (clock) {
+	return store.get(clock, CSR)
+}
+
+let enabled = (clock) {
+	return not equal(bits.bit_and(store.get(clock, CSR), INTERRUPT_ENABLE), 0)
+}
+
+let monitor = (clock) {
+	return not equal(bits.bit_and(store.get(clock, CSR), MONITOR), 0)
+}
+
+let ticks = (clock) {
+	return store.get(clock, TICKS)
+}
+
+let interrupts = (clock) {
+	return store.get(clock, INTERRUPTS)
+}
+
+export(
+	:FIRST_ADDRESS,
+	:LAST_ADDRESS,
+	:VECTOR,
+	:PRIORITY,
+	:TICKS_PER_LINE,
+	:new,
+	:reset_clock,
+	:handles,
+	:read_word,
+	:read_byte,
+	:write_word,
+	:write_byte,
+	:advance,
+	:interrupt_pending,
+	:acknowledge_interrupt,
+	:status,
+	:enabled,
+	:monitor,
+	:ticks,
+	:interrupts
+)

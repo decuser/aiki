@@ -1,9 +1,11 @@
 package "aiki_pdp_m40_contract"
 
-# Lions' commentary says these instruction forms are used by m40.s. The source
-# listing independently confirms the same vocabulary. Counts below are static
-# occurrences in the supplied Lions V6 source listing and are evidence only;
-# dynamic execution audit is expected to be a strict subset for any one run.
+# Lions' m40.s contract has two evidence classes: mnemonics assembled directly
+# in m40.s, and instruction forms the 11/40 backup logic explicitly classifies
+# as architectural cases. SXT is in the latter class even though its direct
+# source-mnemonic count is zero. Counts below are static direct occurrences in
+# the supplied Lions V6 source listing and are evidence only; dynamic execution
+# audit is expected to be a strict subset for any one run.
 let INSTRUCTIONS = [
 	:adc,
 	:add,
@@ -46,6 +48,7 @@ let INSTRUCTIONS = [
 	:sbc,
 	:sob,
 	:sub,
+	:sxt,
 	:swab,
 	:tst,
 	:tstb,
@@ -95,10 +98,22 @@ let SOURCE_COUNTS = [
 	[:sbc, 1],
 	[:sob, 5],
 	[:sub, 4],
+	[:sxt, 0],
 	[:swab, 3],
 	[:tst, 6],
 	[:tstb, 3],
 	[:wait, 1]
+]
+
+
+# Forms named explicitly by the m40.s backup classifier rather than necessarily
+# appearing as executable mnemonics in m40.s itself. Keeping this evidence
+# separate prevents a zero direct-occurrence count from silently dropping an
+# architectural requirement.
+let BACKUP_CLASSIFIED = [
+	:mfpi,
+	:mtpi,
+	:sxt
 ]
 
 
@@ -125,4 +140,4 @@ let source_count = (kind) {
 	return 0
 }
 
-export(:INSTRUCTIONS, :SOURCE_COUNTS, :ADDRESSING_MODES, :source_count)
+export(:INSTRUCTIONS, :SOURCE_COUNTS, :BACKUP_CLASSIFIED, :ADDRESSING_MODES, :source_count)

@@ -1,6 +1,7 @@
 package "aiki_pdp_monitor"
 
 let decode = import("../cpu/decode")
+let disassemble = import("./disassemble")
 let execute = import("../cpu/execute")
 let machine = import("../machine/machine")
 let octal = import("../reference/octal")
@@ -32,6 +33,11 @@ let status = (m) {
 	return "CPU " + state + "  PC " + octal.word(machine.pc(m)) + "  PSW " + octal.word(machine.psw(m)) + "  steps " + octal.count(machine.steps(m)) + "  tape " + octal.word(machine.tape_media_position(m))
 }
 
+let observation = (m, wall_ms) {
+	let wall_seconds = truncate(wall_ms / 1000)
+	return "time wall " + to_str(wall_seconds) + "s internal " + octal.count(machine.machine_time(m)) + "  bus DATI/DATO " + octal.count(machine.unibus_dati_count(m)) + "/" + octal.count(machine.unibus_dato_count(m)) + "  I/O R/W/B " + octal.word(machine.unibus_last_dati_address(m)) + "/" + octal.word(machine.unibus_last_dato_address(m)) + "/" + octal.word(machine.unibus_last_datob_address(m)) + "  RK r/w " + octal.count(machine.disk_read_count(m)) + "/" + octal.count(machine.disk_write_count(m)) + "  KL rx/tx " + octal.count(machine.console_rx_count(m)) + "/" + octal.count(machine.console_tx_count(m)) + "  CLK irq " + octal.count(machine.clock_interrupts(m))
+}
+
 let registers = (m) {
 	return views.cpu(m)
 }
@@ -48,6 +54,10 @@ let rk = (m) {
 	return views.rk(m)
 }
 
+let clock = (m) {
+	return views.clock(m)
+}
+
 let bus = (m, last_event) {
 	return views.unibus(m, last_event)
 }
@@ -60,14 +70,34 @@ let examine = (m, address, count) {
 		if i > 0 {
 			text = text + "\n"
 		}
-		text = text + octal.address(at) + "  " + octal.word(machine.examine_word(m, at))
+		let value = machine.examine_word(m, at)
+		match value {
+			[@pdp_fault, kind, detail] {
+				text = text + octal.address(at) + "  <fault " + to_str(kind) + "  detail " + inspect(detail) + ">"
+			}
+			_ {
+				text = text + octal.address(at) + "  " + octal.word(value)
+			}
+		}
 		i = i + 1
 	}
 	return text
 }
 
+let examine_mnemonic = (m, address, count) {
+	return disassemble.range(m, address, count)
+}
+
 let deposit = (m, address, value) {
 	return machine.deposit_word(m, address, value)
+}
+
+let switch_register = (m) {
+	return machine.console_switch(m)
+}
+
+let set_switch_register = (m, value) {
+	return machine.set_console_switch_word(m, value)
 }
 
 let attach_tape = (m, path) {
@@ -86,6 +116,9 @@ let boot_tape = (m, unit) {
 	if (unit < 0) or (unit > 7) {
 		return [@error, :tape_unit, "tape unit must be 0..7"]
 	}
+	if not machine.tape_unit_attached(m, unit) {
+		return [@error, :tape_unit, "tape unit is not attached"]
+	}
 	let base = octal.parse("100000")
 	let command = octal.parse("060003") + (unit * octal.parse("000400"))
 	let words = [
@@ -99,6 +132,51 @@ let boot_tape = (m, unit) {
 	let i = 0
 	while i < length(words) {
 		machine.deposit_word(m, base + (i * 2), words[i])
+		i = i + 1
+	}
+	machine.set_pc(m, base)
+	machine.set_waiting(m, false)
+	machine.set_suspended(m, false)
+	machine.set_running(m, true)
+	return true
+}
+
+# DEC BM792-YB assigns the RK11 bootstrap entry to physical 773110. With the
+# PDP-11/40 MMU disabled, CPU 173110 projects to that physical I/O-page address.
+# The sequence below follows the RK11 programming contract documented for RKWC,
+# RKBA, RKDA, and RKCS: read one 256-word sector from block 0 into address 0,
+# wait for READY, then transfer control to the loaded boot block.
+let boot_disk = (m, unit) {
+	if (unit < 0) or (unit > 7) {
+		return [@error, :disk_unit, "disk unit must be 0..7"]
+	}
+	if not machine.disk_unit_attached(m, unit) {
+		return [@error, :disk_unit, "disk unit is not attached"]
+	}
+	let base = octal.parse("173110")
+	let drive = unit * octal.parse("020000")
+	let words = [
+		octal.parse("012700"),
+		octal.parse("177406"),
+		octal.parse("012710"),
+		octal.parse("177400"),
+		octal.parse("005060"),
+		octal.parse("000002"),
+		octal.parse("012760"),
+		drive,
+		octal.parse("000004"),
+		octal.parse("012760"),
+		octal.parse("000005"),
+		octal.parse("177776"),
+		octal.parse("105760"),
+		octal.parse("177776"),
+		octal.parse("100375"),
+		octal.parse("012707"),
+		octal.parse("000000")
+	]
+	let i = 0
+	while i < length(words) {
+		machine.deposit_boot_word(m, base + (i * 2), words[i])
 		i = i + 1
 	}
 	machine.set_pc(m, base)
@@ -168,13 +246,20 @@ let help_text = (topic) {
 			"attach tape [UNIT] FILE  attach raw V6 distribution tape read-only",
 			"attach disk UNIT FILE    attach/create writable RK05 pack",
 			"boot tape UNIT           deposit and run V6 TM bootstrap for unit 0..7",
+			"boot disk UNIT           run RK11/RK05 block-0 bootstrap for unit 0..7",
 			"demo V6_TAPE RK0         attach tape/disk 0 and start V6 tape bootstrap",
 			"deposit ADDR WORD        deposit one octal word",
 			"examine ADDR [COUNT]     examine octal words",
+			"examine -m ADDR [COUNT]  examine decoded instructions",
+			"break ADDR               stop before executing instruction at ADDR",
+			"break list               list breakpoints",
+			"break clear [ADDR]       clear one or all breakpoints",
 			"set pc ADDR              set program counter",
+			"switch [WORD]            show/set console switch register",
 			"registers                show CPU state",
 			"status                   concise machine state",
-			"show cpu|unibus|tape|rk|kl11 print observer snapshot here",
+			"timing on|off            host-side guest console milestone timing",
+			"show cpu|unibus|tape|rk|kl11|clock print observer snapshot here",
 			"observe TYPE             open a new observer window (open is alias)",
 			"step [COUNT]             execute bounded instructions",
 			"run [ADDR]               run from current or supplied PC",
@@ -211,17 +296,23 @@ export(
 	:new,
 	:parse_number,
 	:status,
+	:observation,
 	:registers,
 	:tape,
 	:rk,
+	:clock,
 	:kl11,
 	:bus,
 	:examine,
+	:examine_mnemonic,
 	:deposit,
+	:switch_register,
+	:set_switch_register,
 	:attach_tape,
 	:attach_tape_unit,
 	:attach_disk_unit,
 	:boot_tape,
+	:boot_disk,
 	:demo,
 	:set_pc,
 	:step,

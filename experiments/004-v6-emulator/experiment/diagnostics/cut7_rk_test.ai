@@ -146,3 +146,51 @@ run("demo setup fails safely on missing tape before creating disk", () {
 	let text = monitor.help_text("monitor")
 	is_true(str.contains(text, "demo V6_TAPE RK0"))
 })
+
+
+run("RK05 monitor bootstrap reads block zero into memory and transfers control to zero", () {
+	let m = monitor.new()
+	let path = new_pack_path()
+	equal(monitor.attach_disk_unit(m, 0, path), true)
+	let source = octal.parse("002000")
+	machine.deposit_word(m, source, octal.parse("012345"))
+	let i = 1
+	while i < 256 {
+		machine.deposit_word(m, source + (i * 2), 0)
+		i = i + 1
+	}
+	# Seed RK0 block zero using the documented RK11 register contract.
+	equal(machine.write_word(m, octal.parse("177412"), 0), true)
+	equal(machine.write_word(m, octal.parse("177410"), source), true)
+	equal(machine.write_word(m, octal.parse("177406"), octal.parse("177400")), true)
+	equal(machine.write_word(m, octal.parse("177404"), octal.parse("000003")), true)
+	machine.complete_instruction(m, 1)
+	equal(machine.disk_write_count(m), 1)
+	equal(monitor.boot_disk(m, 0), true)
+	equal(machine.pc(m), octal.parse("173110"))
+	is_true(machine.running(m))
+	let steps = 0
+	while (steps < 64) and (machine.pc(m) > 0) {
+		let stepped = monitor.step(m)
+		steps = steps + 1
+	}
+	equal(machine.pc(m), 0)
+	equal(machine.disk_selected_unit(m), 0)
+	equal(machine.disk_read_count(m), 1)
+	equal(machine.disk_bytes_in(m), 512)
+	equal(machine.examine_word(m, 0), octal.parse("012345"))
+	file.delete(path)
+})
+
+
+run("RK05 monitor bootstrap encodes selected drive and rejects unattached units", () {
+	let m = monitor.new()
+	is_error(monitor.boot_disk(m, 0))
+	let path = new_pack_path()
+	equal(monitor.attach_disk_unit(m, 1, path), true)
+	equal(monitor.boot_disk(m, 1), true)
+	let base = octal.parse("173110")
+	equal(machine.examine_word(m, base + (7 * 2)), octal.parse("020000"))
+	equal(machine.pc(m), base)
+	file.delete(path)
+})

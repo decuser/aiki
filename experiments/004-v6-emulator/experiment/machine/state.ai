@@ -12,21 +12,37 @@ let PC = 7
 # Machine words stay opaque and fixed-width. Execution metadata is held in
 # provider-backed counter blocks so hot bookkeeping does not use general store.
 let WORD_PSW = 8
-let WORD_CELLS = 9
+let WORD_IR = 9
+let WORD_KSP = 10
+let WORD_USP = 11
+let WORD_IAR = 12
+let WORD_SWITCH = 13
+let WORD_CELLS = 14
 let FLAG_RUNNING = 0
 let FLAG_WAITING = 1
 let FLAG_SUSPENDED = 2
-let FLAG_CELLS = 3
+let FLAG_WATCH_KSP_REPORTED = 3
+let FLAG_CELLS = 4
 let COUNT_STEPS = 0
 let COUNT_TIME = 1
-let COUNT_CELLS = 2
+let COUNT_WATCH_STOP_KIND = 2
+let COUNT_WATCH_KSP_LOW = 3
+let COUNT_CELLS = 4
 
 let STATE_WORDS = 0
 let STATE_FLAGS = 1
 let STATE_COUNTS = 2
 
 let new = () {
-	return [fixed.new_word(WORD_CELLS), fixed.new_counter(FLAG_CELLS), fixed.new_counter(COUNT_CELLS)]
+	let state = [
+		fixed.new_word(WORD_CELLS),
+		fixed.new_counter(FLAG_CELLS),
+		fixed.new_counter(COUNT_CELLS)
+	]
+	# Conventional UNIX V6 / Lions operator switch setting.  The physical
+	# front-panel switches are not altered by guest RESET.
+	fixed.set(state[STATE_WORDS], WORD_SWITCH, machine.word(63000))  # 0173030
+	return state
 }
 
 let words = (state) {
@@ -55,11 +71,37 @@ let count_store = (state) {
 	return counts(state)
 }
 
+let current_mode_bound = (word_store) {
+	return machine.word_field(fixed.get(word_store, WORD_PSW), 14, 2)
+}
+
+let sp_cell_for_mode = (mode) {
+	if equal(mode, 3) {
+		return WORD_USP
+	}
+	return WORD_KSP
+}
+
+let get_sp_mode_bound = (word_store, mode) {
+	return fixed.get(word_store, sp_cell_for_mode(mode))
+}
+
+let set_sp_mode_bound = (word_store, mode, value) {
+	fixed.set(word_store, sp_cell_for_mode(mode), value)
+	return true
+}
+
 let get_register_bound = (word_store, index) {
+	if equal(index, SP) {
+		return get_sp_mode_bound(word_store, current_mode_bound(word_store))
+	}
 	return fixed.get(word_store, index)
 }
 
 let set_register_bound = (word_store, index, value) {
+	if equal(index, SP) {
+		return set_sp_mode_bound(word_store, current_mode_bound(word_store), value)
+	}
 	fixed.set(word_store, index, value)
 	return true
 }
@@ -79,6 +121,24 @@ let psw_word_bound = (word_store) {
 
 let set_psw_word_bound = (word_store, value) {
 	fixed.set(word_store, WORD_PSW, value)
+	return true
+}
+
+let ir_word_bound = (word_store) {
+	return fixed.get(word_store, WORD_IR)
+}
+
+let set_ir_word_bound = (word_store, value) {
+	fixed.set(word_store, WORD_IR, value)
+	return true
+}
+
+let iar_word_bound = (word_store) {
+	return fixed.get(word_store, WORD_IAR)
+}
+
+let set_iar_word_bound = (word_store, value) {
+	fixed.set(word_store, WORD_IAR, value)
 	return true
 }
 
@@ -121,7 +181,7 @@ let get_register_word = (state, index) {
 	if is_error(i) {
 		return i
 	}
-	return fixed.get(words(state), i)
+	return get_register_bound(words(state), i)
 }
 
 let set_register_word = (state, index, value) {
@@ -129,8 +189,15 @@ let set_register_word = (state, index, value) {
 	if is_error(i) {
 		return i
 	}
-	fixed.set(words(state), i, value)
-	return true
+	return set_register_bound(words(state), i, value)
+}
+
+let sp_mode_word = (state, mode) {
+	return get_sp_mode_bound(words(state), mode)
+}
+
+let set_sp_mode_word = (state, mode, value) {
+	return set_sp_mode_bound(words(state), mode, value)
 }
 
 let sp_word = (state) {
@@ -155,6 +222,33 @@ let psw_word = (state) {
 
 let set_psw_word = (state, value) {
 	fixed.set(words(state), WORD_PSW, value)
+	return true
+}
+
+let switch_word = (state) {
+	return fixed.get(words(state), WORD_SWITCH)
+}
+
+let set_switch_word = (state, value) {
+	fixed.set(words(state), WORD_SWITCH, value)
+	return true
+}
+
+let ir_word = (state) {
+	return fixed.get(words(state), WORD_IR)
+}
+
+let set_ir_word = (state, value) {
+	fixed.set(words(state), WORD_IR, value)
+	return true
+}
+
+let iar_word = (state) {
+	return fixed.get(words(state), WORD_IAR)
+}
+
+let set_iar_word = (state, value) {
+	fixed.set(words(state), WORD_IAR, value)
 	return true
 }
 
@@ -232,6 +326,32 @@ let set_waiting = (state, value) {
 	return set_flag(state, FLAG_WAITING, value)
 }
 
+let watch_ksp_reported = (state) {
+	return flag(state, FLAG_WATCH_KSP_REPORTED)
+}
+
+let set_watch_ksp_reported = (state, value) {
+	return set_flag(state, FLAG_WATCH_KSP_REPORTED, value)
+}
+
+let watch_stop_kind = (state) {
+	return fixed.counter_get(counts(state), COUNT_WATCH_STOP_KIND)
+}
+
+let watch_ksp_low = (state) {
+	return fixed.counter_get(counts(state), COUNT_WATCH_KSP_LOW)
+}
+
+let set_watch_ksp_low = (state, value) {
+	fixed.counter_set(counts(state), COUNT_WATCH_KSP_LOW, value)
+	return true
+}
+
+let set_watch_stop_kind = (state, value) {
+	fixed.counter_set(counts(state), COUNT_WATCH_STOP_KIND, value)
+	return true
+}
+
 let steps = (state) {
 	return fixed.counter_get(counts(state), COUNT_STEPS)
 }
@@ -250,6 +370,11 @@ let set_machine_time = (state, value) {
 	return true
 }
 
+let advance_time = (state, elapsed) {
+	fixed.counter_add(counts(state), COUNT_TIME, elapsed)
+	return true
+}
+
 let complete_instruction = (state, elapsed) {
 	fixed.counter_add(counts(state), COUNT_STEPS, 1)
 	fixed.counter_add(counts(state), COUNT_TIME, elapsed)
@@ -264,18 +389,36 @@ let reset_state = (state) {
 		i = i + 1
 	}
 	set_psw_word(state, zero)
+	set_ir_word(state, zero)
+	set_iar_word(state, zero)
+	set_sp_mode_word(state, 0, zero)
+	set_sp_mode_word(state, 3, zero)
 	set_running(state, false)
 	set_waiting(state, false)
 	set_suspended(state, false)
+	set_watch_ksp_reported(state, false)
+	set_watch_stop_kind(state, 0)
+	set_watch_ksp_low(state, 65536)
 	set_steps(state, 0)
 	set_machine_time(state, 0)
 	return true
 }
 
 let snapshot = (state) {
+	let raw = fixed.snapshot(words(state), REGISTER_COUNT)
+	let registers = [
+		raw[0],
+		raw[1],
+		raw[2],
+		raw[3],
+		raw[4],
+		raw[5],
+		machine.number(sp_word(state)),
+		raw[7]
+	]
 	return [
 		@state,
-		fixed.snapshot(words(state), REGISTER_COUNT),
+		registers,
 		machine.number(psw_word(state)),
 		running(state),
 		waiting(state),
@@ -291,22 +434,36 @@ export(
 	:SP,
 	:PC,
 	:WORD_PSW,
+	:WORD_IR,
+	:WORD_KSP,
+	:WORD_USP,
+	:WORD_IAR,
+	:WORD_SWITCH,
 	:FLAG_RUNNING,
 	:FLAG_WAITING,
+	:FLAG_WATCH_KSP_REPORTED,
 	:COUNT_STEPS,
 	:COUNT_TIME,
+	:COUNT_WATCH_STOP_KIND,
 	:new,
 	:word,
 	:number,
 	:word_store,
 	:flag_store,
 	:count_store,
+	:current_mode_bound,
+	:get_sp_mode_bound,
+	:set_sp_mode_bound,
 	:get_register_bound,
 	:set_register_bound,
 	:pc_word_bound,
 	:set_pc_word_bound,
 	:psw_word_bound,
 	:set_psw_word_bound,
+	:ir_word_bound,
+	:set_ir_word_bound,
+	:iar_word_bound,
+	:set_iar_word_bound,
 	:running_bound,
 	:waiting_bound,
 	:complete_instruction_bound,
@@ -314,10 +471,18 @@ export(
 	:set_register_word,
 	:sp_word,
 	:set_sp_word,
+	:sp_mode_word,
+	:set_sp_mode_word,
 	:pc_word,
 	:set_pc_word,
 	:psw_word,
 	:set_psw_word,
+	:switch_word,
+	:set_switch_word,
+	:ir_word,
+	:set_ir_word,
+	:iar_word,
+	:set_iar_word,
 	:get_register,
 	:set_register,
 	:sp,
@@ -330,12 +495,19 @@ export(
 	:set_running,
 	:waiting,
 	:set_waiting,
+	:watch_ksp_reported,
+	:set_watch_ksp_reported,
+	:watch_stop_kind,
+	:set_watch_stop_kind,
+	:watch_ksp_low,
+	:set_watch_ksp_low,
 	:suspended,
 	:set_suspended,
 	:steps,
 	:set_steps,
 	:machine_time,
 	:set_machine_time,
+	:advance_time,
 	:complete_instruction,
 	:reset_state,
 	:snapshot

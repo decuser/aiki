@@ -41,10 +41,28 @@ let run_count = 0
 let OBSERVER_INTERVAL_MS = 100
 let RUN_SLICE = 128
 let last_observer_publish = time.now()
+let run_started_at = time.now()
 let alive = true
 let line = ""
 let terminal_state = []
 let terminal_raw = false
+
+# Host-side console milestone timing. This never changes guest machine state.
+let timing_enabled = false
+let timing_label = ""
+let guest_input_line = ""
+let guest_input_queue = []
+let awaiting_output_after_input = false
+let console_output_seen = false
+let console_line_start = true
+let last_console_output_at = 0
+let CONSOLE_QUIET_MS = 500
+
+# Debugger breakpoints are monitor state, not guest machine state. The bounded
+# executor checks them at instruction boundaries and stops before the target
+# instruction executes without reducing normal execution to single-step slices.
+let breakpoints = []
+let breakpoint_skip_once = -1
 
 let clear_screen = () {
 	return to_str(chr(27)) + "[2J" + to_str(chr(27)) + "[H"
@@ -66,6 +84,9 @@ let view_for = (kind) {
 		}
 		"kl11" {
 			return monitor.kl11(m)
+		}
+		"clock" {
+			return monitor.clock(m)
 		}
 		_ {
 			return "Aiki PDP observer\n\nunknown observer: " + kind
@@ -106,12 +127,12 @@ let accept_observer = () {
 }
 
 let observer_kind = (kind) {
-	return equal(kind, "cpu") or equal(kind, "unibus") or equal(kind, "tape") or equal(kind, "rk") or equal(kind, "kl11")
+	return equal(kind, "cpu") or equal(kind, "unibus") or equal(kind, "tape") or equal(kind, "rk") or equal(kind, "kl11") or equal(kind, "clock")
 }
 
 let open_observer = (kind) {
 	if not observer_kind(kind) {
-		return [@error, :observer, "observer must be cpu, unibus, tape, rk, or kl11"]
+		return [@error, :observer, "observer must be cpu, unibus, tape, rk, kl11, or clock"]
 	}
 	let launcher = system.env("AIKI_PDP_OBSERVER_LAUNCHER")
 	if is_error(launcher) {
@@ -137,8 +158,56 @@ let observer_summary = () {
 	return text
 }
 
+let timing_stamp = () {
+	let elapsed = time.now() - run_started_at
+	let seconds = truncate(elapsed / 1000)
+	let millis = elapsed - (seconds * 1000)
+	let ms_text = to_str(millis)
+	if millis < 10 {
+		ms_text = "00" + ms_text
+	} else if millis < 100 {
+		ms_text = "0" + ms_text
+	}
+	return "[+" + to_str(seconds) + "." + ms_text + "s]"
+}
+
+let timing_note = (text) {
+	if timing_enabled {
+		io.write(:stderr, "\n" + timing_stamp() + " " + text + "\n")
+	}
+	return true
+}
+
+let start_execution_timing = (label) {
+	run_started_at = time.now()
+	run_count = 0
+	timing_label = label
+	guest_input_line = ""
+	guest_input_queue = []
+	awaiting_output_after_input = false
+	console_output_seen = false
+	console_line_start = true
+	last_console_output_at = 0
+	if timing_enabled {
+		io.write(:stderr, "\n[+0.000s] execution start: " + label + "\n")
+	}
+	return true
+}
+
 let prompt = () {
 	io.write(:stdout, "aiki-pdp> ")
+}
+
+# Host terminal input is paced by the KL11 receive-buffer contract.  Keystrokes
+# remain outside the emulated device until the guest has consumed the preceding
+# character; this prevents host typing speed from overwriting RBUF while DONE is set.
+let service_guest_input = () {
+	if empty(guest_input_queue) or machine.console_receiver_done(m) {
+		return true
+	}
+	let key = first(guest_input_queue)
+	guest_input_queue = rest(guest_input_queue)
+	return machine.console_receive(m, key)
 }
 
 let drain_console = () {
@@ -150,10 +219,80 @@ let drain_console = () {
 				draining = false
 			}
 			_ {
+				let now = time.now()
+				let milestone = ""
+				if console_line_start and equal(value, 64) {
+					milestone = "guest prompt: @"
+				} else if console_line_start and equal(value, 61) {
+					milestone = "guest prompt: ="
+				} else if console_line_start and equal(value, 35) {
+					milestone = "guest prompt: #"
+				}
+				if not equal(milestone, "") {
+					timing_note(milestone)
+				} else if awaiting_output_after_input {
+					timing_note("guest output resumed after input")
+				} else if not console_output_seen {
+					timing_note("first guest output")
+				} else if (last_console_output_at > 0) and ((now - last_console_output_at) >= CONSOLE_QUIET_MS) {
+					timing_note("guest output resumed after " + to_str(now - last_console_output_at) + "ms quiet")
+				}
+				awaiting_output_after_input = false
+				console_output_seen = true
+				last_console_output_at = now
 				io.write(:stdout, to_str(chr(value)))
+				if equal(value, 10) or equal(value, 13) {
+					console_line_start = true
+				} else {
+					console_line_start = false
+				}
 			}
 		}
 	}
+	return true
+}
+
+let breakpoint_index = (address) {
+	let i = 0
+	while i < length(breakpoints) {
+		if equal(breakpoints[i], address) {
+			return i
+		}
+		i = i + 1
+	}
+	return -1
+}
+
+let breakpoint_list = () {
+	if empty(breakpoints) {
+		return "no breakpoints"
+	}
+	let text = "breakpoints"
+	let i = 0
+	while i < length(breakpoints) {
+		text = text + " " + octal.word(breakpoints[i])
+		i = i + 1
+	}
+	return text
+}
+
+let breakpoint_add = (address) {
+	if breakpoint_index(address) < 0 {
+		breakpoints = append(breakpoints, address)
+	}
+	return true
+}
+
+let breakpoint_remove = (address) {
+	let kept = []
+	let i = 0
+	while i < length(breakpoints) {
+		if not equal(breakpoints[i], address) {
+			kept = append(kept, breakpoints[i])
+		}
+		i = i + 1
+	}
+	breakpoints = kept
 	return true
 }
 
@@ -211,14 +350,14 @@ let execute_command = (text) {
 		}
 		"show" {
 			if length(parts) < 2 {
-				println("show cpu | unibus | tape | rk | kl11")
+				println("show cpu | unibus | tape | rk | kl11 | clock")
 			} else {
 				println(view_for(parts[1]))
 			}
 		}
 		"observe" {
 			if length(parts) < 2 {
-				println("observe cpu | unibus | tape | rk | kl11")
+				println("observe cpu | unibus | tape | rk | kl11 | clock")
 			} else {
 				let result = open_observer(parts[1])
 				if is_error(result) {
@@ -228,7 +367,7 @@ let execute_command = (text) {
 		}
 		"open" {
 			if length(parts) < 2 {
-				println("open cpu | unibus | tape | rk | kl11")
+				println("open cpu | unibus | tape | rk | kl11 | clock")
 			} else {
 				let result = open_observer(parts[1])
 				if is_error(result) {
@@ -286,7 +425,7 @@ let execute_command = (text) {
 					println(inspect(result))
 				} else {
 					running = true
-					run_count = 0
+					start_execution_timing("demo tape 0")
 					println("demo tape 0 attached read-only: " + tape_path)
 					println("demo disk 0 attached read-write: " + disk_path)
 					println("booting tape 0 from 100000  ^T status  ^E suspend")
@@ -295,21 +434,32 @@ let execute_command = (text) {
 			}
 		}
 		"boot" {
-			if length(parts) < 3 or not equal(parts[1], "tape") {
-				println("boot tape UNIT")
+			if length(parts) < 3 {
+				println("boot tape|disk UNIT")
 			} else {
 				let unit = monitor.parse_number(parts[2])
 				if is_error(unit) {
 					println(inspect(unit))
-				} else {
+				} else if equal(parts[1], "tape") {
 					let result = monitor.boot_tape(m, unit)
 					if is_error(result) {
 						println(inspect(result))
 					} else {
 						running = true
-						run_count = 0
+						start_execution_timing("boot tape " + octal.count(unit))
 						println("booting tape " + octal.count(unit) + " from 100000  ^T status  ^E suspend")
 					}
+				} else if equal(parts[1], "disk") {
+					let result = monitor.boot_disk(m, unit)
+					if is_error(result) {
+						println(inspect(result))
+					} else {
+						running = true
+						start_execution_timing("boot disk " + octal.count(unit))
+						println("booting disk " + octal.count(unit) + " from 173110  ^T status  ^E suspend")
+					}
+				} else {
+					println("boot tape|disk UNIT")
 				}
 			}
 		}
@@ -336,13 +486,50 @@ let execute_command = (text) {
 		}
 		"examine" {
 			if length(parts) < 2 {
-				println("examine ADDR [COUNT]")
+				println("examine [-m] ADDR [COUNT]")
+			} else if equal(parts[1], "-m") {
+				if length(parts) < 3 {
+					println("examine -m ADDR [COUNT]")
+				} else {
+					let address = monitor.parse_number(parts[2])
+					if is_error(address) {
+						println(inspect(address))
+					} else {
+						println(monitor.examine_mnemonic(m, address, number(parts, 3, 1)))
+					}
+				}
 			} else {
 				let address = monitor.parse_number(parts[1])
 				if is_error(address) {
 					println(inspect(address))
 				} else {
 					println(monitor.examine(m, address, number(parts, 2, 1)))
+				}
+			}
+		}
+		"break" {
+			if equal(length(parts), 1) or equal(parts[1], "list") {
+				println(breakpoint_list())
+			} else if equal(parts[1], "clear") {
+				if equal(length(parts), 2) {
+					breakpoints = []
+					println("all breakpoints cleared")
+				} else {
+					let address = monitor.parse_number(parts[2])
+					if is_error(address) {
+						println(inspect(address))
+					} else {
+						breakpoint_remove(address)
+						println("breakpoint cleared " + octal.word(address))
+					}
+				}
+			} else {
+				let address = monitor.parse_number(parts[1])
+				if is_error(address) {
+					println(inspect(address))
+				} else {
+					breakpoint_add(address)
+					println("breakpoint set " + octal.word(address))
 				}
 			}
 		}
@@ -356,6 +543,20 @@ let execute_command = (text) {
 				} else {
 					monitor.set_pc(m, value)
 					println(monitor.status(m))
+					publish()
+				}
+			}
+		}
+		"switch" {
+			if equal(length(parts), 1) {
+				println("switch " + octal.word(monitor.switch_register(m)))
+			} else {
+				let value = monitor.parse_number(parts[1])
+				if is_error(value) {
+					println(inspect(value))
+				} else {
+					monitor.set_switch_register(m, value)
+					println("switch " + octal.word(value))
 					publish()
 				}
 			}
@@ -393,7 +594,14 @@ let execute_command = (text) {
 			machine.set_suspended(m, false)
 			machine.set_running(m, true)
 			running = true
-			run_count = 0
+			# A bare run resumes from the current PC. Preserve a one-shot
+			# breakpoint suppression established by the stop so the target
+			# instruction executes once before the breakpoint rearms. An
+			# explicit run ADDR is a new run request and clears that state.
+			if length(parts) > 1 {
+				breakpoint_skip_once = -1
+			}
+			start_execution_timing("run from " + octal.word(machine.pc(m)))
 			println("running from " + octal.word(machine.pc(m)) + "  ^T status  ^E suspend")
 		}
 		"continue" {
@@ -404,8 +612,25 @@ let execute_command = (text) {
 				machine.set_suspended(m, false)
 				machine.set_running(m, true)
 				running = true
-				run_count = 0
+				start_execution_timing("continue from " + octal.word(machine.pc(m)))
 				println("continuing from " + octal.word(machine.pc(m)) + "  ^T status  ^E suspend")
+			}
+		}
+		"timing" {
+			if equal(length(parts), 1) {
+				if timing_enabled {
+					println("timing on")
+				} else {
+					println("timing off")
+				}
+			} else if equal(parts[1], "on") {
+				timing_enabled = true
+				println("timing on")
+			} else if equal(parts[1], "off") {
+				timing_enabled = false
+				println("timing off")
+			} else {
+				println("timing on | timing off")
 			}
 		}
 		"reset" {
@@ -447,10 +672,27 @@ while alive {
 						if equal(key, 20) {
 							println("")
 							println(monitor.status(m))
+							println(monitor.observation(m, time.now() - run_started_at))
 						} else if equal(key, 5) {
 							stop_running("simulation suspended (^E)", true)
 						} else {
-							machine.console_receive(m, key)
+							# Queue each host key immediately, but deliver it to KL11 only when
+							# the receiver is ready.  Guest echo therefore remains the typing
+							# feedback, while host typing speed cannot overwrite RBUF.
+							guest_input_queue = append(guest_input_queue, key)
+							if equal(key, 10) or equal(key, 13) {
+								if timing_enabled {
+									timing_note("guest input: " + guest_input_line)
+								}
+								guest_input_line = ""
+								awaiting_output_after_input = true
+							} else if equal(key, 8) or equal(key, 127) {
+								if length(guest_input_line) > 0 {
+									guest_input_line = str.substring(guest_input_line, 0, length(guest_input_line) - 1)
+								}
+							} else if (key >= 32) and (key <= 126) {
+								guest_input_line = guest_input_line + to_str(chr(key))
+							}
 							publish()
 						}
 					} else {
@@ -501,13 +743,31 @@ while alive {
 		}
 		default {
 			if running {
+				service_guest_input()
 				let before_record = machine.tape_media_position(m)
 				let before_address = machine.tape_current_address(m)
 				let before_disk_reads = machine.disk_read_count(m)
 				let before_disk_writes = machine.disk_write_count(m)
-				let result = execute.run_bounded(m, RUN_SLICE)
+				let result = execute.run_bounded_until(m, RUN_SLICE, breakpoints, breakpoint_skip_once)
+				breakpoint_skip_once = -1
+				let breakpoint_count = -1
+				match result {
+					[@breakpoint, address, count] {
+						breakpoint_count = count
+						breakpoint_skip_once = address
+						stop_running("breakpoint " + octal.word(address), true)
+					}
+					[@watchpoint, kind, address, count] {
+						breakpoint_count = count
+						stop_running("watchpoint " + kind + " at " + octal.word(address), true)
+					}
+					_ {
+					}
+				}
 				drain_console()
-				if not monitor.is_pdp_fault(result) {
+				if breakpoint_count >= 0 {
+					run_count = run_count + breakpoint_count
+				} else if not monitor.is_pdp_fault(result) {
 					run_count = run_count + result
 				}
 				let after_record = machine.tape_media_position(m)
@@ -524,12 +784,12 @@ while alive {
 				if (after_record > before_record) or ((now - last_observer_publish) >= OBSERVER_INTERVAL_MS) {
 					publish()
 				}
-				if monitor.is_pdp_fault(result) {
-					stop_running(monitor.format_pdp_fault(m, result), false)
-				} else if not machine.running(m) {
-					stop_running("machine halted", false)
-				} else if machine.waiting(m) {
-					stop_running("machine waiting", false)
+				if running {
+					if monitor.is_pdp_fault(result) {
+						stop_running(monitor.format_pdp_fault(m, result), false)
+					} else if not machine.running(m) {
+						stop_running("machine halted", false)
+					}
 				}
 			} else {
 				time.sleep(1)

@@ -102,6 +102,9 @@ let single_operand_kind_machine = (instruction) {
 		3264 {
 			return :asl
 		}
+		3520 {
+			return :sxt
+		}
 		35328 {
 			return :clrb
 		}

@@ -25,7 +25,7 @@ let cpu = (m) {
 		i = i + 1
 	}
 	let pc = machine.pc(m)
-	let word = machine.examine_word(m, pc)
+	let word = machine.ir(m)
 	text = text + "SP  " + octal.word(machine.sp(m)) + "    PC  " + octal.word(pc) + "\n"
 	text = text + "PSW " + octal.word(machine.psw(m)) + "\n\n"
 	text = text + "IR  " + octal.word(word) + "  " + instruction_name(word) + "\n"
@@ -124,17 +124,32 @@ let kl11 = (m) {
 	return text
 }
 
+let clock = (m) {
+	let text = "Aiki PDP-11/40 — KW11-L Line Clock\n\n"
+	text = text + "CSR        " + octal.word(machine.clock_status(m)) + "\n"
+	text = text + "enabled    " + to_str(machine.clock_enabled(m)) + "\n"
+	text = text + "monitor    " + to_str(machine.clock_monitor(m)) + "\n"
+	text = text + "ticks      " + octal.count(machine.clock_ticks(m)) + "\n"
+	text = text + "interrupts " + octal.count(machine.clock_interrupts(m))
+	return text
+}
+
 let unibus = (m, last_event) {
 	let text = "Aiki PDP-11/40 — UNIBUS\n\n"
 	text = text + "CPU I/O page 160000..177777\n"
-	text = text + "physical     760000..777777\n\n"
+	text = text + "physical     760000..777777\n"
+	text = text + "RAM words    " + octal.word(machine.installed_memory_words(m)) + "\n\n"
 	text = text + "DATI       " + octal.count(machine.unibus_dati_count(m)) + "\n"
 	text = text + "DATO       " + octal.count(machine.unibus_dato_count(m)) + "\n"
 	text = text + "DATOB      " + octal.count(machine.unibus_datob_count(m)) + "\n"
 	text = text + "NPR reads  " + octal.count(machine.unibus_npr_read_count(m)) + "\n"
-	text = text + "NPR writes " + octal.count(machine.unibus_npr_write_count(m)) + "\n\n"
+	text = text + "NPR writes " + octal.count(machine.unibus_npr_write_count(m)) + "\n"
+	text = text + "last DATI  " + octal.word(machine.unibus_last_dati_address(m)) + "\n"
+	text = text + "last DATO  " + octal.word(machine.unibus_last_dato_address(m)) + "\n"
+	text = text + "last DATOB " + octal.word(machine.unibus_last_datob_address(m)) + "\n\n"
 	text = text + "connected\n"
 	text = text + "  KL11 console\n"
+	text = text + "  KW11-L line clock\n"
 	let unit = 0
 	while unit < 8 {
 		if machine.tape_unit_attached(m, unit) {
@@ -155,4 +170,4 @@ let unibus = (m, last_event) {
 	return text
 }
 
-export(:cpu, :tape, :rk, :kl11, :unibus, :instruction_name)
+export(:cpu, :tape, :rk, :kl11, :clock, :unibus, :instruction_name)

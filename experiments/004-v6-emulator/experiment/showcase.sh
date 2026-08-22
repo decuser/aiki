@@ -31,7 +31,7 @@ open_view() {
 
 echo "Aiki PDP-11/40 monitor"
 echo "observer port: $AIKI_PDP_PORT"
-echo "opening CPU, UNIBUS, tape, RK11, and KL11 observers"
+echo "opening CPU, UNIBUS, tape, RK11, KL11, and KW11-L observers"
 echo
 
 open_view cpu "Aiki PDP — CPU"
@@ -39,5 +39,6 @@ open_view unibus "Aiki PDP — UNIBUS"
 open_view tape "Aiki PDP — Tape"
 open_view rk "Aiki PDP — RK11"
 open_view kl11 "Aiki PDP — KL11"
+open_view clock "Aiki PDP — KW11-L"
 
 exec aiki "$HERE/aiki-pdp.ai"

@@ -1,0 +1,35 @@
+use("test")
+
+let execute = import("../cpu/execute")
+let fixed = import("machine/ffi")
+let machine = import("../machine/machine")
+let octal = import("../reference/octal")
+let system = import("system")
+
+run("CUT10 KSP low-water watch stops only below the danger floor", () {
+	let enabled = system.env("AIKI_PDP_CUT10_WATCH")
+	if is_error(enabled) {
+		# The diagnostic watch is intentionally off during the ordinary gate.
+		equal(true, true)
+		return true
+	}
+	let m = machine.new()
+	machine.deposit_word(m, octal.parse("010000"), octal.parse("010046"))  # MOV R0,-(SP)
+	machine.set_register(m, 0, octal.parse("000153"))
+	machine.set_sp(m, octal.parse("120000"))
+	machine.set_pc(m, octal.parse("010000"))
+	let result = execute.run_bounded_until(m, 4, [], -1)
+	match result {
+		[@watchpoint, kind, address, count] {
+			equal(kind, "KSP-LOW")
+			equal(address, octal.parse("010000"))
+			equal(count, 1)
+		}
+		_ {
+			equal(true, false)
+		}
+	}
+	equal(machine.sp(m), octal.parse("117776"))
+	equal(machine.pc(m), octal.parse("010002"))
+	equal(fixed.number(machine.iar_word(m)), octal.parse("010000"))
+})

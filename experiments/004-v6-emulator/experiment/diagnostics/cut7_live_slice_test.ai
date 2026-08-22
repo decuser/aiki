@@ -29,7 +29,7 @@ run("KL11 host output survives more than one guest transmit before drain", () {
 
 
 run("bounded live execution stops on architectural HALT", () {
-	let m = monitor.new()
+	let m = machine.new_with_memory_words(octal.parse("100000"))
 	let pc = octal.parse("150000")
 	machine.deposit_word(m, pc, octal.parse("000000"))
 	machine.set_pc(m, pc)

@@ -10,7 +10,7 @@ let CMP_R0_R6 = octal.parse("020006")
 let BLO_BACK_THREE_WORDS = octal.parse("103775")
 
 let prepare = () {
-	let m = machine.new()
+	let m = machine.new_with_memory_words(octal.parse("100000"))
 	machine.reset_machine(m)
 	machine.set_register(m, 0, 0)
 	machine.set_register(m, 6, 8)

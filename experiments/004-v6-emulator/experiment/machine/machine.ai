@@ -4,13 +4,33 @@ let fixed = import("machine/ffi")
 let audit = import("../audit/audit")
 let state = import("./state")
 let unibus = import("../unibus/unibus")
+let kt11d = import("./kt11d")
+let octal = import("../reference/octal")
+let system = import("system")
 
 let MACHINE_STATE = 0
 let MACHINE_BUS = 1
 let MACHINE_AUDIT = 2
+let MACHINE_MMU = 3
+let PSW_PHYSICAL = 262142  # 0777776
+let CONSOLE_SWITCH_PHYSICAL = 262008  # 0777570
+let CUT10_NOFAULT_VIRTUAL = 40796  # 0117534
+let CUT10_NOFAULT_RECOVERY = 1242  # 0002332
+let CUT10_KSP_STOP = 40960  # 0120000
+
+let cut10_watch_text = system.env("AIKI_PDP_CUT10_WATCH")
+let CUT10_WATCH = not is_error(cut10_watch_text)
+
+let new_with_memory_words = (words) {
+	return [state.new(), unibus.new_with_memory_words(words), audit.new(), kt11d.new()]
+}
 
 let new = () {
-	return [state.new(), unibus.new(), audit.new()]
+	return new_with_memory_words(unibus.DEFAULT_MEMORY_WORDS)
+}
+
+let mmu = (m) {
+	return m[MACHINE_MMU]
 }
 
 let processor_state = (m) {
@@ -21,12 +41,29 @@ let bus = (m) {
 	return m[MACHINE_BUS]
 }
 
+let installed_memory_words = (m) {
+	return unibus.installed_memory_words(bus(m))
+}
+
+let console_switch_word = (m) {
+	return state.switch_word(processor_state(m))
+}
+
+let set_console_switch_word = (m, value) {
+	return state.set_switch_word(processor_state(m), fixed.word(value))
+}
+
+let console_switch = (m) {
+	return fixed.number(console_switch_word(m))
+}
+
 let execution_audit = (m) {
 	return m[MACHINE_AUDIT]
 }
 
 let reset_machine = (m) {
 	state.reset_state(processor_state(m))
+	kt11d.reset_mmu(mmu(m))
 	unibus.reset_bus(bus(m))
 	audit.reset_audit(execution_audit(m))
 	return true
@@ -37,7 +74,58 @@ let register_word = (m, index) {
 	return state.get_register_word(processor_state(m), index)
 }
 
+let cut10_watch_line = (m, kind, old_value, new_value) {
+	if not CUT10_WATCH {
+		return true
+	}
+	let psw = fixed.number(state.psw_word(processor_state(m)))
+	let pc = fixed.number(state.iar_word(processor_state(m)))
+	let ir = fixed.number(state.ir_word(processor_state(m)))
+	let current = kt11d.current_mode(psw)
+	let previous = kt11d.previous_mode(psw)
+	let r5 = fixed.number(state.get_register_word(processor_state(m), 5))
+	println(
+		"CUT10-WATCH " + kind + " step=" + to_str(state.steps(processor_state(m))) + " pc=" + octal.word(pc) + " ir=" + octal.word(ir) + " ps=" + octal.word(psw) + " cm=" + to_str(current) + " pm=" + to_str(previous) + " r5=" + octal.word(r5) + " old=" + octal.word(fixed.number(old_value)) + " new=" + octal.word(fixed.number(new_value))
+	)
+	return true
+}
+
+let cut10_watch_ksp_transition = (m, old_value, new_value) {
+	if not CUT10_WATCH {
+		return true
+	}
+	let old_number = fixed.number(old_value)
+	let new_number = fixed.number(new_value)
+	let processor = processor_state(m)
+	let low = state.watch_ksp_low(processor)
+	# Low-water observations require a real downward stack transition.
+	# This suppresses reset/bootstrap samples such as 000000 -> 000000.
+	if new_number < old_number {
+		if new_number < low {
+			cut10_watch_line(m, "KSP-LOW", old_value, new_value)
+			state.set_watch_ksp_low(processor, new_number)
+		}
+		if new_number < CUT10_KSP_STOP {
+			state.set_watch_stop_kind(processor, 1)
+		}
+	}
+	return true
+}
+
+let set_sp_mode_word = (m, mode, value) {
+	let old_value = state.sp_mode_word(processor_state(m), mode)
+	let result = state.set_sp_mode_word(processor_state(m), mode, value)
+	if equal(mode, 0) {
+		cut10_watch_ksp_transition(m, old_value, value)
+	}
+	return result
+}
+
 let set_register_word = (m, index, value) {
+	if equal(index, 6) {
+		let mode = kt11d.current_mode(fixed.number(state.psw_word(processor_state(m))))
+		return set_sp_mode_word(m, mode, value)
+	}
 	return state.set_register_word(processor_state(m), index, value)
 }
 
@@ -54,7 +142,12 @@ let sp_word = (m) {
 }
 
 let set_sp_word = (m, value) {
-	return state.set_sp_word(processor_state(m), value)
+	let mode = kt11d.current_mode(fixed.number(state.psw_word(processor_state(m))))
+	return set_sp_mode_word(m, mode, value)
+}
+
+let sp_mode_word = (m, mode) {
+	return state.sp_mode_word(processor_state(m), mode)
 }
 
 let psw_word = (m) {
@@ -65,20 +158,195 @@ let set_psw_word = (m, value) {
 	return state.set_psw_word(processor_state(m), value)
 }
 
+let ir_word = (m) {
+	return state.ir_word(processor_state(m))
+}
+
+let set_ir_word = (m, value) {
+	return state.set_ir_word(processor_state(m), value)
+}
+
+let iar_word = (m) {
+	return state.iar_word(processor_state(m))
+}
+
+let set_iar_word = (m, value) {
+	return state.set_iar_word(processor_state(m), value)
+}
+
+let cut10_watch_stop = (m) {
+	if not CUT10_WATCH {
+		return false
+	}
+	let kind = state.watch_stop_kind(processor_state(m))
+	if equal(kind, 1) {
+		return "KSP-LOW"
+	}
+	if equal(kind, 2) {
+		return "NOFAULT-ODD"
+	}
+	return false
+}
+
+let cut10_watch_clear_stop = (m) {
+	state.set_watch_stop_kind(processor_state(m), 0)
+	return true
+}
+
+let mmu_enabled = (m) {
+	return kt11d.enabled(mmu(m))
+}
+
+let current_mode = (m) {
+	return kt11d.current_mode(fixed.number(psw_word(m)))
+}
+
+let previous_mode = (m) {
+	return kt11d.previous_mode(fixed.number(psw_word(m)))
+}
+
+let previous_sp_word = (m) {
+	return sp_mode_word(m, previous_mode(m))
+}
+
+let set_previous_sp_word = (m, value) {
+	return set_sp_mode_word(m, previous_mode(m), value)
+}
+
+let translate_address = (m, address, mode, writing) {
+	let translated = kt11d.translate(mmu(m), fixed.number(address), mode, writing)
+	if equal(shape(translated), :pdp_fault) {
+		return translated
+	}
+	return fixed.addr18(translated)
+}
+
+let read_byte_mode_machine = (m, address, mode) {
+	unibus.record_dati(bus(m), address)
+	let physical = translate_address(m, address, mode, false)
+	if equal(shape(physical), :pdp_fault) {
+		return physical
+	}
+	let numeric = fixed.number(physical)
+	if kt11d.owns(numeric) {
+		return fixed.byte(kt11d.read_byte(mmu(m), numeric))
+	}
+	if equal(numeric, PSW_PHYSICAL) {
+		return fixed.low_byte(psw_word(m))
+	}
+	if equal(numeric, CONSOLE_SWITCH_PHYSICAL) {
+		return fixed.low_byte(state.switch_word(processor_state(m)))
+	}
+	if equal(numeric, CONSOLE_SWITCH_PHYSICAL + 1) {
+		return fixed.high_byte(state.switch_word(processor_state(m)))
+	}
+	return unibus.read_byte_physical_machine(bus(m), physical)
+}
+
+let write_byte_mode_machine = (m, address, value, mode) {
+	unibus.record_datob(bus(m), address)
+	let physical = translate_address(m, address, mode, true)
+	if equal(shape(physical), :pdp_fault) {
+		return physical
+	}
+	let numeric = fixed.number(physical)
+	if kt11d.owns(numeric) {
+		return kt11d.write_byte(mmu(m), numeric, fixed.number(value))
+	}
+	if equal(numeric, PSW_PHYSICAL) {
+		return set_psw_word(m, fixed.with_low_byte(psw_word(m), value))
+	}
+	if equal(numeric, CONSOLE_SWITCH_PHYSICAL) or equal(numeric, CONSOLE_SWITCH_PHYSICAL + 1) {
+		return true
+	}
+	return unibus.write_byte_physical_machine(bus(m), physical, value)
+}
+
+let read_word_mode_machine = (m, address, mode) {
+	unibus.record_dati(bus(m), address)
+	let physical = translate_address(m, address, mode, false)
+	if equal(shape(physical), :pdp_fault) {
+		return physical
+	}
+	let numeric = fixed.number(physical)
+	if kt11d.owns(numeric) {
+		return fixed.word(kt11d.read_word(mmu(m), numeric))
+	}
+	if equal(numeric, PSW_PHYSICAL) {
+		return psw_word(m)
+	}
+	if equal(numeric, CONSOLE_SWITCH_PHYSICAL) {
+		return state.switch_word(processor_state(m))
+	}
+	return unibus.read_word_physical_machine(bus(m), physical)
+}
+
+let write_word_mode_machine = (m, address, value, mode) {
+	unibus.record_dato(bus(m), address)
+	let physical = translate_address(m, address, mode, true)
+	if equal(shape(physical), :pdp_fault) {
+		return physical
+	}
+	let numeric = fixed.number(physical)
+	if kt11d.owns(numeric) {
+		return kt11d.write_word(mmu(m), numeric, fixed.number(value))
+	}
+	if equal(numeric, PSW_PHYSICAL) {
+		return set_psw_word(m, value)
+	}
+	if equal(numeric, CONSOLE_SWITCH_PHYSICAL) {
+		return true
+	}
+	let watched = CUT10_WATCH and equal(mode, 0) and equal(fixed.number(address), CUT10_NOFAULT_VIRTUAL)
+	let old_value = value
+	if watched {
+		old_value = unibus.read_word_physical_machine(bus(m), physical)
+	}
+	let result = unibus.write_word_physical_machine(bus(m), physical, value)
+	if watched and not equal(shape(old_value), :pdp_fault) and not equal(shape(result), :pdp_fault) {
+		let new_number = fixed.number(value)
+		if not equal(new_number, 0) and not equal(new_number, CUT10_NOFAULT_RECOVERY) {
+			cut10_watch_line(m, "NOFAULT-ODD", old_value, value)
+			state.set_watch_stop_kind(processor_state(m), 2)
+		}
+	}
+	return result
+}
+
 let read_byte_machine = (m, address) {
-	return unibus.read_byte_machine(bus(m), address)
+	return read_byte_mode_machine(m, address, current_mode(m))
 }
 
 let write_byte_machine = (m, address, value) {
-	return unibus.write_byte_machine(bus(m), address, value)
+	return write_byte_mode_machine(m, address, value, current_mode(m))
 }
 
 let read_word_machine = (m, address) {
-	return unibus.read_word_machine(bus(m), address)
+	return read_word_mode_machine(m, address, current_mode(m))
 }
 
 let write_word_machine = (m, address, value) {
-	return unibus.write_word_machine(bus(m), address, value)
+	return write_word_mode_machine(m, address, value, current_mode(m))
+}
+
+let read_word_previous_machine = (m, address) {
+	return read_word_mode_machine(m, address, previous_mode(m))
+}
+
+let write_word_previous_machine = (m, address, value) {
+	return write_word_mode_machine(m, address, value, previous_mode(m))
+}
+
+let mmu_instruction_start = (m, pc) {
+	return kt11d.instruction_start(mmu(m), fixed.number(pc))
+}
+
+let mmu_ssr0 = (m) {
+	return kt11d.ssr0(mmu(m))
+}
+
+let mmu_ssr2 = (m) {
+	return kt11d.ssr2(mmu(m))
 }
 
 # Explicit control/diagnostic boundary. Existing tests and monitor surfaces deal
@@ -109,6 +377,10 @@ let set_sp = (m, value) {
 
 let psw = (m) {
 	return fixed.number(psw_word(m))
+}
+
+let ir = (m) {
+	return fixed.number(ir_word(m))
 }
 
 let set_psw = (m, value) {
@@ -151,6 +423,11 @@ let snapshot = (m) {
 	return state.snapshot(processor_state(m))
 }
 
+let advance_time = (m, elapsed) {
+	unibus.advance(bus(m), elapsed)
+	return state.advance_time(processor_state(m), elapsed)
+}
+
 let complete_instruction = (m, elapsed) {
 	unibus.advance(bus(m), elapsed)
 	return state.complete_instruction(processor_state(m), elapsed)
@@ -182,6 +459,15 @@ let examine_word = (m, address) {
 
 let deposit_word = (m, address, value) {
 	return write_word_machine(m, fixed.word(address), fixed.word(value))
+}
+
+# Front-panel/operator control path for loading the bootstrap ROM while keeping
+# the ROM read-only to guest CPU stores. Address is the 16-bit CPU-visible ROM
+# address used by the monitor.
+let deposit_boot_word = (m, address, value) {
+	let cpu_address = fixed.word(address)
+	let physical = unibus.cpu_physical_address_machine(cpu_address)
+	return unibus.load_boot_word_machine(bus(m), physical, fixed.word(value))
 }
 
 # Compatibility names for operator/device diagnostics remain numeric boundary calls.
@@ -293,6 +579,38 @@ let unibus_npr_write_count = (m) {
 
 let unibus_npr_read_count = (m) {
 	return unibus.npr_read_count(bus(m))
+}
+
+let unibus_last_dati_address = (m) {
+	return unibus.last_dati_address(bus(m))
+}
+
+let unibus_last_dato_address = (m) {
+	return unibus.last_dato_address(bus(m))
+}
+
+let unibus_last_datob_address = (m) {
+	return unibus.last_datob_address(bus(m))
+}
+
+let clock_status = (m) {
+	return unibus.clock_status(bus(m))
+}
+
+let clock_enabled = (m) {
+	return unibus.clock_enabled(bus(m))
+}
+
+let clock_monitor = (m) {
+	return unibus.clock_monitor(bus(m))
+}
+
+let clock_ticks = (m) {
+	return unibus.clock_ticks(bus(m))
+}
+
+let clock_interrupts = (m) {
+	return unibus.clock_interrupts(bus(m))
 }
 
 let disk_unit_attached = (m, unit) {
@@ -449,18 +767,47 @@ let audit_last_psw_transition = (m) {
 
 export(
 	:new,
+	:new_with_memory_words,
+	:installed_memory_words,
+	:console_switch_word,
+	:set_console_switch_word,
+	:console_switch,
 	:reset_machine,
 	:processor_state,
 	:bus,
 	:execution_audit,
+	:mmu,
+	:mmu_enabled,
+	:current_mode,
+	:previous_mode,
+	:mmu_instruction_start,
+	:mmu_ssr0,
+	:mmu_ssr2,
 	:register_word,
 	:set_register_word,
 	:pc_word,
 	:set_pc_word,
 	:sp_word,
 	:set_sp_word,
+	:sp_mode_word,
+	:set_sp_mode_word,
+	:previous_sp_word,
+	:set_previous_sp_word,
 	:psw_word,
 	:set_psw_word,
+	:ir_word,
+	:set_ir_word,
+	:iar_word,
+	:set_iar_word,
+	:cut10_watch_ksp_transition,
+	:cut10_watch_stop,
+	:cut10_watch_clear_stop,
+	:read_byte_mode_machine,
+	:write_byte_mode_machine,
+	:read_word_mode_machine,
+	:write_word_mode_machine,
+	:read_word_previous_machine,
+	:write_word_previous_machine,
 	:read_byte_machine,
 	:write_byte_machine,
 	:read_word_machine,
@@ -472,6 +819,7 @@ export(
 	:sp,
 	:set_sp,
 	:psw,
+	:ir,
 	:set_psw,
 	:running,
 	:set_running,
@@ -482,6 +830,7 @@ export(
 	:steps,
 	:machine_time,
 	:snapshot,
+	:advance_time,
 	:complete_instruction,
 	:reset_bus,
 	:attach_tape_media,
@@ -507,6 +856,14 @@ export(
 	:unibus_datob_count,
 	:unibus_npr_write_count,
 	:unibus_npr_read_count,
+	:unibus_last_dati_address,
+	:unibus_last_dato_address,
+	:unibus_last_datob_address,
+	:clock_status,
+	:clock_enabled,
+	:clock_monitor,
+	:clock_ticks,
+	:clock_interrupts,
 	:disk_unit_attached,
 	:disk_unit_path,
 	:disk_selected_unit,
@@ -552,5 +909,6 @@ export(
 	:examine_byte,
 	:deposit_byte,
 	:examine_word,
-	:deposit_word
+	:deposit_word,
+	:deposit_boot_word
 )

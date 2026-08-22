@@ -35,7 +35,7 @@ if target >= LOOP_PC {
 	die("workload would clear its own code")
 }
 
-let m = machine.new()
+let m = machine.new_with_memory_words(octal.parse("100000"))
 machine.reset_machine(m)
 machine.set_register(m, 0, 0)
 machine.set_register(m, 6, target)

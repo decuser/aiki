@@ -1,0 +1,95 @@
+use("test")
+
+let fixed = import("machine/ffi")
+let execute = import("../cpu/execute")
+let machine = import("../machine/machine")
+let monitor = import("../monitor/monitor")
+let octal = import("../reference/octal")
+let unibus = import("../unibus/unibus")
+let views = import("../observe/views")
+let str = import("string/native")
+
+run("KW11-L occupies the V6 CLOCK1 register and starts in INIT state", () {
+	let m = monitor.new()
+	equal(machine.examine_word(m, octal.parse("177546")), octal.parse("000200"))
+	is_false(machine.clock_enabled(m))
+	is_true(machine.clock_monitor(m))
+	equal(machine.unibus_last_dati_address(m), octal.parse("177546"))
+})
+
+
+run("KW11-L DATO enables interrupts and next deterministic line event requests BR6 vector 100", () {
+	let m = monitor.new()
+	equal(machine.deposit_word(m, octal.parse("177546"), octal.parse("000100")), true)
+	is_true(machine.clock_enabled(m))
+	is_false(machine.clock_monitor(m))
+	unibus.advance(machine.bus(m), 10000)
+	is_true(machine.clock_monitor(m))
+	is_true(unibus.interrupt_pending(machine.bus(m)))
+	equal(unibus.interrupt_level(machine.bus(m)), 6)
+	equal(unibus.interrupt_vector(machine.bus(m)), octal.parse("000100"))
+	equal(machine.clock_interrupts(m), 1)
+})
+
+
+run("CPU accepts KW11-L interrupt at instruction boundary and stacks PC then PSW for RTT", () {
+	let m = monitor.new()
+	machine.set_sp(m, octal.parse("002000"))
+	machine.set_pc(m, octal.parse("001000"))
+	machine.set_psw(m, 0)
+	machine.deposit_word(m, octal.parse("000100"), octal.parse("004000"))
+	machine.deposit_word(m, octal.parse("000102"), octal.parse("000000"))
+	machine.deposit_word(m, octal.parse("004000"), octal.parse("000240"))
+	machine.deposit_word(m, octal.parse("177546"), octal.parse("000100"))
+	unibus.advance(machine.bus(m), 10000)
+	let accepted = execute.step(m)
+	is_true(accepted)
+	equal(machine.pc(m), octal.parse("004000"))
+	equal(machine.sp(m), octal.parse("001774"))
+	equal(machine.examine_word(m, octal.parse("001774")), octal.parse("001000"))
+	equal(machine.examine_word(m, octal.parse("001776")), 0)
+	is_false(unibus.interrupt_pending(machine.bus(m)))
+})
+
+
+run("UNIBUS observation records last CPU-visible I/O transaction addresses", () {
+	let m = monitor.new()
+	machine.examine_word(m, octal.parse("177546"))
+	machine.deposit_word(m, octal.parse("177546"), octal.parse("000100"))
+	machine.deposit_byte(m, octal.parse("177547"), 0)
+	equal(machine.unibus_last_dati_address(m), octal.parse("177546"))
+	equal(machine.unibus_last_dato_address(m), octal.parse("177546"))
+	equal(machine.unibus_last_datob_address(m), octal.parse("177547"))
+	let text = views.unibus(m, "none")
+	is_true(str.contains(text, "last DATI  177546"))
+	is_true(str.contains(text, "KW11-L line clock"))
+})
+
+
+run("KW11-L has a dedicated read-only observer projection", () {
+	let m = monitor.new()
+	let text = monitor.clock(m)
+	is_true(str.contains(text, "KW11-L Line Clock"))
+	is_true(str.contains(text, "CSR"))
+	is_true(str.contains(text, "interrupts"))
+})
+
+
+run("User interrupt vectors through Kernel space and stacks on KSP", () {
+	let m = monitor.new()
+	machine.set_sp_mode_word(m, 0, fixed.word(octal.parse("002000")))
+	machine.set_sp_mode_word(m, 3, fixed.word(octal.parse("006000")))
+	machine.set_pc(m, octal.parse("001000"))
+	machine.deposit_word(m, octal.parse("000100"), octal.parse("004000"))
+	machine.deposit_word(m, octal.parse("000102"), octal.parse("000000"))
+	machine.set_psw(m, octal.parse("140000"))  # User current.
+	machine.deposit_word(m, octal.parse("177546"), octal.parse("000100"))
+	unibus.advance(machine.bus(m), 10000)
+	equal(execute.step(m), true)
+	equal(machine.pc(m), octal.parse("004000"))
+	equal(machine.psw(m), octal.parse("030000"))
+	equal(machine.sp(m), octal.parse("001774"))
+	equal(machine.examine_word(m, octal.parse("001774")), octal.parse("001000"))
+	equal(machine.examine_word(m, octal.parse("001776")), octal.parse("140000"))
+	equal(fixed.number(machine.sp_mode_word(m, 3)), octal.parse("006000"))
+})

@@ -1,6 +1,8 @@
 use("test")
 
 let bytes = import("bytes/ffi")
+let fixed = import("machine/ffi")
+let execute = import("../cpu/execute")
 let machine = import("../machine/machine")
 let monitor = import("../monitor/monitor")
 let octal = import("../reference/octal")
@@ -12,6 +14,52 @@ run("monitor deposits and examines octal words through the machine boundary", ()
 	let m = monitor.new()
 	monitor.deposit(m, octal.parse("100000"), octal.parse("012700"))
 	equal(monitor.examine(m, octal.parse("100000"), 1), "100000  012700")
+})
+
+
+run("indexed extension fetches preserve the architectural IR and instruction address", () {
+	let m = monitor.new()
+	let base = octal.parse("010000")
+	let r5 = octal.parse("020000")
+	monitor.deposit(m, base, octal.parse("026565"))  # cmp 6(r5),4(r5)
+	monitor.deposit(m, base + 2, octal.parse("000006"))
+	monitor.deposit(m, base + 4, octal.parse("000004"))
+	monitor.deposit(m, r5 + 6, octal.parse("000001"))
+	monitor.deposit(m, r5 + 4, octal.parse("000002"))
+	machine.set_register(m, 5, r5)
+	monitor.set_pc(m, base)
+	monitor.step(m)
+	equal(fixed.number(machine.ir_word(m)), octal.parse("026565"))
+	equal(fixed.number(machine.iar_word(m)), base)
+	equal(machine.pc(m), base + 6)
+})
+
+
+run("bounded indexed execution preserves the architectural IR and instruction address", () {
+	let m = monitor.new()
+	let base = octal.parse("010000")
+	let r5 = octal.parse("020000")
+	monitor.deposit(m, base, octal.parse("026565"))  # cmp 6(r5),4(r5)
+	monitor.deposit(m, base + 2, octal.parse("000006"))
+	monitor.deposit(m, base + 4, octal.parse("000004"))
+	monitor.deposit(m, r5 + 6, octal.parse("000001"))
+	monitor.deposit(m, r5 + 4, octal.parse("000002"))
+	machine.set_register(m, 5, r5)
+	monitor.set_pc(m, base)
+	execute.run_bounded_until(m, 1, [], -1)
+	equal(fixed.number(machine.ir_word(m)), octal.parse("026565"))
+	equal(fixed.number(machine.iar_word(m)), base)
+	equal(machine.pc(m), base + 6)
+})
+
+
+run("monitor examine renders an unmapped RK register fault without crashing", () {
+	let m = monitor.new()
+	let fault = machine.examine_word(m, octal.parse("177414"))
+	equal(shape(fault), :pdp_fault)
+	let text = monitor.examine(m, octal.parse("177400"), 8)
+	is_true(str.contains(text, "177414  <fault bus_address"))
+	is_true(str.contains(text, "177416"))
 })
 
 
@@ -61,6 +109,19 @@ run("monitor help exposes control-key contract", () {
 })
 
 
+run("running observation reports wall, internal, bus, disk, and console progress", () {
+	let m = monitor.new()
+	let text = monitor.observation(m, 123456)
+	is_true(str.contains(text, "wall 123s"))
+	is_true(str.contains(text, "internal"))
+	is_true(str.contains(text, "DATI/DATO"))
+	is_true(str.contains(text, "RK r/w"))
+	is_true(str.contains(text, "KL rx/tx"))
+	is_true(str.contains(text, "I/O R/W/B"))
+	is_true(str.contains(text, "CLK irq"))
+})
+
+
 run("suspension is distinct from architectural HALT in status and CPU view", () {
 	let m = monitor.new()
 	machine.set_running(m, true)
@@ -82,6 +143,16 @@ run("resuming clears the suspended state", () {
 
 run("boot tape unit encodes the TM11 unit select field and starts at 100000", () {
 	let m = monitor.new()
+	let values = []
+	let i = 0
+	while i < 512 {
+		values = append(values, 0)
+		i = i + 1
+	}
+	let media0 = v6_tape.from_bytes(bytes.bytes_new(values))
+	let media1 = v6_tape.from_bytes(bytes.bytes_new(values))
+	equal(machine.attach_tape_media_unit(m, 0, media0), true)
+	equal(machine.attach_tape_media_unit(m, 1, media1), true)
 	equal(monitor.boot_tape(m, 0), true)
 	equal(machine.examine_word(m, octal.parse("100010")), octal.parse("060003"))
 	equal(machine.pc(m), octal.parse("100000"))
@@ -118,12 +189,90 @@ run("unit-aware tape bootstrap reads from the selected transport and counts acti
 	equal(machine.unibus_npr_write_count(m), 512)
 	is_true(str.contains(views.tape(m), "reads     1"))
 	is_true(str.contains(views.unibus(m, "tape DMA"), "NPR writes 1000"))
+	is_true(str.contains(views.unibus(m, "tape DMA"), "RAM words    060000"))
 })
 
 
-run("monitor help documents restartable suspension and unit-aware tape boot", () {
+run("monitor help documents restartable suspension and unit-aware boot", () {
 	let text = monitor.help_text("monitor")
 	is_true(str.contains(text, "boot tape UNIT"))
+	is_true(str.contains(text, "boot disk UNIT"))
 	is_true(str.contains(text, "continue"))
 	is_true(str.contains(text, "attach tape [UNIT] FILE"))
+	is_true(str.contains(text, "examine -m ADDR [COUNT]"))
+})
+
+
+run("monitor mnemonic examine decodes without changing machine state", () {
+	let m = monitor.new()
+	let base = octal.parse("003074")
+	let words = ["012701", "000040", "005046", "006620", "077103"]
+	let i = 0
+	while i < length(words) {
+		monitor.deposit(m, base + (i * 2), octal.parse(words[i]))
+		i = i + 1
+	}
+	machine.set_register(m, 0, octal.parse("000026"))
+	machine.set_register(m, 1, octal.parse("000025"))
+	machine.set_sp(m, octal.parse("141752"))
+	machine.set_pc(m, octal.parse("003102"))
+	let before = monitor.registers(m)
+	let text = monitor.examine_mnemonic(m, base, 4)
+	is_true(str.contains(text, "003074  012701  mov $000040,r1"))
+	is_true(str.contains(text, "003100  005046  clr -(sp)"))
+	is_true(str.contains(text, "003102  006620  mtpi (r0)+"))
+	is_true(str.contains(text, "003104  077103  sob r1,003100"))
+	equal(monitor.registers(m), before)
+})
+
+
+run("monitor mnemonic examine renders SXT as a single-operand instruction", () {
+	let m = monitor.new()
+	let base = octal.parse("010000")
+	monitor.deposit(m, base, octal.parse("006700"))
+	let before = monitor.registers(m)
+	let text = monitor.examine_mnemonic(m, base, 1)
+	is_true(str.contains(text, "010000  006700  sxt r0"))
+	equal(monitor.registers(m), before)
+})
+
+
+run("CPU observer uses latched IR without touching faulting memory", () {
+	let m = monitor.new()
+	machine.set_ir_word(m, fixed.word(octal.parse("006620")))
+	machine.set_pc(m, octal.parse("020000"))
+	machine.deposit_word(m, octal.parse("172340"), octal.parse("000000"))
+	machine.deposit_word(m, octal.parse("172300"), octal.parse("000000"))
+	machine.deposit_word(m, octal.parse("177572"), 1)
+	let before_ssr0 = machine.mmu_ssr0(m)
+	let before_ssr2 = machine.mmu_ssr2(m)
+	let text = monitor.registers(m)
+	is_true(str.contains(text, "IR  006620  :mtpi"))
+	equal(machine.mmu_ssr0(m), before_ssr0)
+	equal(machine.mmu_ssr2(m), before_ssr2)
+})
+
+
+run("executor breakpoints stop before the target instruction and can skip once on resume", () {
+	let m = monitor.new()
+	monitor.deposit(m, octal.parse("010000"), octal.parse("000240"))  # NOP
+	monitor.deposit(m, octal.parse("010002"), octal.parse("000000"))  # HALT
+	monitor.set_pc(m, octal.parse("010000"))
+	let stopped = execute.run_bounded_until(m, 10, [octal.parse("010000")], -1)
+	match stopped {
+		[@breakpoint, address, count] {
+			equal(address, octal.parse("010000"))
+			equal(count, 0)
+		}
+		_ {
+			equal(true, false)
+		}
+	}
+	equal(machine.pc(m), octal.parse("010000"))
+	let resumed = execute.run_bounded_until(m, 10, [octal.parse("010000")], octal.parse("010000"))
+	equal(is_error(resumed), false)
+	equal(machine.pc(m), octal.parse("010004"))
+	# The debugger latches the address of the fetched instruction separately
+	# from R7, so post-instruction traces still identify the true instruction.
+	equal(fixed.number(machine.iar_word(m)), octal.parse("010002"))
 })

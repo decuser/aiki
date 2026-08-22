@@ -1365,3 +1365,404 @@ Before running the historical `tmrk` gate, attachment semantics were made explic
   reused only when call lifetime is proven bounded.**
 - Recursion invariant: active recursive calls never alias argument storage;
   tail replacement may transfer ownership at bounded depth.
+
+### 2026-08-21 — PDP-11 Cut 7 gated; RK05 disk boot begins
+
+- Real TUHS V6 standalone `tmrk` completed both RK0 construction transfers and
+  returned to the `=` prompt: tape offset 100 -> disk block 0, then tape offsets
+  101..4099 -> disk blocks 1..3999.
+- Cut 7 is gated. The resulting pack is the bootable binary RK05 described by
+  the V6 laboratory procedure.
+- Cut 8 adds monitor `boot disk UNIT` at the documented BM792-YB RK11 bootstrap
+  entry. CPU address 173110 projects to physical 773110 with the MMU disabled.
+- The bootstrap programs RKWC=-256 words, RKBA=0, RKDA=selected unit/block 0,
+  issues RK11 READ+GO, waits for READY, then transfers control to address 0.
+- Disk and tape boot now reject unattached units before entering run state.
+- Focused gate: exactly one RK11 512-byte read from block 0 into low memory and
+  PC transfer to 000000. Real-media gate: reach the V6 `@` bootstrap prompt.
+
+
+### 2026-08-21 — PDP-11 running status observation expanded
+
+- Running CTRL-T status remains non-invasive but now prints a second line with
+  wall elapsed seconds, internal machine time, UNIBUS DATI/DATO counts, RK11
+  read/write counts, and KL11 receive/transmit counts.
+- Wall elapsed time resets on each execution entry (`demo`, tape/disk boot,
+  `run`, and `continue`). Internal time remains the emulator's abstract machine
+  counter and is intentionally not labeled as physical time.
+- The added line is intended to distinguish CPU-only loops from active console,
+  disk, or generic UNIBUS activity during live V6 boot observation.
+
+### 2026-08-21 — PDP Cut 9: UNIBUS I/O addresses and KW11-L clock
+
+- Live RK05 boot reached `@`, accepted `rkunix`, and completed 0167 disk reads;
+  subsequent CPU/UNIBUS activity continued while RK and KL11 counters remained
+  stable.
+- Added last CPU-visible DATI/DATO/DATOB address observation to CTRL-T and the
+  UNIBUS view so device probing can be identified directly without perturbing
+  the bus.
+- Added KW11-L at CPU 177546 / physical 777546, vector 100, BR6, with a
+  deterministic internal-time line event. Host wall-clock time remains
+  observation only and never determines guest execution order.
+- Added the generic interrupt-acceptance boundary required by KW11-L: priority
+  comparison, PC/PSW stacking, vector fetch, acknowledge, and WAIT wakeup.
+- Added a dedicated KW11-L observer window and focused Cut 9 diagnostics.
+
+
+### 2026-08-21 — PDP console milestone timing
+
+Added optional observer-side wall-clock milestone timing to the V6 emulator.
+`timing on|off` controls stderr annotations for execution start, completed guest
+input lines, output resumption after input/quiet periods, and line-leading
+`@`, `=`, and `#` prompts. Timing is observational only and never drives guest
+execution or changes the guest stdout byte stream.
+
+
+### 2026-08-21 — PDP Cut 10 KT11-D implementation
+
+Live V6 boot established that RK05 loading reaches the kernel but `main()` never
+finishes its physical-memory inventory. User APR observations (`UISD0=000006`,
+advancing `UISA0`) identified the missing architectural boundary: MMU registers
+existed only as I/O-page storage and CPU accesses were not translated. Cut 10
+adds real PDP-11/40 KT11-D Kernel/User PAR/PDR translation and protection,
+SSR0/SSR2, MFPI/MTPI previous-mode transfers, PSW register routing, segmentation
+and bus-error trap entry, and bus timeout for unassigned physical I/O space.
+The first end-to-end gate is V6 printing `mem = ...`; the clock probe follows.
+
+### 2026-08-21 — PDP Cut 10 SR2 contract correction
+
+- Resumed from the supplied `v0.4.0-alpha-39-dirty` baseline on named branch
+  `pdp11-kt11d-cut10`; baseline state preserved at checkpoint `aa39d5f`.
+- DEC KT11-D SR2 semantics require the virtual PC to be committed only after a
+  successful instruction fetch; a failed fetch must preserve the preceding SR2
+  value. The CPU fetch path now commits SR2 after the translated read succeeds.
+- Added a focused CPU-to-MMU witness covering successful SR2 capture followed by
+  a nonresident instruction-fetch abort that leaves SR2 unchanged.
+- Cut 10 trap/interrupt acceptance remains explicitly Kernel-current only;
+  separate Kernel/User stack pointers and User-to-Kernel entry are deferred to
+  the first live V6 boundary that requires them.
+- Next action: run the focused Cut 10 diagnostic and full `make validate`; if
+  green, resume the live RK05 `@rkunix` gate and require `mem = ...` before
+  admitting Cut 11.
+
+
+### 2026-08-21 — PDP Cut 10 live clearseg boundary and mnemonic examine
+
+- Live `boot disk 0` reached `@`, accepted `rkunix`, and then stabilized at
+  octal PC `003102`, PSW `030344`, instruction `006620 :mtpi` in V6 `clearseg`.
+- The surrounding loop is `clr -(sp); mtpi (r0)+; sob r1,003100`. At suspension
+  `R0=000026`, `R1=000025`, `UISD0=000106`, and `UISA0=005203`; the PDR written
+  bit establishes that at least some previous-mode stores completed. Do not yet
+  classify the live failure as MTPI failure.
+- Preserved the accumulated CUT9/CUT10 work and SR2 correction at branch
+  checkpoint `c9b45ce` on `pdp11-cut10-diagnostics`.
+- Added non-executing diagnostic formatting `examine -m ADDR [COUNT]`. It retains
+  octal address/raw word, uses `cpu/decode` for classification, consumes operand
+  extension words without executing, and treats monitor COUNT as octal.
+- Added a monitor regression for the exact `003074..003104` sequence.
+- Sandbox validation is BLOCKED because this working tree has no built `aiki`
+  executable. Next action on the development host: run the focused Cut 5 and
+  Cut 10 diagnostics, then `make validate`; if green, rerun the live gate and use
+  `examine -m 003060 30` plus bounded stepping to isolate the first non-progressing
+  architectural transition.
+
+### 2026-08-21 — PDP mnemonic examine presentation correction
+
+- Host focused validation exposed the new Cut 5 mnemonic-examine regression:
+  all four expected assembly lines were absent.
+- Root cause was presentation-only: `cpu/decode` returns Aiki symbols and
+  `to_str(:mov)` retains the source-level `:` prefix, producing `:mov`, `:clr`,
+  `:mtpi`, and `:sob` rather than PDP-11 assembly mnemonics.
+- `monitor/disassemble.ai` now removes only that symbol marker at the formatter
+  boundary. Decoder classification, instruction sizing, operand rendering, and
+  machine state are unchanged; the original regression remains intact.
+- Next action on the development host: rerun the focused Cut 5 test, then Cut 10
+  and `make validate` before resuming the live `003102` investigation.
+
+### 2026-08-21 — PDP Cut 10 installed-core boundary correction
+
+- A later live `@rkunix` run disproved the provisional `003102` stall diagnosis:
+  execution advanced through V6 `clearseg()` and back into the `main()` memory
+  sizing loop. MTPI/User-APR operation is therefore not the current defect.
+- The remaining false premise was equating 18-bit physical address capacity with
+  installed RAM. The Lions laboratory notes configure 24K words of core, so the
+  default machine now exposes physical RAM bytes `000000..137777`; `140000` is
+  the first absent physical byte.
+- Installed core extent is a machine configuration fact. The full 18-bit backing
+  store remains available for separately owned bootstrap ROM and I/O-page
+  addresses; absent ordinary RAM returns bus timeout.
+- Added focused witnesses for the 24K default boundary, alternate configured
+  memory extent, and a KT11-D previous-mode probe mapping user virtual 0 to the
+  absent physical `140000` boundary. `show unibus` now reports the configured
+  installed RAM words directly.
+- Cut 10 remains ACTIVE. Next host gate: focused Cut 10 diagnostic plus
+  `make validate`; if green, rerun `boot disk 0`, `@rkunix` and require V6 to
+  terminate memory sizing and print `mem = ...`.
+
+### 2026-08-21 — CUT7 synthetic-memory fixture correction
+
+- The 24K-word Lions-lab default correctly made physical `140000` absent, but
+  exposed two older CUT7 tests and two CUT7 profiling programs that had always
+  placed synthetic code/workload state above that boundary (`150000`, with the
+  100x profile target reaching `144000`).
+- Those CUT7 artifacts are not Lions-machine acceptance tests; they are synthetic
+  execution/performance fixtures. They now explicitly construct a 32K-word
+  machine (`100000` octal words) via `machine.new_with_memory_words(...)` rather
+  than inheriting the live/default lab configuration.
+- The established CUT7 addresses and workload remain unchanged. The default V6
+  machine remains 24K words, and the installed-memory boundary is not weakened.
+- Next action on the development host: rerun the failing CUT7 diagnostics, then
+  `make validate`; if green, resume the live CUT10 `@rkunix` gate and require
+  `mem = ...`.
+
+### 2026-08-21 — CUT10 observer isolation and KL11 host-input pacing
+
+- The 24K-word live `@rkunix` run progressed beyond `clearseg` to octal PCs
+  `021636` and `012106`, confirming that the installed-core correction advances
+  the real V6 path. The run then terminated in the host observer formatter, not
+  in the PDP execution path: `views.cpu()` called `machine.examine_word()` at
+  the current PC and received a non-numeric PDP fault value.
+- That observer read was itself architecturally unsafe under KT11-D because an
+  examine through the translated CPU path can update MMU abort state. CPU state
+  now owns a latched IR word updated only after successful instruction fetch;
+  CPU observers render that latch and perform no guest-memory access.
+- Live console transcripts also exposed lost/fragmented input (`@x`, then
+  partial `rk` / `unix` echoes). Host keystrokes had been written directly into
+  the one-byte KL11 receiver even while DONE remained set, allowing later host
+  keys to overwrite unconsumed RBUF contents.
+- Running-mode printable input is now line-buffered on the host until Enter,
+  then queued to the emulated KL11 one byte at a time only when receiver DONE is
+  clear. Guest control characters remain immediate but use the same KL11
+  back-pressure queue.
+- Added a monitor regression proving CPU observer rendering uses the latched IR
+  and leaves SSR0/SSR2 unchanged even when the current PC maps to faulting
+  memory. Sandbox validation remains unavailable because this tree has no built
+  `aiki`; host validation is required before resuming the live gate.
+
+- CUT10 observer regression harness: added the missing `machine/ffi` import required by the latched-IR non-interference witness; no emulator semantics changed.
+
+### 2026-08-21 — CUT10 KL11 pacing correction: remove host line editor
+
+- Host validation showed that KL11 back-pressure fixed receiver overwrite, but
+  the added host-side line buffer removed all typing feedback until Return. In
+  practice this caused duplicate or mistyped commands (`rkunixrkunix`,
+  `rkunixi`) because the operator could not see the guest consume characters.
+- The line-buffer layer has been removed. Each host key is queued immediately,
+  but `service_guest_input()` still delivers only when KL11 receiver DONE is
+  clear. V6 therefore supplies the normal character-by-character echo while
+  host typing speed cannot overwrite RBUF. Return is paced through the same
+  queue and remains the guest command terminator.
+- The live PDP path had already advanced beyond the earlier observer failure to
+  octal PC `000342`; no MMU, installed-memory, or device semantics are changed
+  by this correction.
+- Next action on the development host: run the focused Cut 5 test and
+  `make validate`, then resume the live `@rkunix` gate and confirm natural guest
+  echo without lost/duplicated input.
+
+### 2026-08-21 — PDP Cut 10 architecture audit: mode stacks and trap entry
+
+- Live V6 evidence showed `nofault` and stack-adjacent kernel state repeatedly
+  acquiring `000153` while the common trap path executed `mfpi sp`. This exposed
+  the previously deferred PDP-11/40 mode-stack boundary rather than an MMU or
+  RTT defect.
+- Architecture audit against DEC material and the separately supplied SIMH
+  PDP11 reference confirmed: R0-R5 and PC are shared; R6 is banked as KSP/USP;
+  MFPI/MTPI mode-0 R6 names the previous-mode SP; trap/interrupt vectors are
+  fetched through Kernel space; the vector selects the new current-mode stack
+  before old PS/PC are pushed; old current mode becomes new previous mode.
+- CPU state now owns KSP and USP separately. Ordinary R6 access projects the
+  bank selected by PSW current mode, including the bound addressing path.
+  MFPI/MTPI special-case only direct R6 for previous-mode SP semantics.
+- Trap and interrupt entry now form previous-mode bits from the interrupted
+  current mode, select the vector's new current-mode stack before stacking, and
+  fetch vectors through Kernel virtual space. User RESET is suppressed.
+- Physical word transactions now reject odd physical addresses before RAM/device
+  ownership dispatch.
+- Separate audit finding AF-032 records NPR/DMA installed-memory presence as
+  deferred. The supplied SIMH RK11 reference confirms NXM is a controller error
+  (RKER NXM with transfer-count adjustment), so routing DMA absence into a CPU
+  bus trap would be architecturally wrong and was intentionally not done here.
+- Added focused witnesses for MFPI SP, MTPI SP, User bus-fault entry on KSP,
+  User interrupt entry on KSP, and User RESET suppression.
+- Sandbox validation is BLOCKED: building an Aiki executable requires Go 1.24,
+  and the sandbox cannot reach the Go toolchain download service. Next action on
+  the development host is focused Cut 3/Cut 9/Cut 10 diagnostics followed by
+  `make validate`, then resume the live `@rkunix` gate.
+
+- 2026-08-21 CUT10 mode-stack follow-up: corrected current-mode extraction in machine/state.ai to use machine/ffi.word_field; store/ffi remains storage-only. This was a module-boundary error in the architecture cut, not a PDP semantic change.
+
+- CUT10 banked-SP follow-up: diagnostics that establish a visible R6 must establish PSW/current mode first. `cut1_test.ai` and the generic fixture loader were corrected so SP is seeded into the bank selected by the intended starting mode. No machine semantics changed.
+
+### 2026-08-21 — CUT10 standalone CPU fault-recovery discriminator
+
+- Live V6 evidence remains useful for discovery but is no longer the diagnostic
+  instrument for the current trap-recovery question. Added a standalone CUT10
+  CPU diagnostic with no UNIX image or C calling convention.
+- Witness 1 is four guest instructions: previous-User `MFPI` deliberately maps
+  to absent physical `140000`, vector 4 enters Kernel on KSP, a two-instruction
+  handler replaces the stacked PC, and `RTT` resumes at a local target while USP
+  remains unchanged.
+- Witness 2 mirrors the architectural spine of V6 `gword`: save PS on KSP, save
+  an old recovery sentinel, install a local recovery address, fault through
+  previous-space `MFPI`, substitute the recovery PC in the trap frame, `RTT`,
+  then restore the sentinel and PS from the same KSP. It is intentionally small
+  enough that any failure identifies CPU/MMU/trap behavior without V6 state.
+- These diagnostics are evidence only; no PDP semantics are changed by this cut.
+  Next action is to run `cut10_cpu_recovery_test.ai` on the development host.
+
+### 2026-08-21 — CUT10 first-corruption watch
+
+- Standalone CPU/MMU recovery witnesses pass, so the next discriminator is the
+  first live state transition rather than another semantic change.
+- Added opt-in `AIKI_PDP_CUT10_WATCH` instrumentation at the machine authority.
+  It is off by default and does not poll guest state through CPU-visible reads.
+- KSP watch arms only after KSP has reached the normal high region and reports
+  the first transition below octal `130000` as `CUT10-WATCH KSP-CROSS`.
+- The live V6 `nofault` word at virtual `117534` is watched on its resolved word
+  write path. Normal `000000` and `002332` guard values are ignored; any other
+  written value is reported as `CUT10-WATCH NOFAULT-ODD`.
+- Trace records step, PC, latched IR, PSW, current/previous mode, old value, and
+  new value in octal-first form. The host's current Aiki executable is the
+  authoritative runtime for this source-only diagnostic.
+
+### 2026-08-21 — CUT10 csv/cret linkage and debugger breakpoints
+
+- First-corruption watch produced two decisive live events: KSP crossed below
+  octal `130000` at PC `003602`, IR `004710` (`jsr pc,(r0)`), and several
+  thousand instructions later virtual `nofault` at `117534` received `000153`
+  from PC `003574`, IR `010446` (`mov r4,-(sp)`). The latter is therefore a
+  normal register-save push landing on the wrong address after KSP is already
+  too low; it is not the initiating corruption.
+- Added a standalone V6 `csv`/`cret` linkage diagnostic. An initial multi-call
+  version falsely appeared to leak because it kept the outer callee address in
+  caller-saved R1; after correcting the caller to use PC-relative linkage, 64
+  complete call/return cycles are stack-neutral. The focused diagnostic passes
+  8/8 with the user's current Aiki executable.
+- Added monitor instruction-address breakpoints. `break ADDR`, `break list`, and
+  `break clear [ADDR]` are monitor/debugger state, not guest state. The bounded
+  executor checks breakpoints at instruction boundaries and stops before the
+  target executes; resume skips the just-hit address once so execution can
+  continue. Cut 5 breakpoint regression passes 64/64 with the current Aiki
+  executable.
+- Result: generic JSR/RTS and the V6 csv/cret linkage sequence are not the source
+  of the KSP descent. Next live diagnostic should use exact breakpoints around
+  csv/cret or a call-frame-balance watch to identify the first frame that fails
+  to unwind.
+
+### 2026-08-21 — CUT10 precise watchpoint refinement
+
+- Live csv/cret breakpoints showed balanced stack state across repeated calls:
+  entry at `003602` repeatedly had SP `141744` / R5 `141754`, and cret entry at
+  `003616` returned to the same caller geometry. This reinforces the standalone
+  linkage result: csv/cret itself is not leaking KSP.
+- Added an explicit instruction-address latch (IAR) beside IR. Fetch records IAR
+  only after a successful instruction fetch, so debugger/watch output reports
+  the address of the instruction represented by IR rather than the post-fetch
+  R7 value.
+- CUT10 KSP watchpoints now suspend execution automatically after the first
+  crossing from `>=130000` to `<130000`, and return an `@watchpoint` event from
+  bounded execution. This removes the need to race operator suspension after a
+  diagnostic trace appears.
+- The structural hot path originally bypassed the machine-level KSP setter. The
+  bounded executor now observes KSP before/after each completed instruction and
+  feeds the same watch authority, so the debugger behaves consistently with or
+  without KT11-D enabled.
+- Watch stop/report state was moved out of module globals and into the processor
+  state object. Relative imports can instantiate module source independently;
+  debugger state must therefore belong to the emulated machine, not an Aiki
+  module instance.
+- Focused validation with the user's current Aiki executable: watchpoint 6/6,
+  Cut 5 monitor 65/65, csv/cret 8/8.
+
+### 2026-08-21 — CUT10 console switch register root cause
+
+- Low-water tracing isolated the runaway stack growth to repeated entry through V6 `putchar()`.
+  The recurring faulting instruction at octal `012336` is `tst *$177570`, the V6 probe of
+  the PDP-11 console switch register before using the KL11 transmitter.
+- Physical `777570` is a processor/console register, not KL11. It was absent from the emulator,
+  so every `putchar()` produced a bus timeout; trap diagnostics then called `printf`/`putchar`
+  again, recursively consuming KSP until ordinary csv saves overwrote `nofault`.
+- Added the console switch register at the CPU boundary. Its conventional Lions/V6 operator
+  setting is octal `173030`; guest word/byte reads are coherent and guest writes are ignored.
+  The operator monitor may inspect or set the front-panel value, and UNIBUS RESET does not
+  alter it.
+- Exact witness executes the live V6 probe `005737 177570` (`tst *$177570`) and proves no bus
+  timeout. With `173030`, TST correctly leaves N set and Z clear.
+- Focused validation with the user's current Aiki executable: Cut 3 M40 132/132, Cut 5 monitor
+  65/65, Cut 10 KT11-D 32/32.
+
+### 2026-08-21 — CUT10 M40 instruction-contract audit and SXT correction
+
+- Live V6 progressed through memory sizing and the startup banner, then halted on
+  `IR 006700` at PC `053662`. DEC defines `0067DD` as SXT; `006700` is `SXT R0`.
+- Audit of `reference/m40_contract.ai` against Lions exposed the process failure:
+  the contract recorded direct mnemonics from `m40.s` but omitted instruction
+  forms explicitly classified by the 11/40 `backup` logic. Lions names SXT in
+  the `u6` classifier even though its direct source-mnemonic count is zero.
+- The corrected contract has 46 direct-or-classified forms and separately records
+  `BACKUP_CLASSIFIED = [mfpi, mtpi, sxt]`, preventing zero direct count from
+  silently removing an architectural requirement.
+- Added SXT decode (`0067DD`), execution through general destination addressing,
+  and mnemonic disassembly. DEC semantics are honored: destination receives 0
+  when incoming N is clear and 177777 when N is set; Z reflects incoming N, while
+  N/V/C are preserved. SXT does not read the old destination value.
+- Added register and autoincrement-memory execution witnesses, contract-retention
+  witness, and mnemonic rendering witness. AF-035 records and resolves the audit
+  failure.
+
+### 2026-08-21 — CUT10 live boundary: RK11 completion interrupt project
+
+- Authoritative baseline is the supplied `v0.4.0-alpha-39` dirty tree at
+  `bffff5c`; its existing PDP/V6 changes are intentional and are preserved.
+- Live V6 reaches `iinit()` at `005572`. `bread(rootdev, 1)` is called at
+  `005634` and does not return to `005640`; the machine later idles.
+- While idle, RK11 reports no error, exhausted word count, and RKDA advanced to
+  `000002`, establishing that the modeled block-1 transfer completes before the
+  sleep remains unresolved.
+- Source audit found the actual missing boundary: `rk11.finish()` only marks the
+  controller READY and owns no interrupt request, while UNIBUS IRQ projection
+  and acknowledge are hard-wired to KW11-L.
+- DEC project manuals establish the implemented-device interrupt assignments:
+  KW11-L vector `100` BR6; RK11 vector `220` BR5; TM11 vector `224` BR5; KL11
+  receiver/transmitter vectors `60`/`64` BR4 with receiver first on a tie.
+- New active proposal `proposals/active/pdp11-unibus-interrupts.md` establishes
+  device-owned requests, UNIBUS arbitration, source-specific acknowledge, and
+  CPU acceptance as separate authorities.
+- Cut 1 is ACTIVE: generic arbitration plus RK11 completion interrupt. KL11 and
+  TM11 are explicit subsequent cuts under the same proposal, not assumptions
+  folded into the live boot repair.
+- Exact restart action: implement RK pending/vector/priority/acknowledge, replace
+  `sync_clock_irq` with source-aware UNIBUS arbitration, add RK+clock arbitration
+  witnesses, run focused diagnostics and repository validation available in the
+  environment, then resume the live `005640` gate.
+
+### 2026-08-21 — Experiment 004 suspension and Experiment 005 reconstruction plan
+
+- Decision: stop extending `experiments/004-v6-emulator` and preserve its exact
+  current state as a historical experiment. Do not repair or normalize the
+  unfinished RK/UNIBUS interrupt project merely to close the branch.
+- Last proven V6 boundary remains `iinit()` -> `bread(rootdev,1)`: the modeled RK
+  transfer completes, but the Experiment 004 RK11 has no functioning completion
+  interrupt path into the generic UNIBUS/CPU machinery, so the sleeper does not
+  return and the system reaches scheduler/idle.
+- The unfinished `pdp11-unibus-interrupts` and `pdp11-kt11d-memory-management`
+  proposals are parked, not gated. AF-030, AF-031, AF-033, and AF-036 are no
+  longer ACTIVE because the 004 development line is being suspended; they
+  remain durable historical findings to be re-derived under the new contracts.
+- New controlling proposal: `proposals/active/pdp11-40-reconstruction.md` for
+  `experiments/005-pdp11-40/`.
+- Hard admission rule: Experiment 005 may read Experiment 004 as evidence but may
+  not import, copy, mechanically adapt, share, or symlink PDP-specific 004
+  implementation. 004 tests are likewise evidence until restated against the
+  appropriate DEC-derived 005 contract.
+- Evidentiary hierarchy: DEC manuals define the machine; SIMH corroborates after
+  the contract is established; UNIX V6 validates the completed integration.
+- Planned serial cuts: (0) archive 004, (1) machine skeleton + programmer's
+  console, (2) complete semantic UNIBUS, (3) core memory, (4) complete KD11-A
+  including traps/interrupts, (5) KW11-L, (6) KL11, (7) KT11-D, (8) RK11/RK05,
+  (9) TM11/TU10, (10) remaining V6-relevant peripherals, (11) UNIX V6 acceptance.
+- Cut 0 repository-record work changes no emulator source. The user owns Git
+  archival operations and creation of the new baseline. Exact next action after
+  those Git operations: create the empty Experiment 005 implementation surface
+  and begin Cut 1 from the DEC programmer-console contract, with no 004 source
+  admission.

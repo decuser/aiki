@@ -1,0 +1,172 @@
+package "aiki_pdp_disassemble"
+
+let decode = import("../cpu/decode")
+let machine = import("../machine/machine")
+let octal = import("../reference/octal")
+let str = import("string/native")
+
+let wrap_word = (value) {
+	let n = value
+	while n < 0 {
+		n = n + 65536
+	}
+	while n >= 65536 {
+		n = n - 65536
+	}
+	return n
+}
+
+let low_bits = (value, divisor) {
+	return value - (truncate(value / divisor) * divisor)
+}
+
+let register_name = (register) {
+	if equal(register, 6) {
+		return "sp"
+	}
+	if equal(register, 7) {
+		return "pc"
+	}
+	return "r" + to_str(register)
+}
+
+let extension = (m, cursor) {
+	return [machine.examine_word(m, cursor), wrap_word(cursor + 2)]
+}
+
+# Static operand rendering only. It reads extension words but never resolves
+# indirect memory and never changes registers, PC, MMU state, or guest memory.
+let operand = (m, specification, cursor) {
+	let mode = decode.operand_mode(specification)
+	let register = decode.operand_register(specification)
+	let r = register_name(register)
+	match mode {
+		0 {
+			return [r, cursor]
+		}
+		1 {
+			return ["(" + r + ")", cursor]
+		}
+		2 {
+			if equal(register, 7) {
+				let ext = extension(m, cursor)
+				return ["$" + octal.word(ext[0]), ext[1]]
+			}
+			return ["(" + r + ")+", cursor]
+		}
+		3 {
+			if equal(register, 7) {
+				let ext = extension(m, cursor)
+				return ["*$" + octal.word(ext[0]), ext[1]]
+			}
+			return ["*(" + r + ")+", cursor]
+		}
+		4 {
+			return ["-(" + r + ")", cursor]
+		}
+		5 {
+			return ["*-(" + r + ")", cursor]
+		}
+		6 {
+			let ext = extension(m, cursor)
+			return [octal.word(ext[0]) + "(" + r + ")", ext[1]]
+		}
+		7 {
+			let ext = extension(m, cursor)
+			return ["*" + octal.word(ext[0]) + "(" + r + ")", ext[1]]
+		}
+		_ {
+			return ["?", cursor]
+		}
+	}
+}
+
+let is_double = (kind) {
+	return equal(kind, :mov) or equal(kind, :cmp) or equal(kind, :bit) or equal(kind, :bic) or equal(kind, :bis) or equal(kind, :add) or equal(kind, :movb) or equal(kind, :cmpb) or equal(kind, :bitb) or equal(kind, :bicb) or equal(kind, :bisb) or equal(kind, :sub)
+}
+
+let is_branch = (kind) {
+	return equal(kind, :br) or equal(kind, :bne) or equal(kind, :beq) or equal(kind, :bge) or equal(kind, :blt) or equal(kind, :bgt) or equal(kind, :ble) or equal(kind, :bpl) or equal(kind, :bmi) or equal(kind, :bhi) or equal(kind, :blos) or equal(kind, :bvc) or equal(kind, :bvs) or equal(kind, :bhis) or equal(kind, :blo)
+}
+
+let is_eis = (kind) {
+	return equal(kind, :mul) or equal(kind, :div) or equal(kind, :ash) or equal(kind, :ashc)
+}
+
+let is_single_operand = (kind) {
+	return equal(kind, :clr) or equal(kind, :inc) or equal(kind, :dec) or equal(kind, :neg) or equal(kind, :adc) or equal(kind, :sbc) or equal(kind, :tst) or equal(kind, :ror) or equal(kind, :asr) or equal(kind, :asl) or equal(kind, :sxt) or equal(kind, :clrb) or equal(kind, :incb) or equal(kind, :negb) or equal(kind, :adcb) or equal(kind, :sbcb) or equal(kind, :tstb) or equal(kind, :rorb) or equal(kind, :asrb) or equal(kind, :aslb) or equal(kind, :swab) or equal(kind, :jmp) or equal(kind, :mfpi) or equal(kind, :mtpi)
+}
+
+let mnemonic = (kind) {
+	let name = to_str(kind)
+	if str.starts_with(name, ":") {
+		return str.substring(name, 1, length(name))
+	}
+	return name
+}
+
+let one = (m, address) {
+	let instruction = machine.examine_word(m, address)
+	if equal(shape(instruction), :pdp_fault) {
+		return [octal.address(address) + "  fault " + inspect(instruction), wrap_word(address + 2)]
+	}
+	let kind = decode.instruction_kind(instruction)
+	let cursor = wrap_word(address + 2)
+	let assembly = mnemonic(kind)
+	if is_double(kind) {
+		let source = operand(m, decode.source_spec(instruction), cursor)
+		let destination = operand(m, decode.destination_spec(instruction), source[1])
+		assembly = assembly + " " + source[0] + "," + destination[0]
+		cursor = destination[1]
+	} else if is_single_operand(kind) {
+		let destination = operand(m, decode.destination_spec(instruction), cursor)
+		assembly = assembly + " " + destination[0]
+		cursor = destination[1]
+	} else if is_branch(kind) {
+		let displacement = low_bits(instruction, 256)
+		if displacement >= 128 {
+			displacement = displacement - 256
+		}
+		assembly = assembly + " " + octal.address(wrap_word(address + 2 + (displacement * 2)))
+	} else if equal(kind, :sob) {
+		let shifted = truncate(instruction / 64)
+		let register = decode.operand_register(shifted)
+		let offset = low_bits(instruction, 64)
+		assembly = assembly + " " + register_name(register) + "," + octal.address(wrap_word(address + 2 - (offset * 2)))
+	} else if equal(kind, :jsr) {
+		let shifted = truncate(instruction / 64)
+		let register = decode.operand_register(shifted)
+		let destination = operand(m, decode.destination_spec(instruction), cursor)
+		assembly = assembly + " " + register_name(register) + "," + destination[0]
+		cursor = destination[1]
+	} else if is_eis(kind) {
+		let shifted = truncate(instruction / 64)
+		let register = decode.operand_register(shifted)
+		let source = operand(m, decode.destination_spec(instruction), cursor)
+		assembly = assembly + " " + source[0] + "," + register_name(register)
+		cursor = source[1]
+	} else if equal(kind, :rts) {
+		assembly = assembly + " " + register_name(decode.operand_register(instruction))
+	} else if equal(kind, :other) {
+		assembly = ".word " + octal.word(instruction)
+	}
+	return [octal.address(address) + "  " + octal.word(instruction) + "  " + assembly, cursor]
+}
+
+let range = (m, address, count) {
+	let text = ""
+	let at = address
+	let i = 0
+	while i < count {
+		let decoded = one(m, at)
+		if i > 0 {
+			text = text + "\n"
+		}
+		text = text + decoded[0]
+		at = decoded[1]
+		i = i + 1
+	}
+	return text
+}
+
+export(:one, :range)

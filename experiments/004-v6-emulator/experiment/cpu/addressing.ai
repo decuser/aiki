@@ -26,7 +26,7 @@ let direct_delta = (register, size) {
 }
 
 let fetch_extension = (m) {
-	return fetch.word_machine(m)
+	return fetch.extension_machine(m)
 }
 
 let resolve_machine = (m, specification, size) {
@@ -181,7 +181,7 @@ let register_write_bound = (cpu_words, register, size, value) {
 }
 
 let fetch_extension_bound = (cpu_words, bus, bus_memory, bus_counts) {
-	return fetch.word_bound(cpu_words, bus, bus_memory, bus_counts)
+	return fetch.extension_bound(cpu_words, bus, bus_memory, bus_counts)
 }
 
 let read_decoded_bound = (cpu_words, bus, bus_memory, bus_counts, mode, register, size) {

@@ -176,6 +176,9 @@ let read_byte = (rk, address) {
 		base = base - 1
 	}
 	let value = register_word(rk, base)
+	if equal(shape(value), :pdp_fault) {
+		return value
+	}
 	if equal(bits.bit_and(address, 1), 0) {
 		return bits.low(value, 8)
 	}
@@ -227,6 +230,9 @@ let write_byte = (rk, address, value) {
 		base = base - 1
 	}
 	let current = register_word(rk, base)
+	if equal(shape(current), :pdp_fault) {
+		return current
+	}
 	let updated = 0
 	if equal(bits.bit_and(address, 1), 0) {
 		updated = bits.extract(current, 8, 8) * 256 + width.wrap(value, 8)

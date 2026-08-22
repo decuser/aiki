@@ -47,6 +47,15 @@ Status vocabulary:
 | AF-028 | `docs/debug.md` omitted the shipped `debug -stage fmt` formatter view. | RESOLVED | Alpha 2 documentation reconciliation: usage, flags, and formatter example now match the CLI. |
 | AF-029 | `This Is Aiki` still described two direct external Go libraries after file locking added `github.com/gofrs/flock`. | RESOLVED | Alpha 2 documentation reconciliation: Alpha 2 guide now names all three direct host-facing dependencies and their roles. |
 
+| AF-030 | PDP-11/40 CPU state modeled R6 as one register, but KT11-D/V6 requires distinct Kernel and User stack-pointer banks selected by PSW mode. | DEFERRED | Experiment 004 suspended. Retain as historical evidence; Experiment 005 must re-derive the CPU/KT11-D stack-bank contract from DEC documentation rather than import the 004 repair. |
+| AF-031 | PDP trap/interrupt entry stacked on the pre-entry R6 and interrupt vectors used current-mode translation; User-to-Kernel entry must fetch vectors through Kernel space and push old PC/PS on the new-mode stack. | DEFERRED | Experiment 004 suspended. Retain as historical evidence; Experiment 005 re-derives trap/interrupt and KT11-D entry semantics under its own CPU/MMU contracts. |
+| AF-032 | RK11/TM11 NPR callbacks bypass installed-memory presence. Correct behavior is controller-side non-existent-memory completion (e.g. RK11 RKER NXM), not a CPU bus trap. | DEFERRED | Experiment 004 suspended. Retain as historical evidence; Experiment 005 re-derives NPR/DMA and controller non-existent-memory semantics from DEC, then uses SIMH only as corroboration. |
+| AF-033 | RESET executed from User mode currently resets UNIBUS devices; PDP-11/40 with KT11-D suppresses User RESET. | DEFERRED | Experiment 004 suspended. Retain as historical evidence for the Experiment 005 KD11-A/KT11-D contracts; do not import the 004 implementation. |
+| AF-034 | Full User-mode PSW/RTI/RTT privilege restrictions, software trap instructions, and KJ11-A stack-limit semantics are not yet realized. | DEFERRED | Experiment 004 suspended. Retain as historical evidence for Experiment 005 CPU completeness; scope is re-derived from the configured PDP-11/40 DEC contract. |
+| AF-035 | The PDP-11/40 `m40_contract.ai` inventory omitted SXT because it tracked direct source mnemonics but not instruction forms explicitly classified by `m40.s` backup logic; decoder/executor/disassembler therefore also lacked `0067DD`. | RESOLVED | CUT10 M40 contract audit: separate backup-classified evidence, add SXT to contract/decode/execute/disassembly, and add regression witnesses. |
+
+| AF-036 | PDP UNIBUS interrupt projection is hard-wired to KW11-L; RK11/TM11/KL11 lack device-owned request integration, so completed device operations cannot reliably vector/wake V6. | DEFERRED | Experiment 004 suspended with unfinished interrupt project parked. Retain as historical evidence; Experiment 005 establishes the semantic UNIBUS and each device interrupt contract independently from DEC manuals. |
+
 ## Current disposition
 
 `proposals/completed/post-grammar-hardening.md` resolved AF-001, AF-005, AF-006, AF-007,

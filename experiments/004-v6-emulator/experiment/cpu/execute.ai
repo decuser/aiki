@@ -220,6 +220,22 @@ let execute_single = (m, instruction, kind) {
 		machine.set_psw_word(m, psw.set_nzvc(machine.psw_word(m), zero, width_bits, false, false))
 		return true
 	}
+	if equal(kind, :sxt) {
+		# SXT derives its result from the incoming N condition code; it does not
+		# need the old destination value. N, V, and C are unaffected.
+		let current = machine.psw_word(m)
+		let negative = psw.negative(current)
+		let result = WORD_ZERO
+		if negative {
+			result = WORD_MAX
+		}
+		let wrote = write_value(m, destination_operand, WORD, result)
+		if is_fault(wrote) {
+			return wrote
+		}
+		machine.set_psw_word(m, psw.set_flag(current, psw.Z, not negative))
+		return true
+	}
 	let destination = operand_value(m, destination_operand, size)
 	if is_fault(destination) {
 		return destination
@@ -709,16 +725,24 @@ let execute_eis = (m, instruction, kind) {
 }
 
 let execute_mfpi = (m, instruction) {
-	audit_spec(m, :source, decode.destination_spec_machine(instruction))
-	let source_operand = addressing.resolve_machine(
-		m,
-		decode.destination_spec_machine(instruction),
-		WORD
-	)
+	let specification = decode.destination_spec_machine(instruction)
+	audit_spec(m, :source, specification)
+	let source_operand = addressing.resolve_machine(m, specification, WORD)
 	if is_fault(source_operand) {
 		return source_operand
 	}
-	let source = operand_value(m, source_operand, WORD)
+	let source = false
+	let source_mode = fixed.word_field(instruction, 3, 3)
+	let source_register = fixed.word_field(instruction, 0, 3)
+	if equal(source_mode, 0) and equal(source_register, 6) {
+		# MFPI R6 is the PDP-11 special case: the operand is the previous
+		# mode's stack pointer, not the current mode's visible R6.
+		source = machine.previous_sp_word(m)
+	} else if equal(addressing.operand_kind(source_operand), addressing.MEMORY) {
+		source = machine.read_word_previous_machine(m, addressing.operand_address(source_operand))
+	} else {
+		source = operand_value(m, source_operand, WORD)
+	}
 	if is_fault(source) {
 		return source
 	}
@@ -746,7 +770,22 @@ let execute_mtpi = (m, instruction) {
 		return source
 	}
 	machine.set_sp_word(m, fixed.word_add_small(machine.sp_word(m), 2))
-	let written = write_value(m, destination_operand, WORD, source)
+	let written = false
+	let destination_mode = fixed.word_field(instruction, 3, 3)
+	let destination_register = fixed.word_field(instruction, 0, 3)
+	if equal(destination_mode, 0) and equal(destination_register, 6) {
+		# MTPI R6 writes the previous mode's stack-pointer bank. The pop
+		# itself still uses the current mode's stack pointer.
+		written = machine.set_previous_sp_word(m, source)
+	} else if equal(addressing.operand_kind(destination_operand), addressing.MEMORY) {
+		written = machine.write_word_previous_machine(
+			m,
+			addressing.operand_address(destination_operand),
+			source
+		)
+	} else {
+		written = write_value(m, destination_operand, WORD, source)
+	}
 	if is_fault(written) {
 		return written
 	}
@@ -786,6 +825,14 @@ let execute_condition_code = (m, instruction) {
 	}
 	machine.set_psw_word(m, current)
 	return true
+}
+
+let execute_reset = (m) {
+	# KT11-D suppresses RESET outside Kernel mode.
+	if not equal(machine.current_mode(m), 0) {
+		return true
+	}
+	return machine.reset_bus(m)
 }
 
 # Complete a fetched instruction through the compatibility machine facade. This
@@ -859,6 +906,9 @@ let execute_fetched = (m, instruction, kind, before_psw) {
 			result = execute_single(m, instruction, kind)
 		}
 		:asl {
+			result = execute_single(m, instruction, kind)
+		}
+		:sxt {
 			result = execute_single(m, instruction, kind)
 		}
 		:clrb {
@@ -970,7 +1020,7 @@ let execute_fetched = (m, instruction, kind, before_psw) {
 			result = execute_rtt(m)
 		}
 		:reset {
-			result = machine.reset_bus(m)
+			result = execute_reset(m)
 		}
 		:wait {
 			machine.set_waiting(m, true)
@@ -1001,19 +1051,128 @@ let execute_fetched = (m, instruction, kind, before_psw) {
 	return result
 }
 
-let step = (m) {
-	if machine.waiting(m) {
+let trap_psw = (old_psw, vector_psw) {
+	# Trap/interrupt entry copies the old current-mode field into the new
+	# previous-mode field. The vector supplies the new current mode and the
+	# remaining PSW state.
+	let result = fixed.word_set_bit(vector_psw, 12, fixed.word_bit(old_psw, 14))
+	return fixed.word_set_bit(result, 13, fixed.word_bit(old_psw, 15))
+}
+
+let accept_interrupt = (m) {
+	let bus = machine.bus(m)
+	if not unibus.interrupt_pending(bus) {
 		return false
+	}
+	let level = unibus.interrupt_level(bus)
+	let current_priority = fixed.word_field(machine.psw_word(m), 5, 3)
+	if level <= current_priority {
+		return false
+	}
+	let vector = unibus.interrupt_vector(bus)
+	# Interrupt vectors are fetched through Kernel virtual space regardless of
+	# the interrupted current mode.
+	let new_pc = machine.read_word_mode_machine(m, fixed.word(vector), 0)
+	if is_fault(new_pc) {
+		return new_pc
+	}
+	let vector_psw = machine.read_word_mode_machine(m, fixed.word(vector + 2), 0)
+	if is_fault(vector_psw) {
+		return vector_psw
+	}
+	let old_psw = machine.psw_word(m)
+	let old_pc = machine.pc_word(m)
+	let new_psw = trap_psw(old_psw, vector_psw)
+	# Select the vector's new current-mode stack before stacking the interrupted
+	# state. For the V6 11/40 vectors this is the Kernel stack.
+	machine.set_psw_word(m, new_psw)
+	machine.set_sp_word(m, fixed.word_sub_small(machine.sp_word(m), 2))
+	let pushed_psw = machine.write_word_machine(m, machine.sp_word(m), old_psw)
+	if is_fault(pushed_psw) {
+		return pushed_psw
+	}
+	machine.set_sp_word(m, fixed.word_sub_small(machine.sp_word(m), 2))
+	let pushed_pc = machine.write_word_machine(m, machine.sp_word(m), old_pc)
+	if is_fault(pushed_pc) {
+		return pushed_pc
+	}
+	unibus.acknowledge_interrupt(bus)
+	machine.set_pc_word(m, new_pc)
+	machine.set_waiting(m, false)
+	return true
+}
+
+let enter_fault_trap = (m, fault) {
+	let vector = -1
+	match fault {
+		[@pdp_fault, :mmu_abort, detail] {
+			vector = 168  # 0250
+		}
+		[@pdp_fault, :bus_timeout, detail] {
+			vector = 4
+		}
+		[@pdp_fault, :odd_address, detail] {
+			vector = 4
+		}
+		_ {
+			return fault
+		}
+	}
+	let old_psw = machine.psw_word(m)
+	let old_pc = machine.pc_word(m)
+	let new_pc = machine.read_word_mode_machine(m, fixed.word(vector), 0)
+	if is_fault(new_pc) {
+		return new_pc
+	}
+	let vector_psw = machine.read_word_mode_machine(m, fixed.word(vector + 2), 0)
+	if is_fault(vector_psw) {
+		return vector_psw
+	}
+	let new_psw = trap_psw(old_psw, vector_psw)
+	# Mode changes before stacking: R6 now denotes the stack bank selected by
+	# the vector's new current mode, while previous mode records the faulting
+	# mode for MFPI/MTPI.
+	machine.set_psw_word(m, new_psw)
+	machine.set_sp_word(m, fixed.word_sub_small(machine.sp_word(m), 2))
+	let pushed_psw = machine.write_word_machine(m, machine.sp_word(m), old_psw)
+	if is_fault(pushed_psw) {
+		return pushed_psw
+	}
+	machine.set_sp_word(m, fixed.word_sub_small(machine.sp_word(m), 2))
+	let pushed_pc = machine.write_word_machine(m, machine.sp_word(m), old_pc)
+	if is_fault(pushed_pc) {
+		return pushed_pc
+	}
+	machine.set_pc_word(m, new_pc)
+	machine.set_waiting(m, false)
+	return true
+}
+
+let step = (m) {
+	let accepted = accept_interrupt(m)
+	if is_fault(accepted) {
+		return accepted
+	}
+	if accepted {
+		return true
+	}
+	if machine.waiting(m) {
+		machine.advance_time(m, 1)
+		return true
 	}
 	let instruction = fetch.word_machine(m)
 	if is_fault(instruction) {
-		return instruction
+		return enter_fault_trap(m, instruction)
 	}
 	let kind = decode.instruction_kind_machine(instruction)
 	if equal(kind, :other) {
 		return [@pdp_fault, :reserved_instruction, fixed.number(instruction)]
 	}
-	return execute_fetched(m, instruction, kind, machine.psw_word(m))
+	let result = execute_fetched(m, instruction, kind, machine.psw_word(m))
+	if is_fault(result) {
+		return enter_fault_trap(m, result)
+	}
+	return result
 }
 
 # Bound hot path. run_bounded resolves the machine's processor state, UNIBUS,
@@ -1296,10 +1455,12 @@ let execute_branch_base_bound = (cpu_words, instruction, base) {
 let step_bound = (
 	m,
 	cpu_words,
+	cpu_flags,
 	bus,
 	bus_memory,
 	bus_counts,
 	bus_pending,
+	bus_irq,
 	cpu_counts,
 	audit_instructions,
 	audit_source_modes,
@@ -1308,6 +1469,30 @@ let step_bound = (
 	audit_last_kind,
 	audit_last_words
 ) {
+	# Once KT11-D is enabled, use the authoritative translated machine path.
+	# This preserves the pre-MMU profiling hot path without duplicating MMU
+	# semantics through every bound addressing helper.
+	if machine.mmu_enabled(m) {
+		return step(m)
+	}
+	if unibus.interrupt_pending_bound(bus_irq) {
+		let level = unibus.interrupt_level_bound(bus_irq)
+		let current_priority = fixed.word_field(storage.get(cpu_words, state.WORD_PSW), 5, 3)
+		if level > current_priority {
+			let accepted = accept_interrupt(m)
+			if is_fault(accepted) {
+				return accepted
+			}
+			if accepted {
+				return true
+			}
+		}
+	}
+	if storage.counter_get(cpu_flags, state.FLAG_WAITING) > 0 {
+		unibus.advance_bound(bus, bus_pending, 1)
+		storage.counter_add(cpu_counts, state.COUNT_TIME, 1)
+		return true
+	}
 	let instruction = fetch.word_bound(cpu_words, bus, bus_memory, bus_counts)
 	if is_fault(instruction) {
 		return instruction
@@ -1446,7 +1631,7 @@ let step_bound = (
 	return execute_fetched(m, instruction, kind, before_psw)
 }
 
-let run_bounded = (m, limit) {
+let run_bounded_until = (m, limit, breakpoints, skip_pc) {
 	let processor_state = machine.processor_state(m)
 	let bus = machine.bus(m)
 	let execution_audit = machine.execution_audit(m)
@@ -1459,6 +1644,7 @@ let run_bounded = (m, limit) {
 	let bus_memory = unibus.memory_store(bus)
 	let bus_counts = unibus.count_store(bus)
 	let bus_pending = unibus.pending_store(bus)
+	let bus_irq = unibus.interrupt_store(bus)
 	let audit_instructions = audit.instruction_store(execution_audit)
 	let audit_source_modes = audit.source_mode_store(execution_audit)
 	let audit_destination_modes = audit.destination_mode_store(execution_audit)
@@ -1466,15 +1652,31 @@ let run_bounded = (m, limit) {
 	let audit_last_kind = audit.last_kind_store(execution_audit)
 	let audit_last_words = audit.last_word_store(execution_audit)
 	state.set_running(processor_state, true)
+	machine.cut10_watch_clear_stop(m)
 	let count = 0
-	while (storage.counter_get(cpu_flags, state.FLAG_RUNNING) > 0) and (storage.counter_get(cpu_flags, state.FLAG_WAITING) <= 0) and (count < limit) {
+	while (storage.counter_get(cpu_flags, state.FLAG_RUNNING) > 0) and (count < limit) {
+		let current_pc = fixed.number(state.pc_word(processor_state))
+		let hit = false
+		let i = 0
+		while i < length(breakpoints) {
+			if equal(breakpoints[i], current_pc) {
+				hit = true
+			}
+			i = i + 1
+		}
+		if hit and not (equal(count, 0) and equal(current_pc, skip_pc)) {
+			return [@breakpoint, current_pc, count]
+		}
+		let ksp_before = state.sp_mode_word(processor_state, 0)
 		let result = step_bound(
 			m,
 			cpu_words,
+			cpu_flags,
 			bus,
 			bus_memory,
 			bus_counts,
 			bus_pending,
+			bus_irq,
 			cpu_counts,
 			audit_instructions,
 			audit_source_modes,
@@ -1487,9 +1689,21 @@ let run_bounded = (m, limit) {
 			state.set_running(processor_state, false)
 			return result
 		}
+		let ksp_after = state.sp_mode_word(processor_state, 0)
+		if not equal(ksp_before, ksp_after) {
+			machine.cut10_watch_ksp_transition(m, ksp_before, ksp_after)
+		}
+		let watch_stop = machine.cut10_watch_stop(m)
+		if not equal(watch_stop, false) {
+			return [@watchpoint, watch_stop, fixed.number(machine.iar_word(m)), count + 1]
+		}
 		count = count + 1
 	}
 	return count
 }
 
-export(:step, :run_bounded)
+let run_bounded = (m, limit) {
+	return run_bounded_until(m, limit, [], -1)
+}
+
+export(:step, :run_bounded, :run_bounded_until)

@@ -1,0 +1,298 @@
+package "aiki_pdp_kt11d"
+
+let bits = import("bits/ffi")
+let octal = import("../reference/octal")
+let store = import("store")
+
+let @pdp_fault [kind, detail]
+
+# KT11-D processor-internal physical register addresses.
+let KISD0 = octal.parse("772300")
+let KISD7 = octal.parse("772316")
+let KISA0 = octal.parse("772340")
+let KISA7 = octal.parse("772356")
+let SSR0 = octal.parse("777572")
+let SSR2 = octal.parse("777576")
+let UISD0 = octal.parse("777600")
+let UISD7 = octal.parse("777616")
+let UISA0 = octal.parse("777640")
+let UISA7 = octal.parse("777656")
+
+let MODE_KERNEL = 0
+let MODE_USER = 3
+let IO_PAGE_16 = octal.parse("160000")
+let IO_PAGE_OFFSET = octal.parse("600000")
+
+let REG_SSR0 = 0
+let REG_SSR2 = 1
+let REG_KISD = 2
+let REG_KISA = 10
+let REG_UISD = 18
+let REG_UISA = 26
+let WORDS = 34
+
+let ABORT_NONRESIDENT = bits.shl(1, 15)
+let ABORT_LENGTH = bits.shl(1, 14)
+let ABORT_READONLY = bits.shl(1, 13)
+let ERROR_MASK = ABORT_NONRESIDENT + ABORT_LENGTH + ABORT_READONLY
+let ENABLE = 1
+let W_BIT = bits.shl(1, 6)
+let CLEAR_W_MASK = 65471
+
+let new = () {
+	return store.new(WORDS)
+}
+
+let reset_mmu = (mmu) {
+	let i = 0
+	while i < WORDS {
+		store.set(mmu, i, 0)
+		i = i + 1
+	}
+	return true
+}
+
+let ssr0 = (mmu) {
+	return store.get(mmu, REG_SSR0)
+}
+
+let ssr2 = (mmu) {
+	return store.get(mmu, REG_SSR2)
+}
+
+let enabled = (mmu) {
+	return equal(bits.extract(ssr0(mmu), 0, 1), 1)
+}
+
+let frozen = (mmu) {
+	return not equal(bits.bit_and(ssr0(mmu), ERROR_MASK), 0)
+}
+
+let current_mode = (psw) {
+	return bits.extract(psw, 14, 2)
+}
+
+let previous_mode = (psw) {
+	return bits.extract(psw, 12, 2)
+}
+
+let bank_base = (mode, descriptor) {
+	if equal(mode, MODE_KERNEL) {
+		if descriptor {
+			return REG_KISD
+		}
+		return REG_KISA
+	}
+	if equal(mode, MODE_USER) {
+		if descriptor {
+			return REG_UISD
+		}
+		return REG_UISA
+	}
+	return -1
+}
+
+let pdr = (mmu, mode, page) {
+	let base = bank_base(mode, true)
+	if base < 0 {
+		return 0
+	}
+	return store.get(mmu, base + page)
+}
+
+let par = (mmu, mode, page) {
+	let base = bank_base(mode, false)
+	if base < 0 {
+		return 0
+	}
+	return store.get(mmu, base + page)
+}
+
+let set_fault = (mmu, kind, virtual_address, mode, page, error_bit) {
+	if not frozen(mmu) {
+		let value = bits.extract(ssr0(mmu), 0, 1)
+		value = value + error_bit
+		value = value + bits.shl(bits.extract(mode, 0, 2), 5)
+		value = value + bits.shl(bits.extract(page, 0, 3), 1)
+		store.set(mmu, REG_SSR0, value)
+	}
+	return [@pdp_fault, :mmu_abort, [kind, virtual_address, mode, page]]
+}
+
+let instruction_start = (mmu, virtual_pc) {
+	if not frozen(mmu) {
+		store.set(mmu, REG_SSR2, virtual_pc)
+	}
+	return true
+}
+
+let translate = (mmu, virtual_address, mode, writing) {
+	let va = virtual_address
+	if not enabled(mmu) {
+		if va >= IO_PAGE_16 {
+			return va + IO_PAGE_OFFSET
+		}
+		return va
+	}
+	if (not equal(mode, MODE_KERNEL)) and (not equal(mode, MODE_USER)) {
+		return set_fault(mmu, :illegal_mode, va, mode, truncate(va / 8192), ABORT_NONRESIDENT)
+	}
+	let page = truncate(va / 8192)
+	let offset = va - (page * 8192)
+	let block = truncate(offset / 64)
+	let displacement = offset - (block * 64)
+	let descriptor = pdr(mmu, mode, page)
+	let acf = bits.extract(descriptor, 1, 2)
+	if (equal(acf, 0)) or (equal(acf, 2)) {
+		return set_fault(mmu, :nonresident, va, mode, page, ABORT_NONRESIDENT)
+	}
+	let plf = bits.extract(descriptor, 8, 7)
+	let ed = bits.extract(descriptor, 3, 1)
+	if ((equal(ed, 0)) and (block > plf)) or ((equal(ed, 1)) and (block < plf)) {
+		return set_fault(mmu, :page_length, va, mode, page, ABORT_LENGTH)
+	}
+	if writing and (equal(acf, 1)) {
+		return set_fault(mmu, :read_only, va, mode, page, ABORT_READONLY)
+	}
+	if writing and (equal(acf, 3)) {
+		let base = bank_base(mode, true)
+		store.set(mmu, base + page, bits.bit_or(descriptor, W_BIT))
+	}
+	let physical_block = bits.extract(par(mmu, mode, page) + block, 0, 12)
+	return (physical_block * 64) + displacement
+}
+
+let register_index = (physical_address) {
+	if equal(physical_address, SSR0) {
+		return REG_SSR0
+	}
+	if equal(physical_address, SSR2) {
+		return REG_SSR2
+	}
+	if (physical_address >= KISD0) and (physical_address <= KISD7) {
+		return REG_KISD + truncate((physical_address - KISD0) / 2)
+	}
+	if (physical_address >= KISA0) and (physical_address <= KISA7) {
+		return REG_KISA + truncate((physical_address - KISA0) / 2)
+	}
+	if (physical_address >= UISD0) and (physical_address <= UISD7) {
+		return REG_UISD + truncate((physical_address - UISD0) / 2)
+	}
+	if (physical_address >= UISA0) and (physical_address <= UISA7) {
+		return REG_UISA + truncate((physical_address - UISA0) / 2)
+	}
+	return -1
+}
+
+let owns = (physical_address) {
+	return register_index(physical_address) >= 0
+}
+
+let read_word = (mmu, physical_address) {
+	let index = register_index(physical_address)
+	if index < 0 {
+		return [@error, :mmu_register, "not a KT11-D register"]
+	}
+	return store.get(mmu, index)
+}
+
+let clear_pair_w = (mmu, index) {
+	let descriptor_index = -1
+	if (index >= REG_KISD) and (index < REG_KISA) {
+		descriptor_index = index
+	}
+	if (index >= REG_KISA) and (index < REG_UISD) {
+		descriptor_index = REG_KISD + (index - REG_KISA)
+	}
+	if (index >= REG_UISD) and (index < REG_UISA) {
+		descriptor_index = index
+	}
+	if index >= REG_UISA {
+		descriptor_index = REG_UISD + (index - REG_UISA)
+	}
+	if descriptor_index >= 0 {
+		store.set(mmu, descriptor_index, bits.bit_and(store.get(mmu, descriptor_index), CLEAR_W_MASK))
+	}
+	return true
+}
+
+let write_word = (mmu, physical_address, value) {
+	let index = register_index(physical_address)
+	if index < 0 {
+		return [@error, :mmu_register, "not a KT11-D register"]
+	}
+	if equal(index, REG_SSR2) {
+		return true  # SR2 is read-only.
+	}
+	if equal(index, REG_SSR0) {
+		# Program control meaningfully supplies only enable and maintenance;
+		# writing SR0 also clears frozen abort status.
+		store.set(mmu, REG_SSR0, bits.extract(value, 0, 1) + bits.shl(bits.extract(value, 8, 1), 8))
+		return true
+	}
+	store.set(mmu, index, bits.extract(value, 0, 16))
+	clear_pair_w(mmu, index)
+	return true
+}
+
+let read_byte = (mmu, physical_address) {
+	let base = physical_address
+	if equal(bits.extract(base, 0, 1), 1) {
+		base = base - 1
+	}
+	let word = read_word(mmu, base)
+	if is_error(word) {
+		return word
+	}
+	if equal(bits.extract(physical_address, 0, 1), 1) {
+		return bits.extract(word, 8, 8)
+	}
+	return bits.extract(word, 0, 8)
+}
+
+let write_byte = (mmu, physical_address, value) {
+	let base = physical_address
+	if equal(bits.extract(base, 0, 1), 1) {
+		base = base - 1
+	}
+	let old = read_word(mmu, base)
+	if is_error(old) {
+		return old
+	}
+	let updated = 0
+	if equal(bits.extract(physical_address, 0, 1), 1) {
+		updated = bits.extract(old, 0, 8) + bits.shl(bits.extract(value, 0, 8), 8)
+	} else {
+		updated = bits.extract(value, 0, 8) + bits.shl(bits.extract(old, 8, 8), 8)
+	}
+	return write_word(mmu, base, updated)
+}
+
+export(
+	:KISD0,
+	:KISD7,
+	:KISA0,
+	:KISA7,
+	:SSR0,
+	:SSR2,
+	:UISD0,
+	:UISD7,
+	:UISA0,
+	:UISA7,
+	:MODE_KERNEL,
+	:MODE_USER,
+	:new,
+	:reset_mmu,
+	:ssr0,
+	:ssr2,
+	:enabled,
+	:current_mode,
+	:previous_mode,
+	:instruction_start,
+	:translate,
+	:owns,
+	:read_word,
+	:write_word,
+	:read_byte,
+	:write_byte
+)

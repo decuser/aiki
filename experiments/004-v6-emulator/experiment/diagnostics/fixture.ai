@@ -47,8 +47,8 @@ let load_memory = (m, entries) {
 let prepare = (fixture) {
 	let m = machine.new()
 	machine.reset_machine(m)
-	set_registers(m, fixture.before_registers)
 	machine.set_psw(m, fixture.before_psw)
+	set_registers(m, fixture.before_registers)
 	let result = load_memory(m, fixture.before_memory)
 	if is_error(result) {
 		return result

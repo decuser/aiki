@@ -1,0 +1,179 @@
+use("test")
+
+let fixed = import("machine/ffi")
+let execute = import("../cpu/execute")
+let fetch = import("../cpu/fetch")
+let machine = import("../machine/machine")
+let octal = import("../reference/octal")
+let unibus = import("../unibus/unibus")
+
+let set_full_page = (m, par_addr, pdr_addr, page_block) {
+	machine.deposit_word(m, par_addr, page_block)
+	machine.deposit_word(m, pdr_addr, octal.parse("077406"))
+	return true
+}
+
+run("KT11-D disabled preserves PDP-11/40 high-page projection", () {
+	let m = machine.new()
+	machine.deposit_word(m, octal.parse("000100"), octal.parse("012345"))
+	equal(machine.examine_word(m, octal.parse("000100")), octal.parse("012345"))
+})
+
+
+run("KT11-D relocates kernel virtual page through KISA/KISD", () {
+	let m = machine.new()
+	set_full_page(m, octal.parse("172340"), octal.parse("172300"), octal.parse("000100"))
+	# Physical block 0100 begins at byte address 010000.
+	unibus.write_word_physical_machine(
+		machine.bus(m),
+		fixed.addr18(octal.parse("010000")),
+		fixed.word(octal.parse("012345"))
+	)
+	machine.deposit_word(m, octal.parse("177572"), 1)
+	equal(fixed.number(machine.read_word_machine(m, fixed.word(0))), octal.parse("012345"))
+})
+
+
+run("KT11-D previous-mode transfer uses user APR set", () {
+	let m = machine.new()
+	set_full_page(m, octal.parse("177640"), octal.parse("177600"), octal.parse("000120"))
+	unibus.write_word_physical_machine(
+		machine.bus(m),
+		fixed.addr18(octal.parse("012000")),
+		fixed.word(octal.parse("065432"))
+	)
+	# Kernel current, User previous.
+	machine.set_psw(m, octal.parse("030000"))
+	machine.deposit_word(m, octal.parse("177572"), 1)
+	equal(fixed.number(machine.read_word_previous_machine(m, fixed.word(0))), octal.parse("065432"))
+})
+
+
+run("KT11-D read-only write abort records SSR0 and suppresses store", () {
+	let m = machine.new()
+	machine.deposit_word(m, octal.parse("172340"), octal.parse("000100"))
+	machine.deposit_word(m, octal.parse("172300"), octal.parse("077402"))
+	machine.deposit_word(m, octal.parse("177572"), 1)
+	let result = machine.write_word_machine(m, fixed.word(0), fixed.word(1))
+	equal(shape(result), :pdp_fault)
+	is_true((machine.mmu_ssr0(m) >= octal.parse("020001")))
+})
+
+
+run("PSW I/O address is the actual processor status word", () {
+	let m = machine.new()
+	machine.set_psw(m, octal.parse("030340"))
+	equal(machine.examine_word(m, octal.parse("177776")), octal.parse("030340"))
+	machine.deposit_word(m, octal.parse("177776"), octal.parse("000004"))
+	equal(machine.psw(m), octal.parse("000004"))
+})
+
+
+run("unassigned physical I/O address produces bus timeout", () {
+	let m = machine.new()
+	let result = unibus.read_word_physical_machine(machine.bus(m), fixed.addr18(octal.parse("776000")))
+	equal(shape(result), :pdp_fault)
+})
+
+
+run("KT11-D SR2 preserves prior PC when instruction fetch aborts", () {
+	let m = machine.new()
+	set_full_page(m, octal.parse("172340"), octal.parse("172300"), 0)
+	machine.deposit_word(m, octal.parse("000100"), octal.parse("000240"))
+	machine.deposit_word(m, octal.parse("177572"), 1)
+	machine.set_pc(m, octal.parse("000100"))
+	let first = fetch.word_machine(m)
+	is_false(is_error(first))
+	equal(machine.mmu_ssr2(m), octal.parse("000100"))
+	# Page 1 is still nonresident. DEC specifies that a failed instruction
+	# fetch does not update SR2; the preceding successful-fetch PC survives.
+	machine.set_pc(m, octal.parse("020000"))
+	let failed = fetch.word_machine(m)
+	equal(shape(failed), :pdp_fault)
+	equal(machine.mmu_ssr2(m), octal.parse("000100"))
+})
+
+
+run("Lions lab exposes 24K words of installed core", () {
+	let m = machine.new()
+	equal(machine.installed_memory_words(m), octal.parse("060000"))
+	# Last word of 24K core is present; the next physical word does not exist.
+	let last = fixed.addr18(octal.parse("137776"))
+	let first_absent = fixed.addr18(octal.parse("140000"))
+	unibus.write_word_physical_machine(machine.bus(m), last, fixed.word(octal.parse("012345")))
+	equal(fixed.number(unibus.read_word_physical_machine(machine.bus(m), last)), octal.parse("012345"))
+	equal(shape(unibus.read_word_physical_machine(machine.bus(m), first_absent)), :pdp_fault)
+})
+
+
+run("installed core extent is machine configuration", () {
+	let m = machine.new_with_memory_words(octal.parse("100000"))
+	equal(machine.installed_memory_words(m), octal.parse("100000"))
+	# The same physical address that is absent in the 24K Lions lab is RAM in
+	# an explicitly configured 32K-word machine.
+	let address = fixed.addr18(octal.parse("140000"))
+	unibus.write_word_physical_machine(machine.bus(m), address, fixed.word(octal.parse("065432")))
+	equal(
+		fixed.number(unibus.read_word_physical_machine(machine.bus(m), address)),
+		octal.parse("065432")
+	)
+})
+
+
+run("KT11-D previous-mode probe faults at Lions lab core boundary", () {
+	let m = machine.new()
+	machine.deposit_word(m, octal.parse("177640"), octal.parse("001400"))
+	machine.deposit_word(m, octal.parse("177600"), octal.parse("077406"))
+	# Kernel current, User previous; user virtual 0 maps to physical 140000.
+	machine.set_psw(m, octal.parse("030000"))
+	machine.deposit_word(m, octal.parse("177572"), 1)
+	let result = machine.read_word_previous_machine(m, fixed.word(0))
+	equal(shape(result), :pdp_fault)
+})
+
+
+run("MFPI SP reads previous User stack while pushing on Kernel stack", () {
+	let m = machine.new()
+	machine.set_psw(m, octal.parse("030000"))  # Kernel current, User previous.
+	machine.set_sp(m, octal.parse("030000"))
+	machine.set_sp_mode_word(m, 3, fixed.word(octal.parse("012344")))
+	machine.set_pc(m, octal.parse("010000"))
+	machine.deposit_word(m, octal.parse("010000"), octal.parse("006506"))  # MFPI SP
+	equal(execute.step(m), true)
+	equal(machine.sp(m), octal.parse("027776"))
+	equal(fixed.number(machine.sp_mode_word(m, 3)), octal.parse("012344"))
+	equal(machine.examine_word(m, octal.parse("027776")), octal.parse("012344"))
+})
+
+
+run("MTPI SP writes previous User stack without replacing Kernel SP", () {
+	let m = machine.new()
+	machine.set_psw(m, octal.parse("030000"))  # Kernel current, User previous.
+	machine.set_sp(m, octal.parse("027776"))
+	machine.set_sp_mode_word(m, 3, fixed.word(octal.parse("012344")))
+	machine.deposit_word(m, octal.parse("027776"), octal.parse("065432"))
+	machine.set_pc(m, octal.parse("010000"))
+	machine.deposit_word(m, octal.parse("010000"), octal.parse("006606"))  # MTPI SP
+	equal(execute.step(m), true)
+	equal(machine.sp(m), octal.parse("030000"))
+	equal(fixed.number(machine.sp_mode_word(m, 3)), octal.parse("065432"))
+})
+
+
+run("User bus fault enters Kernel mode on KSP and preserves USP", () {
+	let m = machine.new()
+	# Bus-error vector: Kernel PC 010000, priority 7 Kernel PSW.
+	machine.deposit_word(m, octal.parse("000004"), octal.parse("010000"))
+	machine.deposit_word(m, octal.parse("000006"), octal.parse("000340"))
+	machine.set_sp_mode_word(m, 0, fixed.word(octal.parse("030000")))
+	machine.set_sp_mode_word(m, 3, fixed.word(octal.parse("020000")))
+	machine.set_psw(m, octal.parse("140000"))  # User current, Kernel previous.
+	machine.set_pc(m, octal.parse("000001"))  # Odd fetch -> bus-error vector.
+	equal(execute.step(m), true)
+	equal(machine.pc(m), octal.parse("010000"))
+	equal(machine.psw(m), octal.parse("030340"))  # Kernel current, User previous.
+	equal(machine.sp(m), octal.parse("027774"))
+	equal(fixed.number(machine.sp_mode_word(m, 3)), octal.parse("020000"))
+	equal(machine.examine_word(m, octal.parse("027774")), octal.parse("000001"))
+	equal(machine.examine_word(m, octal.parse("027776")), octal.parse("140000"))
+})

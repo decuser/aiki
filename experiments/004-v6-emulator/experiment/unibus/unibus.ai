@@ -1,6 +1,7 @@
 package "aiki_pdp_unibus"
 
 let fixed = import("machine/ffi")
+let @pdp_fault [kind, detail]
 let kl11 = import("../devices/console/kl11")
 let memory = import("../memory/memory")
 let octal = import("../reference/octal")
@@ -8,6 +9,7 @@ let store = import("store")
 let counters = import("store/ffi")
 let tm11 = import("../devices/tape/tm11")
 let rk11 = import("../devices/disk/rk11")
+let kw11l = import("../devices/clock/kw11l")
 
 let BUS_MEMORY = 0
 let BUS_TAPE = 1
@@ -16,6 +18,10 @@ let BUS_CONSOLE = 3
 let BUS_DISK = 4
 let BUS_IO_MAP = 5
 let BUS_PENDING = 6
+let BUS_CLOCK = 7
+let BUS_IO_TRACE = 8
+let BUS_IRQ = 9
+let BUS_RAM_BYTES = 10
 
 let DATI = 0
 let DATO = 1
@@ -24,10 +30,27 @@ let NPR_WRITE = 3
 let NPR_READ = 4
 let COUNT_WORDS = 5
 
+let TRACE_DATI = 0
+let TRACE_DATO = 1
+let TRACE_DATOB = 2
+let TRACE_WORDS = 3
+
+let IRQ_PENDING = 0
+let IRQ_LEVEL = 1
+let IRQ_VECTOR = 2
+let IRQ_WORDS = 3
+
 let OWNER_NONE = 0
 let OWNER_TAPE = 1
 let OWNER_CONSOLE = 2
 let OWNER_DISK = 3
+let OWNER_CLOCK = 4
+let OWNER_BOOT_ROM = 5
+
+let BOOT_ROM_FIRST = octal.parse("773110")
+let BOOT_ROM_LAST = octal.parse("773150")
+
+let DEFAULT_MEMORY_WORDS = octal.parse("060000")  # Lions lab: 24K words
 
 let IO_PAGE_16 = octal.parse("160000")
 let IO_PAGE_OFFSET = octal.parse("600000")
@@ -53,13 +76,33 @@ let configure_io = () {
 	register_range(routes, tm11.FIRST_ADDRESS, tm11.LAST_ADDRESS, OWNER_TAPE)
 	register_range(routes, kl11.FIRST_ADDRESS, kl11.LAST_ADDRESS, OWNER_CONSOLE)
 	register_range(routes, rk11.FIRST_ADDRESS, rk11.LAST_ADDRESS, OWNER_DISK)
+	register_range(routes, kw11l.FIRST_ADDRESS, kw11l.LAST_ADDRESS, OWNER_CLOCK)
+	register_range(routes, BOOT_ROM_FIRST, BOOT_ROM_LAST, OWNER_BOOT_ROM)
 	return routes
 }
 
-let new = () {
+let new_with_memory_words = (words) {
 	let counts = counters.new_counter(COUNT_WORDS)
 	let pending = counters.new_counter(1)
-	return [memory.new(), tm11.new(), counts, kl11.new(), rk11.new(), configure_io(), pending]
+	let trace = counters.new_counter(TRACE_WORDS)
+	let irq = counters.new_counter(IRQ_WORDS)
+	return [
+		memory.new(),
+		tm11.new(),
+		counts,
+		kl11.new(),
+		rk11.new(),
+		configure_io(),
+		pending,
+		kw11l.new(),
+		trace,
+		irq,
+		words * 2
+	]
+}
+
+let new = () {
+	return new_with_memory_words(DEFAULT_MEMORY_WORDS)
 }
 
 let physical_memory = (bus) {
@@ -88,6 +131,30 @@ let io_routes = (bus) {
 
 let pending = (bus) {
 	return bus[BUS_PENDING]
+}
+
+let clock = (bus) {
+	return bus[BUS_CLOCK]
+}
+
+let io_trace = (bus) {
+	return bus[BUS_IO_TRACE]
+}
+
+let irq = (bus) {
+	return bus[BUS_IRQ]
+}
+
+let installed_memory_bytes = (bus) {
+	return bus[BUS_RAM_BYTES]
+}
+
+let installed_memory_words = (bus) {
+	return truncate(installed_memory_bytes(bus) / 2)
+}
+
+let ram_present = (bus, address) {
+	return fixed.number(address) < installed_memory_bytes(bus)
 }
 
 # Bound execution accessors. The CPU resolves these once before its run loop.
@@ -143,14 +210,14 @@ let refresh_pending = (bus) {
 # conversion occurs only for I/O-page transactions; ordinary RAM remains fixed
 # width end-to-end. Controller migration is a separate representation cut.
 let device_word = (value) {
-	if is_error(value) {
+	if is_error(value) or equal(shape(value), :pdp_fault) {
 		return value
 	}
 	return fixed.word(value)
 }
 
 let device_byte = (value) {
-	if is_error(value) {
+	if is_error(value) or equal(shape(value), :pdp_fault) {
 		return value
 	}
 	return fixed.byte(value)
@@ -158,6 +225,9 @@ let device_byte = (value) {
 
 let read_byte_physical = (bus, address) {
 	if fixed.addr_lt_number(address, IO_PAGE_PHYSICAL) {
+		if not ram_present(bus, address) {
+			return [@pdp_fault, :bus_timeout, fixed.number(address)]
+		}
 		return memory.read_byte_machine(physical_memory(bus), address)
 	}
 	let numeric = fixed.number(address)
@@ -171,14 +241,23 @@ let read_byte_physical = (bus, address) {
 		3 {
 			return device_byte(rk11.read_byte(disk(bus), numeric))
 		}
-		_ {
+		4 {
+			return device_byte(kw11l.read_byte(clock(bus), numeric))
+		}
+		5 {
 			return memory.read_byte_machine(physical_memory(bus), address)
+		}
+		_ {
+			return [@pdp_fault, :bus_timeout, fixed.number(address)]
 		}
 	}
 }
 
 let write_byte_physical = (bus, address, value) {
 	if fixed.addr_lt_number(address, IO_PAGE_PHYSICAL) {
+		if not ram_present(bus, address) {
+			return [@pdp_fault, :bus_timeout, fixed.number(address)]
+		}
 		return memory.write_byte_machine(physical_memory(bus), address, value)
 	}
 	let numeric = fixed.number(address)
@@ -193,8 +272,15 @@ let write_byte_physical = (bus, address, value) {
 		3 {
 			result = rk11.write_byte(disk(bus), numeric, fixed.number(value))
 		}
+		4 {
+			result = kw11l.write_byte(clock(bus), numeric, fixed.number(value))
+		}
+		5 {
+			# Bootstrap ROM is read-only to guest CPU stores.
+			result = true
+		}
 		_ {
-			result = memory.write_byte_machine(physical_memory(bus), address, value)
+			result = [@pdp_fault, :bus_timeout, fixed.number(address)]
 		}
 	}
 	refresh_pending(bus)
@@ -202,7 +288,13 @@ let write_byte_physical = (bus, address, value) {
 }
 
 let read_word_physical = (bus, address) {
+	if not fixed.addr_even(address) {
+		return [@pdp_fault, :odd_address, fixed.number(address)]
+	}
 	if fixed.addr_lt_number(address, IO_PAGE_PHYSICAL) {
+		if not ram_present(bus, address) {
+			return [@pdp_fault, :bus_timeout, fixed.number(address)]
+		}
 		return memory.read_word_machine(physical_memory(bus), address)
 	}
 	let numeric = fixed.number(address)
@@ -216,14 +308,26 @@ let read_word_physical = (bus, address) {
 		3 {
 			return device_word(rk11.read_word(disk(bus), numeric))
 		}
-		_ {
+		4 {
+			return device_word(kw11l.read_word(clock(bus), numeric))
+		}
+		5 {
 			return memory.read_word_machine(physical_memory(bus), address)
+		}
+		_ {
+			return [@pdp_fault, :bus_timeout, fixed.number(address)]
 		}
 	}
 }
 
 let write_word_physical = (bus, address, value) {
+	if not fixed.addr_even(address) {
+		return [@pdp_fault, :odd_address, fixed.number(address)]
+	}
 	if fixed.addr_lt_number(address, IO_PAGE_PHYSICAL) {
+		if not ram_present(bus, address) {
+			return [@pdp_fault, :bus_timeout, fixed.number(address)]
+		}
 		return memory.write_word_machine(physical_memory(bus), address, value)
 	}
 	let numeric = fixed.number(address)
@@ -238,31 +342,104 @@ let write_word_physical = (bus, address, value) {
 		3 {
 			result = rk11.write_word(disk(bus), numeric, fixed.number(value))
 		}
+		4 {
+			result = kw11l.write_word(clock(bus), numeric, fixed.number(value))
+		}
+		5 {
+			# Bootstrap ROM is read-only to guest CPU stores.
+			result = true
+		}
 		_ {
-			result = memory.write_word_machine(physical_memory(bus), address, value)
+			result = [@pdp_fault, :bus_timeout, fixed.number(address)]
 		}
 	}
 	refresh_pending(bus)
 	return result
 }
 
+let trace_io = (bus, index, address) {
+	if fixed.word_ge_number(address, IO_PAGE_16) {
+		counters.counter_set(io_trace(bus), index, fixed.number(address))
+	}
+	return true
+}
+
+let sync_clock_irq = (bus) {
+	if kw11l.interrupt_pending(clock(bus)) {
+		counters.counter_set(irq(bus), IRQ_PENDING, 1)
+		counters.counter_set(irq(bus), IRQ_LEVEL, kw11l.PRIORITY)
+		counters.counter_set(irq(bus), IRQ_VECTOR, kw11l.VECTOR)
+	} else {
+		counters.counter_set(irq(bus), IRQ_PENDING, 0)
+	}
+	return true
+}
+
+let record_dati = (bus, virtual_address) {
+	bump(bus, DATI)
+	trace_io(bus, TRACE_DATI, virtual_address)
+	return true
+}
+
+let record_dato = (bus, virtual_address) {
+	bump(bus, DATO)
+	trace_io(bus, TRACE_DATO, virtual_address)
+	return true
+}
+
+let record_datob = (bus, virtual_address) {
+	bump(bus, DATOB)
+	trace_io(bus, TRACE_DATOB, virtual_address)
+	return true
+}
+
+let read_byte_physical_machine = (bus, address) {
+	return read_byte_physical(bus, address)
+}
+
+let write_byte_physical_machine = (bus, address, value) {
+	return write_byte_physical(bus, address, value)
+}
+
+let read_word_physical_machine = (bus, address) {
+	return read_word_physical(bus, address)
+}
+
+let write_word_physical_machine = (bus, address, value) {
+	return write_word_physical(bus, address, value)
+}
+
+# Operator/control path for loading the emulated bootstrap ROM. Guest CPU writes
+# still observe ROM semantics through write_*_physical above.
+let load_boot_word_machine = (bus, address, value) {
+	let numeric = fixed.number(address)
+	if (numeric < BOOT_ROM_FIRST) or (numeric > BOOT_ROM_LAST) {
+		return [@pdp_fault, :bus_timeout, numeric]
+	}
+	return memory.write_word_machine(physical_memory(bus), address, value)
+}
+
 let read_byte_machine = (bus, address) {
 	bump(bus, DATI)
+	trace_io(bus, TRACE_DATI, address)
 	return read_byte_physical(bus, cpu_physical_address_machine(address))
 }
 
 let write_byte_machine = (bus, address, value) {
 	bump(bus, DATOB)
+	trace_io(bus, TRACE_DATOB, address)
 	return write_byte_physical(bus, cpu_physical_address_machine(address), value)
 }
 
 let read_word_machine = (bus, address) {
 	bump(bus, DATI)
+	trace_io(bus, TRACE_DATI, address)
 	return read_word_physical(bus, cpu_physical_address_machine(address))
 }
 
 let write_word_machine = (bus, address, value) {
 	bump(bus, DATO)
+	trace_io(bus, TRACE_DATO, address)
 	return write_word_physical(bus, cpu_physical_address_machine(address), value)
 }
 
@@ -272,32 +449,52 @@ let write_word_machine = (bus, address, value) {
 let read_byte_bound = (bus, memory_store, counter_store, address) {
 	counters.counter_add(counter_store, DATI, 1)
 	if fixed.word_lt_number(address, IO_PAGE_16) {
-		return memory.read_byte_machine(memory_store, fixed.addr_from_word(address))
+		let physical = fixed.addr_from_word(address)
+		if not ram_present(bus, physical) {
+			return [@pdp_fault, :bus_timeout, fixed.number(physical)]
+		}
+		return memory.read_byte_machine(memory_store, physical)
 	}
+	trace_io(bus, TRACE_DATI, address)
 	return read_byte_physical(bus, cpu_physical_address_machine(address))
 }
 
 let write_byte_bound = (bus, memory_store, counter_store, address, value) {
 	counters.counter_add(counter_store, DATOB, 1)
 	if fixed.word_lt_number(address, IO_PAGE_16) {
-		return memory.write_byte_machine(memory_store, fixed.addr_from_word(address), value)
+		let physical = fixed.addr_from_word(address)
+		if not ram_present(bus, physical) {
+			return [@pdp_fault, :bus_timeout, fixed.number(physical)]
+		}
+		return memory.write_byte_machine(memory_store, physical, value)
 	}
+	trace_io(bus, TRACE_DATOB, address)
 	return write_byte_physical(bus, cpu_physical_address_machine(address), value)
 }
 
 let read_word_bound = (bus, memory_store, counter_store, address) {
 	counters.counter_add(counter_store, DATI, 1)
 	if fixed.word_lt_number(address, IO_PAGE_16) {
-		return memory.read_word_machine(memory_store, fixed.addr_from_word(address))
+		let physical = fixed.addr_from_word(address)
+		if not ram_present(bus, physical) {
+			return [@pdp_fault, :bus_timeout, fixed.number(physical)]
+		}
+		return memory.read_word_machine(memory_store, physical)
 	}
+	trace_io(bus, TRACE_DATI, address)
 	return read_word_physical(bus, cpu_physical_address_machine(address))
 }
 
 let write_word_bound = (bus, memory_store, counter_store, address, value) {
 	counters.counter_add(counter_store, DATO, 1)
 	if fixed.word_lt_number(address, IO_PAGE_16) {
-		return memory.write_word_machine(memory_store, fixed.addr_from_word(address), value)
+		let physical = fixed.addr_from_word(address)
+		if not ram_present(bus, physical) {
+			return [@pdp_fault, :bus_timeout, fixed.number(physical)]
+		}
+		return memory.write_word_machine(memory_store, physical, value)
 	}
+	trace_io(bus, TRACE_DATO, address)
 	return write_word_physical(bus, cpu_physical_address_machine(address), value)
 }
 
@@ -350,6 +547,8 @@ let reset_bus = (bus) {
 	tm11.reset_tape(tape(bus))
 	kl11.reset_console(console(bus))
 	rk11.reset_disk(disk(bus))
+	kw11l.reset_clock(clock(bus))
+	counters.counter_set(irq(bus), IRQ_PENDING, 0)
 	refresh_pending(bus)
 	return true
 }
@@ -357,6 +556,8 @@ let reset_bus = (bus) {
 # Device progress remains deterministic. DMA crosses the legacy controller
 # numeric boundary once per callback, then enters fixed-width RAM directly.
 let advance = (bus, elapsed) {
+	kw11l.advance(clock(bus), elapsed)
+	sync_clock_irq(bus)
 	if equal(counters.counter_get(pending(bus), 0), 0) {
 		return true
 	}
@@ -395,10 +596,44 @@ let advance = (bus, elapsed) {
 }
 
 let advance_bound = (bus, pending_store, elapsed) {
+	kw11l.advance(clock(bus), elapsed)
+	sync_clock_irq(bus)
 	if counters.counter_get(pending_store, 0) <= 0 {
 		return true
 	}
-	return advance(bus, elapsed)
+	# advance() would tick the clock twice; progress non-clock devices inline.
+	let tape_result = true
+	if tm11.active(tape(bus)) {
+		tape_result = tm11.advance(tape(bus), elapsed, (address, value) {
+			bump(bus, NPR_WRITE)
+			return memory.write_byte_machine(physical_memory(bus), fixed.addr18(address), fixed.byte(value))
+		})
+	}
+	if is_error(tape_result) {
+		return tape_result
+	}
+	let disk_result = true
+	if rk11.active(disk(bus)) {
+		disk_result = rk11.advance(disk(bus), elapsed, (address) {
+			bump(bus, NPR_READ)
+			let v = memory.read_word_machine(physical_memory(bus), fixed.addr18(address))
+			if equal(shape(v), :pdp_fault) {
+				return v
+			}
+			return fixed.number(v)
+		}, (address, value) {
+			bump(bus, NPR_WRITE)
+			return memory.write_word_machine(physical_memory(bus), fixed.addr18(address), fixed.word(value))
+		})
+	}
+	if is_error(disk_result) {
+		return disk_result
+	}
+	if kl11.active(console(bus)) {
+		kl11.advance(console(bus), elapsed)
+	}
+	refresh_pending(bus)
+	return true
 }
 
 let tape_byte_count = (bus) {
@@ -593,13 +828,92 @@ let npr_read_count = (bus) {
 	return counters.counter_get(counts(bus), NPR_READ)
 }
 
+let last_dati_address = (bus) {
+	return counters.counter_get(io_trace(bus), TRACE_DATI)
+}
+
+let last_dato_address = (bus) {
+	return counters.counter_get(io_trace(bus), TRACE_DATO)
+}
+
+let last_datob_address = (bus) {
+	return counters.counter_get(io_trace(bus), TRACE_DATOB)
+}
+
+let clock_status = (bus) {
+	return kw11l.status(clock(bus))
+}
+
+let clock_enabled = (bus) {
+	return kw11l.enabled(clock(bus))
+}
+
+let clock_monitor = (bus) {
+	return kw11l.monitor(clock(bus))
+}
+
+let clock_ticks = (bus) {
+	return kw11l.ticks(clock(bus))
+}
+
+let clock_interrupts = (bus) {
+	return kw11l.interrupts(clock(bus))
+}
+
+let interrupt_store = (bus) {
+	return irq(bus)
+}
+
+let interrupt_pending = (bus) {
+	return counters.counter_get(irq(bus), IRQ_PENDING) > 0
+}
+
+let interrupt_level = (bus) {
+	return counters.counter_get(irq(bus), IRQ_LEVEL)
+}
+
+let interrupt_vector = (bus) {
+	return counters.counter_get(irq(bus), IRQ_VECTOR)
+}
+
+let interrupt_pending_bound = (irq_store) {
+	return counters.counter_get(irq_store, IRQ_PENDING) > 0
+}
+
+let interrupt_level_bound = (irq_store) {
+	return counters.counter_get(irq_store, IRQ_LEVEL)
+}
+
+let interrupt_vector_bound = (irq_store) {
+	return counters.counter_get(irq_store, IRQ_VECTOR)
+}
+
+let acknowledge_interrupt = (bus) {
+	kw11l.acknowledge_interrupt(clock(bus))
+	sync_clock_irq(bus)
+	return true
+}
+
 # Diagnostic/configuration boundary for inspecting the 16->18 bit projection.
 let cpu_physical_address = (address) {
 	return fixed.number(cpu_physical_address_machine(fixed.word(address)))
 }
 
 export(
+	:DEFAULT_MEMORY_WORDS,
+	:new,
+	:new_with_memory_words,
+	:installed_memory_bytes,
+	:installed_memory_words,
 	:cpu_physical_address_machine,
+	:record_dati,
+	:record_dato,
+	:record_datob,
+	:read_byte_physical_machine,
+	:write_byte_physical_machine,
+	:read_word_physical_machine,
+	:write_word_physical_machine,
+	:load_boot_word_machine,
 	:cpu_physical_address,
 	:memory_store,
 	:count_store,
@@ -672,5 +986,21 @@ export(
 	:console_receiver_done,
 	:console_transmitter_ready,
 	:console_receiver_interrupt_enabled,
-	:console_transmitter_interrupt_enabled
+	:console_transmitter_interrupt_enabled,
+	:last_dati_address,
+	:last_dato_address,
+	:last_datob_address,
+	:clock_status,
+	:clock_enabled,
+	:clock_monitor,
+	:clock_ticks,
+	:clock_interrupts,
+	:interrupt_store,
+	:interrupt_pending,
+	:interrupt_level,
+	:interrupt_vector,
+	:interrupt_pending_bound,
+	:interrupt_level_bound,
+	:interrupt_vector_bound,
+	:acknowledge_interrupt
 )

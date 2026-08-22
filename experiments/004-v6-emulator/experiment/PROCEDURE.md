@@ -104,6 +104,17 @@ examine 000000 2
 
 should show `000407` and `000654`. Observer windows must reflect the same CPU, tape, and UNIBUS state and may be closed without affecting execution.
 
+Mnemonic examination is available for suspended-machine diagnosis:
+
+```text
+examine -m 003074 4
+```
+
+Mnemonic mode retains the octal address and instruction word, uses the CPU's
+authoritative decoder for instruction classification, consumes extension words
+without executing the instruction, and interprets `COUNT` as an octal number of
+instructions.
+
 Stop after this cut for user validation. Console/KL11 and execution of address 0 to the standalone `=` prompt belong to Gate 3.
 
 ## Current validation limitation
@@ -137,14 +148,14 @@ boot tape 0
 run 0
 ```
 
-The main terminal is the actual guest KL11 while the PDP is running. CTRL-T reports emulator status and CTRL-E suspends back to `aiki-pdp>`; every other byte, including CTRL-C and CTRL-D, is guest console input.
+The main terminal is the actual guest KL11 while the PDP is running. CTRL-T reports a two-line emulator snapshot (CPU state plus wall/internal time and I/O progress) and CTRL-E suspends back to `aiki-pdp>`; every other byte, including CTRL-C and CTRL-D, is guest console input.
 
 Gate when the real standalone image loaded from record zero prints its first `=` prompt through the emulated KL11. The KL11 observer must show transmitter activity. Stop there before RK11/RK05 work.
 
 Observed real-media evidence: the standalone image printed `=` through KL11 after rewinding the real TUHS V6 tape. At suspension the tape showed one read / `1000` octal bytes in and record `000000`; UNIBUS NPR writes were fixed at `1000`, and the CPU was polling in the standalone command loop. Cut 6 is GATED.
 
 
-## Cut 7 — RK11/RK05 and standalone `tmrk` — ACTIVE
+## Cut 7 — RK11/RK05 and standalone `tmrk` — GATED
 
 Run the focused disk/controller gate:
 
@@ -187,7 +198,9 @@ count
 3999
 ```
 
-The first transfer writes the RK05 bootstrap to disk block 0. The second writes the binary filesystem to disk blocks 1..3999. Gate only when both operations complete under the real standalone program, with the RK observer showing disk-0 activity and the resulting host pack remaining exactly one RK05 cartridge in size. Stop before booting disk 0.
+The first transfer writes the RK05 bootstrap to disk block 0. The second writes the binary filesystem to disk blocks 1..3999. Gate only when both operations complete under the real standalone program, with the RK observer showing disk-0 activity and the resulting host pack remaining exactly one RK05 cartridge in size.
+
+Observed real-media evidence: both `tmrk` transfers completed and returned to the standalone `=` prompt while the tape advanced through the binary filesystem. The resulting RK0 pack contains block 0 plus disk blocks 1..3999. Cut 7 is GATED.
 
 ### Cut 7 performance diagnostic — ACTIVE, measure before optimization
 
@@ -219,3 +232,193 @@ This is an evidence gate, not an optimization. Review scaling and dominant
 semantic units before changing memory, UNIBUS, audit, state, or operand
 representation. If source attribution is needed after the counts sweep, rerun a
 representative scale with `aiki profile` (without `--counts`).
+
+## Cut 8 — RK05 block-zero bootstrap and V6 disk boot — ACTIVE
+
+Run the focused disk-bootstrap gate:
+
+```sh
+aiki test diagnostics/cut7_rk_test.ai
+```
+
+The monitor command is:
+
+```text
+boot disk UNIT
+```
+
+For RK0 built by Cut 7:
+
+```text
+boot disk 0
+```
+
+The monitor deposits the RK11 bootstrap at CPU address `173110`, corresponding
+to the DEC BM792-YB physical bootstrap entry `773110` on the PDP-11/40 I/O/ROM
+page. The bootstrap programs RKWC for one 256-word sector, RKBA for address 0,
+RKDA for block 0 on the selected unit, issues RK11 READ+GO, waits for READY, and
+transfers control to address 0.
+
+The focused gate must prove one 512-byte RK11 read into low memory and transfer
+of control to address 0. The real-media gate is stronger: boot the RK0 produced
+by the standalone `tmrk` procedure and require the V6 block-zero bootstrap to
+reach its `@` prompt through KL11. The subsequent target is `@rkunix` and a
+successful V6 startup.
+
+
+## Cut 9 — UNIBUS I/O observation and KW11-L line clock
+
+Live disk boot observation reached the block-zero `@` prompt, accepted
+`rkunix`, completed 0167 RK05 reads, and then continued substantial CPU/UNIBUS
+activity with RK and KL11 counters stable. Cut 9 adds two architectural pieces
+before further boot diagnosis.
+
+First, the UNIBUS records the most recent CPU-visible I/O-page DATI, DATO, and
+DATOB addresses. CTRL-T includes these addresses on its second observation line
+and the UNIBUS observer shows them explicitly. Observation reads existing state
+only and does not itself issue UNIBUS transactions.
+
+Second, add the KW11-L line-time clock required by the V6 `CLOCK1` path:
+
+```text
+CSR       177546 CPU / 777546 physical
+vector    000100
+priority  BR6
+```
+
+The host wall clock does not drive the guest. The clock advances from the
+existing deterministic internal machine-time stream. In this model one nominal
+line event is realized every 10,000 internal ticks; this simulation scale is an
+explicit implementation constant, not a claim about PDP instruction timing.
+A line event sets MONITOR and, when interrupt enable is set, requests BR6/vector
+100.
+
+Cut 9 also closes the generic CPU interrupt seam needed by that device:
+interrupt requests are recognized before fetch, accepted only above the current
+PSW priority, stack old PSW then old PC in the order expected by RTT, load the
+new PC/PSW from the vector, acknowledge the request, and wake WAIT. While WAIT
+is asserted, deterministic device time continues to advance so a clock event
+can wake the processor.
+
+Gate with `diagnostics/cut9_clock_test.ai` plus the repository validation. The
+live acceptance witness remains the constructed `/tmp/rk0`: `boot disk 0`,
+`@rkunix`, then observe KW11-L interrupts and subsequent V6 progress without
+special-casing kernel code.
+
+
+## Console milestone timing
+
+For observational boot runs, enable host-side timing before starting the guest:
+
+```text
+timing on
+attach disk 0 /tmp/rk0
+boot disk 0
+@rkunix
+```
+
+Timing annotations are emitted on stderr and do not alter guest machine state or
+the guest stdout byte stream. The timer starts at each `demo`, `boot`, `run`, or
+`continue` execution segment. It records execution start, guest input lines,
+first output after input or a quiet interval, and line-leading `@`, `=`, and `#`
+prompts. `timing off` restores the historically clean console presentation.
+
+These are host wall-clock observations only; they are not PDP-11 guest time and
+do not drive the deterministic simulator clock.
+
+
+### WAIT and deterministic device time
+
+Cut 9 keeps the processor logically running while a PDP-11 WAIT instruction is
+active. No guest instruction is fetched and the PC does not advance, but one
+unit of deterministic machine/device time advances per execution cycle. An
+eligible UNIBUS interrupt is considered before the WAIT hold and clears the
+waiting state on acceptance. WAIT cycles therefore advance time without
+incrementing the completed-instruction count.
+
+
+## Cut 10 — KT11-D memory management
+
+Cut 10 inserts the PDP-11/40 KT11-D between CPU virtual references and the
+18-bit physical UNIBUS address space. It implements Kernel/User PAR/PDR banks,
+page relocation, ACF protection, expansion-direction/page-length checks, PDR
+written-bit maintenance, SSR0/SSR2, previous-mode MFPI/MTPI transfers, and
+processor fault entry for segmentation vector 0250 and bus-error vector 0004.
+Processor status at 0177776 is now backed by the real CPU PSW rather than
+ordinary I/O-page storage. Unassigned physical I/O-page references now produce
+a bus-timeout fault instead of silently reading/writing backing RAM.
+
+The bounded profiling path deliberately falls back to the authoritative machine
+path after SSR0 enables KT11-D. Before management is enabled, the existing hot
+path remains available. This avoids maintaining two independent MMU semantics.
+
+First live acceptance gate:
+
+```text
+boot disk 0
+@rkunix
+mem = ...
+```
+
+V6 `main()` uses UISA0/UISD0 plus MFPI through `fuibyte()` as a moving window
+through physical memory. The Lions laboratory is configured with 24K words of
+installed core: physical bytes `000000..137777`; `140000` is the first absent
+physical byte. A translated reference at that boundary must bus-timeout through
+vector 4, allowing the `nofault` path to return -1 and terminate memory
+inventory. The 18-bit backing address space remains larger than installed core,
+and the physical I/O page remains `760000..777777`. Only after memory inventory
+terminates should V6 probe the KW11-L at 0177546.
+
+
+### Cut 10 bootstrap ROM and bus-timeout boundary
+
+The BM792-YB RK bootstrap occupies an explicit emulated ROM window at physical
+`773110..773150`. The monitor loads that window through an operator-only control
+path; guest CPU stores do not modify it. Other unassigned physical I/O-page
+addresses produce bus timeout. Installed RAM extent is separately configured;
+the Lions-lab default is 24K words, so ordinary physical RAM references at or
+above `140000` time out unless a separately mapped device/ROM owns the address.
+This preserves disk bootstrap execution while allowing V6 physical-memory
+discovery to terminate at the configured core boundary rather than at the
+maximum 18-bit address-space limit.
+
+### CUT10 debugger breakpoints
+
+The monitor provides instruction-address breakpoints for live architectural
+work:
+
+```text
+break ADDR
+break list
+break clear [ADDR]
+```
+
+A breakpoint is checked by the bounded executor before the target instruction
+executes. Resuming skips that just-hit address once, so a breakpoint can remain
+armed without immediately stopping again on the same PC. Breakpoints are host
+monitor state and do not alter guest memory or registers.
+
+The standalone `cut10_csv_cret_test.ai` exercises the V6 `csv`/`cret` calling
+sequence as a closed CPU linkage cycle. It is stack-neutral in isolation; a
+live `mov r4,-(sp)` reaching `nofault` must therefore be treated as evidence
+that KSP was already too low before that save, not as evidence that csv itself
+leaks a word per call.
+
+### CUT10 precise watch stop
+
+For first-corruption work, enable the diagnostic watch before starting the
+monitor:
+
+```sh
+AIKI_PDP_CUT10_WATCH=1 ./showcase.sh
+```
+
+The CPU latches the successfully fetched instruction address separately from
+R7. A watch report therefore pairs the correct instruction address with the
+latched IR even after fetch or control transfer has changed PC.
+
+The first Kernel SP transition from `>=130000` to `<130000` is an automatic
+watchpoint stop. Bounded execution observes the transition across both the
+structural hot path and the authoritative machine path. Watchpoint bookkeeping
+belongs to the processor state, not module-global state, so all import paths
+observe the same emulated-machine debugger state.

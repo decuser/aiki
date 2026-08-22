@@ -16,12 +16,50 @@ let word_machine = (m) {
 		_ {
 		}
 	}
+	# SR2 records the virtual PC only after a successful instruction fetch.
+	# A failed fetch leaves the preceding successful-fetch PC frozen for recovery.
+	machine.set_iar_word(m, address)
+	machine.mmu_instruction_start(m, address)
+	machine.set_ir_word(m, value)
+	machine.set_pc_word(m, fixed.word_add_small(address, 2))
+	return value
+}
+
+# Operand-extension words are part of the current instruction stream, not new
+# instructions. Fetch them through the current PC and advance R7, but preserve
+# the opcode IR, instruction-address latch, and MMU instruction-start state.
+let extension_machine = (m) {
+	let address = machine.pc_word(m)
+	let value = machine.read_word_machine(m, address)
+	match value {
+		[@pdp_fault, kind, detail] {
+			return value
+		}
+		_ {
+		}
+	}
 	machine.set_pc_word(m, fixed.word_add_small(address, 2))
 	return value
 }
 
 # Bound execution path: run_bounded resolves state and UNIBUS once.
 let word_bound = (cpu_words, bus, bus_memory, bus_counts) {
+	let address = state.pc_word_bound(cpu_words)
+	let value = unibus.read_word_bound(bus, bus_memory, bus_counts, address)
+	match value {
+		[@pdp_fault, kind, detail] {
+			return value
+		}
+		_ {
+		}
+	}
+	state.set_iar_word_bound(cpu_words, address)
+	state.set_ir_word_bound(cpu_words, value)
+	state.set_pc_word_bound(cpu_words, fixed.word_add_small(address, 2))
+	return value
+}
+
+let extension_bound = (cpu_words, bus, bus_memory, bus_counts) {
 	let address = state.pc_word_bound(cpu_words)
 	let value = unibus.read_word_bound(bus, bus_memory, bus_counts, address)
 	match value {
@@ -47,4 +85,4 @@ let word = (m) {
 	return fixed.number(value)
 }
 
-export(:word_machine, :word_bound, :word)
+export(:word_machine, :extension_machine, :word_bound, :extension_bound, :word)

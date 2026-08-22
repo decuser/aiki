@@ -1,0 +1,56 @@
+use("test")
+
+let execute = import("../cpu/execute")
+let machine = import("../machine/machine")
+let octal = import("../reference/octal")
+
+let put = (m, address, word) {
+	machine.deposit_word(m, octal.parse(address), octal.parse(word))
+}
+
+run("V6 csv/cret linkage is stack-neutral across repeated C calls", () {
+	let m = machine.new()
+	# Outer caller uses a PC-relative function address because V6 C linkage
+	# treats R0/R1 as caller-saved; cret deliberately leaves R1 clobbered.
+	# The SOB loop therefore tests linkage neutrality without relying on a
+	# caller-saved register across calls.
+	put(m, "010000", "004767")  # JSR PC,010020
+	put(m, "010002", "000014")
+	put(m, "010004", "077303")  # SOB R3,010000
+	put(m, "010006", "000000")  # HALT
+	# A minimal C function. Its first instruction enters csv. The body returns
+	# through the return PC that csv places on the stack, which is cret.
+	put(m, "010020", "004512")  # JSR R5,(R2)
+	put(m, "010022", "000240")  # NOP -- function body
+	put(m, "010024", "000207")  # RTS PC -- body -> cret
+	# V6 csv, verbatim in instruction shape (m40.s 1420-1426).
+	put(m, "010100", "010500")  # MOV R5,R0
+	put(m, "010102", "010605")  # MOV SP,R5
+	put(m, "010104", "010446")  # MOV R4,-(SP)
+	put(m, "010106", "010346")  # MOV R3,-(SP)
+	put(m, "010110", "010246")  # MOV R2,-(SP)
+	put(m, "010112", "004710")  # JSR PC,(R0)
+	# V6 cret, verbatim in instruction shape (m40.s 1430-1437).
+	put(m, "010114", "010501")  # MOV R5,R1
+	put(m, "010116", "014104")  # MOV -(R1),R4
+	put(m, "010120", "014103")  # MOV -(R1),R3
+	put(m, "010122", "014102")  # MOV -(R1),R2
+	put(m, "010124", "010506")  # MOV R5,SP
+	put(m, "010126", "012605")  # MOV (SP)+,R5
+	put(m, "010130", "000207")  # RTS PC
+	machine.set_pc(m, octal.parse("010000"))
+	machine.set_sp(m, octal.parse("130000"))
+	machine.set_register(m, 2, octal.parse("010100"))
+	machine.set_register(m, 3, octal.parse("000100"))  # 64 calls
+	machine.set_register(m, 4, octal.parse("044444"))
+	machine.set_register(m, 5, octal.parse("055555"))
+	let steps = execute.run_bounded(m, 2000)
+	equal(machine.running(m), false)
+	equal(machine.pc(m), octal.parse("010010"))
+	equal(machine.sp(m), octal.parse("130000"))
+	equal(machine.get_register(m, 2), octal.parse("010100"))
+	equal(machine.get_register(m, 3), 0)
+	equal(machine.get_register(m, 4), octal.parse("044444"))
+	equal(machine.get_register(m, 5), octal.parse("055555"))
+	equal(steps > 0, true)
+})

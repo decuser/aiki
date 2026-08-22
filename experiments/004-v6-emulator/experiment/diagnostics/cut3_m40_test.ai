@@ -7,6 +7,8 @@ let audit_report = import("../audit/report")
 let octal = import("../reference/octal")
 let str = import("string/native")
 
+let @pdp_fault [kind, detail]
+
 let fresh = () {
 	let m = machine.new()
 	machine.reset_machine(m)
@@ -62,6 +64,7 @@ let representative_words = [
 	[:sbc, 2944],
 	[:sob, 32257],
 	[:sub, 57345],
+	[:sxt, 3520],
 	[:swab, 192],
 	[:tst, 3008],
 	[:tstb, 35776],
@@ -69,9 +72,15 @@ let representative_words = [
 ]
 
 
-run("m40 contract contains exactly the 45 instruction forms Lions names", () {
-	equal(length(contract.INSTRUCTIONS), 45)
+run("m40 contract contains all 46 direct-or-classified instruction forms", () {
+	equal(length(contract.INSTRUCTIONS), 46)
 	equal(length(representative_words), length(contract.INSTRUCTIONS))
+})
+
+
+run("m40 contract retains backup-classified SXT even with zero direct source count", () {
+	equal(contract.source_count(:sxt), 0)
+	equal(contract.BACKUP_CLASSIFIED[2], :sxt)
 })
 
 
@@ -79,6 +88,25 @@ run("decoder recognizes every m40 contracted instruction form", () {
 	let i = 0
 	while i < length(representative_words) {
 		equal(decode.instruction_kind(representative_words[i][1]), representative_words[i][0])
+		i = i + 1
+	}
+})
+
+
+run("executor dispatch accepts every m40 contracted instruction form", () {
+	let i = 0
+	while i < length(representative_words) {
+		let m = fresh()
+		put(m, 4096, representative_words[i][1])
+		let result = execute.step(m)
+		match result {
+			[@pdp_fault, :reserved_instruction, detail] {
+				equal(representative_words[i][0], :never_reserved)
+			}
+			_ {
+				equal(true, true)
+			}
+		}
 		i = i + 1
 	}
 })
@@ -129,6 +157,35 @@ run("SWAB exchanges bytes and takes NZ from resulting low byte", () {
 	equal(execute.step(m), true)
 	equal(machine.get_register(m, 0), 65408)  # 0177600
 	equal(machine.psw(m), 8)
+})
+
+
+run("SXT implements the PDP-11/40 sign-extension contract", () {
+	let m = fresh()
+	# N clear: write zero, set Z, preserve V and C.
+	machine.set_register(m, 0, octal.parse("012345"))
+	machine.set_psw(m, octal.parse("000003"))  # V,C
+	put(m, 4096, octal.parse("006700"))  # SXT R0
+	equal(execute.step(m), true)
+	equal(machine.get_register(m, 0), 0)
+	equal(machine.psw(m), octal.parse("000007"))  # Z,V,C
+	# N set: write -1, clear Z, preserve N,V,C.
+	machine.set_register(m, 0, 0)
+	machine.set_psw(m, octal.parse("000013"))  # N,V,C
+	put(m, 4098, octal.parse("006700"))
+	equal(execute.step(m), true)
+	equal(machine.get_register(m, 0), octal.parse("177777"))
+	equal(machine.psw(m), octal.parse("000013"))
+	# General destination machinery applies: autoincrement advances once and
+	# receives the value derived from N.
+	machine.set_register(m, 1, octal.parse("020000"))
+	machine.deposit_word(m, octal.parse("020000"), octal.parse("012345"))
+	machine.set_psw(m, octal.parse("000010"))  # N only
+	put(m, 4100, octal.parse("006721"))  # SXT (R1)+
+	equal(execute.step(m), true)
+	equal(machine.examine_word(m, octal.parse("020000")), octal.parse("177777"))
+	equal(machine.get_register(m, 1), octal.parse("020002"))
+	equal(machine.psw(m), octal.parse("000010"))
 })
 
 
@@ -221,7 +278,14 @@ run("WAIT suspends instruction issue and RESET uses the UNIBUS reset seam", () {
 	put(m, 4096, 1)  # WAIT
 	equal(execute.step(m), true)
 	equal(machine.waiting(m), true)
-	equal(execute.step(m), false)
+	let waiting_pc = machine.pc(m)
+	let waiting_steps = machine.steps(m)
+	let waiting_time = machine.machine_time(m)
+	equal(execute.step(m), true)
+	equal(machine.pc(m), waiting_pc)
+	equal(machine.steps(m), waiting_steps)
+	equal(machine.machine_time(m), waiting_time + 1)
+	equal(machine.waiting(m), true)
 	machine.set_waiting(m, false)
 	put(m, 4098, 5)  # RESET
 	equal(execute.step(m), true)
@@ -257,4 +321,35 @@ run("audit report and machine formatting are octal-first", () {
 	equal(str.contains(report, "delta  000004  Z"), true)
 	equal(machine.audit_psw_change_count(m, 2), 1)
 	equal(machine.audit_psw_change_count(m, 3), 0)
+})
+
+
+run("RESET in User mode does not reset UNIBUS devices", () {
+	let m = fresh()
+	put(m, 4096, 5)  # RESET
+	machine.console_receive(m, 65)
+	is_true(machine.console_receiver_done(m))
+	machine.set_psw(m, octal.parse("140000"))
+	equal(execute.step(m), true)
+	is_true(machine.console_receiver_done(m))
+})
+
+
+run("console switch register satisfies V6 putchar probe without a bus timeout", () {
+	let m = fresh()
+	put(m, 4096, 3039)  # 005737 TST *$177570
+	put(m, 4098, 65400)  # 0177570
+	equal(execute.step(m), true)
+	equal(machine.pc(m), 4100)
+	equal(machine.psw(m), octal.parse("000010"))  # 173030 is nonzero and negative => N set, Z clear
+	equal(machine.read_word(m, 65400), octal.parse("173030"))
+	equal(machine.read_byte(m, 65400), octal.parse("030"))
+	equal(machine.read_byte(m, 65401), octal.parse("366"))
+	equal(machine.write_word(m, 65400, 0), true)
+	equal(machine.read_word(m, 65400), octal.parse("173030"))
+	# The front panel, not guest code, owns the switch register.
+	equal(machine.set_console_switch_word(m, octal.parse("000177")), true)
+	equal(machine.read_word(m, 65400), octal.parse("000177"))
+	machine.reset_bus(m)
+	equal(machine.read_word(m, 65400), octal.parse("000177"))
 })
